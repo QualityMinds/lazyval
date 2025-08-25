@@ -1,0 +1,349 @@
+// Since Github does not support inlcudes, we use Asciidoc-Reducer with a Github Action
+// to generate the actual README as a single file with all includes resolved.
+= Lazyval
+
+ifdef::env-github[]
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+// currently not supported by Github (maybe the Reducer can handle this later)
+:toc:
+:toclevels: 2
+
+== What is Lazyval / Motivation
+
+NOTE: Kotlin support is described in README-Kotlin.adoc
+
+Lazyval is a Java annotation processor generating boilerplate code, often needed when modeling
+https://martinfowler.com/bliki/ValueObject.html[value-types]. The initial idea was inspired by
+Scalas https://www.scala-lang.org/api/current/scala/AnyVal.html[Anyval]; even though this works
+completely differently, it allows you to easily define a wrapper-type which captures the domain's
+intent.
+
+In the usual Java Enterprise projects, it is generally a good idea to model types instead of relying
+purely on primitives.
+Unfortunately, the ecosystem usually requires additional work when modeling custom types, which is
+often seen as too much of a burden.
+
+As an example, assuming a regular project (Quarkus, Spring Boot) with Mapstruct and JPA,
+for each custom value-type it is necessary to provide a https://www.baeldung.com/jpa-attribute-converters[JPA AttributeConverter]
+as well as a Mapstruct Mapper definition to wrap/unpack the type.
+
+*This is what Lazyval is doing: depending on your classpath, it will generate*:
+
+* *a single Mapstruct-Mapper with mappings for all defined value-types*
+
+* *a JPA-AttributeConverter for each value-type*
+
+NOTE: mappers for other database systems like Cassandra, Mongo, should be fairly easy to add in the future.
+
+Lazyval works for Records, as well as regular Java objects. *It will determine the type of the
+wrapped value and also look for factory methods.* In case the definition does not meet the requirements,
+a compilation error will be issued.
+
+.Requirements:
+* must only wrap a single value
+
+** for regular classes, transient and static fields are still allowed
+
+** for regular classes, the class and the value should be final; otherwise a warning is issued
+
+* might provide a single factory method which takes precedence over constructors for object creation
+
+* must be immutable (currently not enforced)
+
+== Usage
+
+Add the `@LazyValue` annotation to your class/record and the processor will figure out the rest.
+
+.Quantity Record
+[source,java]
+----
+@LazyValue()
+public record Quantity(int value) {
+
+    public Quantity {
+        if(value <= 0){
+            throw new IllegalArgumentException("Quantity must be greater than 0");
+        }
+    }
+}
+----
+
+.ISBN Object with factory method
+[source,java]
+----
+@LazyValue
+public final class Isbn {
+
+    private final String value;
+
+    private Isbn(String value){
+        Objects.requireNonNull(value);
+        this.value = value;
+    }
+
+    public String value(){
+        return value;
+    }
+
+    // will be used by the annotation processor (factory methods have higher precedence)
+    public static Isbn parse(String value) throws IllegalArgumentException {
+        Objects.requireNonNull(value, "ISBN cannot be null");
+
+        String cleanValue = value.replaceAll("[-\\s]", "");
+
+        if (cleanValue.length() == 10) {
+            validateIsbn10(cleanValue);
+        } else if (cleanValue.length() == 13) {
+            validateIsbn13(cleanValue);
+        } else {
+            throw new IllegalArgumentException("Invalid ISBN length. Must be 10 or 13 digits (excluding hyphens)");
+        }
+
+        return new Isbn(value);
+    }
+
+    // ... validation, equals, hashCode, toString
+----
+
+.Generated Mapper definition
+[source, java]
+----
+@Mapper(
+    unmappedTargetPolicy = ReportingPolicy.ERROR
+)
+public interface LazyvalMapper {
+    default int mapQuantityToWrappedType(Quantity type) {
+        return type.value();
+    }
+
+    default Quantity mapQuantity(int value) {
+        return new Quantity(value);
+    }
+
+    default String mapIsbnToWrappedType(Isbn type) {
+        return type == null ? null : type.value();
+    }
+
+    default Isbn mapIsbn(String value) {
+        return value == null ? null : Isbn.parse(value);
+    }
+}
+----
+
+This Mapper can now be used in other mappers or included in a default config.
+See Mapstructs docu on https://mapstruct.org/documentation/stable/reference/html/#shared-configurations[shared configurations]
+
+[source, java]
+----
+@MapperConfig(
+        uses = LazyvalMapper.class
+)
+public interface DefaultMapperConfig {
+}
+----
+
+
+.Generated JPA AttributeConverter definition
+[source, java]
+----
+@Converter(
+    autoApply = true
+)
+public class QuantityAttributeConverter implements AttributeConverter<Quantity, Integer> { // 1.
+    public Integer convertToDatabaseColumn(Quantity type) {
+        return type.value();
+    }
+
+    public Quantity convertToEntityAttribute(Integer dbValue) {
+        return new Quantity(dbValue);
+    }
+}
+
+@Converter(
+    autoApply = true
+)
+public class IsbnAttributeConverter implements AttributeConverter<Isbn, String> {
+    public String convertToDatabaseColumn(Isbn type) {
+        return type == null ? null : type.value();
+    }
+
+    public Isbn convertToEntityAttribute(String dbValue) {
+        return dbValue == null ? null : Isbn.parse(dbValue);
+    }
+}
+----
+1. where needed, wrapped primitives are boxed
+
+These converters will be automatically picked up by your persistence provider.
+
+[NOTE]
+Lazyval will only generate Classes for which the dependencies are available on the classpath.
+In case neither Mapstruct, nor JPA is available, a Warning message will be logged in the compilation.
+
+== Setup & Configuration
+
+To use Lazyval, you have to have the annotation on your compilepath and the annotation-processor
+enabled during compilation.
+
+NOTE: The `@Lazyval` annotation is erased during compile time, so there is no need
+that consumers need a transitive dependency to the module.
+
+=== Maven Setup
+
+[source, xml]
+----
+    <properties>
+        <version.lazyval>0.1.0-SNAPSHOT</version.lazyval>
+        <version.mapstruct>1.6.3</version.mapstruct>
+        <version.jakarta-ee>11.0.0</version.jakarta-ee>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>de.qualityminds.lazyval</groupId>
+            <artifactId>lazyval</artifactId>
+            <version>${version.lazyval}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${version.mapstruct}</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+            <version>${version.jakarta-ee}</version>
+            <scope>provided</scope>
+    </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <release>17</release>
+                    <proc>full</proc>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>de.qualityminds.lazyval</groupId>
+                            <artifactId>lazyval-processor</artifactId>
+                            <version>${version.lazyval}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${version.mapstruct}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <compilerArgs>
+                        <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
+                        <arg>-Alazyval.jpa.generatedPackage=test.boundary.persistence</arg>
+                        <arg>-Alazyval.mapstruct.generatedPackage=test</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+----
+
+=== Gradle Setup
+
+[source, kotlin]
+----
+dependencies {
+    compileOnly("de.qualityminds.lazyval:lazyval:0.1.0-SNAPSHOT")
+    implementation("org.mapstruct:mapstruct:1.6.3")
+    compileOnly("jakarta.platform:jakarta.jakartaee-api:11.0.0")
+
+    // Annotation processors
+    annotationProcessor("de.qualityminds.lazyval:lazyval-processor:0.1.0-SNAPSHOT")
+    annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
+}
+
+
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(17)
+    options.compilerArgs.apply{
+        add("-Amapstruct.unmappedTargetPolicy=ERROR")
+        add("-Alazyval.jpa.generatedPackage=test.boundary.persistence")
+        add("-Alazyval.mapstruct.generatedPackage=test")
+    }
+}
+----
+
+=== Mill Setup
+
+[source, scala]
+----
+  override def mvnDeps: T[Seq[Dep]] = Seq(
+    mvn"org.mapstruct:mapstruct:${Version.mapstruct}",
+  )
+
+  override def compileMvnDeps: T[Seq[Dep]] = Seq(
+    mvn"de.qualityminds.lazyval:lazyval:${Version.lazyval}",
+    mvn"de.qualityminds.lazyval:lazyval-processor:${Version.lazyval}",
+    mvn"jakarta.persistence:jakarta.persistence-api:${Version.jpa}",
+    mvn"org.mapstruct:mapstruct-processor:${Version.mapstruct}"
+  )
+
+  def javacOptions = super.javacOptions() ++ Seq(
+    // as of Java 25, Annotation Processors must be explicitly enabled
+    // alternatively use "-proc:full"
+    "-processor", "de.qualityminds.lazyval.processor.LazyvalProcessor,org.mapstruct.ap.MappingProcessor",
+    "-Amapstruct.unmappedTargetPolicy=ERROR",
+    "-Alazyval.jpa.generatedPackage=test.boundary.persistence",
+    "-Alazyval.mapstruct.generatedPackage=test",
+  )
+----
+=== Configuration Options
+
+|===
+|Property |Description
+
+|_lazyval.jpa.generatedPackage_
+|Specifies the package where the `AttributeConverter` classes are generated to.
+
+|_lazyval.mapstruct.generatedPackage_
+|Specifies the package where the `LazyvalMapper` interface is generated to.
+
+|===
+
+
+== Examples
+
+You can find examples in the https://github.com/QualityMinds/lazyval/tree/main/examples[examples] folder.
+
+== Contributing
+
+Contributions are welcome! Please read our https://github.com/QualityMinds/lazyval/blob/main/CONTRIBUTING.md[contributing guidelines] before opening an issue or pull request.
+
+== License
+
+This project is licensed under the [Apache License 2.0](LICENSE). You are free to use, modify, and distribute it under the terms of that license.
+
+== Cyber Resilience Act (CRA) Notice
+
+**Important Notice regarding the EU Cyber Resilience Act (CRA):**
+This project is a *developer tool* and **does not constitute a "product with digital elements"** as defined under the CRA. It is not executed in production environments, nor does it process data during runtime.
+
+The responsibility for the security, compliance, and correctness of the generated code lies entirely with the user. If the generated clients are used in safety-critical or regulated domains, users must perform their own security and compliance assessments.
+
+== Disclaimer of Liability
+
+This project provides templates and helper scripts on an "as-is" basis, without any warranties.
+
+The maintainers do **not accept any liability** for:
+
+- the security or correctness of generated code,
+- suitability for use in any specific technical or regulatory context.
+
+Use of this project is at your own risk. Always validate generated code in accordance with your organization’s quality and security standards.

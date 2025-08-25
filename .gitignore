@@ -1,0 +1,58 @@
+# Mill build tool
+out/
+.mill-version
+
+**/target
+
+**/build
+
+**/.gradle
+
+# BSP
+.bsp/
+
+# Scala IDE specific (ENSIME, Dotty IDE, etc.)
+.ensime
+.ensime_cache/
+.dotty-ide-artifact
+.dotty-ide.json
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+.idea_modules/
+
+# Eclipse
+.classpath
+.project
+.settings/
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.metadata
+.loadpath
+.recommenders
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# Windows
+Thumbs.db
+
+# macOS
+.DS_Store

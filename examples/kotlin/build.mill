@@ -1,0 +1,58 @@
+//| mill-version: 1.0.5
+//| mill-jvm-version: zulu:21
+import coursier.LocalRepositories.Dangerous
+import coursier.Repositories
+import mill.*
+import mill.kotlinlib.*
+import mill.kotlinlib.ksp.*
+
+object `package` extends KotlinMavenModule with KspModule {
+
+  object Version{
+    val lazyval = "0.1.0-SNAPSHOT"
+    val mapstruct = "1.6.3"
+    val jpa = "3.2.0"
+  }
+
+  override def kotlinVersion = "2.2.20"
+  override def kspVersion = "2.0.3"
+  override def kspJvmTarget = "21"
+  override def kspModuleMode = KspModuleMode.Ksp2 // could be ommited, as it is the default
+
+  // tag::docu[]
+  override def repositories: T[Seq[String]] = super.repositories() ++ Seq(
+    // tag::excluded[]
+    // the previously installed snapshot is in local maven
+    // see docs on Coursier, why m2 is considered dangerous
+    Dangerous.maven2Local.root,
+    // end::excluded[]
+    "https://maven.pkg.github.com/qualityminds/*"
+  )
+
+  override def mvnDeps: T[Seq[Dep]] = Seq(
+    mvn"org.mapstruct:mapstruct:${Version.mapstruct}"
+  )
+
+  override def compileMvnDeps: T[Seq[Dep]] = Seq(
+    mvn"de.qualityminds.lazyval:lazyval:${Version.lazyval}",
+    mvn"jakarta.persistence:jakarta.persistence-api:${Version.jpa}",
+    mvn"org.mapstruct:mapstruct-processor:${Version.mapstruct}"
+  )
+
+  override def kotlinSymbolProcessors: T[Seq[Dep]] = Seq(
+    mvn"de.qualityminds.lazyval:lazyval-ksp:${Version.lazyval}"
+  )
+
+  def javacOptions = super.javacOptions() ++ Seq(
+    // as of Java 25, Annotation Processors must be explicitly enabled
+    // alternatively use "-proc:full"
+    "-processor", "org.mapstruct.ap.MappingProcessor",
+    "-Amapstruct.unmappedTargetPolicy=ERROR",
+  )
+
+  override def kspProcessorOptions: T[Map[String, String]] = Map(
+    "lazyval.jpa.generatedPackage" -> "test.boundary.persistence",
+    "lazyval.mapstruct.generatedPackage" -> "test"
+  )
+  // end::docu[]
+}

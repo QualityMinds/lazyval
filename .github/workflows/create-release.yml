@@ -1,0 +1,134 @@
+name: create-release.yml
+on:
+  workflow_dispatch:
+    inputs:
+      postfix:
+        description: 'Any postfix to be appended to the release, e.g.: RC1'
+        default: ''
+      user-name:
+        description: 'User triggering the release (needed for release commit)'
+      user-email:
+        description: 'Users email (needed for release commit)'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.determine_version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          architecture: x64
+          cache: 'maven'
+      - name: Build software
+        run: mvn -B install --no-transfer-progress --file pom.xml
+      - name: Determine version
+        id: determine_version
+        run: |
+          current_version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "Current version: ${current_version}"
+          echo "version=${current_version}" >> $GITHUB_OUTPUT
+          echo "CURRENT_VERSION=${current_version}" >> $GITHUB_ENV
+      - name: Check if snapshot
+        run: |
+          echo "Project version is: ${{ env.CURRENT_VERSION }}"
+          if [[ "${{ env.CURRENT_VERSION }}" != *"-SNAPSHOT"* ]]; then
+            echo "::error::Release version should contain -SNAPSHOT"
+            exit 1
+          else
+            echo "Release version is correct (contains -SNAPSHOT)"
+          fi
+  release:
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      tagged: ${{ steps.set_version.outputs.tag_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          architecture: x64
+          cache: 'maven'
+      - name: Configure Git
+        run: |
+          git config user.name "${{ github.event.inputs.user-name }}"
+          git config user.email "${{ github.event.inputs.user-email }}"
+      - name: Set release version
+        id: set_version
+        run: |
+          mvn versions:set versions:commit -DremoveSnapshot -q
+          RELEASE_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          if [ -n "${{ github.event.inputs.postfix }}" ]; then
+            echo "Appending postfix: ${{ github.event.inputs.postfix }}"
+            mvn versions:set versions:commit -DnewVersion="${RELEASE_VERSION}-${{ github.event.inputs.postfix }}"
+          fi;
+          
+          RELEASE_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
+          echo "tag_version=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+      - name: Commit release
+        run: |
+          git add .
+          git commit -m "chore: prepare release ${{ env.RELEASE_VERSION }}"
+          git push
+      - name: Tagging stable release
+        run: |
+          git tag ${{ env.RELEASE_VERSION }}
+          git push origin ${{ env.RELEASE_VERSION }}
+#  github-release:
+#    needs: release
+#    runs-on: ubuntu-latest
+#    if: ${{ needs.release.outputs.tagged }}
+#    steps:
+#      - name: Create github release
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          tag_name: ${{ needs.release.outputs.tagged }}
+#          name: Release ${{ needs.release.outputs.tagged }}
+#          draft: true
+#          prerelease: false
+#          generate_release_notes: true
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  prepare-next:
+    needs:
+      - validate
+      - release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          architecture: x64
+          cache: 'maven'
+      - name: Configure Git
+        run: |
+          git config user.name "${{ github.event.inputs.user-name }}"
+          git config user.email "${{ github.event.inputs.user-email }}"
+          git pull
+      - name: Prepare next build phase
+        run: |
+          if [ -n "${{ github.event.inputs.postfix }}" ]; then
+            mvn versions:set versions:commit -DnewVersion="${{ needs.validate.outputs.version }}" -q
+          else
+            mvn versions:set versions:commit -DnextSnapshot -q
+          fi;
+          NEXT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_ENV
+      - name: Pushing committed snapshot
+        run: |
+          git add .
+          git commit -m "chore: prepare snapshot version ${{ env.NEXT_VERSION }}"
+          git push

@@ -1,0 +1,118 @@
+// Since Github does not support includes, we use Asciidoc-Reducer with a Github Action
+// to generate the actual README as a single file with all includes resolved.
+= Kotlin Support via KSP
+
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+For Kotlin, the original Java Annotation Processor was migrated to KSP2 (Kotlin Symbol Processing) to make use of
+the `@LazyValue` annotation on Kotlin classes and data-classes.
+This documentation only deals with Kotlin specifics. For motivation, license, legal notices see the main README.
+
+NOTE: KSP2 only officially supports Gradle. Mill has its own KSP2 support. Maven users can currently not make use of KSP2.
+
+== Usage
+
+Add the `@LazyValue` annotation to your (date-)class and the processor will figure out the rest.
+
+.Quantity Dataclass
+[source, kotlin]
+----
+include::../examples/kotlin/src/main/kotlin/test/Quantity.kt[tags=docu;!excluded]
+----
+
+.ISBN Object with factory method
+[source,kotlin]
+----
+include::../examples/kotlin/src/main/kotlin/test/Isbn.kt[tags=docu;!excluded]
+----
+
+IMPORTANT: The generated Mapstruct interface will still be a Java file because Mapstruct
+is a Java Annotation Processor that cannot read Kotlin sources.
+
+.Generated Mapper definition
+[source,java]
+----
+@Mapper(
+    unmappedTargetPolicy = ReportingPolicy.ERROR
+)
+public interface LazyvalMapper {
+  default String mapIsbnToWrappedType(Isbn type) {
+    if (type == null) {
+      return null;
+    }
+    return type.value();
+  }
+
+  default Isbn mapIsbn(String value) {
+    if (value == null) {
+      return null;
+    }
+    return Isbn.parse(value);
+  }
+
+  default int mapQuantityToWrappedType(Quantity type) {
+    return type.getValue();
+  }
+
+  default Quantity mapQuantity(int value) {
+    return new Quantity(value);
+  }
+}
+----
+
+
+.Generated JPA AttributeConverter definition
+[source, kotlin]
+----
+@Converter(autoApply = true)
+public class IsbnAttributeConverter :  AttributeConverter<Isbn?, String?> {
+  override fun convertToDatabaseColumn(type: Isbn?): String? = type?.value()
+
+  override fun convertToEntityAttribute(dbValue: String?): Isbn? = dbValue?.let { Isbn.parse(dbValue) }
+}
+
+@Converter(autoApply = true)
+public class QuantityAttributeConverter : AttributeConverter<Quantity?, Int?> {
+  override fun convertToDatabaseColumn(type: Quantity?): Int? = type?.value
+
+  override fun convertToEntityAttribute(dbValue: Int?): Quantity? = dbValue?.let { Quantity(dbValue) }
+}
+----
+
+== Setup & Configuration
+
+To use Lazyval, you have to have the annotation on your compilepath and the annotation-processor
+enabled during compilation.
+
+NOTE: The `@Lazyval` annotation is erased during compile time, so there is no need
+that consumers need a transitive dependency to the module.
+
+=== Gradle
+
+[source, kotlin]
+----
+include::../examples/kotlin/build.gradle.kts[tags=docu;!excluded]
+----
+
+Make sure to enable KSP2 mode in `gradle.properties`
+
+[source, properties]
+----
+include::../examples/kotlin/gradle.properties[]
+----
+
+=== Mill
+
+Add the `KspModule` and configure accordingly
+
+[source, scala]
+----
+include::../examples/kotlin/build.mill[tags=docu;!excluded]
+----
+

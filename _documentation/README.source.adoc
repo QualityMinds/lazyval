@@ -1,0 +1,217 @@
+// Since Github does not support includes, we use Asciidoc-Reducer with a Github Action
+// to generate the actual README as a single file with all includes resolved.
+= Lazyval
+
+ifdef::env-github[]
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+
+// Github wont generate a ToC
+:toc:
+:toclevels: 2
+
+== What is Lazyval / Motivation
+
+NOTE: Kotlin support is described in README-Kotlin.adoc
+
+Lazyval is a Java annotation processor generating boilerplate code, often needed when modeling
+_"Domain Primitives"_, which are simple, domain-specific wrapper types around primitives.
+The initial idea was inspired by Scalas https://www.scala-lang.org/api/current/scala/AnyVal.html[Anyval];
+even though this works completely differently, it allows you to easily define a wrapper-type which captures
+the domain's intent.
+
+Unfortunately, the ecosystem usually requires additional work when modeling custom types, which is
+often seen as too much of a burden.
+
+As an example, take a regular project (Quarkus, Spring Boot) with Mapstruct and JPA.
+For each custom domain primitive, it is necessary to provide a JPA AttributeConverter to read/write
+to the Database, as well as a Mapstruct Mapper definition to wrap/unpack the type.
+
+*Lazyval will, depending on your classpath, generate*:
+
+* *a single Mapstruct-Mapper with mappings for all defined domain primitives*
+
+* *a JPA-AttributeConverter for each domain primitive*
+
+NOTE: other mappings (like NoSQL) are planned, as well as an option to provide users with an SPI to hook in custom generators.
+
+NOTE: the term _"Domain Primitive"_ was taken from the book https://www.manning.com/books/secure-by-design[Secure by Design].
+
+Lazyval works for Records, as well as regular Java objects. *It will determine the type of the
+wrapped value and also look for factory methods.* In case the definition does not meet the requirements,
+a compilation error will be issued.
+
+.Requirements:
+* must only wrap a single value
+
+** for regular classes, transient and static fields are still allowed
+
+* must not be abstract
+
+* might provide a single factory method which takes precedence over constructors for object creation
+
+* must be immutable (currently only a warning is issued)
+
+== Usage
+
+Add the `@LazyValue` annotation to your class/record and the processor will figure out the rest.
+
+.Quantity Record
+[source,java]
+----
+include::../examples/java//src/main/java/test/Quantity.java[tag=docu]
+----
+
+.ISBN Object with factory method
+[source,java]
+----
+include::../examples/java//src/main/java/test/Isbn.java[tag=docu]
+----
+
+.Generated Mapper definition
+[source, java]
+----
+@Mapper(
+    unmappedTargetPolicy = ReportingPolicy.ERROR
+)
+public interface LazyvalMapper {
+    default int mapQuantityToWrappedType(Quantity type) {
+        return type.value();
+    }
+
+    default Quantity mapQuantity(int value) {
+        return new Quantity(value);
+    }
+
+    default String mapIsbnToWrappedType(Isbn type) {
+        return type == null ? null : type.value();
+    }
+
+    default Isbn mapIsbn(String value) {
+        return value == null ? null : Isbn.parse(value);
+    }
+}
+----
+
+This Mapper can now be used in other mappers or included in a default config.
+See Mapstructs docu on https://mapstruct.org/documentation/stable/reference/html/#shared-configurations[shared configurations]
+
+[source, java]
+----
+include::../examples/java/src/main/java/test/DefaultMapperConfig.java[tag=docu]
+----
+
+
+.Generated JPA AttributeConverter definition
+[source, java]
+----
+@Converter(
+    autoApply = true
+)
+public class QuantityAttributeConverter implements AttributeConverter<Quantity, Integer> { // 1.
+    public Integer convertToDatabaseColumn(Quantity type) {
+        return type.value();
+    }
+
+    public Quantity convertToEntityAttribute(Integer dbValue) {
+        return new Quantity(dbValue);
+    }
+}
+
+@Converter(
+    autoApply = true
+)
+public class IsbnAttributeConverter implements AttributeConverter<Isbn, String> {
+    public String convertToDatabaseColumn(Isbn type) {
+        return type == null ? null : type.value();
+    }
+
+    public Isbn convertToEntityAttribute(String dbValue) {
+        return dbValue == null ? null : Isbn.parse(dbValue);
+    }
+}
+----
+1. where needed, wrapped primitives are boxed
+
+These converters will be automatically picked up by your persistence provider.
+
+[NOTE]
+Lazyval will only generate Classes for which the dependencies are available on the classpath.
+In case neither Mapstruct, nor JPA is available, a Warning message will be logged in the compilation.
+
+== Setup & Configuration
+
+To use Lazyval, you have to have the annotation on your compilepath and the annotation-processor
+enabled during compilation.
+
+NOTE: The `@Lazyval` annotation is erased during compile time, so there is no need
+that consumers need a transitive dependency to the module.
+
+=== Configuration Options
+
+|===
+|Property |Description
+
+|_lazyval.jpa.generatedPackage_
+|Specifies the package where the `AttributeConverter` classes are generated to.
+
+|_lazyval.mapstruct.generatedPackage_
+|Specifies the package where the `LazyvalMapper` interface is generated to.
+
+|===
+
+=== Maven Setup
+
+[source, xml]
+----
+include::../examples/java/pom.xml[tags=docu;!excluded]
+----
+1. mark the dependency as optional to avoid runtime-dependency
+
+=== Gradle Setup
+
+[source, kotlin]
+----
+include::../examples/java//build.gradle.kts[tags=docu;!excluded]
+----
+
+=== Mill Setup
+
+[source, scala]
+----
+include::../examples/java//build.mill[tags=docu;!excluded]
+----
+
+== Examples
+
+You can find examples in the https://github.com/QualityMinds/lazyval/tree/main/examples[examples] folder.
+
+== Contributing
+
+Contributions are welcome! Please read our https://github.com/QualityMinds/lazyval/blob/main/CONTRIBUTING.md[contributing guidelines] before opening an issue or pull request.
+
+== License
+
+This project is licensed under the [Apache License 2.0](LICENSE). You are free to use, modify, and distribute it under the terms of that license.
+
+== Cyber Resilience Act (CRA) Notice
+
+**Important Notice regarding the EU Cyber Resilience Act (CRA):**
+This project is a *developer tool* and **does not constitute a "product with digital elements"** as defined under the CRA. It is not executed in production environments, nor does it process data during runtime.
+
+The responsibility for the security, compliance, and correctness of the generated code lies entirely with the user. If the generated clients are used in safety-critical or regulated domains, users must perform their own security and compliance assessments.
+
+== Disclaimer of Liability
+
+This project provides templates and helper scripts on an "as-is" basis, without any warranties.
+
+The maintainers do **not accept any liability** for:
+
+- the security or correctness of generated code,
+- suitability for use in any specific technical or regulatory context.
+
+Use of this project is at your own risk. Always validate generated code in accordance with your organization’s quality and security standards.
+

@@ -1,0 +1,7 @@
+package build.core
+
+import mill.*, scalalib.*
+
+object `package` extends build.LazyvalJavaModule {
+  override def artifactId: T[String] = "lazyval"
+}
