@@ -1,4 +1,4 @@
-// Since Github does not support inlcudes, we use Asciidoc-Reducer with a Github Action
+// Since Github does not support includes, we use Asciidoc-Reducer with a Github Action
 // to generate the actual README as a single file with all includes resolved.
 = Lazyval
 
@@ -9,7 +9,7 @@ ifdef::env-github[]
 :warning-caption: :warning:
 endif::[]
 
-// currently not supported by Github (maybe the Reducer can handle this later)
+// Github wont generate a ToC
 :toc:
 :toclevels: 2
 
@@ -18,27 +18,27 @@ endif::[]
 NOTE: Kotlin support is described in README-Kotlin.adoc
 
 Lazyval is a Java annotation processor generating boilerplate code, often needed when modeling
-https://martinfowler.com/bliki/ValueObject.html[value-types]. The initial idea was inspired by
-Scalas https://www.scala-lang.org/api/current/scala/AnyVal.html[Anyval]; even though this works
-completely differently, it allows you to easily define a wrapper-type which captures the domain's
-intent.
+_"Domain Primitives"_, which are simple, domain-specific wrapper types around primitives.
+The initial idea was inspired by Scalas https://www.scala-lang.org/api/current/scala/AnyVal.html[Anyval];
+even though this works completely differently, it allows you to easily define a wrapper-type which captures
+the domain's intent.
 
-In the usual Java Enterprise projects, it is generally a good idea to model types instead of relying
-purely on primitives.
 Unfortunately, the ecosystem usually requires additional work when modeling custom types, which is
 often seen as too much of a burden.
 
-As an example, assuming a regular project (Quarkus, Spring Boot) with Mapstruct and JPA,
-for each custom value-type it is necessary to provide a https://www.baeldung.com/jpa-attribute-converters[JPA AttributeConverter]
-as well as a Mapstruct Mapper definition to wrap/unpack the type.
+As an example, take a regular project (Quarkus, Spring Boot) with Mapstruct and JPA.
+For each custom domain primitive, it is necessary to provide a JPA AttributeConverter to read/write
+to the Database, as well as a Mapstruct Mapper definition to wrap/unpack the type.
 
-*This is what Lazyval is doing: depending on your classpath, it will generate*:
+*Lazyval will, depending on your classpath, generate*:
 
-* *a single Mapstruct-Mapper with mappings for all defined value-types*
+* *a single Mapstruct-Mapper with mappings for all defined domain primitives*
 
-* *a JPA-AttributeConverter for each value-type*
+* *a JPA-AttributeConverter for each domain primitive*
 
-NOTE: mappers for other database systems like Cassandra, Mongo, should be fairly easy to add in the future.
+NOTE: other mappings (like NoSQL) are planned, as well as an option to provide users with an SPI to hook in custom generators.
+
+NOTE: the term _"Domain Primitive"_ was taken from the book https://www.manning.com/books/secure-by-design[Secure by Design].
 
 Lazyval works for Records, as well as regular Java objects. *It will determine the type of the
 wrapped value and also look for factory methods.* In case the definition does not meet the requirements,
@@ -49,11 +49,11 @@ a compilation error will be issued.
 
 ** for regular classes, transient and static fields are still allowed
 
-** for regular classes, the class and the value should be final; otherwise a warning is issued
+* must not be abstract
 
 * might provide a single factory method which takes precedence over constructors for object creation
 
-* must be immutable (currently not enforced)
+* must be immutable (currently only a warning is issued)
 
 == Usage
 
@@ -193,6 +193,19 @@ enabled during compilation.
 NOTE: The `@Lazyval` annotation is erased during compile time, so there is no need
 that consumers need a transitive dependency to the module.
 
+=== Configuration Options
+
+|===
+|Property |Description
+
+|_lazyval.jpa.generatedPackage_
+|Specifies the package where the `AttributeConverter` classes are generated to.
+
+|_lazyval.mapstruct.generatedPackage_
+|Specifies the package where the `LazyvalMapper` interface is generated to.
+
+|===
+
 === Maven Setup
 
 [source, xml]
@@ -203,12 +216,20 @@ that consumers need a transitive dependency to the module.
         <version.jakarta-ee>11.0.0</version.jakarta-ee>
     </properties>
 
+    <repositories>
+        <repository>
+            <id>github</id>
+            <name>qualityminds</name>
+            <url>https://maven.pkg.github.com/qualityminds/*</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>de.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
             <version>${version.lazyval}</version>
-            <optional>true</optional>
+            <optional>true</optional> <!-- 1. -->
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
@@ -220,7 +241,7 @@ that consumers need a transitive dependency to the module.
             <artifactId>jakarta.jakartaee-api</artifactId>
             <version>${version.jakarta-ee}</version>
             <scope>provided</scope>
-    </dependency>
+        </dependency>
     </dependencies>
 
     <build>
@@ -254,11 +275,21 @@ that consumers need a transitive dependency to the module.
         </plugins>
     </build>
 ----
+1. mark the dependency as optional to avoid runtime-dependency
 
 === Gradle Setup
 
 [source, kotlin]
 ----
+repositories {
+    mavenCentral()
+    maven {
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/qualityminds/*")
+    }
+}
+
+
 dependencies {
     compileOnly("de.qualityminds.lazyval:lazyval:0.1.0-SNAPSHOT")
     implementation("org.mapstruct:mapstruct:1.6.3")
@@ -269,9 +300,7 @@ dependencies {
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
 }
 
-
 tasks.withType<JavaCompile>().configureEach {
-    options.release.set(17)
     options.compilerArgs.apply{
         add("-Amapstruct.unmappedTargetPolicy=ERROR")
         add("-Alazyval.jpa.generatedPackage=test.boundary.persistence")
@@ -284,6 +313,10 @@ tasks.withType<JavaCompile>().configureEach {
 
 [source, scala]
 ----
+  override def repositories: T[Seq[String]] = super.repositories() ++ Seq(
+    "https://maven.pkg.github.com/qualityminds/*"
+  )
+
   override def mvnDeps: T[Seq[Dep]] = Seq(
     mvn"org.mapstruct:mapstruct:${Version.mapstruct}",
   )
@@ -304,19 +337,6 @@ tasks.withType<JavaCompile>().configureEach {
     "-Alazyval.mapstruct.generatedPackage=test",
   )
 ----
-=== Configuration Options
-
-|===
-|Property |Description
-
-|_lazyval.jpa.generatedPackage_
-|Specifies the package where the `AttributeConverter` classes are generated to.
-
-|_lazyval.mapstruct.generatedPackage_
-|Specifies the package where the `LazyvalMapper` interface is generated to.
-
-|===
-
 
 == Examples
 
