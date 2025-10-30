@@ -89,7 +89,6 @@ class CompilerSetup {
         var isJpaDependencyAvailable = libraries == Libraries.ALL || libraries == Libraries.JPA
 
         List<File> additionalClasspath = new ArrayList<>()
-        // Add compiled classes from Mill output instead of M2 repository
         additionalClasspath.addAll(MavenResolver.getCoreModuleClasses())
 
         if(isMapstructDependencyAvailable){
