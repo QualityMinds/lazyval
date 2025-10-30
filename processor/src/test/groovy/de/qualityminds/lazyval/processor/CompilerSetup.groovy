@@ -10,6 +10,7 @@ import javax.tools.JavaCompiler
 import javax.tools.JavaFileObject
 import javax.tools.StandardLocation
 import javax.tools.ToolProvider
+import java.nio.file.Files
 import java.nio.file.Path
 
 /**
@@ -67,17 +68,23 @@ class CompilerSetup {
         JPA
     }
 
-    private JavaCompiler.CompilationTask task
-    private LoggingDiagnosticsCollector diagnostics
+    private final JavaCompiler.CompilationTask task
+    private final LoggingDiagnosticsCollector diagnostics
+    private final Path sourceOutputDir
 
-    private CompilerSetup(JavaCompiler.CompilationTask task, LoggingDiagnosticsCollector diagnostics){
+    private CompilerSetup(JavaCompiler.CompilationTask task, LoggingDiagnosticsCollector diagnostics, Path sourceOutputDir){
         this.task = task
         this.diagnostics = diagnostics
+        this.sourceOutputDir = sourceOutputDir
     }
 
     CompilerResult run() {
         boolean result = task.call()
-        new CompilerResult(result, diagnostics.getDiagnostics())
+        new CompilerResult(
+                result,
+                diagnostics.getDiagnostics(),
+                new TreeSet<>(Files.walk(sourceOutputDir).filter{ p -> !Files.isDirectory(p) }.toList())
+        )
     }
 
 
@@ -116,7 +123,7 @@ class CompilerSetup {
         var task = compiler.getTask(null, fileManager, diagnostics, null, null, compilationUnits)
         task.setProcessors(Collections.singletonList(new LazyvalProcessor()))
 
-        new CompilerSetup(task, diagnostics)
+        new CompilerSetup(task, diagnostics, fileManager.getLocation(StandardLocation.SOURCE_OUTPUT).first().toPath())
     }
 
     private static File findMillWorkspaceRoot() {
@@ -134,10 +141,12 @@ class CompilerSetup {
 class CompilerResult {
     boolean taskResult
     List<Diagnostic> diagnostics
+    SortedSet<Path> generatedFiles
 
-    CompilerResult(boolean result, List<Diagnostic> diagnostics){
+    CompilerResult(boolean result, List<Diagnostic> diagnostics, SortedSet<Path> generatedFiles){
         this.taskResult = result
         this.diagnostics = diagnostics
+        this.generatedFiles = generatedFiles
     }
 
     boolean getTaskResult(){
@@ -162,5 +171,9 @@ class CompilerResult {
 
     boolean wasValueNotFinalWarning(){
         getWarnings().find{it.getMessage(Locale.ENGLISH) == LazyvalEnvironment.NOT_FINAL_VALUE_WARNING}
+    }
+
+    boolean generatedFile(String s) {
+        return generatedFiles.any { (it.fileName.toString() == s) }
     }
 }

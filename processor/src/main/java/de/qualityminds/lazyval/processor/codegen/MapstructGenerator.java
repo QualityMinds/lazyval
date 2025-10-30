@@ -1,22 +1,30 @@
-package de.qualityminds.lazyval.processor;
+package de.qualityminds.lazyval.processor.codegen;
 
 import com.palantir.javapoet.*;
+import de.qualityminds.lazyval.processor.LazyvalEnvironment;
+import de.qualityminds.lazyval.processor.ValidatedGeneratorElement;
+import de.qualityminds.lazyval.processor.spi.SingleFileGenerator;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
-public class MapstructGenerator {
+final public class MapstructGenerator implements SingleFileGenerator {
 
-    static Stream<JavaFile> createMapstructMapper(Set<ValidatedGeneratorElement> elements, LazyvalEnvironment layzvalEnvironment){
+    public MapstructGenerator(){
+        // needed for ServiceLoader
+    }
+
+    public Optional<JavaFile> generateSingleFile(Set<ValidatedGeneratorElement> elements, LazyvalEnvironment layzvalEnvironment){
         if(layzvalEnvironment.isMapstructMissingOnClasspath()){
             layzvalEnvironment.info("Mapstruct is not on classpath. Lazyval will not generate Mapstruct mappers.");
-            return Stream.empty();
+            return Optional.empty();
         }
 
         if(elements.isEmpty()){
-            return Stream.empty();
+            return Optional.empty();
         }
 
         var mapperAnnotationBuilder = AnnotationSpec.builder(ClassName.get("org.mapstruct", "Mapper"))
@@ -89,8 +97,7 @@ public class MapstructGenerator {
                         .map(ValidatedGeneratorElement::element)
                         .orElseThrow())));
 
-        return Stream.of(JavaFile.builder(mapperPackage, typeSpecBuilder.build()).build());
+        return Optional.of(JavaFile.builder(mapperPackage, typeSpecBuilder.build()).build());
     }
 
-    private MapstructGenerator(){}
 }

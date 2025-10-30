@@ -1,20 +1,29 @@
-package de.qualityminds.lazyval.ksp
+package de.qualityminds.lazyval.ksp.codegen
 
 import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.symbol.KSType
 import com.palantir.javapoet.*
+import de.qualityminds.lazyval.ksp.LazyvalKspEnvironment
+import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
+import de.qualityminds.lazyval.ksp.spi.GeneratorResult
+import de.qualityminds.lazyval.ksp.spi.SingleFileGenerator
 import java.io.IOException
 import javax.lang.model.element.Modifier
 
-object MapstructKspGenerator {
+class MapstructKspGenerator : SingleFileGenerator {
 
-    fun createMapstructMapper(
+    override fun generateSingleFile(
         validatedElements: List<ValidatedKspGeneratorElement>,
         environment: LazyvalKspEnvironment
-    ): JavaFileSpec {
+    ): GeneratorResult {
         if (validatedElements.isEmpty()) {
             throw IllegalArgumentException("Cannot create mapper with empty elements")
+        }
+
+        if(!environment.isMapstructOnClasspath()) {
+            environment.info("Mapstruct is not on classpath. Lazyval will not generate Mapper definition.")
+            return GeneratorResult.Nothing
         }
 
         // Build Java interface using JavaPoet
@@ -39,7 +48,7 @@ object MapstructKspGenerator {
         val javaFile = JavaFile.builder(packageName, interfaceBuilder.build())
             .build()
 
-        return JavaFileSpec(javaFile, packageName, "LazyvalMapper")
+        return GeneratorResult.Java(JavaFileSpec(javaFile, packageName, "LazyvalMapper"))
     }
 
     private fun createJavaMapToWrappedTypeMethod(element: ValidatedKspGeneratorElement): MethodSpec {

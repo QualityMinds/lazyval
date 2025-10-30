@@ -36,6 +36,12 @@ class AnnotationProcessorIT extends Specification {
         and: 'compiler warning when object wrapped value not final'
         result.wasValueNotFinalWarning() == warnValueNotFinalIssued
 
+        and: 'Generated Mapstruct Mapper'
+        result.generatedFile("LazyvalMapper.java") == compiles
+
+        and: 'Generated AttributeConverter'
+        result.generatedFile(fileToCompile.replace(".java", "AttributeConverter.java")) == compiles
+
         where:
         fileToCompile                       | compiles
         'RecordValid.java'                  | true

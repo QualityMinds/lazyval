@@ -1,14 +1,22 @@
-package de.qualityminds.lazyval.processor;
+package de.qualityminds.lazyval.processor.codegen;
 
 import com.palantir.javapoet.*;
+import de.qualityminds.lazyval.processor.LazyvalEnvironment;
+import de.qualityminds.lazyval.processor.ValidatedGeneratorElement;
+import de.qualityminds.lazyval.processor.spi.MultipleFilesGenerator;
+import de.qualityminds.lazyval.processor.spi.SingleFileGenerator;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 
-public class JpaGenerator {
+public class JpaGenerator implements MultipleFilesGenerator {
 
-    static JavaFile createJpaAttributeConverter(ValidatedGeneratorElement valid, LazyvalEnvironment layzvalEnvironment){
+    public JpaGenerator(){
+        // needed for ServiceLoader
+    }
+
+    public JavaFile generateFilePerType(ValidatedGeneratorElement valid, LazyvalEnvironment layzvalEnvironment){
         TypeElement element = valid.element();
 
         TypeMirror type = element.asType();
@@ -88,7 +96,4 @@ public class JpaGenerator {
         }
         return JavaFile.builder(jpaConverterPackage, jpaConverter).build();
     }
-
-    private JpaGenerator(){}
-
 }

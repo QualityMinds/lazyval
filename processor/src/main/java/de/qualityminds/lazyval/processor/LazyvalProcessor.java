@@ -1,6 +1,8 @@
 package de.qualityminds.lazyval.processor;
 
-import com.palantir.javapoet.JavaFile;
+import de.qualityminds.lazyval.processor.spi.SpiGenerator;
+import de.qualityminds.lazyval.processor.spi.MultipleFilesGenerator;
+import de.qualityminds.lazyval.processor.spi.SingleFileGenerator;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -9,9 +11,11 @@ import javax.lang.model.element.TypeElement;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 @SupportedAnnotationTypes("de.qualityminds.lazyval.LazyValue")
 @SupportedSourceVersion(SourceVersion.RELEASE_17)
@@ -48,30 +52,49 @@ public class LazyvalProcessor extends AbstractProcessor {
                     .map(element -> layzvalEnvironment.validateElement((TypeElement) element))
                     .flatMap(Optional::stream)
                     .collect(Collectors.toUnmodifiableSet());
-            Stream.concat(
-                    MapstructGenerator.createMapstructMapper(validatedElements, layzvalEnvironment),
-                    createJpaAttributeConverter(validatedElements)
-            ).forEach(fileSpec -> {
-                try{
-                    fileSpec.writeTo(processingEnv.getFiler());
-                    layzvalEnvironment.info("Written '%s.%s".formatted(fileSpec.packageName(), fileSpec.typeSpec().name()));
-                }catch (IOException e){
-                    throw new UncheckedIOException(e);
-                }
-            });
+
+            loadGenerators()
+                    .flatMap(generator -> generator.generate(validatedElements, layzvalEnvironment))
+                    .forEach(fileSpec -> {
+                        try{
+                            fileSpec.writeTo(processingEnv.getFiler());
+                            layzvalEnvironment.info("Written '%s.%s".formatted(fileSpec.packageName(), fileSpec.typeSpec().name()));
+                        }catch (IOException e){
+                            throw new UncheckedIOException(e);
+                        }
+                    });
         }
 
         return true;
     }
 
+    private Stream<SpiGenerator> loadGenerators(){
 
-    private Stream<JavaFile> createJpaAttributeConverter(Set<ValidatedGeneratorElement> elements){
-        if(layzvalEnvironment.isJpaMissingClasspath()){
-            layzvalEnvironment.info("JPA is not on classpath. Lazyval will not generate AttributeConverters.");
+        ServiceLoader<SingleFileGenerator> singleFileGenerators =
+                ServiceLoader.load(SingleFileGenerator.class);
+        ServiceLoader<MultipleFilesGenerator> multipleFilesGenerators =
+                ServiceLoader.load(MultipleFilesGenerator.class);
+
+        boolean hasSingle = singleFileGenerators.iterator().hasNext();
+        boolean hasMultiple = multipleFilesGenerators.iterator().hasNext();
+
+        if (!hasSingle && !hasMultiple) {
+            layzvalEnvironment.warn("No generators found");
             return Stream.empty();
         }
-        return elements.stream().map(element -> JpaGenerator.createJpaAttributeConverter(element, layzvalEnvironment));
 
+        return Stream.of(singleFileGenerators, multipleFilesGenerators)
+                .flatMap(serviceLoader -> StreamSupport.stream(serviceLoader.spliterator(), false));
     }
+//
+//
+//    private Stream<JavaFile> createJpaAttributeConverter(Set<ValidatedGeneratorElement> elements){
+//        if(layzvalEnvironment.isJpaMissingClasspath()){
+//            layzvalEnvironment.info("JPA is not on classpath. Lazyval will not generate AttributeConverters.");
+//            return Stream.empty();
+//        }
+//        return elements.stream().map(element -> JpaGenerator.createJpaAttributeConverter(element, layzvalEnvironment));
+//
+//    }
 }
 
