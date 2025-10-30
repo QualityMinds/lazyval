@@ -108,6 +108,7 @@ class CompilerSetup private constructor(private val kspSetup: KotlinSymbolProces
             val compilationUnit = additionalClasspath.toMutableList()
             compilationUnit.addAll(MavenResolver.getCoreModuleClasses())
 
+            @Suppress("UNCHECKED_CAST")
             val processorProviders: List<SymbolProcessorProvider> = processorProvidersSearch.toList() as List<SymbolProcessorProvider>
 
             val config = KSPJvmConfig.Builder().apply {

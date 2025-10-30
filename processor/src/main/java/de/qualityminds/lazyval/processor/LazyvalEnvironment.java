@@ -39,7 +39,7 @@ public class LazyvalEnvironment {
         this.jpaOnClasspath = isClassAvailable("jakarta.persistence.AttributeConverter");
     }
 
-    void info(String message) {
+    public void info(String message) {
         Objects.requireNonNull(message);
         processingEnvironment.getMessager().printMessage(javax.tools.Diagnostic.Kind.NOTE, message);
     }
@@ -70,7 +70,7 @@ public class LazyvalEnvironment {
         processingEnvironment.getMessager().printMessage(Diagnostic.Kind.ERROR, message, element);
     }
 
-    boolean isMapstructMissingOnClasspath() {
+    public boolean isMapstructMissingOnClasspath() {
         return !mapstructOnClasspath;
     }
 
@@ -78,11 +78,13 @@ public class LazyvalEnvironment {
         return !jpaOnClasspath;
     }
 
-    boolean isClassAvailable(String fqn){
+    /**
+     * Checks whether a class with the given fqn is available on the classpath.
+     */
+    public boolean isClassAvailable(String fqn){
         if (fqn == null || fqn.trim().isEmpty()) {
             return false;
         }
-
         return processingEnvironment.getElementUtils().getTypeElement(fqn) != null;
     }
 
@@ -108,7 +110,7 @@ public class LazyvalEnvironment {
     /**
      * The settings passed via compiler arguments, which have been validated by this point already.
      */
-    UserSettings getSettings() {
+    public UserSettings getSettings() {
         return settings;
     }
 
@@ -120,7 +122,7 @@ public class LazyvalEnvironment {
      * Split the FQN into its constituents and returns the substring before the "layer-markers",
      * which will be the root package.
      */
-    static String extractRootPackage(TypeElement element) {
+    public static String extractRootPackage(TypeElement element) {
         return Arrays.stream(element.getQualifiedName().toString().split("\\."))
                 .takeWhile(IS_NOT_LAYER_PACKAGE_AND_CLASS)
                 .collect(Collectors.joining("."));
@@ -240,13 +242,13 @@ public class LazyvalEnvironment {
      * Via compiler argument passed configuration.
      * @param jpa see {@link #JPA_GENERATED_PACKAGE}
      */
-    record UserSettings(String jpa, String mapstruct) {
+    public record UserSettings(String jpa, String mapstruct) {
         /**
          * Overrides the default package for the JPA-AttributeConverter, which is used by the annotation processor
          * to write the generated classes.
          * @return Package to which generated classes should be written.
          */
-        Optional<String> getJpaConverterPackage(){
+        public Optional<String> getJpaConverterPackage(){
             return Optional.ofNullable(jpa);
         }
         /**
@@ -254,7 +256,7 @@ public class LazyvalEnvironment {
          * to write the generated classes.
          * @return Package to which generated classes should be written.
          */
-        Optional<String> getMapstructPackage(){
+        public Optional<String> getMapstructPackage(){
             return Optional.ofNullable(mapstruct);
         }
     }

@@ -49,13 +49,16 @@ class LazyvalKspEnvironment(
         logger.error(message, symbol)
     }
 
-    fun isMapstructOnClasspath(): Boolean = mapstructOnClasspath
+    internal fun isMapstructOnClasspath(): Boolean = mapstructOnClasspath
 
-    fun isJpaOnClasspath(): Boolean = jpaOnClasspath
+    internal fun isJpaOnClasspath(): Boolean = jpaOnClasspath
 
     fun getSettings(): UserSettings = settings
 
-    private fun isClassAvailable(fqn: String): Boolean {
+    /**
+     * Checks whether a class with the given [fqn] is available on the classpath.
+     */
+    fun isClassAvailable(fqn: String): Boolean {
         if (fqn.isBlank()) return false
         return resolver.getClassDeclarationByName(resolver.getKSNameFromString(fqn)) != null
     }

@@ -1,17 +1,28 @@
-package de.qualityminds.lazyval.ksp
+package de.qualityminds.lazyval.ksp.codegen
 
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
+import de.qualityminds.lazyval.ksp.LazyvalKspEnvironment
+import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
+import de.qualityminds.lazyval.ksp.spi.GeneratorResult
+import de.qualityminds.lazyval.ksp.spi.MultipleFilesGenerator
+import de.qualityminds.lazyval.ksp.spi.SpiGenerator
 
-object JpaKspGenerator {
+class JpaKspGenerator : MultipleFilesGenerator {
 
-    fun createJpaAttributeConverter(
+    override fun generateFilePerType(
         validatedElement: ValidatedKspGeneratorElement,
         environment: LazyvalKspEnvironment
-    ): FileSpec {
+    ): GeneratorResult {
+
+        if(!environment.isJpaOnClasspath()) {
+            environment.info("JPA is not on classpath. Lazyval will not generate AttributeConverters.")
+            return GeneratorResult.Nothing
+        }
+
         val element = validatedElement.element
         val wrappedType = validatedElement.wrappedType
         val lazyvalTypeName = element.toClassName()
@@ -83,9 +94,9 @@ object JpaKspGenerator {
         val packageName = environment.getSettings().getJpaConverterPackage()
             ?: "${environment.extractRootPackage(element)}.boundary.persistence"
 
-        return FileSpec.builder(packageName, converterClassName)
+        return GeneratorResult.Kotlin(FileSpec.builder(packageName, converterClassName)
             .addType(converterClass)
-            .build()
+            .build())
     }
 
     private fun KSType.isPrimitive(): Boolean {

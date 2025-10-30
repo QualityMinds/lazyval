@@ -4,6 +4,31 @@ import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.*
 import com.squareup.kotlinpoet.FileSpec
 import de.qualityminds.lazyval.LazyValue
+import de.qualityminds.lazyval.ksp.codegen.JavaFileSpec
+import de.qualityminds.lazyval.ksp.spi.GeneratorResult
+import de.qualityminds.lazyval.ksp.spi.MultipleFilesGenerator
+import de.qualityminds.lazyval.ksp.spi.SingleFileGenerator
+import de.qualityminds.lazyval.ksp.spi.SpiGenerator
+import de.qualityminds.lazyval.ksp.spi.ValidateElementWithSource
+import java.util.*
+import java.util.stream.Stream
+import java.util.stream.StreamSupport
+import kotlin.jvm.java
+
+sealed interface KotlinOrJavaResult {
+    data class Kotlin(val fileSpec: FileSpec, val sources: List<KSFile>) : KotlinOrJavaResult
+    data class Java(val javaFileSpec: JavaFileSpec, val sources: List<KSFile>) : KotlinOrJavaResult
+    object Nothing : KotlinOrJavaResult
+
+    companion object {
+        fun from(generatorResult: GeneratorResult, sources: List<KSFile>) = when(generatorResult) {
+            is GeneratorResult.Java -> Java(generatorResult.fileSpec, sources)
+            is GeneratorResult.Kotlin -> Kotlin(generatorResult.fileSpec, sources)
+            GeneratorResult.Nothing -> Nothing
+        }
+    }
+}
+
 
 class LazyvalSymbolProcessor(
     private val environment: SymbolProcessorEnvironment
@@ -30,38 +55,78 @@ class LazyvalSymbolProcessor(
             .filterIsInstance<KSClassDeclaration>()
             .mapNotNull { classDecl ->
                 lazyvalEnvironment.validateElement(classDecl)?.let { validated ->
-                    classDecl to validated
+                    ValidateElementWithSource(validated, classDecl.containingFile!!)
                 }
             }
             .toList()
 
-        // Generate JPA AttributeConverters (Kotlin)
-        if (lazyvalEnvironment.isJpaOnClasspath()) {
-            validatedElements.forEach { (classDecl, element) ->
-                val fileSpec = JpaKspGenerator.createJpaAttributeConverter(element, lazyvalEnvironment)
-                writeKotlinFile(fileSpec, classDecl.containingFile)
-            }
-        } else {
-            lazyvalEnvironment.info("JPA is not on classpath. Lazyval will not generate AttributeConverters.")
+        fun generateSingleFile(generator: SingleFileGenerator, elements: List<ValidatedKspGeneratorElement>): KotlinOrJavaResult {
+            val result = generator.generateSingleFile(elements, lazyvalEnvironment)
+            return KotlinOrJavaResult.from(result, validatedElements.map { it.source })
         }
 
-        // Generate Mapstruct Mapper (Java)
-        if (lazyvalEnvironment.isMapstructOnClasspath() && validatedElements.isNotEmpty()) {
-            val elements = validatedElements.map { it.second }
-            val javaFileSpec = MapstructKspGenerator.createMapstructMapper(elements, lazyvalEnvironment)
-            val sourceFiles = validatedElements.mapNotNull { it.first.containingFile }
-            writeJavaFile(javaFileSpec, sourceFiles)
-        } else if (!lazyvalEnvironment.isMapstructOnClasspath()) {
-            lazyvalEnvironment.info("Mapstruct is not on classpath. Lazyval will not generate Mapstruct mappers.")
+        fun generateFiles(generator: MultipleFilesGenerator, element: ValidatedKspGeneratorElement, source: KSFile): KotlinOrJavaResult {
+            val result = generator.generateFilePerType(element, lazyvalEnvironment)
+            return KotlinOrJavaResult.from(result, listOf(source))
+        }
+
+
+        // will be empty in the second round
+        if(validatedElements.isNotEmpty()) {
+            loadGenerators()
+                .flatMap { generator ->
+                    when (generator) {
+                        is SingleFileGenerator -> Stream.of(
+                            generateSingleFile(
+                                generator,
+                                validatedElements.map { it.element })
+                        )
+
+                        is MultipleFilesGenerator -> validatedElements.map {
+                            generateFiles(
+                                generator,
+                                it.element,
+                                it.source
+                            )
+                        }.stream()
+                    }
+                }
+                .forEach { result ->
+                    when(result) {
+                        is KotlinOrJavaResult.Kotlin -> writeKotlinFile(result.fileSpec, result.sources)
+                        is KotlinOrJavaResult.Java -> writeJavaFile(result.javaFileSpec, result.sources)
+                        KotlinOrJavaResult.Nothing -> { /* nothing to do */ }
+                    }
+                }
         }
 
         return emptyList()
     }
 
-    private fun writeKotlinFile(fileSpec: FileSpec, sourceFile: KSFile?) {
+    private fun loadGenerators(): Stream<SpiGenerator> {
+        val singleFileGenerators = ServiceLoader.load(SingleFileGenerator::class.java)
+        val multipleFilesGenerators = ServiceLoader.load(MultipleFilesGenerator::class.java)
+
+        val hasSingle = singleFileGenerators.iterator().hasNext()
+        val hasMultiple = multipleFilesGenerators.iterator().hasNext()
+
+        if (!hasSingle && !hasMultiple) {
+            lazyvalEnvironment.warn("No generators found")
+            return Stream.empty()
+        }
+
+        return Stream.of(
+            singleFileGenerators,
+            multipleFilesGenerators,
+        ).flatMap { serviceLoader -> StreamSupport.stream(serviceLoader.spliterator(), false) }
+    }
+
+
+
+    private fun writeKotlinFile(fileSpec: FileSpec, sourceFiles: List<KSFile>) {
         try {
-            val dependencies = if (sourceFile != null) {
-                Dependencies(true, sourceFile)
+            val dependencies = if (sourceFiles.isNotEmpty()) {
+                Dependencies(true, *sourceFiles.toTypedArray())
             } else {
                 Dependencies(false)
             }
