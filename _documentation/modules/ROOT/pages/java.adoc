@@ -1,0 +1,115 @@
+= Java
+
+[#usage]
+== Usage
+
+Add the `@LazyValue` annotation to your class/record and the processor will figure out the rest.
+
+.Quantity Record
+[source,java]
+----
+include::ROOT:example$java/src/main/java/test/Quantity.java[tag=docu]
+----
+
+.ISBN Object with factory method
+[source,java]
+----
+include::ROOT:example$java/src/main/java/test/Isbn.java[tag=docu]
+----
+
+.Generated Mapper definition
+[source, java]
+----
+@Mapper(
+    unmappedTargetPolicy = ReportingPolicy.ERROR
+)
+public interface LazyvalMapper {
+    default int mapQuantityToWrappedType(Quantity type) {
+        return type.value();
+    }
+
+    default Quantity mapQuantity(int value) {
+        return new Quantity(value);
+    }
+
+    default String mapIsbnToWrappedType(Isbn type) {
+        return type == null ? null : type.value();
+    }
+
+    default Isbn mapIsbn(String value) {
+        return value == null ? null : Isbn.parse(value);
+    }
+}
+----
+
+This Mapper can now be used in other mappers or included in a default config.
+See Mapstructs docu on https://mapstruct.org/documentation/stable/reference/html/#shared-configurations[shared configurations]
+
+[source, java]
+----
+include::ROOT:example$java/src/main/java/test/DefaultMapperConfig.java[tag=docu]
+----
+
+
+.Generated JPA AttributeConverter definition
+[source, java]
+----
+@Converter(
+    autoApply = true
+)
+public class QuantityAttributeConverter implements AttributeConverter<Quantity, Integer> { // 1.
+    public Integer convertToDatabaseColumn(Quantity type) {
+        return type.value();
+    }
+
+    public Quantity convertToEntityAttribute(Integer dbValue) {
+        return new Quantity(dbValue);
+    }
+}
+
+@Converter(
+    autoApply = true
+)
+public class IsbnAttributeConverter implements AttributeConverter<Isbn, String> {
+    public String convertToDatabaseColumn(Isbn type) {
+        return type == null ? null : type.value();
+    }
+
+    public Isbn convertToEntityAttribute(String dbValue) {
+        return dbValue == null ? null : Isbn.parse(dbValue);
+    }
+}
+----
+1. where needed, wrapped primitives are boxed
+
+These converters will be automatically picked up by your persistence provider.
+
+[NOTE]
+Lazyval will only generate Classes for which the dependencies are available on the classpath.
+In case neither Mapstruct, nor JPA is available, a Warning message will be logged in the compilation.
+
+
+[#setup]
+== Setup
+
+=== Maven
+
+[source, xml]
+----
+include::ROOT:example$java/pom.xml[tags=docu;!excluded]
+----
+1. mark the dependency as optional to avoid runtime-dependency
+
+=== Gradle
+
+[source, kotlin]
+----
+include::ROOT:example$java/build.gradle.kts[tags=docu;!excluded]
+----
+
+=== Mill
+
+[source, scala]
+----
+include::ROOT:example$java/build.mill[tags=docu;!excluded]
+----
