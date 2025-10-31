@@ -1,0 +1,26 @@
+
+site:
+  title: Lazyval Documentation
+  url: https://qualityminds.github.io/lazyval
+  start_page: lazyval::index.adoc
+
+content:
+  sources:
+    - url: ./
+      branches: HEAD
+      start_path: _documentation
+
+antora:
+  extensions:
+    - '@antora/collector-extension'
+
+asciidoc:
+  attributes:
+    # Make examples accessible
+    examples-dir: examples
+
+ui:
+  bundle:
+    url: https://gitlab.com/antora/antora-ui-default/-/jobs/artifacts/HEAD/raw/build/ui-bundle.zip?job=bundle-stable
+    snapshot: false
+  supplemental_files: ./_documentation/supplemental-ui # needed to get rid of stuff in the default template

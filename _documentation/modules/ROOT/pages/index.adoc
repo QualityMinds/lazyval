@@ -1,0 +1,68 @@
+= Lazyval: Compile-Time Code Generator for Domain Primimtives in Java or Kotlin
+
+== What is Lazyval / Motivation
+
+Lazyval is a Java annotation processor & Kotlin symbol processor generating boilerplate code,
+often needed when modeling _"Domain Primitives"_, which are simple, domain-specific wrapper types around primitives.
+The initial idea was inspired by Scalas https://www.scala-lang.org/api/current/scala/AnyVal.html[Anyval];
+even though this works completely differently, it allows you to easily define a wrapper-type which captures
+the domain's intent.
+
+NOTE: the term _"Domain Primitive"_ was taken from the book https://www.manning.com/books/secure-by-design[Secure by Design].
+
+Unfortunately, the ecosystem usually requires additional work when modeling custom types, which is
+often seen as too much of a burden.
+
+As an example, take a regular project (Quarkus, Spring Boot) with Mapstruct and JPA.
+For each custom domain primitive, it is necessary to provide a JPA AttributeConverter to read/write
+to the Database, as well as a Mapstruct Mapper definition to wrap/unpack the type.
+
+*Lazyval will, depending on your classpath, generate*:
+
+* *a single Mapstruct-Mapper with mappings for all defined domain primitives*
+
+* *a JPA-AttributeConverter for each domain primitive*
+
+NOTE: for custom generators, see xref:spi:index.adoc[Lazyvals SPI].
+
+== Usage
+
+xref:java.adoc[Getting started with Java]
+
+xref:kotlin.adoc[Getting started with Kotlin]
+
+== Configuration Options
+
+|===
+|Property |Description
+
+|_lazyval.jpa.generatedPackage_
+|Specifies the package where the `AttributeConverter` classes are generated to.
+
+|_lazyval.mapstruct.generatedPackage_
+|Specifies the package where the `LazyvalMapper` interface is generated to.
+
+|===
+
+
+== License
+
+This project is licensed under the [Apache License 2.0](LICENSE). You are free to use, modify, and distribute it under the terms of that license.
+
+== Cyber Resilience Act (CRA) Notice
+
+**Important Notice regarding the EU Cyber Resilience Act (CRA):**
+This project is a *developer tool* and **does not constitute a "product with digital elements"** as defined under the CRA. It is not executed in production environments, nor does it process data during runtime.
+
+The responsibility for the security, compliance, and correctness of the generated code lies entirely with the user. If the generated clients are used in safety-critical or regulated domains, users must perform their own security and compliance assessments.
+
+== Disclaimer of Liability
+
+This project provides templates and helper scripts on an "as-is" basis, without any warranties.
+
+The maintainers do **not accept any liability** for:
+
+- the security or correctness of generated code,
+- suitability for use in any specific technical or regulatory context.
+
+Use of this project is at your own risk. Always validate generated code in accordance with your organization’s quality and security standards.

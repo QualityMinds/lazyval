@@ -1,0 +1,19 @@
+name: lazyval
+title: Lazyval Documentation
+version: 'main'
+start_page: ROOT:index.adoc
+nav:
+  - modules/ROOT/nav.adoc
+  - modules/spi/nav.adoc
+
+ext:
+  collector:
+    scan:
+      dir: examples
+      into: modules/ROOT/examples
+#asciidoc:
+#  attributes:
+#    examples-java: ../examples/java
+#    examples-kotlin: ../examples/kotlin
+#    examples-spi-java: ../examples/spi-java
+#    examples-spi-kotlin: ../examples/spi-kotlin

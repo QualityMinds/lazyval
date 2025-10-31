@@ -1,35 +1,25 @@
-// Since Github does not support includes, we use Asciidoc-Reducer with a Github Action
-// to generate the actual README as a single file with all includes resolved.
-= Kotlin Support via KSP
-
-ifdef::env-github[]
-:tip-caption: :bulb:
-:note-caption: :information_source:
-:important-caption: :heavy_exclamation_mark:
-:caution-caption: :fire:
-:warning-caption: :warning:
-endif::[]
+= Kotlin Support via KSP2
 
 For Kotlin, the original Java Annotation Processor was migrated to KSP2 (Kotlin Symbol Processing) to make use of
 the `@LazyValue` annotation on Kotlin classes and data-classes.
-This documentation only deals with Kotlin specifics. For motivation, license, legal notices see the main README.
 
 NOTE: KSP2 only officially supports Gradle. Mill has its own KSP2 support. Maven users can currently not make use of KSP2.
 
+[#usage]
 == Usage
 
-Add the `@LazyValue` annotation to your (date-)class and the processor will figure out the rest.
+Add the `@LazyValue` annotation to your (data-)class and the processor will figure out the rest.
 
 .Quantity Dataclass
 [source, kotlin]
 ----
-include::../examples/kotlin/src/main/kotlin/test/Quantity.kt[tags=docu;!excluded]
+include::ROOT:example$kotlin/src/main/kotlin/test/Quantity.kt[tags=docu;!excluded]
 ----
 
 .ISBN Object with factory method
 [source,kotlin]
 ----
-include::../examples/kotlin/src/main/kotlin/test/Isbn.kt[tags=docu;!excluded]
+include::ROOT:example$kotlin/src/main/kotlin/test/Isbn.kt[tags=docu;!excluded]
 ----
 
 IMPORTANT: The generated Mapstruct interface will still be a Java file because Mapstruct
@@ -85,34 +75,19 @@ public class QuantityAttributeConverter : AttributeConverter<Quantity?, Int?> {
 }
 ----
 
-== Setup & Configuration
-
-To use Lazyval, you have to have the annotation on your compilepath and the annotation-processor
-enabled during compilation.
-
-NOTE: The `@Lazyval` annotation is erased during compile time, so there is no need
-that consumers need a transitive dependency to the module.
+[#setup]
+== Setup
 
 === Gradle
 
 [source, kotlin]
 ----
-include::../examples/kotlin/build.gradle.kts[tags=docu;!excluded]
-----
-
-Make sure to enable KSP2 mode in `gradle.properties`
-
-[source, properties]
-----
-include::../examples/kotlin/gradle.properties[]
+include::ROOT:example$kotlin/build.gradle.kts[tags=docu;!excluded]
 ----
 
 === Mill
 
-Add the `KspModule` and configure accordingly
-
 [source, scala]
 ----
-include::../examples/kotlin/build.mill[tags=docu;!excluded]
+include::ROOT:example$kotlin/build.mill[tags=docu;!excluded]
 ----
-
