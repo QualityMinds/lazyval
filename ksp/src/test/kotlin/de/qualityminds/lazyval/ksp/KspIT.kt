@@ -22,6 +22,7 @@ class KspIT : DescribeSpec({
             TestCase("MultiplePropertyClass.kt", false, false),
             TestCase("MultiplePropertyDataClass.kt", false, false),
             TestCase("AbstractClass.kt", false, false),
+            TestCase("ValueClass.kt", false, false),
         ){ (fileToCompile, compiles, generatedSources) ->
             val projectFolder = tempdir(prefix = "ksp", keepOnFailure = true).toPath()
             val setup = CompilerSetup.setupTask(this::class.java.classLoader, fileToCompile, projectFolder, CompilerSetup.Libraries.ALL)

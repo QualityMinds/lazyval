@@ -79,7 +79,7 @@ class LazyvalKspEnvironment(
         return when (classDeclaration.classKind) {
             ClassKind.CLASS -> validateClass(classDeclaration)
             else -> {
-                error(classDeclaration, "Only classes and data classes are supported by Lazyval")
+                error(classDeclaration, "Only classes and data classes are supported by Lazyval.")
                 null
             }
         }
@@ -90,6 +90,11 @@ class LazyvalKspEnvironment(
 
         if (Modifier.ABSTRACT in classDeclaration.modifiers) {
             error(classDeclaration, "Abstract class is not a valid ValueType.")
+            valid = false
+        }
+
+        if (Modifier.VALUE in classDeclaration.modifiers) {
+            error(classDeclaration, "value class is not supported by Lazyval.")
             valid = false
         }
 
