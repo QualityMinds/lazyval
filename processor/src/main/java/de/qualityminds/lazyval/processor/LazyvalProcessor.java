@@ -54,7 +54,16 @@ public class LazyvalProcessor extends AbstractProcessor {
                     .collect(Collectors.toUnmodifiableSet());
 
             loadGenerators()
-                    .flatMap(generator -> generator.generate(validatedElements, layzvalEnvironment))
+                    .flatMap(generator -> {
+                        if(generator instanceof SingleFileGenerator singleFileGenerator){
+                            return singleFileGenerator.generateSingleFile(validatedElements, layzvalEnvironment).stream();
+                        }else if(generator instanceof MultipleFilesGenerator multipleFilesGenerator){
+                            return validatedElements.stream().map(element -> multipleFilesGenerator.generateFilePerType(element, layzvalEnvironment));
+                        }else{
+                            // move to switch-pattern-match once Java 21 is the minimum required version
+                            throw new IllegalStateException("Unknown generator type: " + this.getClass().getName());
+                        }
+                    })
                     .forEach(fileSpec -> {
                         try{
                             fileSpec.writeTo(processingEnv.getFiler());
@@ -86,15 +95,5 @@ public class LazyvalProcessor extends AbstractProcessor {
         return Stream.of(singleFileGenerators, multipleFilesGenerators)
                 .flatMap(serviceLoader -> StreamSupport.stream(serviceLoader.spliterator(), false));
     }
-//
-//
-//    private Stream<JavaFile> createJpaAttributeConverter(Set<ValidatedGeneratorElement> elements){
-//        if(layzvalEnvironment.isJpaMissingClasspath()){
-//            layzvalEnvironment.info("JPA is not on classpath. Lazyval will not generate AttributeConverters.");
-//            return Stream.empty();
-//        }
-//        return elements.stream().map(element -> JpaGenerator.createJpaAttributeConverter(element, layzvalEnvironment));
-//
-//    }
 }
 
