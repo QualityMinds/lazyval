@@ -7,10 +7,7 @@ CAUTION: the SPI is currently experimental and will change!
 
 First, you have to decide if you need a generator for Java (Annotation Processing) or Kotlin (KSP2). This is necessary
 because the SPI has to leak the underlying processing API to the consumer, at least at the moment.
-
-NOTE: Furthermore, the return types require the code-generator to use https://github.com/palantir/javapoet[Javapoet] for Java and https://github.com/square/kotlinpoet[Kotlinpoet] for Kotlin. This will probably change in the future so that SPIs can use any template engine.
-
-Then add a dependency to the chosen processor.
+Add the chosen processor as a dependency.
 
 .Java SPIs
 * https://github.com/QualityMinds/lazyval/tree/main/processor/src/main/java/de/qualityminds/lazyval/processor[de.qualityminds.lazyval.processor.spi.MultipleFilesGenerator]

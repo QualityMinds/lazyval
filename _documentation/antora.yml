@@ -8,12 +8,18 @@ nav:
 
 ext:
   collector:
-    scan:
-      dir: examples
-      into: modules/ROOT/examples
-#asciidoc:
-#  attributes:
-#    examples-java: ../examples/java
-#    examples-kotlin: ../examples/kotlin
-#    examples-spi-java: ../examples/spi-java
-#    examples-spi-kotlin: ../examples/spi-kotlin
+    - scan:
+        dir: examples
+        into: modules/ROOT/examples
+    - scan:
+        dir: processor/src/main/java/de/qualityminds/lazyval/processor/codegen
+        into: modules/spi/examples
+    - scan:
+        dir: processor/src/main/java/de/qualityminds/lazyval/processor/spi
+        into: modules/spi/examples
+    - scan:
+        dir: ksp/src/main/kotlin/de/qualityminds/lazyval/ksp/codegen
+        into: modules/spi/examples
+    - scan:
+        dir: ksp/src/main/kotlin/de/qualityminds/lazyval/ksp/spi
+        into: modules/spi/examples

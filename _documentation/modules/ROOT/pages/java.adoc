@@ -3,7 +3,10 @@
 [#usage]
 == Usage
 
-Add the `@LazyValue` annotation to your class/record and the processor will figure out the rest.
+First, add the annotation and processor dependencies to your favorite build-tool. See below for <<_maven>>, <<_gradle>>
+or <<_mill>>.
+
+Mark your domain-primitive with the `@LazyValue` annotation and the processor will figure out the rest.
 
 .Quantity Record
 [source,java]
