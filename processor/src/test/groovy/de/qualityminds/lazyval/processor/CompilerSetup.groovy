@@ -88,7 +88,7 @@ class CompilerSetup {
     }
 
 
-    static CompilerSetup setupTask(ClassLoader classloader, String fileToCompile, Path tempDir, Libraries libraries){
+    static CompilerSetup setupTask(ClassLoader classloader, String fileToCompile, Path tempDir, Libraries libraries, List<String> disabledGenerators) {
         var compiler = ToolProvider.getSystemJavaCompiler()
         var diagnostics = new LoggingDiagnosticsCollector<JavaFileObject>()
 
@@ -98,10 +98,10 @@ class CompilerSetup {
         List<File> additionalClasspath = new ArrayList<>()
         additionalClasspath.addAll(MavenResolver.getCoreModuleClasses())
 
-        if(isMapstructDependencyAvailable){
+        if (isMapstructDependencyAvailable) {
             additionalClasspath.addAll(MavenResolver.resolveDependencies(DEP_MAPSTRUCT, DEP_MAPSTRUCT_PROCESSOR))
         }
-        if(isJpaDependencyAvailable){
+        if (isJpaDependencyAvailable) {
             additionalClasspath.addAll(MavenResolver.resolveDependencies(DEP_JPA))
         }
 
@@ -109,7 +109,7 @@ class CompilerSetup {
         fileManager.setLocation(StandardLocation.CLASS_OUTPUT, Arrays.asList(tempDir.toFile()))
         fileManager.setLocation(StandardLocation.SOURCE_OUTPUT, Arrays.asList(tempDir.toFile()))
 
-        if(!additionalClasspath.isEmpty()){
+        if (!additionalClasspath.isEmpty()) {
             fileManager.setLocation(StandardLocation.CLASS_PATH, additionalClasspath)
         }
 
@@ -120,7 +120,11 @@ class CompilerSetup {
         var file = new File(resourceUrl.toURI())
 
         var compilationUnits = fileManager.getJavaFileObjects(file)
-        var task = compiler.getTask(null, fileManager, diagnostics, null, null, compilationUnits)
+        List<String> options = null
+        if (!disabledGenerators.isEmpty()) {
+            options = List.of("-Alazyval.disabledGenerators=" + disabledGenerators.join(","))
+        }
+        var task = compiler.getTask(null, fileManager, diagnostics, options, null, compilationUnits)
         task.setProcessors(Collections.singletonList(new LazyvalProcessor()))
 
         new CompilerSetup(task, diagnostics, fileManager.getLocation(StandardLocation.SOURCE_OUTPUT).first().toPath())

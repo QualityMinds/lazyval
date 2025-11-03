@@ -1,4 +1,4 @@
-package de.qualityminds.lazyval.processor;
+package de.qualityminds.lazyval.processor.spi;
 
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.RecordComponentElement;

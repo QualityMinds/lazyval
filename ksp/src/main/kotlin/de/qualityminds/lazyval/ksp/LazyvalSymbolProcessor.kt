@@ -5,15 +5,12 @@ import com.google.devtools.ksp.symbol.*
 import com.squareup.kotlinpoet.FileSpec
 import de.qualityminds.lazyval.LazyValue
 import de.qualityminds.lazyval.ksp.codegen.JavaFileSpec
-import de.qualityminds.lazyval.ksp.spi.GeneratorResult
-import de.qualityminds.lazyval.ksp.spi.MultipleFilesGenerator
-import de.qualityminds.lazyval.ksp.spi.SingleFileGenerator
-import de.qualityminds.lazyval.ksp.spi.SpiGenerator
-import de.qualityminds.lazyval.ksp.spi.ValidateElementWithSource
+import de.qualityminds.lazyval.ksp.spi.*
 import java.util.*
+import java.util.function.Function
+import java.util.stream.Collectors
 import java.util.stream.Stream
 import java.util.stream.StreamSupport
-import kotlin.jvm.java
 
 sealed interface KotlinOrJavaResult {
     data class Kotlin(val fileSpec: FileSpec, val sources: List<KSFile>) : KotlinOrJavaResult
@@ -60,32 +57,36 @@ class LazyvalSymbolProcessor(
             }
             .toList()
 
-        fun generateSingleFile(generator: SingleFileGenerator, elements: List<ValidatedKspGeneratorElement>): KotlinOrJavaResult {
-            val result = generator.generateSingleFile(elements, lazyvalEnvironment)
+        fun generateSingleFile(generator: SingleFileGenerator, elements: Set<ValidatedKspGeneratorElement>, userSettings: SpiGenerator.Settings): KotlinOrJavaResult {
+            val result = generator.generateSingleFile(NonEmptySet.fromSet(elements), userSettings)
             return KotlinOrJavaResult.from(result, validatedElements.map { it.source })
         }
 
-        fun generateFiles(generator: MultipleFilesGenerator, element: ValidatedKspGeneratorElement, source: KSFile): KotlinOrJavaResult {
-            val result = generator.generateFilePerType(element, lazyvalEnvironment)
+        fun generateFiles(generator: MultipleFilesGenerator, element: ValidatedKspGeneratorElement, userSettings: SpiGenerator.Settings, source: KSFile): KotlinOrJavaResult {
+            val result = generator.generateFilePerType(element, userSettings)
             return KotlinOrJavaResult.from(result, listOf(source))
         }
-
 
         // will be empty in the second round
         if(validatedElements.isNotEmpty()) {
             loadGenerators()
                 .flatMap { generator ->
+                    val generatorOptions = environment.options
+                        .filter { e -> e.key.startsWith("lazyval." + generator.generatorId() + ".") }
+
                     when (generator) {
                         is SingleFileGenerator -> Stream.of(
                             generateSingleFile(
                                 generator,
-                                validatedElements.map { it.element })
+                                validatedElements.map { it.element }.toSet(),
+                                SpiGenerator.Settings(generatorOptions))
                         )
 
                         is MultipleFilesGenerator -> validatedElements.map {
                             generateFiles(
                                 generator,
                                 it.element,
+                                SpiGenerator.Settings(generatorOptions),
                                 it.source
                             )
                         }.stream()
@@ -115,13 +116,34 @@ class LazyvalSymbolProcessor(
             return Stream.empty()
         }
 
-        return Stream.of(
+        val disabledByConfig = Arrays.stream<String>(
+            environment.options
+                .getOrDefault(LazyvalKspEnvironment.DISABLED_GENERATORS, "")
+                .split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray())
+            .map<String?> { obj: String? -> obj!!.trim { it <= ' ' } }
+            .filter { s: String? -> !s!!.isEmpty() }
+            .toList()
+
+        val generators = Stream.of(
             singleFileGenerators,
             multipleFilesGenerators,
         ).flatMap { serviceLoader -> StreamSupport.stream(serviceLoader.spliterator(), false) }
+            // TODO check for ID
+        .filter{generator -> generator.requiredClasspath().stream().allMatch{fqn -> lazyvalEnvironment.isClassAvailable(fqn)}}
+        .filter{generator -> !disabledByConfig.contains(generator.generatorId())}
+        .toList()
+
+        lazyvalEnvironment.info(
+            "Lazyval Active Providers: " + generators.stream()
+                .map{ generator -> generator.generatorId() }
+                .collect(Collectors.joining(", ")))
+
+        if (generators.isEmpty()) {
+            lazyvalEnvironment.warnMissingClasspath()
+        }
+
+        return generators.stream()
     }
-
-
 
     private fun writeKotlinFile(fileSpec: FileSpec, sourceFiles: List<KSFile>) {
         try {

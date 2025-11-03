@@ -1,11 +1,7 @@
 package de.qualityminds.lazyval.processor.spi;
 
 import com.palantir.javapoet.JavaFile;
-import de.qualityminds.lazyval.processor.LazyvalEnvironment;
-import de.qualityminds.lazyval.processor.ValidatedGeneratorElement;
 
-import java.util.Optional;
-import java.util.Set;
 
 /**
  * A service provider interface which is called by the {@link de.qualityminds.lazyval.processor.LazyvalProcessor} to
@@ -13,8 +9,16 @@ import java.util.Set;
  * <p>
  * As an example, for all domain primitives only a single Mapstruct Mapper definition is needed.
  * </p>
+ * <p>
+ *     The list of elements is guaranteed to be non-empty.
+ * </p>
  */
 public non-sealed interface SingleFileGenerator extends SpiGenerator {
 
-    Optional<JavaFile> generateSingleFile(Set<ValidatedGeneratorElement> elements, LazyvalEnvironment layzvalEnvironment);
+    /**
+     * Called only once with a list of all domain primitives annotated with {@link de.qualityminds.lazyval.LazyValue}.
+     * @param elements all elements annotated with {@link de.qualityminds.lazyval.LazyValue}. Guaranteed to be non-empty.
+     * @param userSettings provided {@link de.qualityminds.lazyval.processor.spi.SpiGenerator.Settings}
+     */
+    JavaFile generateSingleFile(NonEmptySet<ValidatedGeneratorElement> elements, Settings userSettings);
 }

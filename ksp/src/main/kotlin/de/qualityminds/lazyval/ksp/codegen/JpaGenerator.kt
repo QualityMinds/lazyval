@@ -1,6 +1,5 @@
 package de.qualityminds.lazyval.ksp.codegen
 
-import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ksp.toClassName
@@ -11,18 +10,22 @@ import de.qualityminds.lazyval.ksp.spi.GeneratorResult
 import de.qualityminds.lazyval.ksp.spi.MultipleFilesGenerator
 import de.qualityminds.lazyval.ksp.spi.SpiGenerator
 
-class JpaKspGenerator : MultipleFilesGenerator {
+// tag::docu[]
+class JpaGenerator : MultipleFilesGenerator {
+
+    companion object {
+        const val OPTION_GENERATED_PACKAGE = "lazyval.jpa.generatedPackage"
+    }
+
+    override fun generatorId(): String = "jpa"
+
+    override fun requiredClasspath(): Collection<String> = listOf("jakarta.persistence.AttributeConverter")
 
     override fun generateFilePerType(
         validatedElement: ValidatedKspGeneratorElement,
-        environment: LazyvalKspEnvironment
+        userSettings: SpiGenerator.Settings
     ): GeneratorResult {
-
-        if(!environment.isJpaOnClasspath()) {
-            environment.info("JPA is not on classpath. Lazyval will not generate AttributeConverters.")
-            return GeneratorResult.Nothing
-        }
-
+        // end::docu[]
         val element = validatedElement.element
         val wrappedType = validatedElement.wrappedType
         val lazyvalTypeName = element.toClassName()
@@ -72,7 +75,6 @@ class JpaKspGenerator : MultipleFilesGenerator {
             }
             .build()
 
-        // Build the converter class - no explicit visibility modifier needed (public by default)
         val converterClass = TypeSpec.classBuilder(converterClassName)
             .addAnnotation(
                 AnnotationSpec.builder(ClassName("jakarta.persistence", "Converter"))
@@ -91,26 +93,12 @@ class JpaKspGenerator : MultipleFilesGenerator {
             .build()
 
         // Determine package
-        val packageName = environment.getSettings().getJpaConverterPackage()
-            ?: "${environment.extractRootPackage(element)}.boundary.persistence"
+        val packageName = userSettings.options.get(OPTION_GENERATED_PACKAGE)
+            // TODO get rid of dependency
+            ?: "${LazyvalKspEnvironment.extractRootPackage(element)}.boundary.persistence"
 
         return GeneratorResult.Kotlin(FileSpec.builder(packageName, converterClassName)
             .addType(converterClass)
             .build())
-    }
-
-    private fun KSType.isPrimitive(): Boolean {
-        return when (declaration.simpleName.asString()) {
-            "Int", "Long", "Short", "Byte", "Double", "Float", "Boolean", "Char" -> true
-            else -> false
-        }
-    }
-
-    private fun KSType.isBoxedPrimitive(): Boolean {
-        return when (declaration.qualifiedName?.asString()) {
-            "java.lang.Integer", "java.lang.Long", "java.lang.Short", "java.lang.Byte",
-            "java.lang.Double", "java.lang.Float", "java.lang.Boolean", "java.lang.Character" -> true
-            else -> false
-        }
     }
 }

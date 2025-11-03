@@ -2,31 +2,30 @@ package de.qualityminds.lazyval.processor.codegen;
 
 import com.palantir.javapoet.*;
 import de.qualityminds.lazyval.processor.LazyvalEnvironment;
-import de.qualityminds.lazyval.processor.ValidatedGeneratorElement;
+import de.qualityminds.lazyval.processor.spi.NonEmptySet;
+import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 import de.qualityminds.lazyval.processor.spi.SingleFileGenerator;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Stream;
+import java.util.*;
 
 final public class MapstructGenerator implements SingleFileGenerator {
 
-    public MapstructGenerator(){
-        // needed for ServiceLoader
+    private static final String GENERATOR_ID = "mapstruct";
+    private static final String OPTION_GENERATED_PACKAGE = "lazyval.mapstruct.generatedPackage";
+
+    @Override
+    public String generatorId() {
+        return GENERATOR_ID;
     }
 
-    public Optional<JavaFile> generateSingleFile(Set<ValidatedGeneratorElement> elements, LazyvalEnvironment layzvalEnvironment){
-        if(layzvalEnvironment.isMapstructMissingOnClasspath()){
-            layzvalEnvironment.info("Mapstruct is not on classpath. Lazyval will not generate Mapstruct mappers.");
-            return Optional.empty();
-        }
+    @Override
+    public Collection<String> requiredClasspath() {
+        return List.of("org.mapstruct.Mapper");
+    }
 
-        if(elements.isEmpty()){
-            return Optional.empty();
-        }
-
+    public JavaFile generateSingleFile(NonEmptySet<ValidatedGeneratorElement> elements, Settings userSettings){
         var mapperAnnotationBuilder = AnnotationSpec.builder(ClassName.get("org.mapstruct", "Mapper"))
                 .addMember("unmappedTargetPolicy", "$L", "org.mapstruct.ReportingPolicy.ERROR");
 
@@ -91,13 +90,14 @@ final public class MapstructGenerator implements SingleFileGenerator {
             typeSpecBuilder.addMethod(mapToWrappedType).addMethod(map);
         }
 
-        String mapperPackage = layzvalEnvironment.getSettings().getMapstructPackage()
+        String mapperPackage = userSettings.get(OPTION_GENERATED_PACKAGE)
+                // TODO get rid of dependency
                 .orElse(String.format("%s", LazyvalEnvironment.extractRootPackage(elements.stream()
                         .findFirst()
                         .map(ValidatedGeneratorElement::element)
                         .orElseThrow())));
 
-        return Optional.of(JavaFile.builder(mapperPackage, typeSpecBuilder.build()).build());
+        return JavaFile.builder(mapperPackage, typeSpecBuilder.build()).build();
     }
 
 }
