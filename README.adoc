@@ -9,6 +9,9 @@ ifdef::env-github[]
 :warning-caption: :warning:
 endif::[]
 
+WARNING: Unfortunately, Github Packages does not allow anonymous downloads of public packages. We are working on a
+solution to provide the artifacts via Maven Central.
+
 == What is Lazyval
 
 Lazyval is a Java annotation processor & Kotlin symbol processor generating boilerplate code,
