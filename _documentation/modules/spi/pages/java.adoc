@@ -1,3 +1,9 @@
 = Java SPI
 
 TODO
+
+.JPA Generator
+[source,java]
+----
+include::spi:example$JpaGenerator.java[tag=docu]
+----

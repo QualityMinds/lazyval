@@ -3,12 +3,14 @@
 For Kotlin, the original Java Annotation Processor was migrated to KSP2 (Kotlin Symbol Processing) to make use of
 the `@LazyValue` annotation on Kotlin classes and data-classes.
 
-NOTE: KSP2 only officially supports Gradle. Mill has its own KSP2 support. Maven users can currently not make use of KSP2.
-
 [#usage]
 == Usage
 
-Add the `@LazyValue` annotation to your (data-)class and the processor will figure out the rest.
+First, add the annotation and processor dependencies to your favorite build-tool. See below for <<_gradle>> or <<_mill>>.
+
+NOTE: KSP2 only officially supports Gradle. Mill has its own KSP2 support. Maven users can currently not make use of KSP2.
+
+Mark your domain-primitive with the `@LazyValue` annotation and the processor will figure out the rest.
 
 .Quantity Dataclass
 [source, kotlin]
@@ -79,14 +81,12 @@ public class QuantityAttributeConverter : AttributeConverter<Quantity?, Int?> {
 == Setup
 
 === Gradle
-
 [source, kotlin]
 ----
 include::ROOT:example$kotlin/build.gradle.kts[tags=docu;!excluded]
 ----
 
 === Mill
-
 [source, scala]
 ----
 include::ROOT:example$kotlin/build.mill[tags=docu;!excluded]
