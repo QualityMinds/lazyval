@@ -4,14 +4,15 @@ out/
 **/target
 
 **/build
-
 **/.gradle
-
 **/gradle/wrapper
+**/gradlew
+**/gradlew.bat
 
 # only needed when running Antora locally
 package.json
 package-lock.json
+node_modules
 
 # BSP
 .bsp/

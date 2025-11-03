@@ -74,13 +74,25 @@ class CompilerSetup private constructor(private val kspSetup: KotlinSymbolProces
         private val DEP_MAPSTRUCT_PROCESSOR = "org.mapstruct:mapstruct-processor:1.6.3"
         private val DEP_JPA = "jakarta.persistence:jakarta.persistence-api:3.2.0"
 
-        fun setupTask(classLoader: ClassLoader, fileToCompile: String, projectDir: Path, libraries: Libraries): CompilerSetup {
-            val kspSetup = setupKsp2(classLoader, fileToCompile, projectDir, libraries)
+        fun setupTask(
+            classLoader: ClassLoader,
+            fileToCompile: String,
+            projectDir: Path,
+            libraries: Libraries,
+            disabledGenerators: List<String>
+        ): CompilerSetup {
+            val kspSetup = setupKsp2(classLoader, fileToCompile, projectDir, libraries, disabledGenerators)
             val kotlinSetup = KotlinCompilerSetup.setup(classLoader, fileToCompile, projectDir, libraries)
             return CompilerSetup(kspSetup, kotlinSetup)
         }
 
-        private fun setupKsp2(classLoader: ClassLoader, fileToCompile: String, projectDir: Path, libraries: Libraries) : KotlinSymbolProcessing{
+        private fun setupKsp2(
+            classLoader: ClassLoader,
+            fileToCompile: String,
+            projectDir: Path,
+            libraries: Libraries,
+            disabledGenerators: List<String>
+        ) : KotlinSymbolProcessing{
             val resourceUrl = classLoader.getResource("test/$fileToCompile")
                 ?: throw RuntimeException("Test resource not found: test/$fileToCompile")
             val sourceFile = File(resourceUrl.toURI())
@@ -111,6 +123,12 @@ class CompilerSetup private constructor(private val kspSetup: KotlinSymbolProces
             @Suppress("UNCHECKED_CAST")
             val processorProviders: List<SymbolProcessorProvider> = processorProvidersSearch.toList() as List<SymbolProcessorProvider>
 
+            val options = if( disabledGenerators.isNotEmpty()) {
+                mapOf("lazyval.disabledGenerators" to disabledGenerators.joinToString(","))
+            }else{
+                emptyMap()
+            }
+
             val config = KSPJvmConfig.Builder().apply {
                 jvmTarget = "17"
                 languageVersion = KotlinVersion.CURRENT.toString()
@@ -124,6 +142,7 @@ class CompilerSetup private constructor(private val kspSetup: KotlinSymbolProces
                 resourceOutputDir = projectDir.resolve("build/generated/ksp/kotlin").createDirectories().toFile()
                 cachesDir = projectDir.resolve("build/resources").createDirectories().toFile()
                 sourceRoots = listOf(sourceFile)
+                processorOptions = options
                 // libraries is the actual compilation-unit
                 this.libraries = compilationUnit.toList()
             }.build()

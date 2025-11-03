@@ -25,7 +25,13 @@ class KspIT : DescribeSpec({
             TestCase("ValueClass.kt", false, false),
         ){ (fileToCompile, compiles, generatedSources) ->
             val projectFolder = tempdir(prefix = "ksp", keepOnFailure = true).toPath()
-            val setup = CompilerSetup.setupTask(this::class.java.classLoader, fileToCompile, projectFolder, CompilerSetup.Libraries.ALL)
+            val setup = CompilerSetup.setupTask(
+                this::class.java.classLoader,
+                fileToCompile,
+                projectFolder,
+                CompilerSetup.Libraries.ALL,
+                emptyList()
+            )
             val result = setup.run()
 
             runCatching {
@@ -44,11 +50,49 @@ class KspIT : DescribeSpec({
     it("Does not create any files when dependencies are missing"){
         val projectFolder = tempdir(prefix = "ksp", keepOnFailure = true).toPath()
         val fileToCompile = "Quantity.kt"
-        val setup = CompilerSetup.setupTask(this::class.java.classLoader, fileToCompile, projectFolder, CompilerSetup.Libraries.NONE)
+        val setup = CompilerSetup.setupTask(
+            this::class.java.classLoader,
+            fileToCompile,
+            projectFolder,
+            CompilerSetup.Libraries.NONE,
+            emptyList()
+        )
         val result = setup.run()
 
         result.isSuccessful() shouldBe true
         result.generatedJavaFiles shouldBe emptyList()
         result.generatedKotlinFiles shouldBe emptyList()
     }
+
+    data class DisabledGeneratorTestCase(val generatorId: String, val skippedSource: String)
+
+    context("Disabled generators") {
+        withData<DisabledGeneratorTestCase>(
+            nameFn = { "Disabling by id '${it.generatorId}' will not generate '${it.skippedSource}'" },
+            DisabledGeneratorTestCase("mapstruct", "LazyvalMapper.java"),
+            DisabledGeneratorTestCase("jpa", "RecordValidAttributeConverter.kt"),
+        ) { (generatorId, skippedSource) ->
+            val projectFolder = tempdir(prefix = "ksp", keepOnFailure = true).toPath()
+            val setup = CompilerSetup.setupTask(
+                this::class.java.classLoader,
+                "Quantity.kt",
+                projectFolder,
+                CompilerSetup.Libraries.ALL,
+                listOf(generatorId)
+            )
+            val result = setup.run()
+
+            runCatching {
+                result.isSuccessful() shouldBe true
+                result.generatedJavaFile(skippedSource) shouldBe false
+                result.generatedKotlinFile(skippedSource) shouldBe false
+            }.onFailure {
+                result.printDebugMessages()
+            }.onSuccess {
+                // this makes sure only the failing iterations are kept
+                projectFolder.toFile().deleteRecursively()
+            }.getOrThrow() // Re-throw to fail the test
+        }
+    }
+
 })

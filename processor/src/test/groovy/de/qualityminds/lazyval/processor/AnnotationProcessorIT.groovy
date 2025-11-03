@@ -2,7 +2,6 @@ package de.qualityminds.lazyval.processor
 
 import spock.lang.Specification
 import spock.lang.TempDir
-import spock.util.environment.RestoreSystemProperties
 
 import java.nio.file.Path
 
@@ -19,10 +18,9 @@ class AnnotationProcessorIT extends Specification {
         this.classloader = this.getClass().getClassLoader()
     }
 
-    @RestoreSystemProperties
     void "Running '#fileToCompile' #statusMessage"(){
         given:
-        var compilerSetup = CompilerSetup.setupTask(classloader, fileToCompile, tempDir, CompilerSetup.Libraries.ALL)
+        var compilerSetup = CompilerSetup.setupTask(classloader, fileToCompile, tempDir, CompilerSetup.Libraries.ALL, List.of())
 
         when:
         def result = compilerSetup.run()
@@ -62,10 +60,9 @@ class AnnotationProcessorIT extends Specification {
         warnValueNotFinalIssued = fileToCompile == 'ObjectValueNotFinal.java'
     }
 
-    @RestoreSystemProperties
     void "Generates no Code but instead issues a warning when neither Mapstruct, nor JPA is available"(){
         given: 'using a valid and annotated type'
-        var compilerSetup = CompilerSetup.setupTask(classloader, "RecordValid.java", tempDir, CompilerSetup.Libraries.NONE)
+        var compilerSetup = CompilerSetup.setupTask(classloader, "RecordValid.java", tempDir, CompilerSetup.Libraries.NONE, List.of())
 
         when:
         def result = compilerSetup.run()
@@ -78,5 +75,24 @@ class AnnotationProcessorIT extends Specification {
 
         and: 'only once'
         result.getWarnings().size() == 1
+    }
+
+    void "Disabling by id '#generatorId' will not generate '#skippedSource'"(){
+        given:
+        var compilerSetup = CompilerSetup.setupTask(classloader, 'RecordValid.java', tempDir, CompilerSetup.Libraries.ALL, List.of(generatorId))
+
+        when:
+        def result = compilerSetup.run()
+
+        then: 'compilation succeeds'
+        result.getTaskResult()
+
+        and: 'skipped source generation'
+        !result.generatedFile(skippedSource)
+
+        where:
+        generatorId  | skippedSource
+        'mapstruct'  | 'LazyvalMapper.java'
+        'jpa'        | 'RecordValidAttributeConverter.java'
     }
 }

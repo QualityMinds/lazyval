@@ -7,25 +7,26 @@ import com.palantir.javapoet.*
 import de.qualityminds.lazyval.ksp.LazyvalKspEnvironment
 import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import de.qualityminds.lazyval.ksp.spi.GeneratorResult
+import de.qualityminds.lazyval.ksp.spi.NonEmptySet
 import de.qualityminds.lazyval.ksp.spi.SingleFileGenerator
+import de.qualityminds.lazyval.ksp.spi.SpiGenerator
 import java.io.IOException
 import javax.lang.model.element.Modifier
 
-class MapstructKspGenerator : SingleFileGenerator {
+class MapstructGenerator : SingleFileGenerator {
+
+    companion object {
+        const val OPTION_GENERATED_PACKAGE = "lazyval.mapstruct.generatedPackage"
+    }
+
+    override fun generatorId(): String = "mapstruct"
+
+    override fun requiredClasspath(): Collection<String> = listOf("org.mapstruct.Mapper")
 
     override fun generateSingleFile(
-        validatedElements: List<ValidatedKspGeneratorElement>,
-        environment: LazyvalKspEnvironment
+        validatedElements: NonEmptySet<ValidatedKspGeneratorElement>,
+        userSettings: SpiGenerator.Settings
     ): GeneratorResult {
-        if (validatedElements.isEmpty()) {
-            throw IllegalArgumentException("Cannot create mapper with empty elements")
-        }
-
-        if(!environment.isMapstructOnClasspath()) {
-            environment.info("Mapstruct is not on classpath. Lazyval will not generate Mapper definition.")
-            return GeneratorResult.Nothing
-        }
-
         // Build Java interface using JavaPoet
         val interfaceBuilder = TypeSpec.interfaceBuilder("LazyvalMapper")
             .addModifiers(Modifier.PUBLIC)
@@ -42,8 +43,9 @@ class MapstructKspGenerator : SingleFileGenerator {
         }
 
         val firstElement = validatedElements.first().element
-        val packageName = environment.getSettings().getMapstructPackage()
-            ?: environment.extractRootPackage(firstElement)
+        val packageName = userSettings.options.get(OPTION_GENERATED_PACKAGE)
+            // TODO get rid of dependency
+            ?: LazyvalKspEnvironment.extractRootPackage(firstElement)
 
         val javaFile = JavaFile.builder(packageName, interfaceBuilder.build())
             .build()
@@ -128,13 +130,6 @@ class MapstructKspGenerator : SingleFileGenerator {
                 val simpleName = ksType.declaration.simpleName.asString()
                 ClassName.get(packageName, simpleName)
             }
-        }
-    }
-
-    private fun KSType.isPrimitive(): Boolean {
-        return when (declaration.simpleName.asString()) {
-            "Int", "Long", "Short", "Byte", "Double", "Float", "Boolean", "Char" -> true
-            else -> false
         }
     }
 }

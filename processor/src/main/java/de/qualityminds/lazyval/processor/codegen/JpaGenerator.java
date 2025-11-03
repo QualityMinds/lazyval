@@ -2,21 +2,33 @@ package de.qualityminds.lazyval.processor.codegen;
 
 import com.palantir.javapoet.*;
 import de.qualityminds.lazyval.processor.LazyvalEnvironment;
-import de.qualityminds.lazyval.processor.ValidatedGeneratorElement;
+import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 import de.qualityminds.lazyval.processor.spi.MultipleFilesGenerator;
-import de.qualityminds.lazyval.processor.spi.SingleFileGenerator;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
+import java.util.Collection;
+import java.util.List;
 
+// tag::docu[]
 public class JpaGenerator implements MultipleFilesGenerator {
 
-    public JpaGenerator(){
-        // needed for ServiceLoader
+    private static final String GENERATOR_ID = "jpa";
+    private static final String OPTION_GENERATED_PACKAGE = "lazyval.jpa.generatedPackage";
+
+    @Override
+    public String generatorId() {
+        return GENERATOR_ID;
     }
 
-    public JavaFile generateFilePerType(ValidatedGeneratorElement valid, LazyvalEnvironment layzvalEnvironment){
+    @Override
+    public Collection<String> requiredClasspath() {
+        return List.of("jakarta.persistence.AttributeConverter");
+    }
+
+    public JavaFile generateFilePerType(ValidatedGeneratorElement valid, Settings userSettings){
+        // end::docu[]
         TypeElement element = valid.element();
 
         TypeMirror type = element.asType();
@@ -89,7 +101,8 @@ public class JpaGenerator implements MultipleFilesGenerator {
                 .addMethod(convertToEntityAttribute)
                 .build();
 
-        String jpaConverterPackage = layzvalEnvironment.getSettings().getJpaConverterPackage()
+        String jpaConverterPackage = userSettings.get(OPTION_GENERATED_PACKAGE)
+                // TODO get rid of dependency
                 .orElse(String.format("%s.boundary.persistence", LazyvalEnvironment.extractRootPackage(element)));
         if(jpaConverterPackage.charAt(0) == '.'){
             jpaConverterPackage = jpaConverterPackage.substring(1);

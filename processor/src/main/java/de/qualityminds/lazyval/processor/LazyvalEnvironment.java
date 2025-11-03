@@ -1,5 +1,9 @@
 package de.qualityminds.lazyval.processor;
 
+import de.qualityminds.lazyval.processor.spi.ObjectElement;
+import de.qualityminds.lazyval.processor.spi.RecordElement;
+import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
+
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.MirroredTypeException;
@@ -12,31 +16,17 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class LazyvalEnvironment {
-    /**
-     * Overrides the target package for generated JPA classes.
-     */
-    static final String JPA_GENERATED_PACKAGE = "lazyval.jpa.generatedPackage";
 
-    /**
-     * Overrides the target package for generated Mapstruct classes.
-     */
-    static final String MAPSTRUCT_GENERATED_PACKAGE = "lazyval.mapstruct.generatedPackage";
-
-    private final UserSettings settings;
+    static final String DISABLED_GENERATORS = "lazyval.disabledGenerators";
     private final ProcessingEnvironment processingEnvironment;
 
-    private final boolean mapstructOnClasspath;
-    private final boolean jpaOnClasspath;
-    private static final String NO_GENERATION_WARNING = "Neither Mapstruct nor JPA is available on the classpath! Lazyval will not generate any sources.";
+    private static final String NO_GENERATION_WARNING = "None of the required classes are available on the classpath! Lazyval will not generate any sources.";
     private static final String NOT_FINAL_OBJECT_WARNING = "Value Types should not be extendable, hence the class should be final.";
     private static final String NOT_FINAL_VALUE_WARNING = "Value Types should be immutable, hence the wrapped field should be final.";
 
     LazyvalEnvironment(ProcessingEnvironment processingEnvironment) {
         Objects.requireNonNull(processingEnvironment);
         this.processingEnvironment = processingEnvironment;
-        this.settings = loadSettings();
-        this.mapstructOnClasspath = isClassAvailable("org.mapstruct.Mapper");
-        this.jpaOnClasspath = isClassAvailable("jakarta.persistence.AttributeConverter");
     }
 
     public void info(String message) {
@@ -70,19 +60,12 @@ public class LazyvalEnvironment {
         processingEnvironment.getMessager().printMessage(Diagnostic.Kind.ERROR, message, element);
     }
 
-    public boolean isMapstructMissingOnClasspath() {
-        return !mapstructOnClasspath;
-    }
-
-    boolean isJpaMissingClasspath(){
-        return !jpaOnClasspath;
-    }
-
     /**
      * Checks whether a class with the given fqn is available on the classpath.
      */
     public boolean isClassAvailable(String fqn){
         if (fqn == null || fqn.trim().isEmpty()) {
+            warn(fqn + " is not on classpath.");
             return false;
         }
         return processingEnvironment.getElementUtils().getTypeElement(fqn) != null;
@@ -107,12 +90,6 @@ public class LazyvalEnvironment {
         }
     }
 
-    /**
-     * The settings passed via compiler arguments, which have been validated by this point already.
-     */
-    public UserSettings getSettings() {
-        return settings;
-    }
 
     // TODO revisit
     private static final Set<String> layerPackages = Set.of("boundary", "control", "entity", "application", "infrastructure", "domain");
@@ -128,11 +105,6 @@ public class LazyvalEnvironment {
                 .collect(Collectors.joining("."));
     }
 
-    private UserSettings loadSettings(){
-        var jpaPackage = processingEnvironment.getOptions().get(JPA_GENERATED_PACKAGE);
-        var mapstructPackage = processingEnvironment.getOptions().get(MAPSTRUCT_GENERATED_PACKAGE);
-        return new UserSettings(jpaPackage, mapstructPackage);
-    }
 
     Optional<ValidatedGeneratorElement> validateElement(TypeElement element){
         var result = validateRecord(element);
@@ -236,28 +208,5 @@ public class LazyvalEnvironment {
         }
 
         return valid ? Optional.of(new ObjectElement(lazyvalElement, valueFields.get(0), factoryMethod)) : Optional.empty();
-    }
-
-    /**
-     * Via compiler argument passed configuration.
-     * @param jpa see {@link #JPA_GENERATED_PACKAGE}
-     */
-    public record UserSettings(String jpa, String mapstruct) {
-        /**
-         * Overrides the default package for the JPA-AttributeConverter, which is used by the annotation processor
-         * to write the generated classes.
-         * @return Package to which generated classes should be written.
-         */
-        public Optional<String> getJpaConverterPackage(){
-            return Optional.ofNullable(jpa);
-        }
-        /**
-         * Overrides the default package for the Mapstruct mapper, which is used by the annotation processor
-         * to write the generated classes.
-         * @return Package to which generated classes should be written.
-         */
-        public Optional<String> getMapstructPackage(){
-            return Optional.ofNullable(mapstruct);
-        }
     }
 }

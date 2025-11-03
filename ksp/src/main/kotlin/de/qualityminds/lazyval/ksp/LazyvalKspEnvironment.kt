@@ -9,19 +9,24 @@ class LazyvalKspEnvironment(
     private val environment: SymbolProcessorEnvironment,
     private val resolver: Resolver
 ) {
-    companion object {
-        const val JPA_GENERATED_PACKAGE = "lazyval.jpa.generatedPackage"
-        const val MAPSTRUCT_GENERATED_PACKAGE = "lazyval.mapstruct.generatedPackage"
 
-        private const val NO_GENERATION_WARNING = "Neither Mapstruct nor JPA is available on the classpath! Lazyval will not generate any sources."
+    companion object {
+        const val DISABLED_GENERATORS: String = "lazyval.disabledGenerators"
+        private const val NO_GENERATION_WARNING = "None of the required classes are available on the classpath! Lazyval will not generate any sources."
         private const val NOT_FINAL_CLASS_WARNING = "Value Types should not be extendable, hence the class should be final."
         private const val NOT_FINAL_VALUE_WARNING = "Value Types should be immutable, hence the wrapped property should be final (val)."
 
         private val layerPackages = setOf("boundary", "control", "entity")
+
+        fun extractRootPackage(classDeclaration: KSClassDeclaration): String {
+            val packageParts = classDeclaration.packageName.asString().split(".")
+            return packageParts.takeWhile { part ->
+                !layerPackages.contains(part) && !part.first().isUpperCase()
+            }.joinToString(".")
+        }
     }
 
     private val logger: KSPLogger = environment.logger
-    private val settings: UserSettings = loadSettings()
     private val mapstructOnClasspath: Boolean = isClassAvailable("org.mapstruct.Mapper")
     private val jpaOnClasspath: Boolean = isClassAvailable("jakarta.persistence.AttributeConverter")
 
@@ -53,21 +58,17 @@ class LazyvalKspEnvironment(
 
     internal fun isJpaOnClasspath(): Boolean = jpaOnClasspath
 
-    fun getSettings(): UserSettings = settings
-
     /**
      * Checks whether a class with the given [fqn] is available on the classpath.
      */
     fun isClassAvailable(fqn: String): Boolean {
-        if (fqn.isBlank()) return false
+        if (fqn.isBlank()) {
+            warn("$fqn is not on classpath.")
+            return false
+        }
         return resolver.getClassDeclarationByName(resolver.getKSNameFromString(fqn)) != null
     }
 
-    private fun loadSettings(): UserSettings {
-        val jpaPackage = environment.options[JPA_GENERATED_PACKAGE]
-        val mapstructPackage = environment.options[MAPSTRUCT_GENERATED_PACKAGE]
-        return UserSettings(jpaPackage, mapstructPackage)
-    }
 
     fun validateElement(classDeclaration: KSClassDeclaration): ValidatedKspGeneratorElement? {
         // KSPs validation is to strict, it won't allow the Java Annotation on a Kotlin class
@@ -198,17 +199,5 @@ class LazyvalKspEnvironment(
 
     private fun KSPropertyDeclaration.isPrivate(): Boolean {
         return Modifier.PRIVATE in modifiers
-    }
-
-    fun extractRootPackage(classDeclaration: KSClassDeclaration): String {
-        val packageParts = classDeclaration.packageName.asString().split(".")
-        return packageParts.takeWhile { part ->
-            !layerPackages.contains(part) && !part.first().isUpperCase()
-        }.joinToString(".")
-    }
-
-    data class UserSettings(val jpa: String?, val mapstruct: String?) {
-        fun getJpaConverterPackage(): String? = jpa
-        fun getMapstructPackage(): String? = mapstruct
     }
 }
