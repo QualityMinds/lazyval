@@ -1,8 +1,7 @@
 package de.qualityminds.lazyval.processor.codegen;
 
 import com.palantir.javapoet.*;
-import de.qualityminds.lazyval.processor.spi.NonEmptySet;
-import de.qualityminds.lazyval.processor.spi.SpiGenerator;
+import de.qualityminds.lazyval.collections.NonEmptySet;
 import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 import de.qualityminds.lazyval.processor.spi.SingleFileGenerator;
 

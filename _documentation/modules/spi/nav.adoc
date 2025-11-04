@@ -2,3 +2,6 @@
 * xref:spi:index.adoc[SPI Overview]
 * xref:spi:java.adoc[Java SPI]
 * xref:spi:kotlin.adoc[Kotlin SPI]
+* xref:spi:testkit.adoc[Testkit]
+** xref:spi:testkit-spock.adoc[Spock Example]
+** xref:spi:testkit-kotest.adoc[Kotest Example]

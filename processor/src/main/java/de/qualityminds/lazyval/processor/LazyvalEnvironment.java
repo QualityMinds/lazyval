@@ -171,7 +171,8 @@ class LazyvalEnvironment {
             error(lazyvalElement, "Not a simple ValueType. Lazyval only supports Objects with one non-transient value.");
             valid = false;
         }else if(valueFields.isEmpty()){
-            error(lazyvalElement,"No public accessor found. Lazyval requires the ValueType to have one accessor'. Stopping further validation.");
+            // FIXME find a way not to stop validation here. Instead of passing accessors, use the field
+            error(lazyvalElement,"No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation.");
             return Optional.empty(); // we have to stop here because we need the value field to look up the factory method
         }
 

@@ -92,7 +92,7 @@ class JpaGenerator : FilePerTypeGenerator {
             .build()
 
         // Determine package
-        val packageName = userSettings.options.get(OPTION_GENERATED_PACKAGE)
+        val packageName = userSettings.options[OPTION_GENERATED_PACKAGE]
             ?: "${extractRootPackage(element)}.boundary.persistence"
 
         return GeneratorResult.Kotlin(FileSpec.builder(packageName, converterClassName)

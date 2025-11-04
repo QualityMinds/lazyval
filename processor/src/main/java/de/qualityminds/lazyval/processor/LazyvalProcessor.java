@@ -1,5 +1,6 @@
 package de.qualityminds.lazyval.processor;
 
+import de.qualityminds.lazyval.collections.NonEmptySet;
 import de.qualityminds.lazyval.processor.spi.*;
 
 import javax.annotation.processing.*;
@@ -51,7 +52,7 @@ public class LazyvalProcessor extends AbstractProcessor {
                         var settings = processingEnv.getOptions().entrySet().stream().filter(e -> e.getKey().startsWith("lazyval." + generator.generatorId() + "."))
                                 .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
                         if(generator instanceof SingleFileGenerator singleFileGenerator){
-                            return Stream.of(singleFileGenerator.generateSingleFile(NonEmptySet.fromSet(validatedElements), new SpiGenerator.Settings(settings)));
+                            return Stream.of(singleFileGenerator.generateSingleFile(NonEmptySet.ofAll(validatedElements), new SpiGenerator.Settings(settings)));
                         }else if(generator instanceof FilePerTypeGenerator filePerTypeGenerator){
                             return validatedElements.stream().map(element -> filePerTypeGenerator.generateFilePerType(element, new SpiGenerator.Settings(settings)));
                         }else{
@@ -90,7 +91,7 @@ public class LazyvalProcessor extends AbstractProcessor {
         boolean hasMultiple = multipleFilesGenerators.iterator().hasNext();
 
         if (!hasSingle && !hasMultiple) {
-            lazyvalEnvironment.warn("No Lazyval providers found on classpath.");
+            lazyvalEnvironment.warn("No Lazyval SPI providers found on classpath.");
             return Stream.empty();
         }
 

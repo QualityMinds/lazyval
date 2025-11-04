@@ -1,101 +1,89 @@
 package de.qualityminds.lazyval.processor
 
+import de.qualityminds.lazyval.testkit.Testkit
+import de.qualityminds.lazyval.testkit.Testresult
+import de.qualityminds.lazyval.testkit.dependencies.Dependency
+import de.qualityminds.lazyval.testkit.scenarios.Scenario
+import org.eclipse.collections.api.factory.Lists
+import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.TempDir
+import spock.lang.Unroll
 
 import java.nio.file.Path
 
 class AnnotationProcessorIT extends Specification {
 
+    public static final String GENERATED_MAPSTRUCT_MAPPER_NAME = "LazyvalMapper.java"
+    public static final Dependency DependencyMapstruct = new Dependency("org.mapstruct", "mapstruct", "1.6.3")
+    public static final Dependency DependencyJakartaPersistence = new Dependency("jakarta.persistence", "jakarta.persistence-api", "3.2.0")
+
     @TempDir()
-    Path tempDir
+    Path projectDir
 
-    ClassLoader classloader;
+    @Shared
+    def testkitJava = Testkit.java()
 
-    void setup() {
-        // make sure test-output is english (because the tests check for compiler error messages)
-        Locale.setDefault(Locale.ENGLISH)
-        this.classloader = this.getClass().getClassLoader()
+    void "does not generate anything when classpath is empty"(){
+        expect:
+        testkitJava.run(projectDir, Scenario.Java.Isbn) == new Testresult.Java.NothingGenerated()
     }
 
-    void "Running '#fileToCompile' #statusMessage"(){
-        given:
-        var compilerSetup = CompilerSetup.setupTask(classloader, fileToCompile, tempDir, CompilerSetup.Libraries.ALL, List.of())
-
-        when:
-        def result = compilerSetup.run()
-
-        then: 'compilation fails due to missing dependencies'
-        result.getTaskResult() == compiles
-
-        and: 'compiler warning when object class is not final'
-        result.wasObjectNotFinalWarning() == warnNotFinalIssued
-
-        and: 'compiler warning when object wrapped value not final'
-        result.wasValueNotFinalWarning() == warnValueNotFinalIssued
-
-        and: 'Generated Mapstruct Mapper'
-        result.generatedFile("LazyvalMapper.java") == compiles
-
-        and: 'Generated AttributeConverter'
-        result.generatedFile(fileToCompile.replace(".java", "AttributeConverter.java")) == compiles
+    @Unroll("#scenario.name() fails with '#error'")
+    void "Failing Requirement"(){
+        expect:
+        testkitJava.run(projectDir, scenario) == expected
 
         where:
-        fileToCompile                       | compiles
-        'RecordValid.java'                  | true
-        'RecordValidInt.java'               | true
-        'RecordValidInteger.java'           | true
-        'RecordMoreThanOneProperty.java'    | false
-        'RecordMultipleFactories.java'      | false
-        'ObjectValid.java'                  | true
-        'ObjectValidInt.java'               | true
-        'ObjectValidInteger.java'           | true
-        'ObjectValidWithoutFactory.java'    | true
-        'ObjectNotFinal.java'               | true
-        'ObjectValueNotFinal.java'          | true
-        'ObjectMissingValueAccessor.java'   | false
-        'ObjectMoreThanOneProperty.java'    | false
-        'ObjectMultipleFactories.java'      | false
-        'AbstractClass.java'                | false
-        'ProductId.java'                    | true
-        statusMessage = compiles ? 'completes successfully' : 'fails the processing due to missing requirements'
-        warnNotFinalIssued = fileToCompile == 'ObjectNotFinal.java'
-        warnValueNotFinalIssued = fileToCompile == 'ObjectValueNotFinal.java'
+        scenario | error
+        Scenario.Java.of( "scenarios/failing/AbstractClass.java")               | "Abstract class is not a valid ValueType."
+        Scenario.Java.of( "scenarios/failing/RecordMoreThanOneProperty.java")   | "Not a simple ValueType. Lazyval only supported Records with one non-transient field name 'value'."
+        Scenario.Java.of( "scenarios/failing/ObjectMoreThanOneProperty.java")   | "Not a simple ValueType. Lazyval only supports Objects with one non-transient value."
+        Scenario.Java.of( "scenarios/failing/ObjectMultipleFactories.java")     | "Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
+        Scenario.Java.of( "scenarios/failing/RecordMultipleFactories.java")     | "Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
+        Scenario.Java.of( "scenarios/failing/ObjectMissingValueAccessor.java")  | "No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation."
+        expected = new Testresult.Java.Failure(Lists.immutable.of(error))
     }
 
-    void "Generates no Code but instead issues a warning when neither Mapstruct, nor JPA is available"(){
-        given: 'using a valid and annotated type'
-        var compilerSetup = CompilerSetup.setupTask(classloader, "RecordValid.java", tempDir, CompilerSetup.Libraries.NONE, List.of())
+    @Unroll("#scenario.name() #message")
+    void "Edge Cases"(){
+        given: 'only Mapstruct Dependency '
+        scenario.withDependencies(DependencyMapstruct)
 
         when:
-        def result = compilerSetup.run()
+        def result = testkitJava.run(projectDir, scenario)
 
-        then: 'compilation succeeds'
-        result.getTaskResult()
-
-        and: 'but a warning was emitted'
-        result.wasNoGenerationWarning()
-
-        and: 'only once'
-        result.getWarnings().size() == 1
-    }
-
-    void "Disabling by id '#generatorId' will not generate '#skippedSource'"(){
-        given:
-        var compilerSetup = CompilerSetup.setupTask(classloader, 'RecordValid.java', tempDir, CompilerSetup.Libraries.ALL, List.of(generatorId))
-
-        when:
-        def result = compilerSetup.run()
-
-        then: 'compilation succeeds'
-        result.getTaskResult()
-
-        and: 'skipped source generation'
-        !result.generatedFile(skippedSource)
+        then:
+        result == expected
 
         where:
-        generatorId  | skippedSource
-        'mapstruct'  | 'LazyvalMapper.java'
-        'jpa'        | 'RecordValidAttributeConverter.java'
+        scenario                                                    | warning
+        Scenario.Java.of("scenarios/edge/ObjectValueNotFinal.java") | "Value Types should be immutable, hence the wrapped field should be final."
+        Scenario.Java.of("scenarios/edge/ObjectNotFinal.java")      | "Value Types should not be extendable, hence the class should be final."
+        expected = warning != null
+                ? new Testresult.Java.SuccessWithWarnings(Lists.immutable.of(GENERATED_MAPSTRUCT_MAPPER_NAME), Lists.immutable.of(warning))
+                : new Testresult.Java.Success(GENERATED_MAPSTRUCT_MAPPER_NAME)
+        message = warning != null
+                ? "succeeds with warning '$warning'"
+                : "succeeds"
+    }
+
+    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
+    void "Successful Generation"(){
+        given:
+        scenario.withDependencies(DependencyMapstruct, DependencyJakartaPersistence)
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then:
+        result == expected
+
+        where:
+        scenario                | generatedJpaMapper
+        Scenario.Java.Isbn      | "IsbnAttributeConverter.java"
+        Scenario.Java.Quantity  | "QuantityAttributeConverter.java"
+        Scenario.Java.ProductId | "ProductIdAttributeConverter.java"
+        expected = new Testresult.Java.Success(GENERATED_MAPSTRUCT_MAPPER_NAME, generatedJpaMapper)
     }
 }

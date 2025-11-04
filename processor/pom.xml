@@ -15,14 +15,15 @@
     <name>Lazyval Java-Annotation-Processor</name>
     <description>Annotation processor that generates boilerplate code for domain-primitives</description>
 
-    <properties>
-        <javapoet.version>0.7.0</javapoet.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>de.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>de.qualityminds.lazyval</groupId>
+            <artifactId>utils</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -37,7 +38,6 @@
         <dependency>
             <groupId>org.jspecify</groupId>
             <artifactId>jspecify</artifactId>
-            <version>1.0.0</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains</groupId>
@@ -48,7 +48,7 @@
         <!-- Test dependencies -->
         <dependency>
             <groupId>de.qualityminds.lazyval</groupId>
-            <artifactId>test-utils</artifactId>
+            <artifactId>testkit</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
@@ -103,6 +103,11 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <additionalClasspathElements>
+                        <additionalClasspathElement>${basedir}/../testkit/src/main/resources</additionalClasspathElement>
+                    </additionalClasspathElements>
+                </configuration>
             </plugin>
         </plugins>
     </build>

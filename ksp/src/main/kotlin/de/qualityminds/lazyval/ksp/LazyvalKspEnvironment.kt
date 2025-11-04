@@ -116,7 +116,7 @@ internal class LazyvalKspEnvironment(
         val factoryMethods = findFactoryMethods(classDeclaration, valueProperty.type.resolve())
         if (factoryMethods.size > 1) {
             val functionNames = factoryMethods.joinToString(", ") { it.simpleName.asString() }
-            error(classDeclaration, "Multiple matching factory methods with the same signature found. Please check functions $functionNames in");
+            error(classDeclaration, "Multiple matching factory methods with the same signature found. Please check functions $functionNames")
             valid = false
         }
 

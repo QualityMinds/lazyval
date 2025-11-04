@@ -1,6 +1,7 @@
 package de.qualityminds.lazyval.processor.spi;
 
 import com.palantir.javapoet.JavaFile;
+import de.qualityminds.lazyval.collections.NonEmptySet;
 import org.jetbrains.annotations.ApiStatus;
 
 

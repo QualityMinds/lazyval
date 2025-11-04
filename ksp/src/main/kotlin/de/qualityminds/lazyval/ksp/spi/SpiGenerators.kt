@@ -4,6 +4,7 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.FileSpec
+import de.qualityminds.lazyval.collections.NonEmptySet
 import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import de.qualityminds.lazyval.ksp.codegen.JavaFileSpec
 import de.qualityminds.lazyval.ksp.spi.SpiGenerator.Settings
@@ -94,7 +95,7 @@ interface FilePerTypeGenerator : SpiGenerator {
      */
     fun generateFilePerType(
         validatedElement: ValidatedKspGeneratorElement,
-        userSettings: SpiGenerator.Settings
+        userSettings: Settings
     ): GeneratorResult
 }
 

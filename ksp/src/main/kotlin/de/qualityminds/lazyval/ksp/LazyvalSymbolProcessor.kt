@@ -4,6 +4,7 @@ import com.google.devtools.ksp.processing.*
 import com.google.devtools.ksp.symbol.*
 import com.squareup.kotlinpoet.FileSpec
 import de.qualityminds.lazyval.LazyValue
+import de.qualityminds.lazyval.collections.NonEmptySet
 import de.qualityminds.lazyval.ksp.codegen.JavaFileSpec
 import de.qualityminds.lazyval.ksp.spi.*
 import java.util.*
@@ -39,11 +40,6 @@ class LazyvalSymbolProcessor(
             return emptyList()
         }
 
-        if (!lazyvalEnvironment.isJpaOnClasspath() && !lazyvalEnvironment.isMapstructOnClasspath()) {
-            lazyvalEnvironment.warnMissingClasspath()
-            return emptyList()
-        }
-
         val annotatedSymbols: Sequence<KSAnnotated> = resolver.getSymbolsWithAnnotation(LazyValue::class.qualifiedName!!)
 
         val validatedElements = annotatedSymbols
@@ -55,8 +51,13 @@ class LazyvalSymbolProcessor(
             }
             .toList()
 
+        if (!lazyvalEnvironment.isJpaOnClasspath() && !lazyvalEnvironment.isMapstructOnClasspath()) {
+            lazyvalEnvironment.warnMissingClasspath()
+            return emptyList()
+        }
+
         fun generateSingleFile(generator: SingleFileGenerator, elements: Set<ValidatedKspGeneratorElement>, userSettings: SpiGenerator.Settings): KotlinOrJavaResult {
-            val result = generator.generateSingleFile(NonEmptySet.fromSet(elements), userSettings)
+            val result = generator.generateSingleFile(NonEmptySet.ofAll(elements), userSettings)
             return KotlinOrJavaResult.from(result, validatedElements.map { it.source })
         }
 
@@ -110,15 +111,15 @@ class LazyvalSymbolProcessor(
         val hasMultiple = filePerTypeGenerators.iterator().hasNext()
 
         if (!hasSingle && !hasMultiple) {
-            lazyvalEnvironment.warn("No generators found")
+            lazyvalEnvironment.warn("No Lazyval SPI providers found on classpath.")
             return Stream.empty()
         }
 
-        val disabledByConfig = Arrays.stream<String>(
+        val disabledByConfig = Arrays.stream(
             environment.options
                 .getOrDefault(LazyvalKspEnvironment.DISABLED_GENERATORS, "")
                 .split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray())
-            .map<String?> { obj: String? -> obj!!.trim { it <= ' ' } }
+            .map { obj: String? -> obj!!.trim { it <= ' ' } }
             .filter { s: String? -> !s!!.isEmpty() }
             .toList()
 

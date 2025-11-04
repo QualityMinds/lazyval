@@ -1,0 +1,4 @@
+= Lazyval Utils
+
+This module only exists to not pollute the users classpath when the `core` dependency is accidentally added to the
+runtime, e.g. missing `<optional>true</optional>` in Maven.

@@ -12,7 +12,7 @@
 
     <artifactId>lazyval</artifactId>
 
-    <name>Lazyval</name>
-    <description>Lazyval core module</description>
+    <name>Lazyval Core</name>
+    <description>Core module containing only the marker annotation</description>
 
 </project>
