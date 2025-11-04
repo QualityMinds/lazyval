@@ -11,8 +11,9 @@ import java.lang.annotation.Target;
  * The following requirements are applied to be considered valid for lazyval:
  * <ul>
  *     <li>must only wrap a single value</li>
+ *     <ul><li>Kotlin: wrapped value must not be nullable</li></ul>
  *     <li>must not be abstract</li>
- *     <li>can provide one factory method, which takes precedence for object creation</li>
+ *     <li>can provide a factory method, which takes precedence for object creation</li>
  *     <li>class and field should be final</li>
  * </ul>
  * </p>

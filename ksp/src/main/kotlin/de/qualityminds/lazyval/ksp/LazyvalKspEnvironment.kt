@@ -104,6 +104,11 @@ internal class LazyvalKspEnvironment(
             return null
         }
 
+        if(publicProperties.first().type.resolve().isMarkedNullable) {
+            error(publicProperties.first(), "Wrapped type must not be nullable. Please use a non-nullable type.")
+            valid = false
+        }
+
         val valueProperty = publicProperties.firstOrNull() ?: propertyAccessorPairs.first().first
         val accessorMethod = propertyAccessorPairs.firstOrNull()?.second
 

@@ -26,6 +26,7 @@ class KspIT : DescribeSpec({
             TestCase("NullableQuantity.kt", true, true),
             TestCase("ProductId.kt", true, true),
             TestCase("MultipleFactoriesClass.kt", false, false),
+            TestCase("NullableWrappedType.kt", false, false),
         ){ (fileToCompile, compiles, generatedSources) ->
             val projectFolder = tempdir(prefix = "ksp", keepOnFailure = true).toPath()
             val setup = ToolchainSetup.setupTask(
