@@ -62,13 +62,12 @@ class KotlinCompilerSetup private constructor(
         private val DEP_JPA = "jakarta.persistence:jakarta.persistence-api:3.2.0"
 
 
-        fun setup(classLoader: ClassLoader, fileToCompile: String, projectDir: Path, libraries: CompilerSetup.Libraries) : KotlinCompilerSetup {
-            val resourceUrl = classLoader.getResource("test/$fileToCompile")
-                ?: throw RuntimeException("Test resource not found: test/$fileToCompile")
-            val sourceFile = File(resourceUrl.toURI())
+        fun setup(classLoader: ClassLoader, fileToCompile: String, projectDir: Path, libraries: ToolchainSetup.Libraries) : KotlinCompilerSetup {
+            val idGeneratorSource = ToolchainSetup.loadFileResource(classLoader, "util/IdGenerator.kt")
+            val sourceFile = ToolchainSetup.loadFileResource(classLoader, "test/$fileToCompile")
 
-            val isMapstructDependencyAvailable = libraries == CompilerSetup.Libraries.ALL || libraries == CompilerSetup.Libraries.MAPSTRUCT
-            val isJpaDependencyAvailable = libraries == CompilerSetup.Libraries.ALL || libraries == CompilerSetup.Libraries.JPA
+            val isMapstructDependencyAvailable = libraries == ToolchainSetup.Libraries.ALL || libraries == ToolchainSetup.Libraries.MAPSTRUCT
+            val isJpaDependencyAvailable = libraries == ToolchainSetup.Libraries.ALL || libraries == ToolchainSetup.Libraries.JPA
 
             val compilerClasspath = MavenResolver.resolveDependencies(
                 "org.jetbrains.kotlin:kotlin-stdlib:${KotlinVersion.CURRENT}",
@@ -99,7 +98,7 @@ class KotlinCompilerSetup private constructor(
                 service,
                 strategyConfig,
                 compilationConfig,
-                listOf(sourceFile),
+                listOf(idGeneratorSource, sourceFile),
                 compilerClasspath.toList())
         }
     }

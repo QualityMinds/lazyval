@@ -23,13 +23,16 @@ class KspIT : DescribeSpec({
             TestCase("MultiplePropertyDataClass.kt", false, false),
             TestCase("AbstractClass.kt", false, false),
             TestCase("ValueClass.kt", false, false),
+            TestCase("NullableQuantity.kt", true, true),
+            TestCase("ProductId.kt", true, true),
+            TestCase("MultipleFactoriesClass.kt", false, false),
         ){ (fileToCompile, compiles, generatedSources) ->
             val projectFolder = tempdir(prefix = "ksp", keepOnFailure = true).toPath()
-            val setup = CompilerSetup.setupTask(
+            val setup = ToolchainSetup.setupTask(
                 this::class.java.classLoader,
                 fileToCompile,
                 projectFolder,
-                CompilerSetup.Libraries.ALL,
+                ToolchainSetup.Libraries.ALL,
                 emptyList()
             )
             val result = setup.run()
@@ -50,11 +53,11 @@ class KspIT : DescribeSpec({
     it("Does not create any files when dependencies are missing"){
         val projectFolder = tempdir(prefix = "ksp", keepOnFailure = true).toPath()
         val fileToCompile = "Quantity.kt"
-        val setup = CompilerSetup.setupTask(
+        val setup = ToolchainSetup.setupTask(
             this::class.java.classLoader,
             fileToCompile,
             projectFolder,
-            CompilerSetup.Libraries.NONE,
+            ToolchainSetup.Libraries.NONE,
             emptyList()
         )
         val result = setup.run()
@@ -73,11 +76,11 @@ class KspIT : DescribeSpec({
             DisabledGeneratorTestCase("jpa", "RecordValidAttributeConverter.kt"),
         ) { (generatorId, skippedSource) ->
             val projectFolder = tempdir(prefix = "ksp", keepOnFailure = true).toPath()
-            val setup = CompilerSetup.setupTask(
+            val setup = ToolchainSetup.setupTask(
                 this::class.java.classLoader,
                 "Quantity.kt",
                 projectFolder,
-                CompilerSetup.Libraries.ALL,
+                ToolchainSetup.Libraries.ALL,
                 listOf(generatorId)
             )
             val result = setup.run()

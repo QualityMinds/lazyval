@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory
 import java.util.SortedSet
 import kotlin.io.path.isDirectory
 
-data class CompilerResult(
+data class ToolchainResult(
     val kspSuccess: Boolean,
     val kotlinSuccess: Boolean,
     val generatedJavaFiles: SortedSet<Path>,
@@ -42,7 +42,11 @@ data class CompilerResult(
 
 }
 
-class CompilerSetup private constructor(private val kspSetup: KotlinSymbolProcessing, private val kotlinSetup: KotlinCompilerSetup) {
+/**
+ * For Kotlin, KSP processing and Kotlin compiler are two separate steps.
+ * This toolchains combines both for a complete integration cycle.
+ */
+class ToolchainSetup private constructor(private val kspSetup: KotlinSymbolProcessing, private val kotlinSetup: KotlinCompilerSetup) {
 
     enum class Libraries {
         NONE,
@@ -51,14 +55,14 @@ class CompilerSetup private constructor(private val kspSetup: KotlinSymbolProces
         JPA
     }
 
-    fun run(): CompilerResult {
+    fun run(): ToolchainResult {
         val exitCode = kspSetup.execute()
         val kotlinResult = if(exitCode == KotlinSymbolProcessing.ExitCode.OK){
             kotlinSetup.run()
         }else{
             false
         }
-        return CompilerResult(
+        return ToolchainResult(
             exitCode == KotlinSymbolProcessing.ExitCode.OK,
             kotlinResult,
             Files.walk((kspSetup.kspConfig as KSPJvmConfig).javaOutputDir.toPath()).filter { p -> !p.isDirectory() }.toList().toSortedSet(),
@@ -67,8 +71,6 @@ class CompilerSetup private constructor(private val kspSetup: KotlinSymbolProces
     }
 
     companion object {
-
-        private val logger = LoggerFactory.getLogger(CompilerSetup::class.java)
 
         private val DEP_MAPSTRUCT = "org.mapstruct:mapstruct:1.6.3"
         private val DEP_MAPSTRUCT_PROCESSOR = "org.mapstruct:mapstruct-processor:1.6.3"
@@ -80,10 +82,16 @@ class CompilerSetup private constructor(private val kspSetup: KotlinSymbolProces
             projectDir: Path,
             libraries: Libraries,
             disabledGenerators: List<String>
-        ): CompilerSetup {
+        ): ToolchainSetup {
             val kspSetup = setupKsp2(classLoader, fileToCompile, projectDir, libraries, disabledGenerators)
             val kotlinSetup = KotlinCompilerSetup.setup(classLoader, fileToCompile, projectDir, libraries)
-            return CompilerSetup(kspSetup, kotlinSetup)
+            return ToolchainSetup(kspSetup, kotlinSetup)
+        }
+
+        fun loadFileResource(classLoader: ClassLoader, resource: String): File {
+            val resourceUrl = classLoader.getResource(resource)
+                ?: throw RuntimeException("Test resource not found: $resource")
+            return File(resourceUrl.toURI())
         }
 
         private fun setupKsp2(
@@ -93,9 +101,8 @@ class CompilerSetup private constructor(private val kspSetup: KotlinSymbolProces
             libraries: Libraries,
             disabledGenerators: List<String>
         ) : KotlinSymbolProcessing{
-            val resourceUrl = classLoader.getResource("test/$fileToCompile")
-                ?: throw RuntimeException("Test resource not found: test/$fileToCompile")
-            val sourceFile = File(resourceUrl.toURI())
+            val idGeneratorSource = loadFileResource(classLoader, "util/IdGenerator.kt")
+            val sourceFile = loadFileResource(classLoader, "test/$fileToCompile")
 
             val isMapstructDependencyAvailable = libraries == Libraries.ALL || libraries == Libraries.MAPSTRUCT
             val isJpaDependencyAvailable = libraries == Libraries.ALL || libraries == Libraries.JPA
@@ -141,7 +148,7 @@ class CompilerSetup private constructor(private val kspSetup: KotlinSymbolProces
                 kotlinOutputDir = projectDir.resolve("build/generated/ksp/kotlin").createDirectories().toFile()
                 resourceOutputDir = projectDir.resolve("build/generated/ksp/kotlin").createDirectories().toFile()
                 cachesDir = projectDir.resolve("build/resources").createDirectories().toFile()
-                sourceRoots = listOf(sourceFile)
+                sourceRoots = listOf(idGeneratorSource, sourceFile)
                 processorOptions = options
                 // libraries is the actual compilation-unit
                 this.libraries = compilationUnit.toList()

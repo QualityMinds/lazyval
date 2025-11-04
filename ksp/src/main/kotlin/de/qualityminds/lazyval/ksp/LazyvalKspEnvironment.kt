@@ -110,7 +110,8 @@ internal class LazyvalKspEnvironment(
         // Find factory methods in a companion object
         val factoryMethods = findFactoryMethods(classDeclaration, valueProperty.type.resolve())
         if (factoryMethods.size > 1) {
-            error(classDeclaration, "Multiple factory methods found. Lazyval supports only one factory method.")
+            val functionNames = factoryMethods.joinToString(", ") { it.simpleName.asString() }
+            error(classDeclaration, "Multiple matching factory methods with the same signature found. Please check functions $functionNames in");
             valid = false
         }
 
@@ -174,9 +175,21 @@ internal class LazyvalKspEnvironment(
         return companionObject.declarations
             .filterIsInstance<KSFunctionDeclaration>()
             .filter { function ->
-                function.returnType?.resolve() == classDeclaration.asStarProjectedType() &&
-                        function.parameters.size == 1 &&
-                        function.parameters[0].type.resolve() == wrappedType
+                // Check basic structure first
+                if (function.parameters.size != 1) return@filter false
+
+                // Check if return type matches (including nullable variants)
+                val returnType = function.returnType?.resolve() ?: return@filter false
+                val returnTypeMatches = returnType == classDeclaration.asStarProjectedType() ||
+                        (returnType.isMarkedNullable && returnType.makeNotNullable() == classDeclaration.asStarProjectedType())
+                if (!returnTypeMatches) return@filter false
+
+                // Check if parameter type matches (including nullable variants)
+                val paramType = function.parameters[0].type.resolve()
+                val paramTypeMatches = paramType == wrappedType ||
+                        (paramType.isMarkedNullable && paramType.makeNotNullable() == wrappedType)
+
+                paramTypeMatches
             }
             .toList()
     }
