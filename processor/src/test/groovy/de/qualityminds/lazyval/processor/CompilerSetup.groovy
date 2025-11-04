@@ -113,13 +113,11 @@ class CompilerSetup {
             fileManager.setLocation(StandardLocation.CLASS_PATH, additionalClasspath)
         }
 
-        var resourceUrl = classloader.getResource("test/$fileToCompile")
-        if (resourceUrl == null) {
-            throw new RuntimeException("Test resource not found: test/$fileToCompile")
-        }
-        var file = new File(resourceUrl.toURI())
+        var idGeneratorFile = loadFileResource(classloader, "util/IdGenerator.java")
+        var file = loadFileResource(classloader, "test/$fileToCompile")
 
-        var compilationUnits = fileManager.getJavaFileObjects(file)
+
+        var compilationUnits = fileManager.getJavaFileObjects(idGeneratorFile, file)
         List<String> options = null
         if (!disabledGenerators.isEmpty()) {
             options = List.of("-Alazyval.disabledGenerators=" + disabledGenerators.join(","))
@@ -130,15 +128,12 @@ class CompilerSetup {
         new CompilerSetup(task, diagnostics, fileManager.getLocation(StandardLocation.SOURCE_OUTPUT).first().toPath())
     }
 
-    private static File findMillWorkspaceRoot() {
-        def currentDir = new File(".").absoluteFile
-        while (currentDir != null) {
-            if (new File(currentDir, "build.mill").exists()) {
-                return currentDir
-            }
-            currentDir = currentDir.parentFile
+    private static File loadFileResource(ClassLoader classloader, String resource){
+        var resourceUrl = classloader.getResource(resource)
+        if (resourceUrl == null) {
+            throw new RuntimeException("Test resource not found: $resource")
         }
-        throw new RuntimeException("Could not find Mill workspace root (no build.mill found)")
+        return new File(resourceUrl.toURI())
     }
 }
 

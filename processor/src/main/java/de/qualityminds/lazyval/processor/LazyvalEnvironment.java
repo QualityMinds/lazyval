@@ -114,7 +114,7 @@ class LazyvalEnvironment {
 
         var factoryMethods = findFactoryMethods(lazyvalElement, fields.get(0).asType());
         if(factoryMethods.size() > 1){
-            error(lazyvalElement, "Not a simple ValueType. Lazyval only supported Records with one non-transient.");
+            error(lazyvalElement, "Multiple matching factory methods with the same signature found. Please check methods:" + factoryMethods.stream().map(ExecutableElement::getSimpleName).collect(Collectors.joining(", ")));
             valid = false;
         }
         Optional<ExecutableElement> factoryMethod = factoryMethods.isEmpty() ? Optional.empty() : Optional.of(factoryMethods.get(0));
@@ -177,7 +177,7 @@ class LazyvalEnvironment {
 
         var factoryMethods = findFactoryMethods(lazyvalElement, valueFields.get(0).asType());
         if(factoryMethods.size() > 1){
-            error(lazyvalElement, "Not a simple ValueType. Lazyval only supported Records with one non-transient.");
+            error(lazyvalElement, "Multiple matching factory methods with the same signature found. Please check methods:" + factoryMethods.stream().map(ExecutableElement::getSimpleName).collect(Collectors.joining(", ")));
             valid = false;
         }
         Optional<ExecutableElement> factoryMethod = factoryMethods.isEmpty() ? Optional.empty() : Optional.of(factoryMethods.get(0));
