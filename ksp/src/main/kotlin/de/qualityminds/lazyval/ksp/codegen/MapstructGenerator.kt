@@ -4,10 +4,9 @@ import com.google.devtools.ksp.processing.CodeGenerator
 import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.symbol.KSType
 import com.palantir.javapoet.*
-import de.qualityminds.lazyval.ksp.LazyvalKspEnvironment
+import de.qualityminds.lazyval.collections.NonEmptySet
 import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import de.qualityminds.lazyval.ksp.spi.GeneratorResult
-import de.qualityminds.lazyval.ksp.spi.NonEmptySet
 import de.qualityminds.lazyval.ksp.spi.SingleFileGenerator
 import de.qualityminds.lazyval.ksp.spi.SpiGenerator
 import java.io.IOException
@@ -42,8 +41,8 @@ class MapstructGenerator : SingleFileGenerator {
             interfaceBuilder.addMethod(createJavaMapFromWrappedTypeMethod(element))
         }
 
-        val firstElement = validatedElements.first().element
-        val packageName = userSettings.options.get(OPTION_GENERATED_PACKAGE)
+        val firstElement = validatedElements.getAny().element
+        val packageName = userSettings.options[OPTION_GENERATED_PACKAGE]
             ?: extractRootPackage(firstElement)
 
         val javaFile = JavaFile.builder(packageName, interfaceBuilder.build())

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>de.qualityminds.lazyval</groupId>
+        <artifactId>lazyval-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>testkit</artifactId>
+    <name>Lazyval Testkit</name>
+    <description>Test harness providing access to Java or Kotlin toolchains as well as predefined test-cases</description>
+
+    <properties>
+        <version.kotlin>2.2.20</version.kotlin>
+        <version.ksp>2.0.4</version.ksp>
+        <version.kotest>6.0.3</version.kotest>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>de.qualityminds.lazyval</groupId>
+            <artifactId>lazyval</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>de.qualityminds.lazyval</groupId>
+            <artifactId>utils</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+        </dependency>
+        <!-- The following Dependencies are used to set up a KSP2 and Kotlin compiler toolchain in the testkit -->
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${version.kotlin}</version>
+        </dependency>
+        <dependency>
+            <!-- needs to be explicitly defined because otherwise it is just a runtime dep -->
+            <groupId>com.google.devtools.ksp</groupId>
+            <artifactId>symbol-processing-api</artifactId>
+            <version>${version.kotlin}-${version.ksp}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-compiler-embeddable</artifactId>
+            <version>${version.kotlin}</version>
+        </dependency>
+        <dependency>
+            <!-- currently experimental only -->
+            <!-- see https://github.com/Kotlin/KEEP/blob/build-tools-api/proposals/extensions/build-tools-api.md -->
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-build-tools-impl</artifactId>
+            <version>${version.kotlin}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.devtools.ksp</groupId>
+            <artifactId>symbol-processing</artifactId>
+            <version>${version.kotlin}-${version.ksp}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.devtools.ksp</groupId>
+            <artifactId>symbol-processing-common-deps</artifactId>
+            <version>${version.kotlin}-${version.ksp}</version>
+        </dependency>
+        <dependency>
+            <!-- see https://github.com/google/ksp/blob/fd792aff8eb155f300a80b70855c862388331284/docs/ksp2entrypoints.md -->
+            <groupId>com.google.devtools.ksp</groupId>
+            <artifactId>symbol-processing-aa-embeddable</artifactId>
+            <version>${version.kotlin}-${version.ksp}</version>
+        </dependency>
+        <!-- Test Dependencies -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.spockframework</groupId>
+            <artifactId>spock-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kotest</groupId>
+            <artifactId>kotest-runner-junit5</artifactId>
+            <version>${version.kotest}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kotest</groupId>
+            <artifactId>kotest-assertions-core</artifactId>
+            <version>${version.kotest}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

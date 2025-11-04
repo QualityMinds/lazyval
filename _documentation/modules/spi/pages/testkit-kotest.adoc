@@ -1,0 +1,10 @@
+= Using the Testkit with Kotest
+
+[source,kotlin]
+----
+include::example$DataDrivenKotestIT.kt[]
+----
+1. Create multiple test-runs from the predefined scenario listing
+2. Enhance the scenario with the required compile-time-dependency.
+3. Specify your expected result, in this case a Mapstruct mapper named `LazyvalMapper.java` must be generated.
+4. Use Kotest `shouldEqual` to compare
