@@ -46,6 +46,7 @@ class AnnotationProcessorIT extends Specification {
         'RecordValidInt.java'               | true
         'RecordValidInteger.java'           | true
         'RecordMoreThanOneProperty.java'    | false
+        'RecordMultipleFactories.java'      | false
         'ObjectValid.java'                  | true
         'ObjectValidInt.java'               | true
         'ObjectValidInteger.java'           | true
@@ -54,7 +55,9 @@ class AnnotationProcessorIT extends Specification {
         'ObjectValueNotFinal.java'          | true
         'ObjectMissingValueAccessor.java'   | false
         'ObjectMoreThanOneProperty.java'    | false
+        'ObjectMultipleFactories.java'      | false
         'AbstractClass.java'                | false
+        'ProductId.java'                    | true
         statusMessage = compiles ? 'completes successfully' : 'fails the processing due to missing requirements'
         warnNotFinalIssued = fileToCompile == 'ObjectNotFinal.java'
         warnValueNotFinalIssued = fileToCompile == 'ObjectValueNotFinal.java'
