@@ -1,5 +1,6 @@
 package de.qualityminds.lazyval.ksp.spi
 
+import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.FileSpec
@@ -57,6 +58,18 @@ sealed interface SpiGenerator {
     }
 
     /**
+     * Split the elements FQN into its constituents and returns the substring before the "layer-markers",
+     * which will be the root package. If nothing matches, the whole FQN will be returned.
+     */
+    fun extractRootPackage(classDeclaration: KSClassDeclaration): String {
+        val layerPackages = setOf("boundary", "control", "entity", "application", "infrastructure", "domain")
+        val packageParts = classDeclaration.packageName.asString().split(".")
+        return packageParts.takeWhile { part ->
+            !layerPackages.contains(part) && !part.first().isUpperCase()
+        }.joinToString(".")
+    }
+
+    /**
      * Settings provided by the user for this generator.
      * The map will only contain keys which have the current generators id infixed, e.g. *"lazyval.generatorId.optionA"*
      */
@@ -64,8 +77,7 @@ sealed interface SpiGenerator {
 }
 
 /**
- * A service provider interface which is called by the [de.qualityminds.lazyval.ksp.LazyvalSymbolProcessor] to generate
- * a file per domain primitive annotated with [de.qualityminds.lazyval.LazyValued].
+ * A service provider interface which is called to generate a file per domain primitive.
  *
  * As an example, for each domain primitive a dedicated JPA AttributeConverter is needed.
  */
@@ -83,8 +95,8 @@ interface MultipleFilesGenerator : SpiGenerator {
 }
 
 /**
- * A service provider interface which is called by the [de.qualityminds.lazyval.ksp.LazyvalSymbolProcessor] to generate
- * a single file for all domain primitives annotated with [de.qualityminds.lazyval.LazyValued].
+ * A service provider interface which is called to generate
+ * a single file for all domain primitives.
  *
  * As an example, for all domain primitives only a single Mapstruct Mapper definition is needed.
  *

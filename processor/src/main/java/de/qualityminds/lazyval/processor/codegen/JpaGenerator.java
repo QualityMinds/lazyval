@@ -1,7 +1,7 @@
 package de.qualityminds.lazyval.processor.codegen;
 
 import com.palantir.javapoet.*;
-import de.qualityminds.lazyval.processor.LazyvalEnvironment;
+import de.qualityminds.lazyval.processor.spi.SpiGenerator;
 import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 import de.qualityminds.lazyval.processor.spi.MultipleFilesGenerator;
 
@@ -102,8 +102,7 @@ public class JpaGenerator implements MultipleFilesGenerator {
                 .build();
 
         String jpaConverterPackage = userSettings.get(OPTION_GENERATED_PACKAGE)
-                // TODO get rid of dependency
-                .orElse(String.format("%s.boundary.persistence", LazyvalEnvironment.extractRootPackage(element)));
+                .orElse(String.format("%s.boundary.persistence", extractRootPackage(element)));
         if(jpaConverterPackage.charAt(0) == '.'){
             jpaConverterPackage = jpaConverterPackage.substring(1);
         }

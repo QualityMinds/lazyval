@@ -15,7 +15,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-public class LazyvalEnvironment {
+class LazyvalEnvironment {
 
     static final String DISABLED_GENERATORS = "lazyval.disabledGenerators";
     private final ProcessingEnvironment processingEnvironment;
@@ -88,21 +88,6 @@ public class LazyvalEnvironment {
         }catch (MirroredTypeException e){
             return e.getTypeMirror();
         }
-    }
-
-
-    // TODO revisit
-    private static final Set<String> layerPackages = Set.of("boundary", "control", "entity", "application", "infrastructure", "domain");
-    private static final Predicate<String> IS_NOT_LAYER_PACKAGE_AND_CLASS = part -> !layerPackages.contains(part) && !Character.isUpperCase(part.charAt(0));
-
-    /**
-     * Split the FQN into its constituents and returns the substring before the "layer-markers",
-     * which will be the root package.
-     */
-    public static String extractRootPackage(TypeElement element) {
-        return Arrays.stream(element.getQualifiedName().toString().split("\\."))
-                .takeWhile(IS_NOT_LAYER_PACKAGE_AND_CLASS)
-                .collect(Collectors.joining("."));
     }
 
 

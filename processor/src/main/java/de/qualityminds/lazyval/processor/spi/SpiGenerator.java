@@ -1,8 +1,9 @@
 package de.qualityminds.lazyval.processor.spi;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Optional;
+import javax.lang.model.element.TypeElement;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public sealed interface SpiGenerator permits SingleFileGenerator, MultipleFilesGenerator {
 
@@ -34,5 +35,19 @@ public sealed interface SpiGenerator permits SingleFileGenerator, MultipleFilesG
         public Optional<String> get(String key){
             return Optional.ofNullable(options.get(key));
         }
+    }
+
+
+    /**
+     * Split the elements FQN into its constituents and returns the substring before the "layer-markers",
+     * which will be the root package. If nothing matches, the whole FQN will be returned.
+     */
+    default String extractRootPackage(TypeElement element) {
+        Set<String> layerPackages = Set.of("boundary", "control", "entity", "application", "infrastructure", "domain");
+        Predicate<String> IS_NOT_LAYER_PACKAGE_AND_CLASS = part -> !layerPackages.contains(part) && !Character.isUpperCase(part.charAt(0));
+
+        return Arrays.stream(element.getQualifiedName().toString().split("\\."))
+                .takeWhile(IS_NOT_LAYER_PACKAGE_AND_CLASS)
+                .collect(Collectors.joining("."));
     }
 }

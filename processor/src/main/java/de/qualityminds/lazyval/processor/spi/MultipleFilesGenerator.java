@@ -5,8 +5,7 @@ import com.palantir.javapoet.JavaFile;
 import java.util.Map;
 
 /**
- * A service provider interface which is called by the {@link de.qualityminds.lazyval.processor.LazyvalProcessor} to
- * generate a file per domain primitive annotated with {@link de.qualityminds.lazyval.LazyValue}.
+ * A service provider interface which is called to generate a file per domain primitive.
  * <p>
  * As an example, for each domain primitive a dedicated JPA AttributeConverter is needed.
  * </p>

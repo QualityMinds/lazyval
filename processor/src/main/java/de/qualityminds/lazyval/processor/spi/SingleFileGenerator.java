@@ -4,8 +4,7 @@ import com.palantir.javapoet.JavaFile;
 
 
 /**
- * A service provider interface which is called by the {@link de.qualityminds.lazyval.processor.LazyvalProcessor} to
- * generate a single file for all domain primitives annotated with {@link de.qualityminds.lazyval.LazyValue}.
+ * A service provider interface which is called to generate a single file for all domain primitives.
  * <p>
  * As an example, for all domain primitives only a single Mapstruct Mapper definition is needed.
  * </p>

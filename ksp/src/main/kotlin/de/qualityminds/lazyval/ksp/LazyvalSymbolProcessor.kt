@@ -7,7 +7,6 @@ import de.qualityminds.lazyval.LazyValue
 import de.qualityminds.lazyval.ksp.codegen.JavaFileSpec
 import de.qualityminds.lazyval.ksp.spi.*
 import java.util.*
-import java.util.function.Function
 import java.util.stream.Collectors
 import java.util.stream.Stream
 import java.util.stream.StreamSupport
@@ -45,7 +44,6 @@ class LazyvalSymbolProcessor(
             return emptyList()
         }
 
-        environment.logger.info("Files: ${resolver.getAllFiles().toList().map { it.fileName }}")
         val annotatedSymbols: Sequence<KSAnnotated> = resolver.getSymbolsWithAnnotation(LazyValue::class.qualifiedName!!)
 
         val validatedElements = annotatedSymbols

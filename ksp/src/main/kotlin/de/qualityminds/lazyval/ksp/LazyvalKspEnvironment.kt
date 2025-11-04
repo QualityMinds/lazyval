@@ -5,8 +5,8 @@ import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.*
 
-class LazyvalKspEnvironment(
-    private val environment: SymbolProcessorEnvironment,
+internal class LazyvalKspEnvironment(
+    environment: SymbolProcessorEnvironment,
     private val resolver: Resolver
 ) {
 
@@ -16,14 +16,7 @@ class LazyvalKspEnvironment(
         private const val NOT_FINAL_CLASS_WARNING = "Value Types should not be extendable, hence the class should be final."
         private const val NOT_FINAL_VALUE_WARNING = "Value Types should be immutable, hence the wrapped property should be final (val)."
 
-        private val layerPackages = setOf("boundary", "control", "entity")
 
-        fun extractRootPackage(classDeclaration: KSClassDeclaration): String {
-            val packageParts = classDeclaration.packageName.asString().split(".")
-            return packageParts.takeWhile { part ->
-                !layerPackages.contains(part) && !part.first().isUpperCase()
-            }.joinToString(".")
-        }
     }
 
     private val logger: KSPLogger = environment.logger

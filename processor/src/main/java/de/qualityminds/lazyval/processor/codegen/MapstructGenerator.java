@@ -1,8 +1,8 @@
 package de.qualityminds.lazyval.processor.codegen;
 
 import com.palantir.javapoet.*;
-import de.qualityminds.lazyval.processor.LazyvalEnvironment;
 import de.qualityminds.lazyval.processor.spi.NonEmptySet;
+import de.qualityminds.lazyval.processor.spi.SpiGenerator;
 import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 import de.qualityminds.lazyval.processor.spi.SingleFileGenerator;
 
@@ -91,8 +91,7 @@ final public class MapstructGenerator implements SingleFileGenerator {
         }
 
         String mapperPackage = userSettings.get(OPTION_GENERATED_PACKAGE)
-                // TODO get rid of dependency
-                .orElse(String.format("%s", LazyvalEnvironment.extractRootPackage(elements.stream()
+                .orElse(String.format("%s", extractRootPackage(elements.stream()
                         .findFirst()
                         .map(ValidatedGeneratorElement::element)
                         .orElseThrow())));

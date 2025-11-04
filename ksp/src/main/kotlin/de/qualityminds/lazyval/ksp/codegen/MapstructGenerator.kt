@@ -44,8 +44,7 @@ class MapstructGenerator : SingleFileGenerator {
 
         val firstElement = validatedElements.first().element
         val packageName = userSettings.options.get(OPTION_GENERATED_PACKAGE)
-            // TODO get rid of dependency
-            ?: LazyvalKspEnvironment.extractRootPackage(firstElement)
+            ?: extractRootPackage(firstElement)
 
         val javaFile = JavaFile.builder(packageName, interfaceBuilder.build())
             .build()

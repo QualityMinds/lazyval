@@ -94,8 +94,7 @@ class JpaGenerator : MultipleFilesGenerator {
 
         // Determine package
         val packageName = userSettings.options.get(OPTION_GENERATED_PACKAGE)
-            // TODO get rid of dependency
-            ?: "${LazyvalKspEnvironment.extractRootPackage(element)}.boundary.persistence"
+            ?: "${extractRootPackage(element)}.boundary.persistence"
 
         return GeneratorResult.Kotlin(FileSpec.builder(packageName, converterClassName)
             .addType(converterClass)
