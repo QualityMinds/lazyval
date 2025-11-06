@@ -1,10 +1,13 @@
 package de.qualityminds.lazyval.processor.spi;
 
+import org.jetbrains.annotations.ApiStatus;
+
 import javax.lang.model.element.TypeElement;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+@ApiStatus.Experimental
 public sealed interface SpiGenerator permits SingleFileGenerator, MultipleFilesGenerator {
 
     /**

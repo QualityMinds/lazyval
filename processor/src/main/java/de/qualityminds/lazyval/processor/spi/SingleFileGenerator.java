@@ -1,6 +1,7 @@
 package de.qualityminds.lazyval.processor.spi;
 
 import com.palantir.javapoet.JavaFile;
+import org.jetbrains.annotations.ApiStatus;
 
 
 /**
@@ -12,6 +13,7 @@ import com.palantir.javapoet.JavaFile;
  *     The list of elements is guaranteed to be non-empty.
  * </p>
  */
+@ApiStatus.Experimental
 public non-sealed interface SingleFileGenerator extends SpiGenerator {
 
     /**
