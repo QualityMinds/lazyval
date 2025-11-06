@@ -14,7 +14,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 @SupportedAnnotationTypes("de.qualityminds.lazyval.LazyValue")
-@SupportedSourceVersion(SourceVersion.RELEASE_17)
 @SupportedOptions({
         // options coming from external generators cannot be documented
         LazyvalEnvironment.DISABLED_GENERATORS,
@@ -23,6 +22,11 @@ public class LazyvalProcessor extends AbstractProcessor {
 
     private boolean classpathWarningAlreadyIssued = false;
     private LazyvalEnvironment lazyvalEnvironment;
+
+    @Override
+    public SourceVersion getSupportedSourceVersion() {
+        return SourceVersion.latestSupported();
+    }
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
