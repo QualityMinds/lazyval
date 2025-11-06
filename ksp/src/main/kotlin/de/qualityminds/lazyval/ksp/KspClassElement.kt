@@ -5,7 +5,10 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSPropertyDeclaration
 import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.symbol.Modifier
+import org.jetbrains.annotations.ApiStatus
 
+
+@ApiStatus.Experimental()
 interface ValidatedKspGeneratorElement {
     val element: KSClassDeclaration
     val factoryMethod: KSFunctionDeclaration?

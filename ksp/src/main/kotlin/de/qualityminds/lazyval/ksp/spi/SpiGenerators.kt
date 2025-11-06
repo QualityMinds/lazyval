@@ -4,13 +4,15 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.FileSpec
-import de.qualityminds.lazyval.ksp.LazyvalKspEnvironment
 import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import de.qualityminds.lazyval.ksp.codegen.JavaFileSpec
+import de.qualityminds.lazyval.ksp.spi.SpiGenerator.Settings
+import org.jetbrains.annotations.ApiStatus
 
 /**
  * Internal use only.
  */
+@ApiStatus.Internal
 data class ValidateElementWithSource(val element: ValidatedKspGeneratorElement, val source: KSFile)
 
 
@@ -22,6 +24,7 @@ sealed interface GeneratorResult {
 }
 // end::result[]
 
+@ApiStatus.Experimental
 sealed interface SpiGenerator {
     /**
      * A short id/name of the generator. The id must only contain valid Java package characters.
@@ -81,6 +84,7 @@ sealed interface SpiGenerator {
  *
  * As an example, for each domain primitive a dedicated JPA AttributeConverter is needed.
  */
+@ApiStatus.Experimental
 interface MultipleFilesGenerator : SpiGenerator {
 
     /**
@@ -102,6 +106,7 @@ interface MultipleFilesGenerator : SpiGenerator {
  *
  * The list of elements is guaranteed to be non-empty.
  */
+@ApiStatus.Experimental
 interface SingleFileGenerator : SpiGenerator {
 
     /**
