@@ -8,7 +8,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @ApiStatus.Experimental
-public sealed interface SpiGenerator permits SingleFileGenerator, MultipleFilesGenerator {
+public sealed interface SpiGenerator permits SingleFileGenerator, FilePerTypeGenerator {
 
     /**
      * A short id/name of the generator. The id must only contain valid Java package characters.

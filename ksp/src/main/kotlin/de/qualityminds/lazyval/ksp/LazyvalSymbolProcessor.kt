@@ -60,7 +60,7 @@ class LazyvalSymbolProcessor(
             return KotlinOrJavaResult.from(result, validatedElements.map { it.source })
         }
 
-        fun generateFiles(generator: MultipleFilesGenerator, element: ValidatedKspGeneratorElement, userSettings: SpiGenerator.Settings, source: KSFile): KotlinOrJavaResult {
+        fun generateFiles(generator: FilePerTypeGenerator, element: ValidatedKspGeneratorElement, userSettings: SpiGenerator.Settings, source: KSFile): KotlinOrJavaResult {
             val result = generator.generateFilePerType(element, userSettings)
             return KotlinOrJavaResult.from(result, listOf(source))
         }
@@ -80,7 +80,7 @@ class LazyvalSymbolProcessor(
                                 SpiGenerator.Settings(generatorOptions))
                         )
 
-                        is MultipleFilesGenerator -> validatedElements.map {
+                        is FilePerTypeGenerator -> validatedElements.map {
                             generateFiles(
                                 generator,
                                 it.element,
@@ -104,10 +104,10 @@ class LazyvalSymbolProcessor(
 
     private fun loadGenerators(): Stream<SpiGenerator> {
         val singleFileGenerators = ServiceLoader.load(SingleFileGenerator::class.java)
-        val multipleFilesGenerators = ServiceLoader.load(MultipleFilesGenerator::class.java)
+        val filePerTypeGenerators = ServiceLoader.load(FilePerTypeGenerator::class.java)
 
         val hasSingle = singleFileGenerators.iterator().hasNext()
-        val hasMultiple = multipleFilesGenerators.iterator().hasNext()
+        val hasMultiple = filePerTypeGenerators.iterator().hasNext()
 
         if (!hasSingle && !hasMultiple) {
             lazyvalEnvironment.warn("No generators found")
@@ -124,7 +124,7 @@ class LazyvalSymbolProcessor(
 
         val generators = Stream.of(
             singleFileGenerators,
-            multipleFilesGenerators,
+            filePerTypeGenerators,
         ).flatMap { serviceLoader -> StreamSupport.stream(serviceLoader.spliterator(), false) }
             // TODO check for ID
         .filter{generator -> generator.requiredClasspath().stream().allMatch{fqn -> lazyvalEnvironment.isClassAvailable(fqn)}}

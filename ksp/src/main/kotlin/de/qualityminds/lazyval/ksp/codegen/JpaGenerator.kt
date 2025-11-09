@@ -4,14 +4,13 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
-import de.qualityminds.lazyval.ksp.LazyvalKspEnvironment
 import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import de.qualityminds.lazyval.ksp.spi.GeneratorResult
-import de.qualityminds.lazyval.ksp.spi.MultipleFilesGenerator
+import de.qualityminds.lazyval.ksp.spi.FilePerTypeGenerator
 import de.qualityminds.lazyval.ksp.spi.SpiGenerator
 
 // tag::docu[]
-class JpaGenerator : MultipleFilesGenerator {
+class JpaGenerator : FilePerTypeGenerator {
 
     companion object {
         const val OPTION_GENERATED_PACKAGE = "lazyval.jpa.generatedPackage"
