@@ -52,8 +52,8 @@ public class LazyvalProcessor extends AbstractProcessor {
                                 .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
                         if(generator instanceof SingleFileGenerator singleFileGenerator){
                             return Stream.of(singleFileGenerator.generateSingleFile(NonEmptySet.fromSet(validatedElements), new SpiGenerator.Settings(settings)));
-                        }else if(generator instanceof MultipleFilesGenerator multipleFilesGenerator){
-                            return validatedElements.stream().map(element -> multipleFilesGenerator.generateFilePerType(element, new SpiGenerator.Settings(settings)));
+                        }else if(generator instanceof FilePerTypeGenerator filePerTypeGenerator){
+                            return validatedElements.stream().map(element -> filePerTypeGenerator.generateFilePerType(element, new SpiGenerator.Settings(settings)));
                         }else{
                             // move to switch-pattern-match once Java 21 is the minimum required version
                             throw new IllegalStateException("Unknown generator type: " + this.getClass().getName());
@@ -83,8 +83,8 @@ public class LazyvalProcessor extends AbstractProcessor {
 
         ServiceLoader<SingleFileGenerator> singleFileGenerators =
                 ServiceLoader.load(SingleFileGenerator.class);
-        ServiceLoader<MultipleFilesGenerator> multipleFilesGenerators =
-                ServiceLoader.load(MultipleFilesGenerator.class);
+        ServiceLoader<FilePerTypeGenerator> multipleFilesGenerators =
+                ServiceLoader.load(FilePerTypeGenerator.class);
 
         boolean hasSingle = singleFileGenerators.iterator().hasNext();
         boolean hasMultiple = multipleFilesGenerators.iterator().hasNext();

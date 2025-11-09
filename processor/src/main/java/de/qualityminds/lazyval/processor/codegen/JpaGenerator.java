@@ -1,9 +1,8 @@
 package de.qualityminds.lazyval.processor.codegen;
 
 import com.palantir.javapoet.*;
-import de.qualityminds.lazyval.processor.spi.SpiGenerator;
+import de.qualityminds.lazyval.processor.spi.FilePerTypeGenerator;
 import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
-import de.qualityminds.lazyval.processor.spi.MultipleFilesGenerator;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
@@ -12,7 +11,7 @@ import java.util.Collection;
 import java.util.List;
 
 // tag::docu[]
-public class JpaGenerator implements MultipleFilesGenerator {
+public class JpaGenerator implements FilePerTypeGenerator {
 
     private static final String GENERATOR_ID = "jpa";
     private static final String OPTION_GENERATED_PACKAGE = "lazyval.jpa.generatedPackage";

@@ -85,7 +85,7 @@ sealed interface SpiGenerator {
  * As an example, for each domain primitive a dedicated JPA AttributeConverter is needed.
  */
 @ApiStatus.Experimental
-interface MultipleFilesGenerator : SpiGenerator {
+interface FilePerTypeGenerator : SpiGenerator {
 
     /**
      * Called for each domain primitive annotated with [de.qualityminds.lazyval.LazyValue].

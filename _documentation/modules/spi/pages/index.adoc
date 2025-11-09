@@ -1,25 +1,26 @@
 = Using the Lazyval SPI
 
-To support users with the option to add custom code-generators, two SPIs (service-provider-interfaces) have been added.
+To support users with the option to add custom code-generators, two SPIs (service-provider-interfaces) have been added for each processor implementation.
 In fact, the internal generators use the same mechanism and act as a reference implementation.
 
 CAUTION: the SPI is currently experimental and will change!
 
 First, you have to decide if you need a generator for Java (Annotation Processing) or Kotlin (KSP2). This is necessary
 because the SPI has to leak the underlying processing API to the consumer, at least at the moment.
-Add the chosen processor as a dependency.
+
+Add the chosen processor as a dependency and select the SPI(s) you need.
 
 .Java SPIs
-* https://github.com/QualityMinds/lazyval/tree/main/processor/src/main/java/de/qualityminds/lazyval/processor[de.qualityminds.lazyval.processor.spi.MultipleFilesGenerator]
+* https://github.com/QualityMinds/lazyval/tree/main/processor/src/main/java/de/qualityminds/lazyval/processor[de.qualityminds.lazyval.processor.spi.FilePerTypeGenerator]
 * https://github.com/QualityMinds/lazyval/tree/main/processor/src/main/java/de/qualityminds/lazyval/processor[de.qualityminds.lazyval.processor.spi.SingleFileGenerator]
 
 .Kotlin SPIs
 * https://github.com/QualityMinds/lazyval/tree/main/ksp/src/main/kotlin/de/qualityminds/lazyval/ksp/spi/MultipleFilesGenerator[de.qualityminds.lazyval.ksp.spi.MultipleFilesGenerator]
 * https://github.com/QualityMinds/lazyval/tree/main/ksp/src/main/kotlin/de/qualityminds/lazyval/ksp/spi/SingleFileGenerator[de.qualityminds.lazyval.ksp.spi.SingleFileGenerator]
 
-A `MultipleFilesGenerator` will be called for each annotated class and generates a source file for every
+A `FilePerTypeGenerator` will be called for each annotated class and generate a source file for every
 domain-primitive (for instance a JPA AttributeConverter).
-In contrast, a `SingleFileGenerator` will be called with a list of all annotated classes and generates only a single
+In contrast, a `SingleFileGenerator` will be called with a list of all annotated classes and generate only a single
 source file (for instance a Mapstruct Mapper containing all mappings).
 
 To use a custom generator, it must be located in a separate JAR with a file named after the SPI in `META-INF/services/`

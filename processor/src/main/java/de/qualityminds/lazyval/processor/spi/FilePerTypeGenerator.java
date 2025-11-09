@@ -3,8 +3,6 @@ package de.qualityminds.lazyval.processor.spi;
 import com.palantir.javapoet.JavaFile;
 import org.jetbrains.annotations.ApiStatus;
 
-import java.util.Map;
-
 /**
  * A service provider interface which is called to generate a file per domain primitive.
  * <p>
@@ -12,7 +10,7 @@ import java.util.Map;
  * </p>
  */
 @ApiStatus.Experimental
-public non-sealed interface MultipleFilesGenerator extends SpiGenerator {
+public non-sealed interface FilePerTypeGenerator extends SpiGenerator {
     /**
      * Called for each domain primitive annotated with {@link de.qualityminds.lazyval.LazyValue}.
      * @param element the element annotated with {@link de.qualityminds.lazyval.LazyValue}
