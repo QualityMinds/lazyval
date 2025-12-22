@@ -30,10 +30,12 @@
         <module>processor</module>
         <module>ksp</module>
         <module>testkit</module>
+        <module>integration-test</module>
     </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <gpg.skip>true</gpg.skip>
         <groovy.version>4.0.28</groovy.version>
         <junit.version>5.13.4</junit.version>

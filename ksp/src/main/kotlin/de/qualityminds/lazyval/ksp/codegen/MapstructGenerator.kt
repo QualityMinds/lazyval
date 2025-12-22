@@ -140,11 +140,17 @@ data class JavaFileSpec(
 ) {
     fun writeTo(codeGenerator: CodeGenerator, dependencies: Dependencies) {
         try {
+
             val file = codeGenerator.createNewFile(dependencies, packageName, fileName, "java")
             file.write(javaFile.toString().toByteArray())
             file.close()
+        } catch (e: kotlin.io.FileAlreadyExistsException) {
+            // This is common in incremental builds; usually, we can ignore it
+            // as the existing file is considered up-to-date by KSP
         } catch (e: IOException) {
-            throw RuntimeException("Failed to write Java file", e)
+            error(e.stackTraceToString())
+            error("Failed to write Java file '$fileName':")
+//            throw RuntimeException("Failed to write Java file '$fileName'", e)
         }
     }
 }

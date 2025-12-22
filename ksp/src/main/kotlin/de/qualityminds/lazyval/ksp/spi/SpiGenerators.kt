@@ -14,8 +14,12 @@ import org.jetbrains.annotations.ApiStatus
  * Internal use only.
  */
 @ApiStatus.Internal
-data class ValidateElementWithSource(val element: ValidatedKspGeneratorElement, val source: KSFile)
+sealed interface ValidateElement {
+    val element: ValidatedKspGeneratorElement
 
+    data class ValidatedSourceElement(override val element: ValidatedKspGeneratorElement, val source: KSFile) : ValidateElement
+    data class ValidateJarElement(override val element: ValidatedKspGeneratorElement) : ValidateElement
+}
 
 // tag::result[]
 sealed interface GeneratorResult {
