@@ -23,7 +23,7 @@
         </dependency>
         <dependency>
             <groupId>de.qualityminds.lazyval</groupId>
-            <artifactId>utils</artifactId>
+            <artifactId>lazyval-utils</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -48,7 +48,7 @@
         <!-- Test dependencies -->
         <dependency>
             <groupId>de.qualityminds.lazyval</groupId>
-            <artifactId>testkit</artifactId>
+            <artifactId>lazyval-testkit</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

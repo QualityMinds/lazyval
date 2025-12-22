@@ -41,12 +41,18 @@ class LazyvalSymbolProcessor(
         }
 
         val annotatedSymbols: Sequence<KSAnnotated> = resolver.getSymbolsWithAnnotation(LazyValue::class.qualifiedName!!)
+        val configuredElements = lazyvalEnvironment.configuredValues()
 
-        val validatedElements = annotatedSymbols
+        val validatedElements: List<ValidateElement> = (annotatedSymbols + configuredElements)
             .filterIsInstance<KSClassDeclaration>()
             .mapNotNull { classDecl ->
                 lazyvalEnvironment.validateElement(classDecl)?.let { validated ->
-                    ValidateElementWithSource(validated, classDecl.containingFile!!)
+                    if(classDecl.containingFile != null){
+                        ValidateElement.ValidatedSourceElement(validated, classDecl.containingFile!!)
+                    }else {
+                        // this happens for configured values from other jars (not part of compilation unit)
+                        ValidateElement.ValidateJarElement(validated)
+                    }
                 }
             }
             .toList()
@@ -58,12 +64,17 @@ class LazyvalSymbolProcessor(
 
         fun generateSingleFile(generator: SingleFileGenerator, elements: Set<ValidatedKspGeneratorElement>, userSettings: SpiGenerator.Settings): KotlinOrJavaResult {
             val result = generator.generateSingleFile(NonEmptySet.ofAll(elements), userSettings)
-            return KotlinOrJavaResult.from(result, validatedElements.map { it.source })
+            return KotlinOrJavaResult.from(result, validatedElements.mapNotNull {
+                when(it){
+                    is ValidateElement.ValidateJarElement -> null
+                    is ValidateElement.ValidatedSourceElement -> it.source
+                }
+            })
         }
 
-        fun generateFiles(generator: FilePerTypeGenerator, element: ValidatedKspGeneratorElement, userSettings: SpiGenerator.Settings, source: KSFile): KotlinOrJavaResult {
+        fun generateFiles(generator: FilePerTypeGenerator, element: ValidatedKspGeneratorElement, userSettings: SpiGenerator.Settings, source: KSFile?): KotlinOrJavaResult {
             val result = generator.generateFilePerType(element, userSettings)
-            return KotlinOrJavaResult.from(result, listOf(source))
+            return KotlinOrJavaResult.from(result, source?.let { listOf(it) } ?: emptyList())
         }
 
         // will be empty in the second round
@@ -82,11 +93,15 @@ class LazyvalSymbolProcessor(
                         )
 
                         is FilePerTypeGenerator -> validatedElements.map {
+                            val source = when(it){
+                                is ValidateElement.ValidateJarElement -> null
+                                is ValidateElement.ValidatedSourceElement -> it.source
+                            }
                             generateFiles(
                                 generator,
                                 it.element,
                                 SpiGenerator.Settings(generatorOptions),
-                                it.source
+                                source
                             )
                         }.stream()
                     }
@@ -104,44 +119,45 @@ class LazyvalSymbolProcessor(
     }
 
     private fun loadGenerators(): Stream<SpiGenerator> {
-        val singleFileGenerators = ServiceLoader.load(SingleFileGenerator::class.java)
-        val filePerTypeGenerators = ServiceLoader.load(FilePerTypeGenerator::class.java)
+        val originalContextClassLoader: ClassLoader = Thread.currentThread().contextClassLoader;
+        try {
+            Thread.currentThread().contextClassLoader = this.javaClass.classLoader;
 
-        val hasSingle = singleFileGenerators.iterator().hasNext()
-        val hasMultiple = filePerTypeGenerators.iterator().hasNext()
+            val singleFileGenerators = ServiceLoader.load(SingleFileGenerator::class.java)
+            val filePerTypeGenerators = ServiceLoader.load(FilePerTypeGenerator::class.java)
 
-        if (!hasSingle && !hasMultiple) {
-            lazyvalEnvironment.warn("No Lazyval SPI providers found on classpath.")
-            return Stream.empty()
-        }
+            val hasSingle = singleFileGenerators.iterator().hasNext()
+            val hasMultiple = filePerTypeGenerators.iterator().hasNext()
 
-        val disabledByConfig = Arrays.stream(
-            environment.options
-                .getOrDefault(LazyvalKspEnvironment.DISABLED_GENERATORS, "")
-                .split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray())
-            .map { obj: String? -> obj!!.trim { it <= ' ' } }
-            .filter { s: String? -> !s!!.isEmpty() }
+            if (!hasSingle && !hasMultiple) {
+                lazyvalEnvironment.warn("No Lazyval SPI providers found on classpath.")
+                return Stream.empty()
+            }
+
+            val disabledByConfig = lazyvalEnvironment.disabledGenerators()
+
+            val generators = Stream.of(
+                singleFileGenerators,
+                filePerTypeGenerators,
+            ).flatMap { serviceLoader -> StreamSupport.stream(serviceLoader.spliterator(), false) }
+                // TODO check for ID
+            .filter{generator -> generator.requiredClasspath().stream().allMatch{fqn -> lazyvalEnvironment.isClassAvailable(fqn)}}
+            .filter{generator -> !disabledByConfig.contains(generator.generatorId())}
             .toList()
 
-        val generators = Stream.of(
-            singleFileGenerators,
-            filePerTypeGenerators,
-        ).flatMap { serviceLoader -> StreamSupport.stream(serviceLoader.spliterator(), false) }
-            // TODO check for ID
-        .filter{generator -> generator.requiredClasspath().stream().allMatch{fqn -> lazyvalEnvironment.isClassAvailable(fqn)}}
-        .filter{generator -> !disabledByConfig.contains(generator.generatorId())}
-        .toList()
+            lazyvalEnvironment.info(
+                "Lazyval Active Providers: " + generators.stream()
+                    .map{ generator -> generator.generatorId() }
+                    .collect(Collectors.joining(", ")))
 
-        lazyvalEnvironment.info(
-            "Lazyval Active Providers: " + generators.stream()
-                .map{ generator -> generator.generatorId() }
-                .collect(Collectors.joining(", ")))
+            if (generators.isEmpty()) {
+                lazyvalEnvironment.warnMissingClasspath()
+            }
 
-        if (generators.isEmpty()) {
-            lazyvalEnvironment.warnMissingClasspath()
+            return generators.stream()
+        } finally {
+            Thread.currentThread().setContextClassLoader(originalContextClassLoader);
         }
-
-        return generators.stream()
     }
 
     private fun writeKotlinFile(fileSpec: FileSpec, sourceFiles: List<KSFile>) {
@@ -149,7 +165,7 @@ class LazyvalSymbolProcessor(
             val dependencies = if (sourceFiles.isNotEmpty()) {
                 Dependencies(true, *sourceFiles.toTypedArray())
             } else {
-                Dependencies(false)
+                Dependencies(true)
             }
 
             val file = environment.codeGenerator.createNewFile(
@@ -161,6 +177,9 @@ class LazyvalSymbolProcessor(
             file.write(fileSpec.toString().toByteArray())
             file.close()
             lazyvalEnvironment.info("Written Kotlin file '${fileSpec.packageName}.${fileSpec.name}'")
+        } catch (e: kotlin.io.FileAlreadyExistsException) {
+            // This is common in incremental builds; usually, we can ignore it
+            // as the existing file is considered up-to-date by KSP
         } catch (e: Exception) {
             lazyvalEnvironment.error("Failed to write Kotlin file: ${e.message}")
             throw e
@@ -174,7 +193,7 @@ class LazyvalSymbolProcessor(
             val dependencies = if (sourceFiles.isNotEmpty()) {
                 Dependencies(true, *sourceFiles.toTypedArray())
             } else {
-                Dependencies(false)
+                Dependencies(true)
             }
 
             javaFileSpec.writeTo(environment.codeGenerator, dependencies)

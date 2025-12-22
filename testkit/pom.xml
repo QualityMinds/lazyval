@@ -9,7 +9,7 @@
         <version>0.1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>testkit</artifactId>
+    <artifactId>lazyval-testkit</artifactId>
     <name>Lazyval Testkit</name>
     <description>Test harness providing access to Java or Kotlin toolchains as well as predefined test-cases</description>
 
@@ -27,7 +27,7 @@
         </dependency>
         <dependency>
             <groupId>de.qualityminds.lazyval</groupId>
-            <artifactId>utils</artifactId>
+            <artifactId>lazyval-utils</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

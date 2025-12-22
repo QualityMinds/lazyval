@@ -35,7 +35,7 @@ class AnnotationProcessorIT extends Specification {
         testkitJava.run(projectDir, scenario) == expected
 
         where:
-        scenario | error
+        scenario                                                                | error
         Scenario.Java.of( "scenarios/failing/AbstractClass.java")               | "Abstract class is not a valid ValueType."
         Scenario.Java.of( "scenarios/failing/RecordMoreThanOneProperty.java")   | "Not a simple ValueType. Lazyval only supported Records with one non-transient field name 'value'."
         Scenario.Java.of( "scenarios/failing/ObjectMoreThanOneProperty.java")   | "Not a simple ValueType. Lazyval only supports Objects with one non-transient value."

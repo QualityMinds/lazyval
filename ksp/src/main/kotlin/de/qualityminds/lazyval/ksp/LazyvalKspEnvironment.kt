@@ -4,14 +4,16 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.*
+import java.util.*
 
 internal class LazyvalKspEnvironment(
-    environment: SymbolProcessorEnvironment,
+    private val environment: SymbolProcessorEnvironment,
     private val resolver: Resolver
 ) {
 
     companion object {
         const val DISABLED_GENERATORS: String = "lazyval.disabledGenerators"
+        const val CONFIGURED_VALUES: String = "lazyval.values"
         private const val NO_GENERATION_WARNING = "None of the required classes are available on the classpath! Lazyval will not generate any sources."
         private const val NOT_FINAL_CLASS_WARNING = "Value Types should not be extendable, hence the class should be final."
         private const val NOT_FINAL_VALUE_WARNING = "Value Types should be immutable, hence the wrapped property should be final (val)."
@@ -61,6 +63,28 @@ internal class LazyvalKspEnvironment(
         }
         return resolver.getClassDeclarationByName(resolver.getKSNameFromString(fqn)) != null
     }
+
+    fun disabledGenerators(): List<String> = Arrays.stream(
+        environment.options
+            .getOrDefault(LazyvalKspEnvironment.DISABLED_GENERATORS, "")
+            .split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray())
+        .map { obj: String? -> obj!!.trim { it <= ' ' } }
+        .filter { s: String? -> !s!!.isEmpty() }
+        .toList()
+
+    fun configuredValues(): List<KSClassDeclaration> = environment.options
+            .getOrDefault(LazyvalKspEnvironment.CONFIGURED_VALUES, "")
+            .split(",".toRegex())
+            .dropLastWhile { it.isEmpty() }
+            .map { obj: String? -> obj!!.trim { it <= ' ' } }
+            .filter { s: String? -> !s!!.isEmpty() }
+            .mapNotNull { fqn ->
+                val type = resolver.getClassDeclarationByName(resolver.getKSNameFromString(fqn))
+                if (type == null) {
+                    error(String.format("Configured value '%s' could not be resolved.", fqn))
+                }
+                type
+            }
 
 
     fun validateElement(classDeclaration: KSClassDeclaration): ValidatedKspGeneratorElement? {
