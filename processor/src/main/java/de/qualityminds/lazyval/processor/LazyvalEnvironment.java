@@ -10,14 +10,17 @@ import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
-import java.util.*;
-import java.util.function.Predicate;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 class LazyvalEnvironment {
 
     static final String DISABLED_GENERATORS = "lazyval.disabledGenerators";
+    static final String CONFIGURED_VALUES = "lazyval.values";
     private final ProcessingEnvironment processingEnvironment;
 
     private static final String NO_GENERATION_WARNING = "None of the required classes are available on the classpath! Lazyval will not generate any sources.";
@@ -65,11 +68,34 @@ class LazyvalEnvironment {
      */
     public boolean isClassAvailable(String fqn){
         if (fqn == null || fqn.trim().isEmpty()) {
-            warn(fqn + " is not on classpath.");
+            warn(fqn + " is not a valid fully qualified class name.");
             return false;
         }
         return processingEnvironment.getElementUtils().getTypeElement(fqn) != null;
     }
+
+    public List<TypeElement> getConfiguredValues(){
+        return Arrays.stream(processingEnvironment.getOptions()
+                .getOrDefault(LazyvalEnvironment.CONFIGURED_VALUES, "")
+                .split(",")).map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(fqn -> {
+                    var type = processingEnvironment.getElementUtils().getTypeElement(fqn);
+                    if(type == null){
+                        error(String.format("Configured value '%s' could not be resolved.", fqn));
+                    }
+                    return type;
+                }).toList();
+    }
+
+    public List<String> getDisabledGenerators(){
+        return Arrays.stream(processingEnvironment.getOptions()
+                        .getOrDefault(LazyvalEnvironment.DISABLED_GENERATORS, "")
+                        .split(",")).map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+    }
+
 
     /**
      * While annotation processing, no classes can be loaded (since they are not yet compiled).
@@ -122,7 +148,8 @@ class LazyvalEnvironment {
         return valid ? Optional.of(new RecordElement(lazyvalElement, fields.get(0), factoryMethod)) : Optional.empty();
     }
 
-    private static List<VariableElement> findAccessor(TypeElement lazyvalElement){
+    private List<VariableElement> findAccessor(TypeElement lazyvalElement){
+        var typeUtils = processingEnvironment.getTypeUtils();
         var accessors = lazyvalElement.getEnclosedElements().stream()
                 .filter(element -> element.getKind() == ElementKind.METHOD)
                 .map(element -> (ExecutableElement) element)
@@ -137,20 +164,21 @@ class LazyvalEnvironment {
                 .filter(element -> element.getKind() == ElementKind.FIELD)
                 .map(element -> (VariableElement) element)
                 .filter(field ->
-                        accessors.stream().anyMatch(accessor -> accessor.getReturnType().equals(field.asType()))
-                        && !field.getModifiers().contains(Modifier.STATIC)
-                        && !field.getModifiers().contains(Modifier.TRANSIENT))
+                        accessors.stream().anyMatch(accessor -> typeUtils.isSameType(accessor.getReturnType(), field.asType()))
+                                && !field.getModifiers().contains(Modifier.STATIC)
+                                && !field.getModifiers().contains(Modifier.TRANSIENT))
                 .toList();
     }
 
-    private static List<ExecutableElement> findFactoryMethods(TypeElement lazyvalElement, TypeMirror wrappedType){
+    private List<ExecutableElement> findFactoryMethods(TypeElement lazyvalElement, TypeMirror wrappedType){
+        var typeUtils = processingEnvironment.getTypeUtils();
         return lazyvalElement.getEnclosedElements().stream()
                 .filter(element -> element.getKind() == ElementKind.METHOD)
                 .map(method -> (ExecutableElement) method)
                 .filter(method -> method.getModifiers().contains(Modifier.STATIC)
-                        && method.getReturnType().equals(lazyvalElement.asType())
+                        && typeUtils.isSameType(method.getReturnType(), lazyvalElement.asType())
                         && method.getParameters().size() == 1  // Should have exactly one parameter
-                        && method.getParameters().get(0).asType().toString().equals(wrappedType.toString()))  // Parameter type should match field type)
+                        && typeUtils.isSameType(method.getParameters().get(0).asType(), wrappedType))  // Parameter type should match field-type
                 .toList();
     }
 

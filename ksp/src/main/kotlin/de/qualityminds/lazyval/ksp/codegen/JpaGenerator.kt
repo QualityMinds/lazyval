@@ -5,8 +5,8 @@ import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
-import de.qualityminds.lazyval.ksp.spi.GeneratorResult
 import de.qualityminds.lazyval.ksp.spi.FilePerTypeGenerator
+import de.qualityminds.lazyval.ksp.spi.GeneratorResult
 import de.qualityminds.lazyval.ksp.spi.SpiGenerator
 
 // tag::docu[]
@@ -44,11 +44,10 @@ class JpaGenerator : FilePerTypeGenerator {
             .returns(wrappedTypeName.copy(nullable = true))
             .addParameter("type", lazyvalTypeName.copy(nullable = true))
             .apply {
-                if (wrappedType.isPrimitive()) {
-                    addStatement("return type?.${validatedElement.kotlinAccessorMethodName}")
-                } else {
-                    addStatement("return type?.${validatedElement.kotlinAccessorMethodName}")
-                }
+                beginControlFlow("if (type == null)")
+                    .addStatement("return null")
+                    .endControlFlow()
+                    .addStatement("return type?.${validatedElement.kotlinAccessorMethodName}")
             }
             .build()
 
@@ -66,11 +65,10 @@ class JpaGenerator : FilePerTypeGenerator {
             .returns(lazyvalTypeName.copy(nullable = true))
             .addParameter("dbValue", wrappedTypeName.copy(nullable = true))
             .apply {
-                if (wrappedType.isPrimitive()) {
-                    addStatement("return dbValue?.let { $objectCreation }")
-                } else {
-                    addStatement("return dbValue?.let { $objectCreation }")
-                }
+                beginControlFlow("if (dbValue == null)")
+                    .addStatement("return null")
+                    .endControlFlow()
+                    .addStatement("return dbValue?.let { $objectCreation }")
             }
             .build()
 

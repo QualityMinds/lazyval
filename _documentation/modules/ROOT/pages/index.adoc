@@ -42,6 +42,13 @@ xref:kotlin.adoc[Getting started with Kotlin]
 |_lazyval.mapstruct.generatedPackage_
 |Specifies the package where the `LazyvalMapper` interface is generated to.
 
+|_lazyval.disabledGenerators_
+|Comma separated List of Generator-IDs which should not generate output despite being found on the classpath.
+
+|_lazyval.values_
+|Comma separated List with FQNs for classes which are not part of the current compilation-unit,
+but found on the classpath.
+
 |===
 
 

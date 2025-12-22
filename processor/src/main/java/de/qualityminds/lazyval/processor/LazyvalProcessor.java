@@ -1,9 +1,15 @@
 package de.qualityminds.lazyval.processor;
 
 import de.qualityminds.lazyval.collections.NonEmptySet;
-import de.qualityminds.lazyval.processor.spi.*;
+import de.qualityminds.lazyval.processor.spi.FilePerTypeGenerator;
+import de.qualityminds.lazyval.processor.spi.SingleFileGenerator;
+import de.qualityminds.lazyval.processor.spi.SpiGenerator;
+import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
-import javax.annotation.processing.*;
+import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.RoundEnvironment;
+import javax.annotation.processing.SupportedAnnotationTypes;
+import javax.annotation.processing.SupportedOptions;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
@@ -18,6 +24,7 @@ import java.util.stream.StreamSupport;
 @SupportedOptions({
         // options coming from external generators cannot be documented
         LazyvalEnvironment.DISABLED_GENERATORS,
+        LazyvalEnvironment.CONFIGURED_VALUES,
 })
 public class LazyvalProcessor extends AbstractProcessor {
 
@@ -40,7 +47,9 @@ public class LazyvalProcessor extends AbstractProcessor {
 
         for(TypeElement annotation : annotations){
             Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
-            Set<ValidatedGeneratorElement> validatedElements = annotatedElements.stream()
+            var configuredElements = lazyvalEnvironment.getConfiguredValues();
+
+            Set<ValidatedGeneratorElement> validatedElements = Stream.concat(annotatedElements.stream(), configuredElements.stream())
                     .map(element -> lazyvalEnvironment.validateElement((TypeElement) element))
                     .flatMap(Optional::stream)
                     .collect(Collectors.toUnmodifiableSet());
@@ -78,46 +87,50 @@ public class LazyvalProcessor extends AbstractProcessor {
 
     /**
      * Loads all generators from the classpath and returns the ones that have their classpath dependencies satisfied
-     * and have not been disabled by a configuration option
+     * and have not been disabled by a configuration option.
+     *
+     * Has to make use of TCCL to work for complex classloader setup (Spring, Quarkus) as well as simple ones.
      */
     private Stream<? extends SpiGenerator> loadGenerators(){
+        ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
 
-        ServiceLoader<SingleFileGenerator> singleFileGenerators =
-                ServiceLoader.load(SingleFileGenerator.class);
-        ServiceLoader<FilePerTypeGenerator> multipleFilesGenerators =
-                ServiceLoader.load(FilePerTypeGenerator.class);
+            ServiceLoader<SingleFileGenerator> singleFileGenerators =
+                    ServiceLoader.load(SingleFileGenerator.class);
+            ServiceLoader<FilePerTypeGenerator> multipleFilesGenerators =
+                    ServiceLoader.load(FilePerTypeGenerator.class);
 
-        boolean hasSingle = singleFileGenerators.iterator().hasNext();
-        boolean hasMultiple = multipleFilesGenerators.iterator().hasNext();
+            boolean hasSingle = singleFileGenerators.iterator().hasNext();
+            boolean hasMultiple = multipleFilesGenerators.iterator().hasNext();
 
-        if (!hasSingle && !hasMultiple) {
-            lazyvalEnvironment.warn("No Lazyval SPI providers found on classpath.");
-            return Stream.empty();
-        }
-
-        var disabledByConfig = Arrays.stream(processingEnv.getOptions()
-                .getOrDefault(LazyvalEnvironment.DISABLED_GENERATORS, "")
-                .split(",")).map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toList();
-
-        var generators = Stream.of(singleFileGenerators, multipleFilesGenerators)
-                .flatMap(serviceLoader -> StreamSupport.stream(serviceLoader.spliterator(), false))
-                // TODO check for ID
-                .filter(generator -> generator.requiredClasspath().stream().allMatch(fqn -> lazyvalEnvironment.isClassAvailable(fqn)))
-                .filter(generator -> !disabledByConfig.contains(generator.generatorId()))
-                .toList();
-
-        lazyvalEnvironment.info("Lazyval Active Providers: " + generators.stream().map(SpiGenerator::generatorId).collect(Collectors.joining(", ")));
-
-        if(generators.isEmpty()){
-            if(!classpathWarningAlreadyIssued){
-                lazyvalEnvironment.warnMissingClasspath();
-                classpathWarningAlreadyIssued = true;
+            if (!hasSingle && !hasMultiple) {
+                lazyvalEnvironment.warn("No Lazyval SPI providers found on classpath.");
+                return Stream.empty();
             }
-        }
 
-        return generators.stream();
+            var disabledByConfig = lazyvalEnvironment.getDisabledGenerators();
+
+            var generators = Stream.of(singleFileGenerators, multipleFilesGenerators)
+                    .flatMap(serviceLoader -> StreamSupport.stream(serviceLoader.spliterator(), false))
+                    // TODO check for ID
+                    .filter(generator -> generator.requiredClasspath().stream().allMatch(fqn -> lazyvalEnvironment.isClassAvailable(fqn)))
+                    .filter(generator -> !disabledByConfig.contains(generator.generatorId()))
+                    .toList();
+
+            lazyvalEnvironment.info("Lazyval Active Providers: " + generators.stream().map(SpiGenerator::generatorId).collect(Collectors.joining(", ")));
+
+            if(generators.isEmpty()){
+                if(!classpathWarningAlreadyIssued){
+                    lazyvalEnvironment.warnMissingClasspath();
+                    classpathWarningAlreadyIssued = true;
+                }
+            }
+
+            return generators.stream();
+        } finally {
+            Thread.currentThread().setContextClassLoader(originalContextClassLoader);
+        }
     }
 }
 

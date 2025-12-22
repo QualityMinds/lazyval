@@ -40,16 +40,8 @@ public class JpaGenerator implements FilePerTypeGenerator {
             wrappedTypeName = TypeName.get(wrappedType);
         }
 
-        final MethodSpec convertToDatabaseColumn;
-        if(wrappedType.getKind().isPrimitive()) {
-            convertToDatabaseColumn = MethodSpec.methodBuilder("convertToDatabaseColumn")
-                    .addModifiers(Modifier.PUBLIC)
-                    .returns(wrappedTypeName)
-                    .addParameter(TypeName.get(type), "type")
-                    .addStatement(String.format("return type.%s()", valid.wrappedTypeName()))
-                    .build();
-        }else {
-            convertToDatabaseColumn = MethodSpec.methodBuilder("convertToDatabaseColumn")
+        // Jpa Converter needs to check for null due to boxing primitive types
+        final MethodSpec convertToDatabaseColumn = MethodSpec.methodBuilder("convertToDatabaseColumn")
                     .addModifiers(Modifier.PUBLIC)
                     .returns(wrappedTypeName)
                     .addParameter(TypeName.get(type), "type")
@@ -58,7 +50,6 @@ public class JpaGenerator implements FilePerTypeGenerator {
                     .endControlFlow()
                     .addStatement(String.format("return type.%s()", valid.wrappedTypeName()))
                     .build();
-        }
 
         var lazyvalTypeName = TypeName.get(type);
         var objectCreation = String.format("new %s(dbValue)", lazyvalTypeName);
@@ -67,16 +58,7 @@ public class JpaGenerator implements FilePerTypeGenerator {
             objectCreation = String.format("%s.%s(dbValue)", lazyvalTypeName, method.getSimpleName());
         }
 
-        final MethodSpec convertToEntityAttribute;
-        if(wrappedType.getKind().isPrimitive()){
-            convertToEntityAttribute = MethodSpec.methodBuilder("convertToEntityAttribute")
-                    .addModifiers(Modifier.PUBLIC)
-                    .returns(TypeName.get(type))
-                    .addParameter(wrappedTypeName, "dbValue")
-                    .addStatement("return $L", objectCreation)
-                    .build();
-        } else {
-            convertToEntityAttribute = MethodSpec.methodBuilder("convertToEntityAttribute")
+        final MethodSpec convertToEntityAttribute = MethodSpec.methodBuilder("convertToEntityAttribute")
                     .addModifiers(Modifier.PUBLIC)
                     .returns(TypeName.get(type))
                     .addParameter(wrappedTypeName, "dbValue")
@@ -85,7 +67,6 @@ public class JpaGenerator implements FilePerTypeGenerator {
                     .endControlFlow()
                     .addStatement("return $L", objectCreation)
                     .build();
-        }
 
         TypeSpec jpaConverter = TypeSpec.classBuilder(element.getSimpleName() + "AttributeConverter")
                 .addAnnotation(AnnotationSpec.builder(ClassName.get("jakarta.persistence", "Converter"))
