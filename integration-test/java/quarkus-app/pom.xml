@@ -103,7 +103,6 @@
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <release>21</release>
                     <proc>full</proc>
                     <annotationProcessorPaths>
                         <path>
