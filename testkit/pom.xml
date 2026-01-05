@@ -64,11 +64,6 @@
         </dependency>
         <dependency>
             <groupId>com.google.devtools.ksp</groupId>
-            <artifactId>symbol-processing</artifactId>
-            <version>${version.kotlin}-${version.ksp}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.devtools.ksp</groupId>
             <artifactId>symbol-processing-common-deps</artifactId>
             <version>${version.kotlin}-${version.ksp}</version>
         </dependency>
