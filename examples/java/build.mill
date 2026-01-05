@@ -14,14 +14,13 @@ object `package` extends JavaModule with MavenModule{
   }
 
   // tag::docu[]
+  // tag::excluded[]
   override def repositories: T[Seq[String]] = super.repositories() ++ Seq(
-    // tag::excluded[]
     // the previously installed snapshot is in local maven
     // see docs on Coursier, why m2 is considered dangerous
     Dangerous.maven2Local.root,
-    // end::excluded[]
-    "https://maven.pkg.github.com/qualityminds/*"
   )
+  // end::excluded[]
 
   override def mvnDeps: T[Seq[Dep]] = Seq(
     mvn"org.mapstruct:mapstruct:${Version.mapstruct}",

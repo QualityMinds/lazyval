@@ -7,16 +7,12 @@ group = "lazyval"
 version = "1.0.0-SNAPSHOT"
 
 // tag::docu[]
+// tag::excluded[]
 repositories {
     mavenCentral()
-    // tag::excluded[]
     mavenLocal() // For local SNAPSHOT dependencies
-    // end::excluded[]
-    maven {
-        name = "GitHubPackages"
-        url = uri("https://maven.pkg.github.com/qualityminds/*")
-    }
 }
+// end::excluded[]
 
 
 dependencies {

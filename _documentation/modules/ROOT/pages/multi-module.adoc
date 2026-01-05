@@ -1,0 +1,30 @@
+= Multi-Module Support
+
+This section describes support for more complex builds like a Modulith, Kotlin Multiplatform, or just sharing some
+domain primitives between multiple Microservices.
+
+In general, annotation processors are only concerned with the current compilation-unit, which means when searching for annotated symbols, they only see source code within the current module. Luckily, they also can inspect classes from
+the classpath, which is how Lazyval provides a way to support multi-module setups.
+
+By setting the annotation-processor/ksp configuration option `lazyval.values` you can pass a list of full-qualified-names
+for classes which should be included in the processing. Those classes behave as if they have been annotated with
+`@LazyValue`.
+
+.sample module structure
+----
+├── shared/
+│   ├── com.acme.shared.EMail
+│   └── com.acme.shared.AcmeId
+├── service-a/
+│   └── com.acme.a.Foo
+└── service-b/
+    └── com.acme.a.Bar
+----
+
+Here `shared` only defines domain-primitives without any dependency to Lazyval at all, while `service-a` and
+`service-b` are properly configured with the processor and define the config-option
+`lazyval.values=com.acme.shared.EMail,com.acme.shared.AcmeId`.
+
+NOTE: the actual syntax for the config option depends on the build tool and if Java or Kotlin are used.
+See the examples and adapt accordingly.
+

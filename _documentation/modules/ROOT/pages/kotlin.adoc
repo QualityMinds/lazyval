@@ -81,12 +81,20 @@ public class QuantityAttributeConverter : AttributeConverter<Quantity?, Int?> {
 == Setup
 
 === Gradle
+.build.gradle.kts
 [source, kotlin]
 ----
 include::ROOT:example$kotlin/build.gradle.kts[tags=docu;!excluded]
 ----
 
+.gradle.properties
+[source, properties]
+----
+include::ROOT:example$kotlin/gradle.properties[]
+----
+
 === Mill
+.build.mill
 [source, scala]
 ----
 include::ROOT:example$kotlin/build.mill[tags=docu;!excluded]

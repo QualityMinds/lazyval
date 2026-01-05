@@ -5,16 +5,12 @@ plugins {
 }
 
 // tag::docu[]
+// tag::excluded[]
 repositories {
     mavenCentral()
-    // tag::excluded[]
     mavenLocal() // For local SNAPSHOT dependencies
-    // end::excluded[]
-    maven {
-        name = "GitHubPackages"
-        url = uri("https://maven.pkg.github.com/qualityminds/*")
-    }
 }
+// end::excluded[]
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.20")

@@ -22,12 +22,15 @@ Currently Lazyval supports:
 * Mapstruct
 * JPA AttributeConverters
 * SPI for custom generators
+** Testkit
 
 See the https://qualityminds.github.io/lazyval[documentation] for motivation and getting started.
 
 == Examples
 
-You can find examples in the https://github.com/QualityMinds/lazyval/tree/main/examples[examples] folder.
+You can find examples in the https://github.com/QualityMinds/lazyval/tree/main/examples[examples] folder as
+well as within the https://github.com/QualityMinds/lazyval/tree/main/integration-test/java[Java Quarkus Integration-Test]
+and https://github.com/QualityMinds/lazyval/tree/main/integration-test/kotlin[Kotlin Spring Integration-Test]
 
 == Contributing
 
