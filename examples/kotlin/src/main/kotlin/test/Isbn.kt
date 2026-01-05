@@ -6,10 +6,6 @@ import de.qualityminds.lazyval.LazyValue
 @LazyValue
 class Isbn private constructor(val value: String) {
 
-    init {
-        require(value != null) { "Value cannot be null" }
-    }
-
     companion object {
         // will be used by the annotation processor (factory methods have higher precedence)
         @JvmStatic

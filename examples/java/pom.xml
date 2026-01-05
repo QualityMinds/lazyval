@@ -1,4 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.1.0"
 >
     <modelVersion>4.0.0</modelVersion>
     <groupId>lazyval</groupId>
@@ -9,6 +9,10 @@
 
     <!-- tag::docu[] -->
     <properties>
+        <!-- tag::excluded [] -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <!-- end::excluded[] -->
         <version.lazyval>0.1.0-SNAPSHOT</version.lazyval>
         <version.mapstruct>1.6.3</version.mapstruct>
         <version.jakarta-ee>11.0.0</version.jakarta-ee>

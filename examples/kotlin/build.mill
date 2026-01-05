@@ -1,7 +1,5 @@
-//| mill-version: 1.0.5
-//| mill-jvm-version: zulu:21
-import coursier.LocalRepositories.Dangerous
-import coursier.Repositories
+//| mill-version: 1.1.0-RC3
+//| mill-jvm-version: zulu:17
 import mill.*
 import mill.kotlinlib.*
 import mill.kotlinlib.ksp.*
@@ -15,8 +13,8 @@ object `package` extends KotlinMavenModule with KspModule {
   }
 
   override def kotlinVersion = "2.2.20"
-  override def kspVersion = "2.0.3"
-  override def kspJvmTarget = "21"
+  override def kspVersion = "2.0.4"
+  override def kspJvmTarget = "17"
   override def kspModuleMode = KspModuleMode.Ksp2 // could be ommited, as it is the default
 
   // tag::docu[]
@@ -24,7 +22,7 @@ object `package` extends KotlinMavenModule with KspModule {
   override def repositories: T[Seq[String]] = super.repositories() ++ Seq(
     // the previously installed snapshot is in local maven
     // see docs on Coursier, why m2 is considered dangerous
-    Dangerous.maven2Local.root,
+    coursier.LocalRepositories.Dangerous.maven2Local.root,
   )
   // end::excluded[]
 
