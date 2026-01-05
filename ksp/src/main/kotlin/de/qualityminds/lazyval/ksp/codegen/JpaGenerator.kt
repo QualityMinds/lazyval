@@ -44,10 +44,7 @@ class JpaGenerator : FilePerTypeGenerator {
             .returns(wrappedTypeName.copy(nullable = true))
             .addParameter("type", lazyvalTypeName.copy(nullable = true))
             .apply {
-                beginControlFlow("if (type == null)")
-                    .addStatement("return null")
-                    .endControlFlow()
-                    .addStatement("return type?.${validatedElement.kotlinAccessorMethodName}")
+                addStatement("return type?.${validatedElement.kotlinAccessorMethodName}")
             }
             .build()
 
@@ -65,10 +62,7 @@ class JpaGenerator : FilePerTypeGenerator {
             .returns(lazyvalTypeName.copy(nullable = true))
             .addParameter("dbValue", wrappedTypeName.copy(nullable = true))
             .apply {
-                beginControlFlow("if (dbValue == null)")
-                    .addStatement("return null")
-                    .endControlFlow()
-                    .addStatement("return dbValue?.let { $objectCreation }")
+                addStatement("return dbValue?.let { $objectCreation }")
             }
             .build()
 
