@@ -12,8 +12,8 @@ object `package` extends KotlinMavenModule with KspModule {
     val jpa = "3.2.0"
   }
 
-  override def kotlinVersion = "2.2.20"
-  override def kspVersion = "2.0.4"
+  override def kotlinVersion = "2.3.0"
+  override def kspVersion = "2.3.4"
   override def kspJvmTarget = "17"
   override def kspModuleMode = KspModuleMode.Ksp2 // could be ommited, as it is the default
 

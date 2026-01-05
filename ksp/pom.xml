@@ -15,8 +15,8 @@
     <description>KSP2 implementation of the Lazyval annotation processing</description>
 
     <properties>
-        <version.kotlin>2.2.20</version.kotlin>
-        <version.ksp>2.0.4</version.ksp>
+        <version.kotlin>2.3.0</version.kotlin>
+        <version.ksp>2.3.4</version.ksp>
         <version.kotest>6.0.3</version.kotest>
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
     </properties>
@@ -40,19 +40,12 @@
         <dependency>
             <groupId>com.google.devtools.ksp</groupId>
             <artifactId>symbol-processing-api</artifactId>
-            <version>${version.kotlin}-${version.ksp}</version>
+            <version>${version.ksp}</version>
         </dependency>
         <dependency>
             <groupId>com.squareup</groupId>
             <artifactId>kotlinpoet-ksp</artifactId>
             <version>${version.kotlinpoet}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlinx</groupId>
-            <artifactId>kotlinx-coroutines-core-jvm</artifactId>
-            <version>1.10.1</version>
-            <!-- kotlinpoet-ksp depends on this one in 1.10.1 and this causes problems in the CI -->
-            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>com.palantir.javapoet</groupId>

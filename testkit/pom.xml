@@ -14,8 +14,8 @@
     <description>Test harness providing access to Java or Kotlin toolchains as well as predefined test-cases</description>
 
     <properties>
-        <version.kotlin>2.2.20</version.kotlin>
-        <version.ksp>2.0.4</version.ksp>
+        <version.kotlin>2.3.0</version.kotlin>
+        <version.ksp>2.3.4</version.ksp>
         <version.kotest>6.0.3</version.kotest>
     </properties>
 
@@ -48,7 +48,7 @@
             <!-- needs to be explicitly defined because otherwise it is just a runtime dep -->
             <groupId>com.google.devtools.ksp</groupId>
             <artifactId>symbol-processing-api</artifactId>
-            <version>${version.kotlin}-${version.ksp}</version>
+            <version>${version.ksp}</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -65,13 +65,13 @@
         <dependency>
             <groupId>com.google.devtools.ksp</groupId>
             <artifactId>symbol-processing-common-deps</artifactId>
-            <version>${version.kotlin}-${version.ksp}</version>
+            <version>${version.ksp}</version>
         </dependency>
         <dependency>
             <!-- see https://github.com/google/ksp/blob/fd792aff8eb155f300a80b70855c862388331284/docs/ksp2entrypoints.md -->
             <groupId>com.google.devtools.ksp</groupId>
             <artifactId>symbol-processing-aa-embeddable</artifactId>
-            <version>${version.kotlin}-${version.ksp}</version>
+            <version>${version.ksp}</version>
         </dependency>
         <!-- Test Dependencies -->
         <dependency>
