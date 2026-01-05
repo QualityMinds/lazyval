@@ -121,6 +121,7 @@
                         <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
                         <arg>-Amapstruct.defaultComponentModel=cdi</arg>
                         <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
+                        <arg>-Amapstruct.generatedAnnotationType=jakarta</arg>
                         <arg>-Alazyval.jpa.generatedPackage=de.qualityminds.lazyval.integration</arg>
                         <arg>-Alazyval.mapstruct.generatedPackage=de.qualityminds.lazyval.integration</arg>
                         <arg>-Alazyval.values=de.qualityminds.lazyval.integration.shared.Quantity,de.qualityminds.lazyval.integration.shared.Isbn</arg>

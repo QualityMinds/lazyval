@@ -51,6 +51,7 @@ tasks.withType<JavaCompile> {
         add("-Amapstruct.defaultComponentModel=spring")
         add("-Amapstruct.defaultInjectionStrategy=constructor")
         add("-Amapstruct.unmappedTargetPolicy=ERROR")
+        add("-Amapstruct.generatedAnnotationType=jakarta")
     }
 }
 
