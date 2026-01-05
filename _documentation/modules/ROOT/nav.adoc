@@ -9,4 +9,4 @@
 ** xref:kotlin.adoc#usage[Usage]
 ** xref:kotlin.adoc#setup[Setup]
 // ** xref:kotlin.adoc#examples[Examples]
-// * xref:configuration.adoc[Configuration]
+* xref:multi-module.adoc[Multi-Modules]

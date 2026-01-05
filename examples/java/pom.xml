@@ -1,5 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+>
     <modelVersion>4.0.0</modelVersion>
     <groupId>lazyval</groupId>
     <artifactId>sample-maven</artifactId>
@@ -13,14 +13,6 @@
         <version.mapstruct>1.6.3</version.mapstruct>
         <version.jakarta-ee>11.0.0</version.jakarta-ee>
     </properties>
-
-    <repositories>
-        <repository>
-            <id>github</id>
-            <name>qualityminds</name>
-            <url>https://maven.pkg.github.com/qualityminds/*</url>
-        </repository>
-    </repositories>
 
     <dependencies>
         <dependency>

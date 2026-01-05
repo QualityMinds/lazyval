@@ -19,7 +19,7 @@ to the Database, as well as a Mapstruct Mapper definition to wrap/unpack the typ
 
 *Lazyval will, depending on your classpath, generate*:
 
-* *a single Mapstruct-Mapper with mappings for all defined domain primitives*
+* *a single Mapstruct-Mapper interface with mappings for all defined domain primitives*
 
 * *a JPA-AttributeConverter for each domain primitive*
 
@@ -30,6 +30,8 @@ NOTE: for custom generators, see xref:spi:index.adoc[Lazyvals SPI].
 xref:java.adoc[Getting started with Java]
 
 xref:kotlin.adoc[Getting started with Kotlin]
+
+xref:multi-module.adoc[Multi-Module Support]
 
 == Configuration Options
 
@@ -44,10 +46,11 @@ xref:kotlin.adoc[Getting started with Kotlin]
 
 |_lazyval.disabledGenerators_
 |Comma separated List of Generator-IDs which should not generate output despite being found on the classpath.
+Active Generator-IDs are printed to the console during compilation.
 
 |_lazyval.values_
 |Comma separated List with FQNs for classes which are not part of the current compilation-unit,
-but found on the classpath.
+but found on the classpath. See also xref:multi-module.adoc[Multi-Module Support].
 
 |===
 

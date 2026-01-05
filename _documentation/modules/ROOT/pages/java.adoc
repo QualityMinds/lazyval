@@ -97,6 +97,7 @@ In case neither Mapstruct, nor JPA is available, a Warning message will be logge
 
 === Maven
 
+.pom.xml
 [source, xml]
 ----
 include::ROOT:example$java/pom.xml[tags=docu;!excluded]
@@ -105,6 +106,7 @@ include::ROOT:example$java/pom.xml[tags=docu;!excluded]
 
 === Gradle
 
+.build.gradle.kts
 [source, kotlin]
 ----
 include::ROOT:example$java/build.gradle.kts[tags=docu;!excluded]
@@ -112,6 +114,7 @@ include::ROOT:example$java/build.gradle.kts[tags=docu;!excluded]
 
 === Mill
 
+.build.mill
 [source, scala]
 ----
 include::ROOT:example$java/build.mill[tags=docu;!excluded]
