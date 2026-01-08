@@ -11,12 +11,12 @@ because the SPI has to leak the underlying processing API to the consumer, at le
 Add the chosen processor as a dependency and select the SPI(s) you need.
 
 .Java SPIs
-* https://github.com/QualityMinds/lazyval/tree/main/processor/src/main/java/de/qualityminds/lazyval/processor[de.qualityminds.lazyval.processor.spi.FilePerTypeGenerator]
-* https://github.com/QualityMinds/lazyval/tree/main/processor/src/main/java/de/qualityminds/lazyval/processor[de.qualityminds.lazyval.processor.spi.SingleFileGenerator]
+* https://github.com/QualityMinds/lazyval/blob/main/processor/src/main/java/de/qualityminds/lazyval/processor/spi/FilePerTypeGenerator.java[de.qualityminds.lazyval.processor.spi.FilePerTypeGenerator]
+* https://github.com/QualityMinds/lazyval/blob/main/processor/src/main/java/de/qualityminds/lazyval/processor/spi/SingleFileGenerator.java[de.qualityminds.lazyval.processor.spi.SingleFileGenerator]
 
 .Kotlin SPIs
-* https://github.com/QualityMinds/lazyval/tree/main/ksp/src/main/kotlin/de/qualityminds/lazyval/ksp/spi/MultipleFilesGenerator[de.qualityminds.lazyval.ksp.spi.MultipleFilesGenerator]
-* https://github.com/QualityMinds/lazyval/tree/main/ksp/src/main/kotlin/de/qualityminds/lazyval/ksp/spi/SingleFileGenerator[de.qualityminds.lazyval.ksp.spi.SingleFileGenerator]
+* https://github.com/QualityMinds/lazyval/blob/main/ksp/src/main/kotlin/de/qualityminds/lazyval/ksp/spi/SpiGenerators.kt[de.qualityminds.lazyval.ksp.spi.FilePerTypeGenerator]
+* https://github.com/QualityMinds/lazyval/blob/main/ksp/src/main/kotlin/de/qualityminds/lazyval/ksp/spi/SpiGenerators.kt[de.qualityminds.lazyval.ksp.spi.SingleFileGenerator]
 
 A `FilePerTypeGenerator` will be called for each annotated class and generate a source file for every
 domain-primitive (for instance a JPA AttributeConverter).
