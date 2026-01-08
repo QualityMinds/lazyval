@@ -108,7 +108,7 @@ jobs:
         run: gradle build
 
   examples-kotlin-mill:
-    if: false # disabled due to weird classloading error only on CI
+    #if: false # disabled due to weird classloading error only on CI
     needs: build
     runs-on: ubuntu-latest
     steps:
