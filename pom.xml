@@ -36,13 +36,14 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <java.version>17</java.version>
         <gpg.skip>true</gpg.skip>
-        <groovy.version>4.0.28</groovy.version>
-        <junit.version>5.13.4</junit.version>
-        <spock.version>2.3-groovy-4.0</spock.version>
+        <groovy.version>4.0.29</groovy.version>
+        <junit.version>6.0.2</junit.version>
+        <spock.version>2.4-groovy-4.0</spock.version>
         <slf4j.version>2.0.17</slf4j.version>
         <jspecify.version>1.0.0</jspecify.version>
-        <javapoet.version>0.7.0</javapoet.version>
+        <javapoet.version>0.10.0</javapoet.version>
         <version.kotlinpoet>2.2.0</version.kotlinpoet>
     </properties>
 
@@ -111,13 +112,13 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>3.14.0</version>
                     <configuration>
-                        <release>17</release>
+                        <release>${java.version}</release>
                     </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.gmavenplus</groupId>
                     <artifactId>gmavenplus-plugin</artifactId>
-                    <version>4.2.0</version>
+                    <version>4.2.1</version>
                     <executions>
                         <execution>
                             <goals>
@@ -125,6 +126,9 @@
                             </goals>
                         </execution>
                     </executions>
+                    <configuration>
+                        <targetBytecode>${java.version}</targetBytecode>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
