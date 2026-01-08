@@ -115,8 +115,7 @@
                             <arguments>
                                 <argument>clean</argument>
                                 <argument>test</argument>
-                                <argument>--info</argument>
-                                <argument>--console=plain</argument>
+                                <argument>--warn</argument>
                             </arguments>
                         </configuration>
                     </execution>
