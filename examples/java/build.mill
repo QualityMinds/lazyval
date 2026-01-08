@@ -1,7 +1,5 @@
 //| mill-version: 1.0.5
 //| mill-jvm-version: zulu:21
-import coursier.LocalRepositories.Dangerous
-import coursier.Repositories
 import mill.*
 import mill.javalib.*
 
@@ -16,9 +14,10 @@ object `package` extends JavaModule with MavenModule{
   // tag::docu[]
   // tag::excluded[]
   override def repositories: T[Seq[String]] = super.repositories() ++ Seq(
+    coursier.Repositories.central.root,
     // the previously installed snapshot is in local maven
     // see docs on Coursier, why m2 is considered dangerous
-    Dangerous.maven2Local.root,
+    coursier.LocalRepositories.Dangerous.maven2Local.root,
   )
   // end::excluded[]
 
