@@ -81,6 +81,12 @@ jobs:
         with:
           name: maven-repo
           path: ~/.m2/repository/
+      - name: Clear m2 cache except lazyval (because otherwise coursier will fail to resolve artifacts where only poms are downloaded)
+        run: |
+          mv ~/.m2/repository/de/qualityminds/lazyval /tmp/lazyval-backup || true
+          rm -rf ~/.m2/repository/*
+          mkdir -p ~/.m2/repository/de/qualityminds
+          mv /tmp/lazyval-backup ~/.m2/repository/de/qualityminds/lazyval || true
       - name: Download Mill Script
         working-directory: examples/java
         run: curl -L https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.0.5/mill-dist-1.0.5-mill.sh -o mill && chmod +x mill
@@ -123,12 +129,12 @@ jobs:
         with:
           name: maven-repo
           path: ~/.m2/repository/
-      - name: Populate Coursier cache from Maven repository
+      - name: Clear m2 cache except lazyval (because otherwise coursier will fail to resolve artifacts where only poms are downloaded)
         run: |
-          mkdir -p ~/.cache/coursier/v1/https/repo1.maven.org/maven2
-          # Copy all non-SNAPSHOT dependencies to Coursier's cache format
-          cp -r ~/.m2/repository/org ~/.cache/coursier/v1/https/repo1.maven.org/maven2/ || true
-          cp -r ~/.m2/repository/com ~/.cache/coursier/v1/https/repo1.maven.org/maven2/ || true
+          mv ~/.m2/repository/de/qualityminds/lazyval /tmp/lazyval-backup || true
+          rm -rf ~/.m2/repository/*
+          mkdir -p ~/.m2/repository/de/qualityminds
+          mv /tmp/lazyval-backup ~/.m2/repository/de/qualityminds/lazyval || true
       - name: Download Mill Script
         working-directory: examples/kotlin
         run: curl -L https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.0.5/mill-dist-1.0.5-mill.sh -o mill && chmod +x mill
