@@ -6,9 +6,12 @@ the `@LazyValue` annotation on Kotlin classes and data-classes.
 [#usage]
 == Usage
 
-First, add the annotation and processor dependencies to your favorite build-tool. See below for <<_gradle>> or <<_mill>>.
+First, add the annotation and processor dependencies to your favorite build-tool. See below for <<_gradle>>, <<_mill>>
+or <<_maven>>.
 
-NOTE: KSP2 only officially supports Gradle. Mill has its own KSP2 support. Maven users can currently not make use of KSP2.
+NOTE: KSP2 only officially supports Gradle. Mill has its own KSP2 support. Maven users need to rely on
+3rd-party plugins.
+
 
 Mark your domain-primitive with the `@LazyValue` annotation and the processor will figure out the rest.
 
@@ -99,3 +102,21 @@ include::ROOT:example$kotlin/gradle.properties[]
 ----
 include::ROOT:example$kotlin/build.mill[tags=docu;!excluded]
 ----
+
+=== Maven
+
+There are currently two 3rd-party Maven plugins for KSP2:
+
+- https://github.com/kpavlov/ksp-maven-plugin
+- https://github.com/mcarleio/ksp-maven-plugin
+
+The following sample uses the kpavlovs.
+
+.pom.xml
+[source, xml]
+----
+include::ROOT:example$kotlin/pom.xml[tags=docu;!excluded]
+----
+
+Note that we use the build-helper to add `src/main/java` as additional source folder.
+You can omit this step and place Java source files in `src/main/kotlin` which would also work.

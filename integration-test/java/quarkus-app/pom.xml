@@ -9,7 +9,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>quarkus-app</artifactId>
+    <artifactId>integration-test-java-quarkus-app</artifactId>
     <name>Integration Test Java Quarkus-App</name>
 
     <properties>
@@ -33,7 +33,7 @@
     <dependencies>
         <dependency>
             <groupId>de.qualityminds.lazyval.integration</groupId>
-            <artifactId>shared</artifactId>
+            <artifactId>integration-test-java-shared</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -120,21 +120,10 @@
                         <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
                         <arg>-Amapstruct.defaultComponentModel=cdi</arg>
                         <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
-                        <arg>-Amapstruct.generatedAnnotationType=jakarta</arg>
                         <arg>-Alazyval.jpa.generatedPackage=de.qualityminds.lazyval.integration</arg>
                         <arg>-Alazyval.mapstruct.generatedPackage=de.qualityminds.lazyval.integration</arg>
                         <arg>-Alazyval.values=de.qualityminds.lazyval.integration.shared.Quantity,de.qualityminds.lazyval.integration.shared.Isbn</arg>
                     </compilerArgs>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <argLine>--add-opens java.base/java.lang=ALL-UNNAMED</argLine>
-                    <systemPropertyVariables>
-                        <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                        <maven.home>${maven.home}</maven.home>
-                    </systemPropertyVariables>
                 </configuration>
             </plugin>
             <plugin>
