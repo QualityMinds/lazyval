@@ -17,7 +17,8 @@
     <modules>
         <module>java/shared</module>
         <module>java/quarkus-app</module>
-        <module>kotlin</module>
+        <module>kotlin/shared</module>
+        <module>kotlin/spring-app</module>
     </modules>
 
 </project>

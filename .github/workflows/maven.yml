@@ -89,10 +89,29 @@ jobs:
           mv /tmp/lazyval-backup ~/.m2/repository/de/qualityminds/lazyval || true
       - name: Download Mill Script
         working-directory: examples/java
-        run: curl -L https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.0.5/mill-dist-1.0.5-mill.sh -o mill && chmod +x mill
+        run: curl -L https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.0.6/mill-dist-1.0.6-mill.sh -o mill && chmod +x mill
       - name: Run Java-Example with Mill
         working-directory: examples/java
         run: ./mill __.compile
+
+  examples-kotlin-maven:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Download Maven Repository
+        uses: actions/download-artifact@v4
+        with:
+          name: maven-repo
+          path: ~/.m2/repository/
+      - name: Run Java-Example with Maven
+        working-directory: examples/kotlin
+        run: mvn -nsu -B compile
 
   examples-kotlin-gradle:
     needs: build
@@ -137,7 +156,7 @@ jobs:
           mv /tmp/lazyval-backup ~/.m2/repository/de/qualityminds/lazyval || true
       - name: Download Mill Script
         working-directory: examples/kotlin
-        run: curl -L https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.0.5/mill-dist-1.0.5-mill.sh -o mill && chmod +x mill
+        run: curl -L https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.0.6/mill-dist-1.0.6-mill.sh -o mill && chmod +x mill
       - name: Run Kotlin-Example with Mill
         working-directory: examples/kotlin
         run: ./mill __.compile

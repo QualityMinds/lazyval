@@ -9,7 +9,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>shared</artifactId>
+    <artifactId>integration-test-java-shared</artifactId>
     <name>Integration Test Java Shared</name>
 
 </project>
