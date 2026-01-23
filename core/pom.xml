@@ -15,4 +15,12 @@
     <name>Lazyval Core</name>
     <description>Core module containing only the marker annotation</description>
 
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>license-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
 </project>
