@@ -8,10 +8,6 @@ out/
 **wrapper
 **/gradlew
 **/gradlew.bat
-# Exception: allow gradle wrapper in integration-test/kotlin
-!integration-test/kotlin/gradlew
-!integration-test/kotlin/gradlew.bat
-!integration-test/kotlin/gradle/wrapper/
 
 # only needed when running Antora locally
 package.json
