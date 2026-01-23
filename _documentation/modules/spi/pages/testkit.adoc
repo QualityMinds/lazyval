@@ -54,3 +54,8 @@ result shouldEqual Testresult.Kotlin.Success("LazyvalMapper.java")
 
 See the xref:spi:testkit-spock.adoc[Spock Example] or xref:spi:testkit-kotest.adoc[Kotest Example] for how to setup
 a data-driven test scenario using the predefined scenarios.
+
+== Dependency on Eclipse Collections
+
+Eclipse Collections are used throughout the testkit since they provide stronger guarantees compared to
+`Collections.unmodifiableXXX` which also aligns better with how Kotlin treats Collections.

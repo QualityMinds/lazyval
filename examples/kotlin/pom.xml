@@ -23,7 +23,7 @@
             <groupId>de.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
             <version>${lazyval.version}</version>
-            <scope>provided</scope>
+            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>

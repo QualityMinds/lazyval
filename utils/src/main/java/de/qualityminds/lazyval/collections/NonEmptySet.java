@@ -1,13 +1,10 @@
 package de.qualityminds.lazyval.collections;
 
-import org.eclipse.collections.api.factory.Sets;
-import org.eclipse.collections.api.set.ImmutableSet;
-
 import java.util.*;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
-public record NonEmptySet<T>(ImmutableSet<T> set) implements Iterable<T> {
+public record NonEmptySet<T>(Set<T> set) implements Iterable<T> {
 
     public NonEmptySet {
         Objects.requireNonNull(set);
@@ -15,13 +12,14 @@ public record NonEmptySet<T>(ImmutableSet<T> set) implements Iterable<T> {
             throw new IllegalArgumentException("Collection must not be empty");
         }
         set.forEach(Objects::requireNonNull);
+        set = Collections.unmodifiableSet(new LinkedHashSet<>(set));
     }
 
     /**
      * Since Set has no guaranteed order, this method returns any element of the set.
      */
     public T getAny() {
-        return set.getAny();
+        return set.iterator().next();
     }
 
     @SafeVarargs
@@ -33,22 +31,24 @@ public record NonEmptySet<T>(ImmutableSet<T> set) implements Iterable<T> {
         if (elements.length == 1) {
             return of(elements[0]);
         } else {
-            return new NonEmptySet<>(Sets.immutable.ofAll(Arrays.asList(elements)));
+            return new NonEmptySet<>(new LinkedHashSet<>(Arrays.asList(elements)));
         }
     }
 
     public static <T> NonEmptySet<T> of(T element) {
-        return new NonEmptySet<>(Sets.immutable.of(element));
+        return new NonEmptySet<>(Set.of(element));
     }
 
     public static <T> NonEmptySet<T> ofAll(Iterable<T> iterable) {
         Objects.requireNonNull(iterable);
-        return new NonEmptySet<>(Sets.immutable.ofAll(iterable));
+        Set<T> set = new LinkedHashSet<>();
+        iterable.forEach(set::add);
+        return new NonEmptySet<>(set);
     }
 
 
     public Set<T> toSet() {
-        return set.toSet();
+        return set;
     }
 
     @Override
@@ -57,7 +57,7 @@ public record NonEmptySet<T>(ImmutableSet<T> set) implements Iterable<T> {
     }
 
     public Stream<T> stream() {
-        return toSet().stream();
+        return set.stream();
     }
 
     public static <T> Collector<T, ?, NonEmptySet<T>> collector() {

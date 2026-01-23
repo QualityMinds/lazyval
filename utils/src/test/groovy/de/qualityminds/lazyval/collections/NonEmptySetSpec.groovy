@@ -5,7 +5,7 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 import static java.util.Collections.emptyList
-import static org.eclipse.collections.api.factory.Sets.immutable
+import static java.util.Collections.emptySet
 
 class NonEmptySetSpec extends Specification {
 
@@ -26,7 +26,7 @@ class NonEmptySetSpec extends Specification {
         "factory array: null-varargs"    | { NonEmptySet.of(null, null) }           | NullPointerException
         "factory iterable: empty-list"   | { NonEmptySet.ofAll(emptyList()) }       | IllegalArgumentException
         "constructor: null"              | { new NonEmptySet(null) }                | NullPointerException
-        "constructor: empty-set"         | { new NonEmptySet(immutable.empty()) }   | IllegalArgumentException
+        "constructor: empty-set"         | { new NonEmptySet(emptySet()) }          | IllegalArgumentException
     }
 
     void "created from single element"(){

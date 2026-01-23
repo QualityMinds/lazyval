@@ -30,8 +30,3 @@ called annotation-processor-classpath)
 == Testing Providers
 
 See xref:spi:testkit.adoc[Testkit] for a simple way to verify your custom implementation is working as expected.
-
-== Dependency on Eclipse Collections
-
-Eclipse Collections are used throughout the SPI interfaces since they provide stronger guarantees compared to
-`Collections.unmodifiableXXX` which also aligns better with how Kotlin treats Collections.
