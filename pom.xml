@@ -57,7 +57,10 @@
         <version.plugin.gpg>3.2.8</version.plugin.gpg>
         <version.plugin.build-helper>3.6.1</version.plugin.build-helper>
         <version.plugin.templating>3.1.0</version.plugin.templating>
+        <version.plugin.shade>3.6.1</version.plugin.shade>
         <version.plugin.ksp2-3rd-party>0.2.0</version.plugin.ksp2-3rd-party>
+        <version.plugin.license>2.7.0</version.plugin.license>
+        <version.plugin.deploy>3.1.4</version.plugin.deploy>
     </properties>
 
     <dependencyManagement>
@@ -178,7 +181,58 @@
                 </plugin>
                 <plugin>
                     <artifactId>maven-deploy-plugin</artifactId>
-                    <version>3.1.4</version>
+                    <version>${version.plugin.deploy}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>license-maven-plugin</artifactId>
+                    <version>${version.plugin.license}</version>
+                    <configuration>
+                        <includeTransitiveDependencies>true</includeTransitiveDependencies>
+                        <excludedScopes>test</excludedScopes>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>add-third-party</id>
+                            <goals>
+                                <goal>add-third-party</goal>
+                            </goals>
+                            <configuration>
+                                <outputDirectory>${project.build.outputDirectory}/META-INF</outputDirectory>
+                                <licenseMerges>
+                                    <licenseMerge>Apache-2.0|The Apache License, Version 2.0|The Apache Software License, Version 2.0|Apache License, Version 2.0|Apache Public License 2.0</licenseMerge>
+                                    <licenseMerge>EPL-2.0|Eclipse Public License 2.0|Eclipse Public License - v 2.0|Eclipse Public License v2.0|EPL 2.0</licenseMerge>
+                                    <licenseMerge>EPL-1.0|Eclipse Public License 1.0|Eclipse Public License - v 1.0|Eclipse Public License v1.0|EPL 1.0</licenseMerge>
+                                    <licenseMerge>EDL-1.0|Eclipse Distribution License 1.0|Eclipse Distribution License - v 1.0|Eclipse Distribution License v. 1.0|EDL 1.0</licenseMerge>
+                                    <licenseMerge>MIT|The MIT License|MIT License|MIT license|The MIT License (MIT)|MIT-style license</licenseMerge>
+                                </licenseMerges>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>update-project-license</id>
+                            <goals>
+                                <goal>update-project-license</goal>
+                            </goals>
+                            <configuration>
+                                <licenseName>apache_v2</licenseName>
+                                <licenseFile>${project.build.outputDirectory}/META-INF/LICENSE</licenseFile>
+                                <organizationName>QualityMinds GmbH</organizationName>
+                                <inceptionYear>2025</inceptionYear>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <configuration>
+                        <!-- for some reason the license-plugin is generating the files twice, we only want to keep
+                        the ones in META-INF -->
+                        <excludes>
+                            <exclude>THIRD-PARTY.txt</exclude>
+                            <exclude>LICENSE</exclude>
+                        </excludes>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>
