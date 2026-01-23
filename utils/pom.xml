@@ -13,7 +13,6 @@
     <name>Lazyval Utils</name>
     <description>Utilities needed by both processors and testkit</description>
 
-
     <dependencies>
         <dependency>
             <groupId>org.jspecify</groupId>

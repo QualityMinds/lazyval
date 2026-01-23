@@ -36,15 +36,28 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.version>17</java.version>
         <gpg.skip>true</gpg.skip>
-        <groovy.version>4.0.29</groovy.version>
-        <junit.version>6.0.2</junit.version>
-        <spock.version>2.4-groovy-4.0</spock.version>
-        <slf4j.version>2.0.17</slf4j.version>
-        <jspecify.version>1.0.0</jspecify.version>
-        <javapoet.version>0.10.0</javapoet.version>
+        <version.java>17</version.java>
+        <version.junit>6.0.2</version.junit>
+        <version.groovy>4.0.29</version.groovy>
+        <version.spock>2.4-groovy-4.0</version.spock>
+        <version.slf4j>2.0.17</version.slf4j>
+        <version.jspecify>1.0.0</version.jspecify>
+        <version.kotlin>2.3.0</version.kotlin>
+        <version.ksp>2.3.4</version.ksp>
+        <version.kotest>6.0.3</version.kotest>
+        <version.javapoet>0.10.0</version.javapoet>
         <version.kotlinpoet>2.2.0</version.kotlinpoet>
+        <version.jetbrains-annotations>26.0.2-1</version.jetbrains-annotations>
+        <version.eclipse-collections>13.0.0</version.eclipse-collections>
+        <version.plugin.compiler>3.14.1</version.plugin.compiler>
+        <version.plugin.surefire>3.5.4</version.plugin.surefire>
+        <version.plugin.failsafe>3.5.4</version.plugin.failsafe>
+        <version.plugin.gmavenplus>4.2.1</version.plugin.gmavenplus>
+        <version.plugin.gpg>3.2.8</version.plugin.gpg>
+        <version.plugin.build-helper>3.6.1</version.plugin.build-helper>
+        <version.plugin.templating>3.1.0</version.plugin.templating>
+        <version.plugin.ksp2-3rd-party>0.2.0</version.plugin.ksp2-3rd-party>
     </properties>
 
     <dependencyManagement>
@@ -52,38 +65,31 @@
             <dependency>
                 <groupId>org.apache.groovy</groupId>
                 <artifactId>groovy-bom</artifactId>
-                <version>${groovy.version}</version>
+                <version>${version.groovy}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>org.spockframework</groupId>
                 <artifactId>spock-bom</artifactId>
-                <version>${spock.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.junit</groupId>
-                <artifactId>junit-bom</artifactId>
-                <version>${junit.version}</version>
+                <version>${version.spock}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>
-                <version>${slf4j.version}</version>
+                <version>${version.slf4j}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-simple</artifactId>
-                <version>${slf4j.version}</version>
+                <version>${version.slf4j}</version>
             </dependency>
             <dependency>
                 <groupId>org.jspecify</groupId>
                 <artifactId>jspecify</artifactId>
-                <version>${jspecify.version}</version>
+                <version>${version.jspecify}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -93,7 +99,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
-                <version>3.2.8</version>
+                <version>${version.plugin.gpg}</version>
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>
@@ -110,15 +116,31 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
-                    <version>3.14.0</version>
+                    <version>${version.plugin.compiler}</version>
                     <configuration>
-                        <release>${java.version}</release>
+                        <release>${version.java}</release>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <artifactId>kotlin-maven-plugin</artifactId>
+                    <groupId>org.jetbrains.kotlin</groupId>
+                    <version>${version.kotlin}</version>
+                    <configuration>
+                        <jvmTarget>${version.java}</jvmTarget>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>compile</id>
+                            <goals>
+                                <goal>compile</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.codehaus.gmavenplus</groupId>
                     <artifactId>gmavenplus-plugin</artifactId>
-                    <version>4.2.1</version>
+                    <version>${version.plugin.gmavenplus}</version>
                     <executions>
                         <execution>
                             <goals>
@@ -127,13 +149,13 @@
                         </execution>
                     </executions>
                     <configuration>
-                        <targetBytecode>${java.version}</targetBytecode>
+                        <targetBytecode>${version.java}</targetBytecode>
                     </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.5.4</version>
+                    <version>${version.plugin.surefire}</version>
                     <configuration>
                         <includes>
                             <include>**/*Spec</include>
@@ -144,7 +166,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-failsafe-plugin</artifactId>
-                    <version>3.5.4</version>
+                    <version>${version.plugin.failsafe}</version>
                     <executions>
                         <execution>
                             <goals>
