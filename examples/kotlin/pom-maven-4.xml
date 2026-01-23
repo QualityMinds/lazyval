@@ -1,8 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
+<project xmlns="http://maven.apache.org/POM/4.1.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 http://maven.apache.org/xsd/maven-4.1.0.xsd">
+    <modelVersion>4.1.0</modelVersion>
+
+    <!--
+
+    WARNING: CURRENTLY NOT WORKING WITH MAVEN 4
+
+    -->
 
     <groupId>de.qualityminds.lazyval.example</groupId>
     <artifactId>example-maven</artifactId>
@@ -12,9 +18,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kotlin.version>2.3.0</kotlin.version>
-        <mapstruct.version>1.6.3</mapstruct.version>
-        <lazyval.version>0.1.0-SNAPSHOT</lazyval.version>
+        <version.kotlin>2.3.0</version.kotlin>
+        <version.mapstruct>1.6.3</version.mapstruct>
+        <version.lazyval>0.1.0-SNAPSHOT</version.lazyval>
     </properties>
 
     <!-- tag::docu[] -->
@@ -22,62 +28,56 @@
         <dependency>
             <groupId>de.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
-            <version>${lazyval.version}</version>
+            <version>${version.lazyval}</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib</artifactId>
-            <version>${kotlin.version}</version>
+            <version>${version.kotlin}</version>
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
-            <version>${mapstruct.version}</version>
+            <version>${version.mapstruct}</version>
         </dependency>
         <dependency>
             <groupId>jakarta.persistence</groupId>
             <artifactId>jakarta.persistence-api</artifactId>
             <version>3.2.0</version>
         </dependency>
+        <!-- new way to define processors in Maven 4 (parameters remain in maven-compiler-plugin) -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct-processor</artifactId>
+            <version>${version.mapstruct}</version>
+            <type>processor</type>
+        </dependency>
     </dependencies>
     <build>
-        <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
-        <testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
+        <sources>
+            <source>
+                <scope>main</scope>
+                <directory>${project.basedir}/src/main/kotlin</directory>
+            </source>
+            <source>
+                <scope>main</scope>
+                <directory>${project.basedir}/src/main/java</directory>
+            </source>
+            <source>
+                <!--needed only for Maven 4 as the KSP Plugin is not properly adding source -->
+                <scope>main</scope>
+                <directory>${project.build.outputDirectory}/generated-sources/ksp</directory>
+            </source>
+        </sources>
         <plugins>
-            <!-- tag::excluded[] -->
-            <plugin>
-                <groupId>org.jetbrains.kotlin</groupId>
-                <artifactId>kotlin-maven-plugin</artifactId>
-                <version>${kotlin.version}</version>
-                <configuration>
-                    <jvmTarget>17</jvmTarget>
-                </configuration>
-                <executions>
-                    <!-- see https://kotlinlang.org/docs/maven-compile-package.html for mixed Java & Kotlin -->
-                    <execution>
-                        <id>kotlin-compile</id>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <configuration>
-                            <sourceDirs>
-                                <sourceDir>src/main/kotlin</sourceDir>
-                                <!-- Ensure Kotlin code can reference Java code -->
-                                <sourceDir>src/main/java</sourceDir>
-                            </sourceDirs>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <!-- end::excluded[] -->
             <plugin>
                 <groupId>me.kpavlov.ksp.maven</groupId>
                 <artifactId>ksp-maven-plugin</artifactId>
                 <version>0.2.0</version>
                 <executions>
                     <execution>
+                        <phase>generate-sources</phase>
                         <goals>
                             <goal>process</goal>
                         </goals>
@@ -87,10 +87,15 @@
                     <dependency>
                         <groupId>de.qualityminds.lazyval</groupId>
                         <artifactId>lazyval-ksp</artifactId>
-                        <version>${lazyval.version}</version>
+                        <version>${version.lazyval}</version>
                     </dependency>
                 </dependencies>
                 <configuration>
+                    <sourceDirs>
+                        <!-- needed because the plugin needs to be updated to Maven 4 to see the sources from the new syntax -->
+                        <sourceDir>${project.basedir}/src/main/kotlin</sourceDir>
+                        <sourceDir>${project.basedir}/src/main/java</sourceDir>
+                    </sourceDirs>
                     <apOptions>
                         <lazyval.jpa.generatedPackage>
                             test.boundary.persistence
@@ -101,19 +106,38 @@
                     </apOptions>
                 </configuration>
             </plugin>
+            <!-- tag::excluded[] -->
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <version>${version.kotlin}</version>
+                <configuration>
+                    <jvmTarget>17</jvmTarget>
+                </configuration>
+                <executions>
+                    <!-- see https://kotlinlang.org/docs/maven-compile-package.html for mixed Java & Kotlin -->
+                    <execution>
+                        <id>kotlin-compile</id>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <sourceDirs>
+                                <sourceDir>src/main/kotlin</sourceDir>
+                                <sourceDir>src/main/java</sourceDir>
+                            </sourceDirs>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- end::excluded[] -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.13.0</version>
+                <version>4.0.0-beta-3</version>
                 <configuration>
                     <release>17</release>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.mapstruct</groupId>
-                            <artifactId>mapstruct-processor</artifactId>
-                            <version>${mapstruct.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
                     <compilerArgs>
                         <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
                     </compilerArgs>
