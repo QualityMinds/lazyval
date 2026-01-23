@@ -3,9 +3,6 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.qualityminds.lazyval.integration</groupId>
-        <artifactId>integration-test-parent</artifactId>
-        <version>0.3.3-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -44,6 +41,13 @@
             <artifactId>quarkus-arc</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.qualityminds.lazyval</groupId>
+            <artifactId>lazyval-processor</artifactId>
+            <version>${project.version}</version>
+            <type>processor</type>
+        </dependency>
+
         <!-- Test -->
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -73,13 +77,6 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <proc>full</proc>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>com.qualityminds.lazyval</groupId>
-                            <artifactId>lazyval-processor</artifactId>
-                            <version>${project.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
                     <compilerArgs>
                         <arg>-parameters</arg>
                     </compilerArgs>

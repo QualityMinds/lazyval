@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.1.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 http://maven.apache.org/xsd/maven-4.1.0.xsd">
+    <modelVersion>4.1.0</modelVersion>
 
     <parent>
-        <groupId>com.qualityminds.lazyval.integration</groupId>
-        <artifactId>integration-test-parent</artifactId>
-        <version>0.3.3-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -25,6 +24,12 @@
     </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct-processor</artifactId>
+            <version>${version.it.mapstruct}</version>
+            <type>processor</type>
+        </dependency>
         <dependency>
             <groupId>com.qualityminds.lazyval.integration</groupId>
             <artifactId>integration-test-kotlin-shared</artifactId>
@@ -110,7 +115,26 @@
     </dependencies>
 
     <build>
-        <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
+        <sources>
+            <source>
+                <scope>main</scope>
+                <directory>${project.basedir}/src/main/kotlin</directory>
+            </source>
+            <source>
+                <scope>main</scope>
+                <directory>${project.basedir}/src/main/java</directory>
+            </source>
+            <source>
+                <!--needed only for Maven 4 as the KSP Plugin is not properly adding source -->
+                <scope>main</scope>
+                <directory>${project.build.outputDirectory}/generated-sources/ksp</directory>
+            </source>
+            <source>
+                <scope>test</scope>
+                <directory>${project.basedir}/src/test/kotlin</directory>
+            </source>
+        </sources>
+
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -224,13 +248,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.mapstruct</groupId>
-                            <artifactId>mapstruct-processor</artifactId>
-                            <version>${version.it.mapstruct}</version>
-                        </path>
-                    </annotationProcessorPaths>
                     <compilerArgs>
                         <arg>-Amapstruct.defaultComponentModel=spring</arg>
                         <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
@@ -238,7 +255,6 @@
                     </compilerArgs>
                 </configuration>
             </plugin>
-
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

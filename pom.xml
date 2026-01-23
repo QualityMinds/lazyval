@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.1.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 http://maven.apache.org/xsd/maven-4.1.0.xsd">
+    <modelVersion>4.1.0</modelVersion>
 
     <groupId>com.qualityminds.lazyval</groupId>
     <artifactId>lazyval-parent</artifactId>
@@ -25,13 +27,13 @@
         </license>
     </licenses>
 
-    <modules>
-        <module>core</module>
-        <module>utils</module>
-        <module>processor</module>
-        <module>ksp</module>
-        <module>testkit</module>
-    </modules>
+    <subprojects>
+        <subproject>core</subproject>
+        <subproject>utils</subproject>
+        <subproject>processor</subproject>
+        <subproject>ksp</subproject>
+        <subproject>testkit</subproject>
+    </subprojects>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -52,7 +54,7 @@
         <!-- plugins -->
         <version.plugin.antrun>3.2.0</version.plugin.antrun>
         <version.plugin.build-helper>3.6.1</version.plugin.build-helper>
-        <version.plugin.compiler>3.15.0</version.plugin.compiler>
+        <version.plugin.compiler>4.0.0-beta-4</version.plugin.compiler>
         <version.plugin.dokka>2.2.0</version.plugin.dokka>
         <version.plugin.exec>3.6.3</version.plugin.exec>
         <version.plugin.failsafe>3.5.4</version.plugin.failsafe>
@@ -132,6 +134,14 @@
                     <configuration>
                         <release>${version.java}</release>
                     </configuration>
+                    <executions>
+                        <execution>
+                            <id>compile</id>
+                            <goals>
+                                <goal>compile</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <artifactId>kotlin-maven-plugin</artifactId>
@@ -320,9 +330,9 @@
                 <!-- will be disabled when publish is activated -->
                 <activeByDefault>true</activeByDefault>
             </activation>
-            <modules>
-                <module>integration-test</module>
-            </modules>
+            <subprojects>
+                <subproject>integration-test</subproject>
+            </subprojects>
         </profile>
         <profile>
             <id>static-analysis</id>

@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.1.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 http://maven.apache.org/xsd/maven-4.1.0.xsd">
+    <modelVersion>4.1.0</modelVersion>
     <parent>
         <groupId>com.qualityminds.lazyval</groupId>
         <artifactId>lazyval-parent</artifactId>
-        <version>0.3.3-SNAPSHOT</version>
     </parent>
 
     <groupId>com.qualityminds.lazyval.integration</groupId>
@@ -21,17 +22,17 @@
         <gpg.skip>true</gpg.skip>
     </properties>
 
-    <modules>
-        <module>api-client</module>
-        <module>java/shared</module>
-        <module>java/jee</module>
-        <module>java/quarkus-app</module>
-        <module>java/quarkus-jsonb-app</module>
-        <module>java/spring-app</module>
-        <module>kotlin/shared</module>
-        <module>kotlin/spring-app</module>
-        <module>kotlin/jee</module>
-        <module>kotlin/quarkus-app</module>
-        <module>kotlin/quarkus-jsonb-app</module>
-    </modules>
+    <subprojects>
+        <subproject>api-client</subproject>
+        <subproject>java/shared</subproject>
+        <subproject>java/jee</subproject>
+        <subproject>java/quarkus-app</subproject>
+        <subproject>java/quarkus-jsonb-app</subproject>
+        <subproject>java/spring-app</subproject>
+        <subproject>kotlin/shared</subproject>
+        <subproject>kotlin/spring-app</subproject>
+        <subproject>kotlin/jee</subproject>
+        <subproject>kotlin/quarkus-app</subproject>
+        <subproject>kotlin/quarkus-jsonb-app</subproject>
+    </subprojects>
 </project>

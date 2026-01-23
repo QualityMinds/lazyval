@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.1.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.1.0 http://maven.apache.org/xsd/maven-4.1.0.xsd">
+    <modelVersion>4.1.0</modelVersion>
 
     <parent>
         <groupId>com.qualityminds.lazyval</groupId>
         <artifactId>lazyval-parent</artifactId>
-        <version>0.3.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>lazyval-ksp</artifactId>
@@ -22,12 +23,10 @@
         <dependency>
             <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval-utils</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -59,7 +58,6 @@
         <dependency>
             <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval-testkit</artifactId>
-            <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -80,7 +78,16 @@
     </dependencies>
 
     <build>
-        <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
+        <sources>
+            <source>
+                <scope>main</scope>
+                <directory>${project.basedir}/src/main/kotlin</directory>
+            </source>
+            <source>
+                <scope>test</scope>
+                <directory>${project.basedir}/src/test/groovy</directory>
+            </source>
+        </sources>
         <plugins>
             <plugin>
                 <artifactId>kotlin-maven-plugin</artifactId>
