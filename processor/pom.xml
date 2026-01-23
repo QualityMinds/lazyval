@@ -104,6 +104,72 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>license-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${version.plugin.shade}</version>
+                <configuration>
+                    <minimizeJar>true</minimizeJar>
+                    <createDependencyReducedPom>false</createDependencyReducedPom>
+                    <transformers>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
+                            <addHeader>false</addHeader>
+                        </transformer>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.IncludeResourceTransformer">
+                            <!-- needed to add the license back in -->
+                            <resource>META-INF/LICENSE</resource>
+                            <file>${project.basedir}/../LICENSE</file>
+                        </transformer>
+                    </transformers>
+                    <artifactSet>
+                        <excludes>
+                            <exclude>de.qualityminds.lazyval:lazyval</exclude>
+                            <exclude>org.jspecify:jspecify</exclude>
+                            <exclude>org.jetbrains:annotations</exclude>
+                        </excludes>
+                    </artifactSet>
+                    <relocations>
+                        <relocation>
+                            <pattern>org.eclipse.collections</pattern>
+                            <shadedPattern>de.qualityminds.lazyval.shaded.eclipse.collections</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>com.palantir.javapoet</pattern>
+                            <shadedPattern>de.qualityminds.lazyval.shaded.javapoet</shadedPattern>
+                        </relocation>
+                    </relocations>
+                    <filters>
+                        <filter>
+                            <artifact>com.palantir.javapoet:*</artifact>
+                            <excludes>
+                                <exclude>META-INF/**</exclude>
+                                <exclude>module-info.class</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>de.qualityminds.lazyval:lazyval</artifact>
+                            <excludes>
+                                <exclude>META-INF/**</exclude>
+                            </excludes>
+                        </filter>
+                        <filter>
+                            <artifact>de.qualityminds.lazyval:lazyval-utils</artifact>
+                            <excludes>
+                                <exclude>META-INF/**</exclude>
+                            </excludes>
+                        </filter>
+                    </filters>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
