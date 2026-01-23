@@ -29,7 +29,7 @@
         <dependency>
             <groupId>com.palantir.javapoet</groupId>
             <artifactId>javapoet</artifactId>
-            <version>${javapoet.version}</version>
+            <version>${version.javapoet}</version>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -42,7 +42,7 @@
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
-            <version>26.0.2-1</version>
+            <version>${version.jetbrains-annotations}</version>
             <scope>provided</scope>
         </dependency>
         <!-- Test dependencies -->
@@ -60,11 +60,6 @@
         <dependency>
             <groupId>org.spockframework</groupId>
             <artifactId>spock-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

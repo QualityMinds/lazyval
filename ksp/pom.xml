@@ -15,9 +15,6 @@
     <description>KSP2 implementation of the Lazyval annotation processing</description>
 
     <properties>
-        <version.kotlin>2.3.0</version.kotlin>
-        <version.ksp>2.3.4</version.ksp>
-        <version.kotest>6.0.3</version.kotest>
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
     </properties>
 
@@ -50,12 +47,12 @@
         <dependency>
             <groupId>com.palantir.javapoet</groupId>
             <artifactId>javapoet</artifactId>
-            <version>${javapoet.version}</version>
+            <version>${version.javapoet}</version>
         </dependency>
         <dependency>
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
-            <version>26.0.2-1</version>
+            <version>${version.jetbrains-annotations}</version>
             <scope>provided</scope>
         </dependency>
         <!-- Tests -->
@@ -88,15 +85,6 @@
             <plugin>
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <groupId>org.jetbrains.kotlin</groupId>
-                <version>${version.kotlin}</version>
-                <executions>
-                    <execution>
-                        <id>compile</id>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.gmavenplus</groupId>
