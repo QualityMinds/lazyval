@@ -124,7 +124,9 @@
                     </transformers>
                     <artifactSet>
                         <excludes>
+                            <!-- user must manage core module -->
                             <exclude>de.qualityminds.lazyval:lazyval</exclude>
+                            <!-- compile-time annotations aren't needed -->
                             <exclude>org.jspecify:jspecify</exclude>
                             <exclude>org.jetbrains:annotations</exclude>
                         </excludes>
@@ -145,12 +147,6 @@
                             <excludes>
                                 <exclude>META-INF/**</exclude>
                                 <exclude>module-info.class</exclude>
-                            </excludes>
-                        </filter>
-                        <filter>
-                            <artifact>de.qualityminds.lazyval:lazyval</artifact>
-                            <excludes>
-                                <exclude>META-INF/**</exclude>
                             </excludes>
                         </filter>
                         <filter>
