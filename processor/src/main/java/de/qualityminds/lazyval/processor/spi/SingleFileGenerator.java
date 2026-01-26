@@ -1,6 +1,5 @@
 package de.qualityminds.lazyval.processor.spi;
 
-import com.palantir.javapoet.JavaFile;
 import de.qualityminds.lazyval.collections.NonEmptySet;
 import org.jetbrains.annotations.ApiStatus;
 
@@ -22,5 +21,5 @@ public non-sealed interface SingleFileGenerator extends SpiGenerator {
      * @param elements all elements annotated with {@link de.qualityminds.lazyval.LazyValue}. Guaranteed to be non-empty.
      * @param userSettings provided {@link de.qualityminds.lazyval.processor.spi.SpiGenerator.Settings}
      */
-    JavaFile generateSingleFile(NonEmptySet<ValidatedGeneratorElement> elements, Settings userSettings);
+    GeneratorResult generateSingleFile(NonEmptySet<ValidatedGeneratorElement> elements, Settings userSettings);
 }

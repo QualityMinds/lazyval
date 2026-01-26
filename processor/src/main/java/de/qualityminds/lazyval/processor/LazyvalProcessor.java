@@ -1,10 +1,7 @@
 package de.qualityminds.lazyval.processor;
 
 import de.qualityminds.lazyval.collections.NonEmptySet;
-import de.qualityminds.lazyval.processor.spi.FilePerTypeGenerator;
-import de.qualityminds.lazyval.processor.spi.SingleFileGenerator;
-import de.qualityminds.lazyval.processor.spi.SpiGenerator;
-import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
+import de.qualityminds.lazyval.processor.spi.*;
 
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
@@ -72,10 +69,13 @@ public class LazyvalProcessor extends AbstractProcessor {
                     // remove potential null, since external generators might not use JSpecify annotations/tooling
                     .filter(Objects::nonNull)
                     // TODO check for duplicates
-                    .forEach(fileSpec -> {
+                    .forEach(result -> {
                         try{
-                            fileSpec.writeTo(processingEnv.getFiler());
-                            lazyvalEnvironment.info("Written '%s.%s".formatted(fileSpec.packageName(), fileSpec.typeSpec().name()));
+                            if(result instanceof GeneratorResult.Java javaResult) {
+                                var fileSpec = javaResult.fileSpec();
+                                fileSpec.writeTo(processingEnv.getFiler());
+                                lazyvalEnvironment.info("Written '%s.%s".formatted(fileSpec.packageName(), fileSpec.typeSpec().name()));
+                            }
                         }catch (IOException e){
                             throw new UncheckedIOException(e);
                         }

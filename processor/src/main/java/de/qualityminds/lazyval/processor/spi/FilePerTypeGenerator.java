@@ -1,6 +1,5 @@
 package de.qualityminds.lazyval.processor.spi;
 
-import com.palantir.javapoet.JavaFile;
 import org.jetbrains.annotations.ApiStatus;
 
 /**
@@ -13,8 +12,8 @@ import org.jetbrains.annotations.ApiStatus;
 public non-sealed interface FilePerTypeGenerator extends SpiGenerator {
     /**
      * Called for each domain primitive annotated with {@link de.qualityminds.lazyval.LazyValue}.
-     * @param element the element annotated with {@link de.qualityminds.lazyval.LazyValue}
+     * @param validatedElement the element annotated with {@link de.qualityminds.lazyval.LazyValue}, after validation
      * @param userSettings provided {@link de.qualityminds.lazyval.processor.spi.SpiGenerator.Settings}
      */
-    JavaFile generateFilePerType(ValidatedGeneratorElement element, Settings userSettings);
+    GeneratorResult generateFilePerType(ValidatedGeneratorElement validatedElement, Settings userSettings);
 }
