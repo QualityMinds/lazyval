@@ -55,6 +55,12 @@ result shouldEqual Testresult.Kotlin.Success("LazyvalMapper.java")
 See the xref:spi:testkit-spock.adoc[Spock Example] or xref:spi:testkit-kotest.adoc[Kotest Example] for how to setup
 a data-driven test scenario using the predefined scenarios.
 
+== Logging
+
+The testkit captures all logs from the toolchains and forwards them to SLF4J.
+To see any output, the test-classpath must provide any SLF4J implementation (like `slf4j-simple`),
+since the testkit only depends on `slf4j-api`.
+
 == Dependency on Eclipse Collections
 
 Eclipse Collections are used throughout the testkit since they provide stronger guarantees compared to

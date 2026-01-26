@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.acme</groupId>
+        <artifactId>lazyval-spi-sample-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>using-project</artifactId>
+
+    <name>Java SPI Sample - Using Project</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>de.qualityminds.lazyval</groupId>
+            <artifactId>lazyval</artifactId>
+            <version>${version.lazyval}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.14.1</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <release>17</release>
+                    <proc>full</proc>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>com.acme</groupId>
+                            <artifactId>custom-lazyval-generator</artifactId>
+                            <version>${project.version}</version>
+                        </path>
+                        <path>
+                            <groupId>de.qualityminds.lazyval</groupId>
+                            <artifactId>lazyval-processor</artifactId>
+                            <version>${version.lazyval}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <compilerArgs>
+                        <arg>-Aacme.some.lazyval.generatedPackage=com.acme.sample.custom</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <!-- end::docu[] -->
+</project>
