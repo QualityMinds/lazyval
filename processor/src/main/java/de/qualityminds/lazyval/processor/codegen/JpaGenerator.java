@@ -2,6 +2,7 @@ package de.qualityminds.lazyval.processor.codegen;
 
 import com.palantir.javapoet.*;
 import de.qualityminds.lazyval.processor.spi.FilePerTypeGenerator;
+import de.qualityminds.lazyval.processor.spi.GeneratorResult;
 import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
@@ -26,12 +27,12 @@ public class JpaGenerator implements FilePerTypeGenerator {
         return List.of("jakarta.persistence.AttributeConverter");
     }
 
-    public JavaFile generateFilePerType(ValidatedGeneratorElement valid, Settings userSettings){
+    public GeneratorResult generateFilePerType(ValidatedGeneratorElement validatedElement, Settings userSettings){
         // end::docu[]
-        TypeElement element = valid.element();
+        TypeElement element = validatedElement.element();
 
         TypeMirror type = element.asType();
-        TypeMirror wrappedType = valid.wrappedType();
+        TypeMirror wrappedType = validatedElement.wrappedType();
         TypeName wrappedTypeName;
         if (wrappedType.getKind().isPrimitive()) {
             // Box primitive types for JPA generics
@@ -48,13 +49,13 @@ public class JpaGenerator implements FilePerTypeGenerator {
                     .beginControlFlow("if(type == null)")
                     .addStatement("return null")
                     .endControlFlow()
-                    .addStatement(String.format("return type.%s()", valid.wrappedTypeName()))
+                    .addStatement(String.format("return type.%s()", validatedElement.wrappedTypeName()))
                     .build();
 
         var lazyvalTypeName = TypeName.get(type);
         var objectCreation = String.format("new %s(dbValue)", lazyvalTypeName);
-        if(valid.factoryMethod().isPresent()){
-            var method = valid.factoryMethod().get();
+        if(validatedElement.factoryMethod().isPresent()){
+            var method = validatedElement.factoryMethod().get();
             objectCreation = String.format("%s.%s(dbValue)", lazyvalTypeName, method.getSimpleName());
         }
 
@@ -86,6 +87,6 @@ public class JpaGenerator implements FilePerTypeGenerator {
         if(jpaConverterPackage.charAt(0) == '.'){
             jpaConverterPackage = jpaConverterPackage.substring(1);
         }
-        return JavaFile.builder(jpaConverterPackage, jpaConverter).build();
+        return new GeneratorResult.Java(JavaFile.builder(jpaConverterPackage, jpaConverter).build());
     }
 }

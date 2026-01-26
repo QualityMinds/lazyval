@@ -2,12 +2,14 @@ package de.qualityminds.lazyval.processor.codegen;
 
 import com.palantir.javapoet.*;
 import de.qualityminds.lazyval.collections.NonEmptySet;
-import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
+import de.qualityminds.lazyval.processor.spi.GeneratorResult;
 import de.qualityminds.lazyval.processor.spi.SingleFileGenerator;
+import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
 
 final public class MapstructGenerator implements SingleFileGenerator {
 
@@ -24,7 +26,7 @@ final public class MapstructGenerator implements SingleFileGenerator {
         return List.of("org.mapstruct.Mapper");
     }
 
-    public JavaFile generateSingleFile(NonEmptySet<ValidatedGeneratorElement> elements, Settings userSettings){
+    public GeneratorResult generateSingleFile(NonEmptySet<ValidatedGeneratorElement> elements, Settings userSettings){
         var mapperAnnotationBuilder = AnnotationSpec.builder(ClassName.get("org.mapstruct", "Mapper"))
                 .addMember("unmappedTargetPolicy", "$L", "org.mapstruct.ReportingPolicy.ERROR");
 
@@ -95,7 +97,7 @@ final public class MapstructGenerator implements SingleFileGenerator {
                         .map(ValidatedGeneratorElement::element)
                         .orElseThrow())));
 
-        return JavaFile.builder(mapperPackage, typeSpecBuilder.build()).build();
+        return new GeneratorResult.Java(JavaFile.builder(mapperPackage, typeSpecBuilder.build()).build());
     }
 
 }
