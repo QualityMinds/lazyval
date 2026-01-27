@@ -58,7 +58,7 @@
         <version.plugin.templating>3.1.0</version.plugin.templating>
         <version.plugin.shade>3.6.1</version.plugin.shade>
         <version.plugin.ksp2-3rd-party>0.2.0</version.plugin.ksp2-3rd-party>
-        <version.plugin.license>2.7.0</version.plugin.license>
+        <version.plugin.license>2.7.1</version.plugin.license>
         <version.plugin.deploy>3.1.4</version.plugin.deploy>
     </properties>
 
