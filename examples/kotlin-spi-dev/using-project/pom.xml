@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.acme</groupId>
+        <artifactId>lazyval-spi-kotlin-sample-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>kotlin-using-project</artifactId>
+
+    <name>Kotlin SPI Sample - Using Project</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>de.qualityminds.lazyval</groupId>
+            <artifactId>lazyval</artifactId>
+            <version>${version.lazyval}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-stdlib</artifactId>
+            <version>${version.kotlin}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>me.kpavlov.ksp.maven</groupId>
+                <artifactId>ksp-maven-plugin</artifactId>
+                <version>0.2.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>process</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.acme</groupId>
+                        <artifactId>custom-kotlin-lazyval-generator</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>de.qualityminds.lazyval</groupId>
+                        <artifactId>lazyval-ksp</artifactId>
+                        <version>${version.lazyval}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <apOptions>
+                        <acme.some.lazyval.generatedPackage>
+                            com.acme.sample.custom
+                        </acme.some.lazyval.generatedPackage>
+                    </apOptions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
