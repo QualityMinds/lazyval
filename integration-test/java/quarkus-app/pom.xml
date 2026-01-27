@@ -15,7 +15,7 @@
     <properties>
         <version.lazyval>0.1.0-SNAPSHOT</version.lazyval>
         <version.mapstruct>1.6.3</version.mapstruct>
-        <quarkus.platform.version>3.30.6</quarkus.platform.version>
+        <quarkus.platform.version>3.30.8</quarkus.platform.version>
     </properties>
 
     <dependencyManagement>
