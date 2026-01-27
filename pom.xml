@@ -38,7 +38,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <gpg.skip>true</gpg.skip>
         <version.java>17</version.java>
-        <version.groovy>5.0.3</version.groovy>
+        <version.groovy>5.0.4</version.groovy>
         <version.spock>2.4-groovy-5.0</version.spock>
         <version.slf4j>2.0.17</version.slf4j>
         <version.jspecify>1.0.0</version.jspecify>
