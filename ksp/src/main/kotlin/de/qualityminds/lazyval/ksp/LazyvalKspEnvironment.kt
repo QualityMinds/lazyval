@@ -22,8 +22,6 @@ internal class LazyvalKspEnvironment(
     }
 
     private val logger: KSPLogger = environment.logger
-    private val mapstructOnClasspath: Boolean = isClassAvailable("org.mapstruct.Mapper")
-    private val jpaOnClasspath: Boolean = isClassAvailable("jakarta.persistence.AttributeConverter")
 
     fun info(message: String) {
         logger.info(message)
@@ -48,10 +46,6 @@ internal class LazyvalKspEnvironment(
     fun error(symbol: KSNode, message: String) {
         logger.error(message, symbol)
     }
-
-    internal fun isMapstructOnClasspath(): Boolean = mapstructOnClasspath
-
-    internal fun isJpaOnClasspath(): Boolean = jpaOnClasspath
 
     /**
      * Checks whether a class with the given [fqn] is available on the classpath.

@@ -3,14 +3,10 @@ package de.qualityminds.lazyval.testkit.toolchain.kotlin;
 import com.google.devtools.ksp.impl.KotlinSymbolProcessing;
 import com.google.devtools.ksp.processing.KSPJvmConfig;
 import com.google.devtools.ksp.processing.SymbolProcessorProvider;
-import de.qualityminds.lazyval.collections.NonEmptySet;
-import de.qualityminds.lazyval.testkit.Versions;
 import de.qualityminds.lazyval.testkit.dependencies.Dependency;
-import de.qualityminds.lazyval.testkit.dependencies.InternalModuleDependency;
 import de.qualityminds.lazyval.testkit.scenarios.Scenario;
 import kotlin.KotlinVersion;
 
-import java.io.File;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,11 +19,6 @@ import java.util.stream.Stream;
  * This toolchains combines both for a complete integration cycle.
  */
 public class ToolchainSetup {
-
-    private static final NonEmptySet<File> x;
-    static {
-        x = new InternalModuleDependency("../core", new Dependency("de.qualityminds.lazyval", "lazyval-core", Versions.LAZYVAL_BUILD_VERSION)).resolve();
-    }
 
     private final KotlinSymbolProcessing kspSetup;
     private final KotlinCompilerSetup kotlinSetup;
@@ -116,7 +107,7 @@ public class ToolchainSetup {
             Scenario.Descriptor scenarioDescriptor,
             LogCollector logCollector) {
         try {
-            var additionalClasspath = new ArrayList<>(x.toSet());
+            var additionalClasspath = new ArrayList<>(CoreModuleDependency.RESOLVED_FILE.toSet());
             scenarioDescriptor.dependencies().stream().map(Dependency::resolve).forEach(x -> additionalClasspath.addAll(x.toSet()));
 
             var processorProvidersSearch = ServiceLoader.load(
