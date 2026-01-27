@@ -62,11 +62,6 @@ class LazyvalSymbolProcessor(
             }
             .toList()
 
-        if (!lazyvalEnvironment.isJpaOnClasspath() && !lazyvalEnvironment.isMapstructOnClasspath()) {
-            lazyvalEnvironment.warnMissingClasspath()
-            return emptyList()
-        }
-
         fun generateSingleFile(generator: SingleFileGenerator, elements: Set<ValidatedKspGeneratorElement>, userSettings: SpiGenerator.Settings): KotlinOrJavaResult {
             val result = generator.generateSingleFile(NonEmptySet.ofAll(elements), userSettings)
             return KotlinOrJavaResult.from(result, validatedElements.mapNotNull {
