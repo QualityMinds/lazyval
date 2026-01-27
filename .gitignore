@@ -9,6 +9,9 @@ out/
 **/gradlew
 **/gradlew.bat
 
+# nektos/act artifact-upload folder
+.artifacts/
+
 # only needed when running Antora locally
 package.json
 package-lock.json

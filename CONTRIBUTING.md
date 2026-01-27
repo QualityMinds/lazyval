@@ -26,6 +26,8 @@ This guide will help you get started and ensure your contributions are productiv
 1. **Run Tests** (if applicable)  
    Make sure your changes don't break existing tests.
 
+   Run `./mvnw install` or, in case you have [act](https://github.com/nektos/act) installed, `act --action-offline-mode --artifact-server-path $PWD/.artifacts pull_request` which will run the Github-Action pipeline locally.
+
 1. **Push & Create Pull Request**  
    Push your branch and open a Pull Request against the `main` branch, depending on the project's workflow.
 
