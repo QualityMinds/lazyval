@@ -6,7 +6,7 @@ public class Test {
 
     public static void main(String[] args) {
         var email = new EMail("a@b.de");
-        System.out.println(EMailUtils.toUppercase(email));
+        System.out.println(EMailUtils.toUpperCase(email));
     }
 
 }
