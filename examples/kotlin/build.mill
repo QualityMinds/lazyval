@@ -37,6 +37,11 @@ object `package` extends KotlinMavenModule with KspModule {
     mvn"org.mapstruct:mapstruct-processor:${Version.mapstruct}"
   )
 
+  // currently not working for Kotlin projects
+//  override def annotationProcessorsMvnDeps = Seq(
+//    mvn"org.mapstruct:mapstruct-processor:${Version.mapstruct}"
+//  )
+
   override def kotlinSymbolProcessors: T[Seq[Dep]] = Seq(
     mvn"de.qualityminds.lazyval:lazyval-ksp:${Version.lazyval}"
   )

@@ -114,7 +114,9 @@ jobs:
           mv /tmp/lazyval-backup ~/.m2/repository/de/qualityminds/lazyval || true
       - name: Download Mill Script
         working-directory: examples/java
-        run: curl -L https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.0.6/mill-dist-1.0.6-mill.sh -o mill && chmod +x mill
+        run: curl -L -s https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${MILL_VERSION}/mill-dist-${MILL_VERSION}-mill.sh -o mill && chmod +x mill
+        env:
+          MILL_VERSION: 1.1.0
       - name: Run Java-Example with Mill
         working-directory: examples/java
         run: ./mill __.compile
@@ -207,7 +209,9 @@ jobs:
           mv /tmp/lazyval-backup ~/.m2/repository/de/qualityminds/lazyval || true
       - name: Download Mill Script
         working-directory: examples/kotlin
-        run: curl -L https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/1.0.6/mill-dist-1.0.6-mill.sh -o mill && chmod +x mill
+        run: curl -L -s https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${MILL_VERSION}/mill-dist-${MILL_VERSION}-mill.sh -o mill && chmod +x mill
+        env:
+          MILL_VERSION: 1.1.0
       - name: Run Kotlin-Example with Mill
         working-directory: examples/kotlin
         run: ./mill __.compile
