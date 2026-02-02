@@ -10,8 +10,8 @@ import javax.annotation.processing.SupportedOptions;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import javax.tools.JavaFileObject;
+import java.io.Writer;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -24,6 +24,18 @@ import java.util.stream.StreamSupport;
         LazyvalEnvironment.CONFIGURED_VALUES,
 })
 public class LazyvalProcessor extends AbstractProcessor {
+
+    /**
+     * Needed to transport originating element(s) through the stream.
+     */
+    private sealed interface InternalResult {
+        record Java(GeneratorResult.Metadata metadata, String contents, List<Element> originatingElements) implements InternalResult {}
+        record Nothing() implements InternalResult {}
+
+        InternalResult NOTHING = new Nothing();
+    }
+
+
 
     private boolean classpathWarningAlreadyIssued = false;
     private LazyvalEnvironment lazyvalEnvironment;
@@ -58,9 +70,25 @@ public class LazyvalProcessor extends AbstractProcessor {
                         var settings = processingEnv.getOptions().entrySet().stream().filter(e -> e.getKey().startsWith("lazyval." + generator.generatorId() + "."))
                                 .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
                         if(generator instanceof SingleFileGenerator singleFileGenerator){
-                            return Stream.of(singleFileGenerator.generateSingleFile(NonEmptySet.ofAll(validatedElements), new SpiGenerator.Settings(settings)));
+                            var generatorResult = singleFileGenerator.generateSingleFile(NonEmptySet.ofAll(validatedElements), new SpiGenerator.Settings(settings));
+                            if(generatorResult instanceof GeneratorResult.Java javaResult) {
+                                return Stream.of(new InternalResult.Java(javaResult.metadata(), javaResult.contents(), validatedElements.stream().map(ValidatedGeneratorElement::element).collect(Collectors.toList())));
+                            }else if(generatorResult instanceof GeneratorResult.Nothing){
+                                return Stream.of(InternalResult.NOTHING);
+                            }else {
+                                throw new IllegalStateException("Unknown generator result type: " + generatorResult.getClass().getName());
+                            }
                         }else if(generator instanceof FilePerTypeGenerator filePerTypeGenerator){
-                            return validatedElements.stream().map(element -> filePerTypeGenerator.generateFilePerType(element, new SpiGenerator.Settings(settings)));
+                            return validatedElements.stream().map(validatedElement -> {
+                                var generatorResult = filePerTypeGenerator.generateFilePerType(validatedElement, new SpiGenerator.Settings(settings));
+                                if(generatorResult instanceof GeneratorResult.Java javaResult) {
+                                    return new InternalResult.Java(javaResult.metadata(), javaResult.contents(),List.of(validatedElement.element()));
+                                }else if(generatorResult instanceof GeneratorResult.Nothing){
+                                    return InternalResult.NOTHING;
+                                }else {
+                                    throw new IllegalStateException("Unknown generator result type: " + generatorResult.getClass().getName());
+                                }
+                            });
                         }else{
                             // move to switch-pattern-match once Java 21 is the minimum required version
                             throw new IllegalStateException("Unknown generator type: " + this.getClass().getName());
@@ -70,19 +98,38 @@ public class LazyvalProcessor extends AbstractProcessor {
                     .filter(Objects::nonNull)
                     // TODO check for duplicates
                     .forEach(result -> {
-                        try{
-                            if(result instanceof GeneratorResult.Java javaResult) {
-                                var fileSpec = javaResult.fileSpec();
-                                fileSpec.writeTo(processingEnv.getFiler());
-                                lazyvalEnvironment.info("Written '%s.%s".formatted(fileSpec.packageName(), fileSpec.typeSpec().name()));
-                            }
-                        }catch (IOException e){
-                            throw new UncheckedIOException(e);
+                        if(result instanceof InternalResult.Java javaResult) {
+                            writeJavaFile(javaResult);
                         }
                     });
         }
 
         return true;
+    }
+
+    private void writeJavaFile(InternalResult.Java javaResult){
+        JavaFileObject filerSourceFile = null;
+        try {
+            filerSourceFile = processingEnv.getFiler().createSourceFile(
+                    javaResult.metadata().className(),
+                    javaResult.originatingElements().toArray(new Element[0]));
+
+            try (Writer writer = filerSourceFile.openWriter()) {
+                writer.write(javaResult.contents());
+            }
+
+        } catch (Exception e) {
+            try {
+                if (filerSourceFile != null) {
+                    filerSourceFile.delete();
+                }
+            } catch (Exception var8) {
+                lazyvalEnvironment.error("Could not delete generated source file. Cause: %s".formatted(e.getMessage()));
+            }
+
+            throw new RuntimeException(e);
+        }
+        lazyvalEnvironment.info("Written '%s.%s".formatted(javaResult.metadata().packageName(), javaResult.metadata().className()));
     }
 
     /**

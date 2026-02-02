@@ -64,7 +64,10 @@ public class UtilsGenerator implements FilePerTypeGenerator {
         if(userProvidedPackage.charAt(0) == '.'){
             userProvidedPackage = userProvidedPackage.substring(1);
         }
-        return new GeneratorResult.Java(JavaFile.builder(userProvidedPackage, someClass).build());
+        var javaFile = JavaFile.builder(userProvidedPackage, someClass).build();
+        return new GeneratorResult.Java(
+                new GeneratorResult.Metadata(userProvidedPackage, someClass.name()),
+                javaFile.toString());
     }
 
     @Override

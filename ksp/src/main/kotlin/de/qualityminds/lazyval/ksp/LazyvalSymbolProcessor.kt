@@ -7,25 +7,23 @@ import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
-import com.squareup.kotlinpoet.FileSpec
 import de.qualityminds.lazyval.LazyValue
 import de.qualityminds.lazyval.collections.NonEmptySet
-import de.qualityminds.lazyval.ksp.codegen.JavaFileSpec
 import de.qualityminds.lazyval.ksp.spi.*
 import java.util.*
 import java.util.stream.Collectors
 import java.util.stream.Stream
 import java.util.stream.StreamSupport
 
-sealed interface KotlinOrJavaResult {
-    data class Kotlin(val fileSpec: FileSpec, val sources: List<KSFile>) : KotlinOrJavaResult
-    data class Java(val javaFileSpec: JavaFileSpec, val sources: List<KSFile>) : KotlinOrJavaResult
-    object Nothing : KotlinOrJavaResult
+private sealed interface InternalResult {
+    data class Kotlin(val metadata: GeneratorResult.Metadata, val contents: String, val sources: List<KSFile>) : InternalResult
+    data class Java(val metadata: GeneratorResult.Metadata, val contents: String, val sources: List<KSFile>) : InternalResult
+    object Nothing : InternalResult
 
     companion object {
         fun from(generatorResult: GeneratorResult, sources: List<KSFile>) = when(generatorResult) {
-            is GeneratorResult.Java -> Java(generatorResult.fileSpec, sources)
-            is GeneratorResult.Kotlin -> Kotlin(generatorResult.fileSpec, sources)
+            is GeneratorResult.Java -> Java(generatorResult.metadata, generatorResult.contents, sources)
+            is GeneratorResult.Kotlin -> Kotlin(generatorResult.metadata, generatorResult.contents, sources)
             GeneratorResult.Nothing -> Nothing
         }
     }
@@ -56,25 +54,25 @@ class LazyvalSymbolProcessor(
                         ValidateElement.ValidatedSourceElement(validated, classDecl.containingFile!!)
                     }else {
                         // this happens for configured values from other jars (not part of compilation unit)
-                        ValidateElement.ValidateJarElement(validated)
+                        ValidateElement.ValidatedJarElement(validated)
                     }
                 }
             }
             .toList()
 
-        fun generateSingleFile(generator: SingleFileGenerator, elements: Set<ValidatedKspGeneratorElement>, userSettings: SpiGenerator.Settings): KotlinOrJavaResult {
+        fun generateSingleFile(generator: SingleFileGenerator, elements: Set<ValidatedKspGeneratorElement>, userSettings: SpiGenerator.Settings): InternalResult {
             val result = generator.generateSingleFile(NonEmptySet.ofAll(elements), userSettings)
-            return KotlinOrJavaResult.from(result, validatedElements.mapNotNull {
+            return InternalResult.from(result, validatedElements.mapNotNull {
                 when(it){
-                    is ValidateElement.ValidateJarElement -> null
+                    is ValidateElement.ValidatedJarElement -> null
                     is ValidateElement.ValidatedSourceElement -> it.source
                 }
             })
         }
 
-        fun generateFiles(generator: FilePerTypeGenerator, element: ValidatedKspGeneratorElement, userSettings: SpiGenerator.Settings, source: KSFile?): KotlinOrJavaResult {
+        fun generateFiles(generator: FilePerTypeGenerator, element: ValidatedKspGeneratorElement, userSettings: SpiGenerator.Settings, source: KSFile?): InternalResult {
             val result = generator.generateFilePerType(element, userSettings)
-            return KotlinOrJavaResult.from(result, source?.let { listOf(it) } ?: emptyList())
+            return InternalResult.from(result, source?.let { listOf(it) } ?: emptyList())
         }
 
         // will be empty in the second round
@@ -94,7 +92,7 @@ class LazyvalSymbolProcessor(
 
                         is FilePerTypeGenerator -> validatedElements.map {
                             val source = when(it){
-                                is ValidateElement.ValidateJarElement -> null
+                                is ValidateElement.ValidatedJarElement -> null
                                 is ValidateElement.ValidatedSourceElement -> it.source
                             }
                             generateFiles(
@@ -108,9 +106,9 @@ class LazyvalSymbolProcessor(
                 }
                 .forEach { result ->
                     when(result) {
-                        is KotlinOrJavaResult.Kotlin -> writeKotlinFile(result.fileSpec, result.sources)
-                        is KotlinOrJavaResult.Java -> writeJavaFile(result.javaFileSpec, result.sources)
-                        KotlinOrJavaResult.Nothing -> { /* nothing to do */ }
+                        is InternalResult.Kotlin -> writeKotlinFile(result)
+                        is InternalResult.Java -> writeJavaFile(result)
+                        InternalResult.Nothing -> { /* nothing to do */ }
                     }
                 }
         }
@@ -160,26 +158,27 @@ class LazyvalSymbolProcessor(
         }
     }
 
-    private fun writeKotlinFile(fileSpec: FileSpec, sourceFiles: List<KSFile>) {
+    private fun writeKotlinFile(fileSpec: InternalResult.Kotlin) {
         try {
-            val dependencies = if (sourceFiles.isNotEmpty()) {
-                Dependencies(true, *sourceFiles.toTypedArray())
+            val dependencies = if (fileSpec.sources.isNotEmpty()) {
+                Dependencies(true, *fileSpec.sources.toTypedArray())
             } else {
                 Dependencies(true)
             }
 
             val file = environment.codeGenerator.createNewFile(
                 dependencies = dependencies,
-                packageName = fileSpec.packageName,
-                fileName = fileSpec.name,
+                packageName = fileSpec.metadata.packageName,
+                fileName = fileSpec.metadata.fileName,
                 extensionName = "kt"
             )
-            file.write(fileSpec.toString().toByteArray())
+            file.write(fileSpec.contents.toByteArray())
             file.close()
-            lazyvalEnvironment.info("Written Kotlin file '${fileSpec.packageName}.${fileSpec.name}'")
-        } catch (e: kotlin.io.FileAlreadyExistsException) {
+            lazyvalEnvironment.info("Written Kotlin file '${fileSpec.metadata.packageName}.${fileSpec.metadata.fileName}'")
+        } catch (_: FileAlreadyExistsException) {
             // This is common in incremental builds; usually, we can ignore it
             // as the existing file is considered up-to-date by KSP
+            // TODO double check if this is really no problem and if it can be solved
         } catch (e: Exception) {
             lazyvalEnvironment.error("Failed to write Kotlin file: ${e.message}")
             throw e
@@ -188,16 +187,28 @@ class LazyvalSymbolProcessor(
 
     // Since only one mapper file is generated for all sources, we pass in all sources to have
     // proper regeneration on incremental builds.
-    private fun writeJavaFile(javaFileSpec: JavaFileSpec, sourceFiles: List<KSFile>) {
+    private fun writeJavaFile(javaFileSpec: InternalResult.Java) {
         try {
-            val dependencies = if (sourceFiles.isNotEmpty()) {
-                Dependencies(true, *sourceFiles.toTypedArray())
+            val dependencies = if (javaFileSpec.sources.isNotEmpty()) {
+                Dependencies(true, *javaFileSpec.sources.toTypedArray())
             } else {
                 Dependencies(true)
             }
 
-            javaFileSpec.writeTo(environment.codeGenerator, dependencies)
-            lazyvalEnvironment.info("Written Java file '${javaFileSpec.packageName}.${javaFileSpec.fileName}'")
+            val file = environment.codeGenerator.createNewFile(
+                dependencies = dependencies,
+                packageName = javaFileSpec.metadata.packageName,
+                fileName = javaFileSpec.metadata.fileName,
+                extensionName = "java"
+            )
+
+            file.write(javaFileSpec.contents.toByteArray())
+            file.close()
+            lazyvalEnvironment.info("Written Java file '${javaFileSpec.metadata.packageName}.${javaFileSpec.metadata.fileName}'")
+        } catch (_: FileAlreadyExistsException) {
+            // This is common in incremental builds; usually, we can ignore it
+            // as the existing file is considered up-to-date by KSP
+            // TODO double check if this is really no problem and if it can be solved
         } catch (e: Exception) {
             lazyvalEnvironment.error("Failed to write Java file: ${e.message}")
             throw e

@@ -3,10 +3,8 @@ package de.qualityminds.lazyval.ksp.spi
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.google.devtools.ksp.symbol.KSType
-import com.squareup.kotlinpoet.FileSpec
 import de.qualityminds.lazyval.collections.NonEmptySet
 import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
-import de.qualityminds.lazyval.ksp.codegen.JavaFileSpec
 import de.qualityminds.lazyval.ksp.spi.SpiGenerator.Settings
 import org.jetbrains.annotations.ApiStatus
 
@@ -18,14 +16,19 @@ sealed interface ValidateElement {
     val element: ValidatedKspGeneratorElement
 
     data class ValidatedSourceElement(override val element: ValidatedKspGeneratorElement, val source: KSFile) : ValidateElement
-    data class ValidateJarElement(override val element: ValidatedKspGeneratorElement) : ValidateElement
+    data class ValidatedJarElement(override val element: ValidatedKspGeneratorElement) : ValidateElement
 }
 
 // tag::result[]
 sealed interface GeneratorResult {
-    data class Kotlin(val fileSpec: FileSpec) : GeneratorResult
-    data class Java(val fileSpec: JavaFileSpec) : GeneratorResult
+    data class Kotlin(val metadata: Metadata, val contents: String) : GeneratorResult
+    data class Java(val metadata: Metadata, val contents: String) : GeneratorResult
     object Nothing : GeneratorResult
+
+    /**
+     * Provides metadata about generated files.
+     */
+    data class Metadata(val packageName: String, val fileName: String)
 }
 // end::result[]
 

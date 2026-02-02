@@ -9,10 +9,8 @@ import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import de.qualityminds.lazyval.ksp.spi.FilePerTypeGenerator
 import de.qualityminds.lazyval.ksp.spi.GeneratorResult
 import de.qualityminds.lazyval.ksp.spi.SpiGenerator
-import org.jspecify.annotations.NullMarked
 import java.util.Collections.emptyList
 
-@NullMarked
 class UtilsGenerator : FilePerTypeGenerator {
 
 
@@ -54,9 +52,12 @@ class UtilsGenerator : FilePerTypeGenerator {
         val packageName = userSettings.options[OPTION_GENERATED_PACKAGE]
             ?: "${extractRootPackage(element)}.test"
 
-        return GeneratorResult.Kotlin(FileSpec.builder(packageName, utilsClassName)
+        val kotlinSpec = FileSpec.builder(packageName, utilsClassName)
             .addFunction(extensionFun)
-            .build())
+            .build()
+        return GeneratorResult.Kotlin(
+            GeneratorResult.Metadata(packageName, utilsClassName),
+            kotlinSpec.toString())
     }
 
 }

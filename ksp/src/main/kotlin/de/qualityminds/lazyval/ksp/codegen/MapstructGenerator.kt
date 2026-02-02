@@ -1,7 +1,5 @@
 package de.qualityminds.lazyval.ksp.codegen
 
-import com.google.devtools.ksp.processing.CodeGenerator
-import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.symbol.KSType
 import com.palantir.javapoet.*
 import de.qualityminds.lazyval.collections.NonEmptySet
@@ -9,7 +7,6 @@ import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import de.qualityminds.lazyval.ksp.spi.GeneratorResult
 import de.qualityminds.lazyval.ksp.spi.SingleFileGenerator
 import de.qualityminds.lazyval.ksp.spi.SpiGenerator
-import java.io.IOException
 import javax.lang.model.element.Modifier
 
 class MapstructGenerator : SingleFileGenerator {
@@ -48,7 +45,9 @@ class MapstructGenerator : SingleFileGenerator {
         val javaFile = JavaFile.builder(packageName, interfaceBuilder.build())
             .build()
 
-        return GeneratorResult.Java(JavaFileSpec(javaFile, packageName, "LazyvalMapper"))
+        return GeneratorResult.Java(
+            GeneratorResult.Metadata(packageName, "LazyvalMapper"),
+            javaFile.toString())
     }
 
     private fun createJavaMapToWrappedTypeMethod(element: ValidatedKspGeneratorElement): MethodSpec {
@@ -128,29 +127,6 @@ class MapstructGenerator : SingleFileGenerator {
                 val simpleName = ksType.declaration.simpleName.asString()
                 ClassName.get(packageName, simpleName)
             }
-        }
-    }
-}
-
-// Wrapper class for Java files
-data class JavaFileSpec(
-    val javaFile: JavaFile,
-    val packageName: String,
-    val fileName: String
-) {
-    fun writeTo(codeGenerator: CodeGenerator, dependencies: Dependencies) {
-        try {
-
-            val file = codeGenerator.createNewFile(dependencies, packageName, fileName, "java")
-            file.write(javaFile.toString().toByteArray())
-            file.close()
-        } catch (e: kotlin.io.FileAlreadyExistsException) {
-            // This is common in incremental builds; usually, we can ignore it
-            // as the existing file is considered up-to-date by KSP
-        } catch (e: IOException) {
-            error(e.stackTraceToString())
-            error("Failed to write Java file '$fileName':")
-//            throw RuntimeException("Failed to write Java file '$fileName'", e)
         }
     }
 }
