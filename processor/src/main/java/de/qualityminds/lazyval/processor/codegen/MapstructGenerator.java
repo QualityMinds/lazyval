@@ -97,7 +97,10 @@ final public class MapstructGenerator implements SingleFileGenerator {
                         .map(ValidatedGeneratorElement::element)
                         .orElseThrow())));
 
-        return new GeneratorResult.Java(JavaFile.builder(mapperPackage, typeSpecBuilder.build()).build());
+        final JavaFile javaFile = JavaFile.builder(mapperPackage, typeSpecBuilder.build()).build();
+        return new GeneratorResult.Java(
+                new GeneratorResult.Metadata(javaFile.packageName(), javaFile.typeSpec().name()),
+                javaFile.toString());
     }
 
 }

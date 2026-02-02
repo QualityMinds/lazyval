@@ -87,6 +87,9 @@ public class JpaGenerator implements FilePerTypeGenerator {
         if(jpaConverterPackage.charAt(0) == '.'){
             jpaConverterPackage = jpaConverterPackage.substring(1);
         }
-        return new GeneratorResult.Java(JavaFile.builder(jpaConverterPackage, jpaConverter).build());
+        final JavaFile javaFile = JavaFile.builder(jpaConverterPackage, jpaConverter).build();
+        return new GeneratorResult.Java(
+                new GeneratorResult.Metadata(javaFile.packageName(), javaFile.typeSpec().name()),
+                javaFile.toString());
     }
 }
