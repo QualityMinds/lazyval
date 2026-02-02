@@ -103,8 +103,10 @@
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>${version.plugin.shade}</version>
                 <configuration>
-<!--                    <minimizeJar>true</minimizeJar>-->
-                    <createDependencyReducedPom>false</createDependencyReducedPom>
+                    <minimizeJar>true</minimizeJar>
+                    <createDependencyReducedPom>true</createDependencyReducedPom>
+                    <dependencyReducedPomLocation>${project.build.directory}/dependency-reduced-pom.xml</dependencyReducedPomLocation>
+                    <useDependencyReducedPomInJar>true</useDependencyReducedPomInJar>
                     <transformers>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
@@ -121,14 +123,13 @@
                             <!-- user must manage core module -->
                             <exclude>de.qualityminds.lazyval:lazyval</exclude>
                             <!-- compile-time annotations aren't needed -->
-                            <exclude>org.jspecify:jspecify</exclude>
                             <exclude>org.jetbrains:annotations</exclude>
+                            <exclude>org.jspecify:jspecify</exclude> <!-- transitive from utils -->
                             <!-- provided by user/buildtool -->
                             <exclude>org.jetbrains.kotlin:*</exclude>
                             <exclude>com.google.devtools.ksp:*</exclude>
                         </excludes>
                     </artifactSet>
-                    <!--
                     <relocations>
                         <relocation>
                             <pattern>com.palantir.javapoet</pattern>
@@ -139,7 +140,6 @@
                             <shadedPattern>de.qualityminds.lazyval.shaded.kotlinpoet</shadedPattern>
                         </relocation>
                     </relocations>
-                    -->
                     <filters>
                         <filter>
                             <artifact>com.palantir.javapoet:*</artifact>

@@ -33,6 +33,11 @@
             <version>${version.lazyval}</version>
         </dependency>
         <dependency>
+            <groupId>com.palantir.javapoet</groupId>
+            <artifactId>javapoet</artifactId>
+            <version>0.10.0</version>
+        </dependency>
+        <dependency>
             <groupId>de.qualityminds.lazyval</groupId>
             <artifactId>lazyval-testkit</artifactId>
             <version>${version.lazyval}</version>

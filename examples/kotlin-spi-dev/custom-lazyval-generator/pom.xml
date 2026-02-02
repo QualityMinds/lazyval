@@ -33,6 +33,11 @@
             <version>${version.lazyval}</version>
         </dependency>
         <dependency>
+            <groupId>com.squareup</groupId>
+            <artifactId>kotlinpoet-ksp</artifactId>
+            <version>2.2.0</version>
+        </dependency>
+        <dependency>
             <groupId>de.qualityminds.lazyval</groupId>
             <artifactId>lazyval-testkit</artifactId>
             <version>${version.lazyval}</version>
