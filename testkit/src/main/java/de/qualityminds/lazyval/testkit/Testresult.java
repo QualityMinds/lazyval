@@ -13,6 +13,7 @@ public sealed interface Testresult {
         record Success(ImmutableList<String> generatedFiles) implements Java {
             public Success {
                 Objects.requireNonNull(generatedFiles);
+                generatedFiles = generatedFiles.toSortedList().toImmutable();
             }
 
             public Success(String... generatedFiles) {
@@ -25,6 +26,8 @@ public sealed interface Testresult {
             public SuccessWithWarnings {
                 Objects.requireNonNull(generatedFiles);
                 Objects.requireNonNull(warnings);
+                generatedFiles = generatedFiles.toSortedList().toImmutable();
+                warnings = warnings.toSortedList().toImmutable();
                 if(warnings.isEmpty()){
                     throw new IllegalArgumentException("Warnings must not be empty");
                 }
@@ -37,6 +40,7 @@ public sealed interface Testresult {
         record Failure(ImmutableList<String> errors) implements Java {
             public Failure {
                 Objects.requireNonNull(errors);
+                errors = errors.toSortedList().toImmutable();
                 if(errors.isEmpty()){
                     throw new IllegalArgumentException("Errors must not be empty");
                 }
@@ -53,6 +57,7 @@ public sealed interface Testresult {
 
             public Success {
                 Objects.requireNonNull(generatedFiles);
+                generatedFiles = generatedFiles.toSortedList().toImmutable();
             }
 
             public Success(String... generatedFiles) {
@@ -65,6 +70,8 @@ public sealed interface Testresult {
             public SuccessWithWarnings {
                 Objects.requireNonNull(generatedFiles);
                 Objects.requireNonNull(warnings);
+                generatedFiles = generatedFiles.toSortedList().toImmutable();
+                warnings = warnings.toSortedList().toImmutable();
                 if(warnings.isEmpty()){
                     throw new IllegalArgumentException("Warnings must not be empty");
                 }
@@ -77,6 +84,7 @@ public sealed interface Testresult {
         record Failure(ImmutableList<String> errors) implements Kotlin {
             public Failure {
                 Objects.requireNonNull(errors);
+                errors = errors.toSortedList().toImmutable();
                 if(errors.isEmpty()){
                     throw new IllegalArgumentException("Errors must not be empty");
                 }
