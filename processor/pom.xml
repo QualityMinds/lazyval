@@ -109,8 +109,10 @@
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>${version.plugin.shade}</version>
                 <configuration>
-<!--                    <minimizeJar>true</minimizeJar>-->
-                    <createDependencyReducedPom>false</createDependencyReducedPom>
+                    <minimizeJar>true</minimizeJar>
+                    <createDependencyReducedPom>true</createDependencyReducedPom>
+                    <dependencyReducedPomLocation>${project.build.directory}/dependency-reduced-pom.xml</dependencyReducedPomLocation>
+                    <useDependencyReducedPomInJar>true</useDependencyReducedPomInJar>
                     <transformers>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
@@ -131,18 +133,12 @@
                             <exclude>org.jetbrains:annotations</exclude>
                         </excludes>
                     </artifactSet>
-                    <!--
                     <relocations>
-                        <relocation>
-                            <pattern>org.eclipse.collections</pattern>
-                            <shadedPattern>de.qualityminds.lazyval.shaded.eclipse.collections</shadedPattern>
-                        </relocation>
                         <relocation>
                             <pattern>com.palantir.javapoet</pattern>
                             <shadedPattern>de.qualityminds.lazyval.shaded.javapoet</shadedPattern>
                         </relocation>
                     </relocations>
-                    -->
                     <filters>
                         <filter>
                             <artifact>com.palantir.javapoet:*</artifact>
