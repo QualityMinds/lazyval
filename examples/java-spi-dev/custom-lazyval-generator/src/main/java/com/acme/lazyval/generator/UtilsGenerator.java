@@ -9,6 +9,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 @NullMarked
 public class UtilsGenerator implements FilePerTypeGenerator {
@@ -18,6 +19,16 @@ public class UtilsGenerator implements FilePerTypeGenerator {
     @Override
     public String generatorId() {
         return "acme-utils";
+    }
+
+    @Override
+    public Collection<String> requiredClasspath() {
+        return List.of();
+    }
+
+    @Override
+    public Set<String> supportedOptions() {
+        return Set.of(OPTION_GENERATED_PACKAGE);
     }
 
     @Override
@@ -48,17 +59,12 @@ public class UtilsGenerator implements FilePerTypeGenerator {
                             return type.%s().toUpperCase();
                           }
                         """.formatted(
-                                wrappedType.toString(), element.getSimpleName(), validatedElement.wrappedTypeName()) +
+                        wrappedType.toString(), element.getSimpleName(), validatedElement.wrappedTypeName()) +
                 "}").replaceAll("\\n", System.lineSeparator());
 
 
         return new GeneratorResult.Java(
                 new GeneratorResult.Metadata(packageName, className),
                 contents);
-    }
-
-    @Override
-    public Collection<String> requiredClasspath() {
-        return List.of();
     }
 }

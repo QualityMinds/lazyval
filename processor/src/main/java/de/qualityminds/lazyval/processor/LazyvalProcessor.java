@@ -6,7 +6,6 @@ import de.qualityminds.lazyval.processor.spi.*;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
-import javax.annotation.processing.SupportedOptions;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.TypeElement;
@@ -18,12 +17,29 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 @SupportedAnnotationTypes("de.qualityminds.lazyval.LazyValue")
-@SupportedOptions({
-        // options coming from external generators cannot be documented
-        LazyvalEnvironment.DISABLED_GENERATORS,
-        LazyvalEnvironment.CONFIGURED_VALUES,
-})
 public class LazyvalProcessor extends AbstractProcessor {
+
+    private static final List<? extends SpiGenerator> allProviderGenerators;
+
+    static {
+        // To load the supported-options it is necessary to load all provided generators in this static block
+        // because it is not guaranteed that "init" is called before "getSupportedOptions"
+        ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
+        try {
+            Thread.currentThread().setContextClassLoader(LazyvalProcessor.class.getClassLoader());
+
+            ServiceLoader<SingleFileGenerator> singleFileGenerators =
+                    ServiceLoader.load(SingleFileGenerator.class);
+            ServiceLoader<FilePerTypeGenerator> multipleFilesGenerators =
+                    ServiceLoader.load(FilePerTypeGenerator.class);
+
+            allProviderGenerators = Stream.of(singleFileGenerators, multipleFilesGenerators)
+                    .flatMap(serviceLoader -> StreamSupport.stream(serviceLoader.spliterator(), false))
+                    .toList();
+        } finally {
+            Thread.currentThread().setContextClassLoader(originalContextClassLoader);
+        }
+    }
 
     /**
      * Needed to transport originating element(s) through the stream.
@@ -35,14 +51,24 @@ public class LazyvalProcessor extends AbstractProcessor {
         InternalResult NOTHING = new Nothing();
     }
 
-
-
     private boolean classpathWarningAlreadyIssued = false;
     private LazyvalEnvironment lazyvalEnvironment;
 
     @Override
     public SourceVersion getSupportedSourceVersion() {
         return SourceVersion.latestSupported();
+    }
+
+    @Override
+    public Set<String> getSupportedOptions() {
+        var combinedOptions = allProviderGenerators.stream()
+                .flatMap(generator -> generator.supportedOptions().stream())
+                .collect(Collectors.toCollection(HashSet::new));
+        combinedOptions.addAll(Set.of(
+                LazyvalEnvironment.DISABLED_GENERATORS,
+                LazyvalEnvironment.CONFIGURED_VALUES
+        ));
+        return combinedOptions;
     }
 
     @Override
@@ -65,7 +91,7 @@ public class LazyvalProcessor extends AbstractProcessor {
             if(validatedElements.isEmpty()){
                 return true;
             }
-            loadGenerators()
+            getActiveGenerators()
                     .flatMap(generator -> {
                         var settings = processingEnv.getOptions().entrySet().stream().filter(e -> e.getKey().startsWith("lazyval." + generator.generatorId() + "."))
                                 .collect(Collectors.toUnmodifiableMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -138,18 +164,13 @@ public class LazyvalProcessor extends AbstractProcessor {
      *
      * Has to make use of TCCL to work for complex classloader setup (Spring, Quarkus) as well as simple ones.
      */
-    private Stream<? extends SpiGenerator> loadGenerators(){
+    private Stream<? extends SpiGenerator> getActiveGenerators(){
         ClassLoader originalContextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
-            Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
+            Thread.currentThread().setContextClassLoader(LazyvalProcessor.class.getClassLoader());
 
-            ServiceLoader<SingleFileGenerator> singleFileGenerators =
-                    ServiceLoader.load(SingleFileGenerator.class);
-            ServiceLoader<FilePerTypeGenerator> multipleFilesGenerators =
-                    ServiceLoader.load(FilePerTypeGenerator.class);
-
-            boolean hasSingle = singleFileGenerators.iterator().hasNext();
-            boolean hasMultiple = multipleFilesGenerators.iterator().hasNext();
+            boolean hasSingle = allProviderGenerators.stream().anyMatch(g -> g instanceof SingleFileGenerator);
+            boolean hasMultiple = allProviderGenerators.stream().anyMatch(g -> g instanceof FilePerTypeGenerator);
 
             if (!hasSingle && !hasMultiple) {
                 lazyvalEnvironment.warn("No Lazyval SPI providers found on classpath.");
@@ -158,8 +179,7 @@ public class LazyvalProcessor extends AbstractProcessor {
 
             var disabledByConfig = lazyvalEnvironment.getDisabledGenerators();
 
-            var generators = Stream.of(singleFileGenerators, multipleFilesGenerators)
-                    .flatMap(serviceLoader -> StreamSupport.stream(serviceLoader.spliterator(), false))
+            var generators = allProviderGenerators.stream()
                     // TODO check for ID
                     .filter(generator -> generator.requiredClasspath().stream().allMatch(fqn -> lazyvalEnvironment.isClassAvailable(fqn)))
                     .filter(generator -> !disabledByConfig.contains(generator.generatorId()))
