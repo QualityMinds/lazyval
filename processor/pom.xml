@@ -128,6 +128,8 @@
                         <excludes>
                             <!-- user must manage core module -->
                             <exclude>de.qualityminds.lazyval:lazyval</exclude>
+                            <!-- utils are published -->
+                            <exclude>de.qualityminds.lazyval:lazyval-utils</exclude>
                             <!-- compile-time annotations aren't needed -->
                             <exclude>org.jspecify:jspecify</exclude>
                             <exclude>org.jetbrains:annotations</exclude>
@@ -145,12 +147,6 @@
                             <excludes>
                                 <exclude>META-INF/**</exclude>
                                 <exclude>module-info.class</exclude>
-                            </excludes>
-                        </filter>
-                        <filter>
-                            <artifact>de.qualityminds.lazyval:lazyval-utils</artifact>
-                            <excludes>
-                                <exclude>META-INF/**</exclude>
                             </excludes>
                         </filter>
                     </filters>
