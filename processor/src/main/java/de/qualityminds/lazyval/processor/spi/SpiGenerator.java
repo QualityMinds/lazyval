@@ -28,6 +28,14 @@ public sealed interface SpiGenerator permits SingleFileGenerator, FilePerTypeGen
     Collection<String> requiredClasspath();
 
     /**
+     * Provides the keys supported by this generator. At least an option to specify the target package should be
+     * listed here.
+     * The key must contain "lazyval." at some place in the key to distinguish it from other processors
+     * @return set of supported options.
+     */
+    Set<String> supportedOptions();
+
+    /**
      * Settings provided by the user for this generator.
      * The map will only contain keys which have the current generators id infixed, e.g. *"lazyval.generatorId.optionA"*
      */

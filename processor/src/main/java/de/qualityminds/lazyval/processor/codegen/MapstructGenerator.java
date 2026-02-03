@@ -10,6 +10,7 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 final public class MapstructGenerator implements SingleFileGenerator {
 
@@ -24,6 +25,11 @@ final public class MapstructGenerator implements SingleFileGenerator {
     @Override
     public Collection<String> requiredClasspath() {
         return List.of("org.mapstruct.Mapper");
+    }
+
+    @Override
+    public Set<String> supportedOptions() {
+        return Set.of(OPTION_GENERATED_PACKAGE);
     }
 
     public GeneratorResult generateSingleFile(NonEmptySet<ValidatedGeneratorElement> elements, Settings userSettings){

@@ -10,6 +10,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 // tag::docu[]
 public class JpaGenerator implements FilePerTypeGenerator {
@@ -25,6 +26,11 @@ public class JpaGenerator implements FilePerTypeGenerator {
     @Override
     public Collection<String> requiredClasspath() {
         return List.of("jakarta.persistence.AttributeConverter");
+    }
+
+    @Override
+    public Set<String> supportedOptions() {
+        return Set.of(OPTION_GENERATED_PACKAGE);
     }
 
     public GeneratorResult generateFilePerType(ValidatedGeneratorElement validatedElement, Settings userSettings){
