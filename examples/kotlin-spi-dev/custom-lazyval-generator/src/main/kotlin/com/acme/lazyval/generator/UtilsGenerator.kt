@@ -1,10 +1,5 @@
 package com.acme.lazyval.generator;
 
-import com.squareup.kotlinpoet.ClassName
-import com.squareup.kotlinpoet.FileSpec
-import com.squareup.kotlinpoet.FunSpec
-import com.squareup.kotlinpoet.ksp.toClassName
-import com.squareup.kotlinpoet.ksp.toTypeName
 import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import de.qualityminds.lazyval.ksp.spi.FilePerTypeGenerator
 import de.qualityminds.lazyval.ksp.spi.GeneratorResult
@@ -28,36 +23,30 @@ class UtilsGenerator : FilePerTypeGenerator {
     ): GeneratorResult {
         val element = validatedElement.element
         val wrappedType = validatedElement.wrappedType
-        val lazyvalTypeName = element.toClassName()
+        val wrappedTypeName = validatedElement.wrappedTypeName
 
-        val wrappedTypeName = if (wrappedType.isBoxedPrimitive() || wrappedType.isPrimitive()) {
-            wrappedType.toTypeName().copy(nullable = false)
-        } else {
-            wrappedType.toTypeName()
+        // this generator should only handle String types
+        if ("String" != wrappedType.toString()) {
+            return GeneratorResult.Nothing
         }
 
-        if(wrappedTypeName != ClassName("kotlin", "String")){
-                return GeneratorResult.Nothing
-        }
-
-        val utilsClassName = "${element.simpleName.asString()}Utils"
-
-        val extensionFun = FunSpec.builder("toUpperCase")
-            .receiver(lazyvalTypeName)
-            .returns(String::class)
-            .addStatement("return this.value.uppercase()")
-            .build()
-
-        // Determine package
+        val typeName = element.simpleName.asString()
+        val className = "${typeName}Utils"
         val packageName = userSettings.options[OPTION_GENERATED_PACKAGE]
             ?: "${extractRootPackage(element)}.test"
 
-        val kotlinSpec = FileSpec.builder(packageName, utilsClassName)
-            .addFunction(extensionFun)
-            .build()
+        val contents = """
+            package $packageName
+
+            import ${element.qualifiedName?.asString()}
+            import kotlin.String
+
+            public fun ${typeName}.toUpperCase(): String = this.${wrappedTypeName}.uppercase()
+        """.trimIndent().replace("\\n", System.lineSeparator());
+
         return GeneratorResult.Kotlin(
-            GeneratorResult.Metadata(packageName, utilsClassName),
-            kotlinSpec.toString())
+            GeneratorResult.Metadata(packageName, className),
+            contents)
     }
 
 }
