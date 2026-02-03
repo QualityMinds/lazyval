@@ -1,7 +1,7 @@
 package de.qualityminds.lazyval.processor.spi;
 
 import java.util.Objects;
-
+// tag::result[]
 public sealed interface GeneratorResult {
     record Java(Metadata metadata, String contents) implements GeneratorResult {}
     record Nothing() implements GeneratorResult {}
@@ -16,3 +16,4 @@ public sealed interface GeneratorResult {
         }
     }
 }
+// end::result[]

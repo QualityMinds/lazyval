@@ -2,6 +2,12 @@
 
 TODO
 
+.Result type definition
+[source,kotlin]
+----
+include::spi:example$GeneratorResult.java[tag=result]
+----
+
 .JPA Generator
 [source,java]
 ----
