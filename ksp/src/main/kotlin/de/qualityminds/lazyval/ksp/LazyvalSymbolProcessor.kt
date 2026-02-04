@@ -231,7 +231,10 @@ class LazyvalSymbolProcessor(
      * This at least checks for unknown "lazyval" options.
      */
     private fun validateOptions() {
-        val supportedOptions = allProviderGenerators.flatMap { it.supportedOptions() }.toSet()
+        val supportedOptions = setOf(
+            LazyvalKspEnvironment.DISABLED_GENERATORS,
+            LazyvalKspEnvironment.CONFIGURED_VALUES
+        ) + allProviderGenerators.flatMap { it.supportedOptions() }.toSet()
 
         environment.options
             .filter { it.key.contains("lazyval.") }
