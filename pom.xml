@@ -60,6 +60,7 @@
         <version.plugin.ksp2-3rd-party>0.2.0</version.plugin.ksp2-3rd-party>
         <version.plugin.license>2.7.1</version.plugin.license>
         <version.plugin.deploy>3.1.4</version.plugin.deploy>
+        <version.plugin.flatten>1.7.3</version.plugin.flatten>
     </properties>
 
     <dependencyManagement>
@@ -232,6 +233,32 @@
                             <exclude>LICENSE</exclude>
                         </excludes>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>flatten-maven-plugin</artifactId>
+                    <version>${version.plugin.flatten}</version>
+                    <configuration>
+                        <flattenMode>oss</flattenMode>
+                        <!-- needed to interop with shade-plugin -->
+                        <updatePomFile>true</updatePomFile>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>flatten</id>
+                            <phase>prepare-package</phase>
+                            <goals>
+                                <goal>flatten</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>flatten.clean</id>
+                            <phase>clean</phase>
+                            <goals>
+                                <goal>clean</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>

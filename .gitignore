@@ -9,6 +9,8 @@ out/
 **/gradlew
 **/gradlew.bat
 
+**/.flattened-pom.xml
+
 # nektos/act artifact-upload folder
 .artifacts/
 
