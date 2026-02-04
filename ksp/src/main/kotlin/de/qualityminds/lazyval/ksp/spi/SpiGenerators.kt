@@ -52,6 +52,14 @@ sealed interface SpiGenerator {
      */
     fun requiredClasspath(): Collection<String>
 
+    /**
+     * Provides the keys supported by this generator. At least an option to specify the target package should be
+     * listed here.
+     * The key must contain "lazyval." at some place in the key to distinguish it from other processors
+     * @return set of supported options.
+     */
+    fun supportedOptions(): Set<String>
+
 
     fun KSType.isPrimitive(): Boolean {
         return when (declaration.simpleName.asString()) {

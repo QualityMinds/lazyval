@@ -17,6 +17,10 @@ class UtilsGenerator : FilePerTypeGenerator {
 
     override fun requiredClasspath(): Collection<String> = emptyList()
 
+    override fun supportedOptions(): Set<String> {
+        return setOf(OPTION_GENERATED_PACKAGE)
+    }
+
     override fun generateFilePerType(
         validatedElement: ValidatedKspGeneratorElement,
         userSettings: SpiGenerator.Settings
