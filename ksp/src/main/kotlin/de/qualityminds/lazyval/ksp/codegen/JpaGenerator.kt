@@ -13,12 +13,16 @@ import de.qualityminds.lazyval.ksp.spi.SpiGenerator
 class JpaGenerator : FilePerTypeGenerator {
 
     companion object {
-        const val OPTION_GENERATED_PACKAGE = "lazyval.jpa.generatedPackage"
+        private const val OPTION_GENERATED_PACKAGE = "lazyval.jpa.generatedPackage"
     }
 
     override fun generatorId(): String = "jpa"
 
     override fun requiredClasspath(): Collection<String> = listOf("jakarta.persistence.AttributeConverter")
+
+    override fun supportedOptions(): Set<String> {
+        return setOf(OPTION_GENERATED_PACKAGE)
+    }
 
     override fun generateFilePerType(
         validatedElement: ValidatedKspGeneratorElement,

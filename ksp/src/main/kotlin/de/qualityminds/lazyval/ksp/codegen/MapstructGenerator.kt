@@ -12,12 +12,16 @@ import javax.lang.model.element.Modifier
 class MapstructGenerator : SingleFileGenerator {
 
     companion object {
-        const val OPTION_GENERATED_PACKAGE = "lazyval.mapstruct.generatedPackage"
+        private const val OPTION_GENERATED_PACKAGE = "lazyval.mapstruct.generatedPackage"
     }
 
     override fun generatorId(): String = "mapstruct"
 
     override fun requiredClasspath(): Collection<String> = listOf("org.mapstruct.Mapper")
+
+    override fun supportedOptions(): Set<String> {
+        return setOf(OPTION_GENERATED_PACKAGE)
+    }
 
     override fun generateSingleFile(
         validatedElements: NonEmptySet<ValidatedKspGeneratorElement>,

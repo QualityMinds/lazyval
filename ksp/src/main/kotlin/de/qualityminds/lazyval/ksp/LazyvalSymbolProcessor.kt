@@ -11,9 +11,7 @@ import de.qualityminds.lazyval.LazyValue
 import de.qualityminds.lazyval.collections.NonEmptySet
 import de.qualityminds.lazyval.ksp.spi.*
 import java.util.*
-import java.util.stream.Collectors
 import java.util.stream.Stream
-import java.util.stream.StreamSupport
 
 private sealed interface InternalResult {
     data class Kotlin(val metadata: GeneratorResult.Metadata, val contents: String, val sources: List<KSFile>) : InternalResult
@@ -33,6 +31,26 @@ private sealed interface InternalResult {
 class LazyvalSymbolProcessor(
     private val environment: SymbolProcessorEnvironment
 ) : SymbolProcessor {
+
+    companion object {
+        private val allProviderGenerators: List<SpiGenerator>
+
+        init {
+            val originalContextClassLoader = Thread.currentThread().contextClassLoader
+            try {
+                Thread.currentThread().contextClassLoader = LazyvalSymbolProcessor::class.java.classLoader
+
+                val singleFileGenerators = ServiceLoader.load(SingleFileGenerator::class.java)
+                val multipleFilesGenerators = ServiceLoader.load(FilePerTypeGenerator::class.java)
+
+                allProviderGenerators = sequenceOf(singleFileGenerators, multipleFilesGenerators)
+                    .flatMap { it.asSequence() }
+                    .toList()
+            } finally {
+                Thread.currentThread().contextClassLoader = originalContextClassLoader
+            }
+        }
+    }
 
     private lateinit var lazyvalEnvironment: LazyvalKspEnvironment
 
@@ -77,7 +95,8 @@ class LazyvalSymbolProcessor(
 
         // will be empty in the second round
         if(validatedElements.isNotEmpty()) {
-            loadGenerators()
+            validateOptions()
+            getActiveGenerators()
                 .flatMap { generator ->
                     val generatorOptions = environment.options
                         .filter { e -> e.key.startsWith("lazyval." + generator.generatorId() + ".") }
@@ -116,16 +135,13 @@ class LazyvalSymbolProcessor(
         return emptyList()
     }
 
-    private fun loadGenerators(): Stream<SpiGenerator> {
+    private fun getActiveGenerators(): Stream<SpiGenerator> {
         val originalContextClassLoader: ClassLoader = Thread.currentThread().contextClassLoader;
         try {
             Thread.currentThread().contextClassLoader = this.javaClass.classLoader;
 
-            val singleFileGenerators = ServiceLoader.load(SingleFileGenerator::class.java)
-            val filePerTypeGenerators = ServiceLoader.load(FilePerTypeGenerator::class.java)
-
-            val hasSingle = singleFileGenerators.iterator().hasNext()
-            val hasMultiple = filePerTypeGenerators.iterator().hasNext()
+            val hasSingle: Boolean = allProviderGenerators.any { g -> g is SingleFileGenerator }
+            val hasMultiple: Boolean = allProviderGenerators.any { g -> g is FilePerTypeGenerator }
 
             if (!hasSingle && !hasMultiple) {
                 lazyvalEnvironment.warn("No Lazyval SPI providers found on classpath.")
@@ -134,19 +150,14 @@ class LazyvalSymbolProcessor(
 
             val disabledByConfig = lazyvalEnvironment.disabledGenerators()
 
-            val generators = Stream.of(
-                singleFileGenerators,
-                filePerTypeGenerators,
-            ).flatMap { serviceLoader -> StreamSupport.stream(serviceLoader.spliterator(), false) }
+            val generators = allProviderGenerators.stream()
                 // TODO check for ID
-            .filter{generator -> generator.requiredClasspath().stream().allMatch{fqn -> lazyvalEnvironment.isClassAvailable(fqn)}}
-            .filter{generator -> !disabledByConfig.contains(generator.generatorId())}
-            .toList()
+                .filter{generator -> generator.requiredClasspath().stream().allMatch{fqn -> lazyvalEnvironment.isClassAvailable(fqn)}}
+                .filter{generator -> !disabledByConfig.contains(generator.generatorId())}
+                .toList()
 
             lazyvalEnvironment.info(
-                "Lazyval Active Providers: " + generators.stream()
-                    .map{ generator -> generator.generatorId() }
-                    .collect(Collectors.joining(", ")))
+                "Lazyval Active Providers: " + generators.joinToString(", ") { it.generatorId() })
 
             if (generators.isEmpty()) {
                 lazyvalEnvironment.warnMissingClasspath()
@@ -213,5 +224,20 @@ class LazyvalSymbolProcessor(
             lazyvalEnvironment.error("Failed to write Java file: ${e.message}")
             throw e
         }
+    }
+
+    /**
+     * In contrast to javac, KSP does not warn about unknown processor options.
+     * This at least checks for unknown "lazyval" options.
+     */
+    private fun validateOptions() {
+        val supportedOptions = allProviderGenerators.flatMap { it.supportedOptions() }.toSet()
+
+        environment.options
+            .filter { it.key.contains("lazyval.") }
+            .filter { it.key !in supportedOptions }
+            .forEach { (key, _) ->
+                lazyvalEnvironment.warn("Unrecognized option for lazyval-processor: $key")
+            }
     }
 }
