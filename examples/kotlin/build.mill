@@ -1,5 +1,4 @@
 //| mill-version: 1.1.0
-//| mill-jvm-version: zulu:17
 import mill.*
 import mill.kotlinlib.*
 import mill.kotlinlib.ksp.*
