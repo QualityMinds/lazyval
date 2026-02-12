@@ -9,6 +9,10 @@ on:
         description: 'User triggering the release (needed for release commit)'
       user-email:
         description: 'Users email (needed for release commit)'
+
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -25,11 +29,11 @@ jobs:
           architecture: x64
           cache: 'maven'
       - name: Build software
-        run: mvn -B install --no-transfer-progress --file pom.xml
+        run: ./mvn -B install --no-transfer-progress --file pom.xml
       - name: Determine version
         id: determine_version
         run: |
-          current_version=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          current_version=$(./mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "Current version: ${current_version}"
           echo "version=${current_version}" >> $GITHUB_OUTPUT
           echo "CURRENT_VERSION=${current_version}" >> $GITHUB_ENV
@@ -57,6 +61,16 @@ jobs:
           java-version: '17'
           architecture: x64
           cache: 'maven'
+          server-id: central
+          server-username: CENTRAL_USERNAME
+          server-password: CENTRAL_TOKEN
+          gpg-private-key: GPG_PRIVATE_KEY
+          gpg-passphrase: GPG_PASSPHRASE
+        env:
+          CENTRAL_USERNAME: ${{ secrets.MAVEN_USERTOKEN_PASSPHRASE }}
+          CENTRAL_TOKEN: ${{ secrets.MAVEN_USERTOKEN_USERNAME }}
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Configure Git
         run: |
           git config user.name "${{ github.event.inputs.user-name }}"
@@ -64,14 +78,14 @@ jobs:
       - name: Set release version
         id: set_version
         run: |
-          mvn versions:set versions:commit -DremoveSnapshot -q
-          RELEASE_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          ./mvn versions:set versions:commit -DremoveSnapshot -q
+          RELEASE_VERSION=$(./mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           if [ -n "${{ github.event.inputs.postfix }}" ]; then
             echo "Appending postfix: ${{ github.event.inputs.postfix }}"
-            mvn versions:set versions:commit -DnewVersion="${RELEASE_VERSION}-${{ github.event.inputs.postfix }}"
+            ./mvn versions:set versions:commit -DnewVersion="${RELEASE_VERSION}-${{ github.event.inputs.postfix }}"
           fi;
           
-          RELEASE_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          RELEASE_VERSION=$(./mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
           echo "tag_version=${RELEASE_VERSION}" >> $GITHUB_OUTPUT
       - name: Commit release
@@ -83,21 +97,6 @@ jobs:
         run: |
           git tag ${{ env.RELEASE_VERSION }}
           git push origin ${{ env.RELEASE_VERSION }}
-#  github-release:
-#    needs: release
-#    runs-on: ubuntu-latest
-#    if: ${{ needs.release.outputs.tagged }}
-#    steps:
-#      - name: Create github release
-#        uses: softprops/action-gh-release@v1
-#        with:
-#          tag_name: ${{ needs.release.outputs.tagged }}
-#          name: Release ${{ needs.release.outputs.tagged }}
-#          draft: true
-#          prerelease: false
-#          generate_release_notes: true
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   prepare-next:
     needs:
       - validate
@@ -121,11 +120,11 @@ jobs:
       - name: Prepare next build phase
         run: |
           if [ -n "${{ github.event.inputs.postfix }}" ]; then
-            mvn versions:set versions:commit -DnewVersion="${{ needs.validate.outputs.version }}" -q
+            ./mvn versions:set versions:commit -DnewVersion="${{ needs.validate.outputs.version }}" -q
           else
-            mvn versions:set versions:commit -DnextSnapshot -q
+            ./mvn versions:set versions:commit -DnextSnapshot -q
           fi;
-          NEXT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          NEXT_VERSION=$(./mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_ENV
       - name: Pushing committed snapshot
         run: |
