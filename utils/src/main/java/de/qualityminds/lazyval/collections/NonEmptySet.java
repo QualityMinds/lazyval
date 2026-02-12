@@ -16,10 +16,18 @@ public record NonEmptySet<T>(Set<T> set) implements Iterable<T> {
     }
 
     /**
-     * Since Set has no guaranteed order, this method returns any element of the set.
+     * Since Set has no guaranteed order, this method returns any element of the set, which is useful for some test
      */
     public T getAny() {
         return set.iterator().next();
+    }
+
+    /**
+     * Returns the number of elements in this set.
+     * @see Set#size()
+     */
+    public int size() {
+        return set.size();
     }
 
     @SafeVarargs

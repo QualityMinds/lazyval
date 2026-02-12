@@ -22,7 +22,7 @@ public class UtilsGeneratorTest {
         Testresult.Java result = kit.run(tempDir, scenario);
 
         // THEN
-        var expected = new Testresult.Java.Success("IsbnUtils.java");
+        var expected = new Testresult.Java.Success("IsbnUtils.java", "Utils.java");
         assertEquals(expected, result);
     }
 }

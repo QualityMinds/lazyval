@@ -1,4 +1,4 @@
-package com.acme.lazyval.generator;
+package com.acme.lazyval.generator
 
 import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import de.qualityminds.lazyval.ksp.spi.FilePerTypeGenerator
@@ -46,7 +46,7 @@ class UtilsGenerator : FilePerTypeGenerator {
             import kotlin.String
 
             public fun ${typeName}.toUpperCase(): String = this.${wrappedTypeName}.uppercase()
-        """.trimIndent().replace("\\n", System.lineSeparator());
+        """.trimIndent().replace("\n", System.lineSeparator())
 
         return GeneratorResult.Kotlin(
             GeneratorResult.Metadata(packageName, className),

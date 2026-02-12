@@ -143,10 +143,6 @@
                             <pattern>com.squareup.kotlinpoet</pattern>
                             <shadedPattern>de.qualityminds.lazyval.shaded.kotlinpoet</shadedPattern>
                         </relocation>
-                        <relocation>
-                            <pattern>de.qualityminds.lazyval.collections</pattern>
-                            <shadedPattern>de.qualityminds.lazyval.shaded.collections</shadedPattern>
-                        </relocation>
                     </relocations>
                     <filters>
                         <filter>

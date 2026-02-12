@@ -1,4 +1,5 @@
 = Lazyval Utils
 
-This module only exists to not pollute the users classpath when the `core` dependency is accidentally added to the
-runtime, e.g. missing `<optional>true</optional>` in Maven.
+This module exists only to keep external dependencies as minimal as possible.
+
+NOTE: it is shaded in the actual processor modules for Java and Kotlin
