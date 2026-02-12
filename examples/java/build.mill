@@ -1,5 +1,4 @@
-//| mill-version: 1.1.0
-//| mill-jvm-version: zulu:21
+//| mill-version: 1.1.2
 import mill.*
 import mill.javalib.*
 

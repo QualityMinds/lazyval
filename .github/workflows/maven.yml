@@ -49,6 +49,13 @@ jobs:
       - name: Run Java-Example with Maven
         working-directory: examples/java
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile
+      - name: Uncomment type in source tree
+        working-directory: examples/java
+        # removes /* and */ from ProductName.java
+        run: sed -i '/^\/\*$/d; /^\*\/$/d' src/main/java/test/ProductName.java
+      - name: Run Incremental Compilation
+        working-directory: examples/java
+        run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile
 
   examples-java-maven-4:
     needs: build
@@ -71,6 +78,13 @@ jobs:
       - name: Run Java-Example with Maven
         working-directory: examples/java
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile -f pom-maven-4.xml
+      - name: Uncomment type in source tree
+        working-directory: examples/java
+        # removes /* and */ from ProductName.java
+        run: sed -i '/^\/\*$/d; /^\*\/$/d' src/main/java/test/ProductName.java
+      - name: Run Incremental Compilation
+        working-directory: examples/java
+        run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile -f pom-maven-4.xml
 
   examples-java-gradle:
     needs: build
@@ -88,6 +102,13 @@ jobs:
           name: maven-repo
           path: ~/.m2/repository/
       - name: Run Java-Example with Gradle
+        working-directory: examples/java
+        run: gradle build
+      - name: Uncomment type in source tree
+        working-directory: examples/java
+        # removes /* and */ from ProductName.java
+        run: sed -i '/^\/\*$/d; /^\*\/$/d' src/main/java/test/ProductName.java
+      - name: Run Incremental Compilation
         working-directory: examples/java
         run: gradle build
 
@@ -116,10 +137,17 @@ jobs:
         working-directory: examples/java
         run: curl -L -s https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${MILL_VERSION}/mill-dist-${MILL_VERSION}-mill.sh -o mill && chmod +x mill
         env:
-          MILL_VERSION: 1.1.0
+          MILL_VERSION: 1.1.2
       - name: Run Java-Example with Mill
         working-directory: examples/java
-        run: ./mill __.compile
+        run: ./mill --no-daemon __.compile
+      - name: Uncomment type in source tree
+        working-directory: examples/java
+        # removes /* and */ from ProductName.java
+        run: sed -i '/^\/\*$/d; /^\*\/$/d' src/main/java/test/ProductName.java
+      - name: Run Incremental Compilation
+        working-directory: examples/java
+        run: ./mill --no-daemon __.compile
 
   examples-kotlin-maven:
     needs: build
@@ -140,6 +168,13 @@ jobs:
         working-directory: examples/kotlin
         run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=3.9.12
       - name: Run Java-Example with Maven
+        working-directory: examples/kotlin
+        run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile
+      - name: Uncomment type in source tree
+        working-directory: examples/kotlin
+        # removes /* and */ from ProductName.kt
+        run: sed -i '/^\/\*$/d; /^\*\/$/d' src/main/kotlin/test/ProductName.kt
+      - name: Run Incremental Compilation
         working-directory: examples/kotlin
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile
 
@@ -165,6 +200,13 @@ jobs:
       - name: Run Java-Example with Maven
         working-directory: examples/kotlin
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile -f pom-maven-4.xml
+      - name: Uncomment type in source tree
+        working-directory: examples/kotlin
+        # removes /* and */ from ProductName.kt
+        run: sed -i '/^\/\*$/d; /^\*\/$/d' src/main/kotlin/test/ProductName.kt
+      - name: Run Incremental Compilation
+        working-directory: examples/kotlin
+        run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile -f pom-maven-4.xml
 
   examples-kotlin-gradle:
     needs: build
@@ -182,6 +224,13 @@ jobs:
           name: maven-repo
           path: ~/.m2/repository/
       - name: Run Kotlin-Example with Gradle
+        working-directory: examples/kotlin
+        run: gradle build
+      - name: Uncomment type in source tree
+        working-directory: examples/kotlin
+        # removes /* and */ from ProductName.kt
+        run: sed -i '/^\/\*$/d; /^\*\/$/d' src/main/kotlin/test/ProductName.kt
+      - name: Run Incremental Compilation
         working-directory: examples/kotlin
         run: gradle build
 
@@ -214,7 +263,14 @@ jobs:
           MILL_VERSION: 1.1.0
       - name: Run Kotlin-Example with Mill
         working-directory: examples/kotlin
-        run: ./mill __.compile
+        run: ./mill --no-daemon __.compile
+      - name: Uncomment type in source tree
+        working-directory: examples/kotlin
+        # removes /* and */ from ProductName.kt
+        run: sed -i '/^\/\*$/d; /^\*\/$/d' src/main/kotlin/test/ProductName.kt
+      - name: Run Incremental Compilation
+        working-directory: examples/kotlin
+        run: ./mill --no-daemon __.compile
 
   examples-java-spi:
     needs: build
@@ -237,6 +293,7 @@ jobs:
       - name: Run Java-Example with Maven
         working-directory: examples/java-spi-dev
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile
+
 
   examples-kotlin-spi:
     needs: build
