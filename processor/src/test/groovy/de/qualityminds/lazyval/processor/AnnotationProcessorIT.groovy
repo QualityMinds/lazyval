@@ -42,7 +42,7 @@ class AnnotationProcessorIT extends Specification {
         Scenario.Java.of( "scenarios/failing/ObjectMultipleFactories.java")     | "Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
         Scenario.Java.of( "scenarios/failing/RecordMultipleFactories.java")     | "Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
         Scenario.Java.of( "scenarios/failing/ObjectMissingValueAccessor.java")  | "No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation."
-        expected = new Testresult.Java.Failure(Lists.immutable.of(error))
+        expected = new Testresult.Java.Failure(error)
     }
 
     @Unroll("#scenario.name() #message")
