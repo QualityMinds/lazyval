@@ -27,7 +27,12 @@ private sealed interface InternalResult {
     }
 }
 
-
+/**
+ * A KSP2 annotation Processor which delegates domain-primitives to code generators provided via SPI.
+ *
+ * A domain-primitive is a class annotated with [de.qualityminds.lazyval.LazyValue] or configured
+ * via the processor option `lazyval.values`.
+ */
 class LazyvalSymbolProcessor(
     private val environment: SymbolProcessorEnvironment
 ) : SymbolProcessor {
@@ -180,12 +185,12 @@ class LazyvalSymbolProcessor(
             val file = environment.codeGenerator.createNewFile(
                 dependencies = dependencies,
                 packageName = fileSpec.metadata.packageName,
-                fileName = fileSpec.metadata.fileName,
+                fileName = fileSpec.metadata.className,
                 extensionName = "kt"
             )
             file.write(fileSpec.contents.toByteArray())
             file.close()
-            lazyvalEnvironment.info("Written Kotlin file '${fileSpec.metadata.packageName}.${fileSpec.metadata.fileName}'")
+            lazyvalEnvironment.info("Written Kotlin file '${fileSpec.metadata.packageName}.${fileSpec.metadata.className}'")
         } catch (_: FileAlreadyExistsException) {
             // This is common in incremental builds; usually, we can ignore it
             // as the existing file is considered up-to-date by KSP
@@ -209,13 +214,13 @@ class LazyvalSymbolProcessor(
             val file = environment.codeGenerator.createNewFile(
                 dependencies = dependencies,
                 packageName = javaFileSpec.metadata.packageName,
-                fileName = javaFileSpec.metadata.fileName,
+                fileName = javaFileSpec.metadata.className,
                 extensionName = "java"
             )
 
             file.write(javaFileSpec.contents.toByteArray())
             file.close()
-            lazyvalEnvironment.info("Written Java file '${javaFileSpec.metadata.packageName}.${javaFileSpec.metadata.fileName}'")
+            lazyvalEnvironment.info("Written Java file '${javaFileSpec.metadata.packageName}.${javaFileSpec.metadata.className}'")
         } catch (_: FileAlreadyExistsException) {
             // This is common in incremental builds; usually, we can ignore it
             // as the existing file is considered up-to-date by KSP

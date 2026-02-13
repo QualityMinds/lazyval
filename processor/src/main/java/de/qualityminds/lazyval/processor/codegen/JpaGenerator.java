@@ -12,6 +12,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
+// must only be public for ServiceLoader, but it is not part of the API
+@SuppressWarnings("doclint:accessibility,missing")
 // tag::docu[]
 public class JpaGenerator implements FilePerTypeGenerator {
 

@@ -1,4 +1,4 @@
-package de.qualityminds.lazyval.testkit.toolchain.kotlin;
+package de.qualityminds.lazyval.testkit.internal.toolchain.kotlin;
 
 import com.google.devtools.ksp.processing.KSPLogger;
 import com.google.devtools.ksp.symbol.KSNode;

@@ -20,6 +20,7 @@ public non-sealed interface SingleFileGenerator extends SpiGenerator {
      * Called only once with a list of all domain primitives annotated with {@link de.qualityminds.lazyval.LazyValue}.
      * @param elements all elements annotated with {@link de.qualityminds.lazyval.LazyValue}. Guaranteed to be non-empty.
      * @param userSettings provided {@link de.qualityminds.lazyval.processor.spi.SpiGenerator.Settings}
+     * @return {@link GeneratorResult.Java} for the generated file or {@link GeneratorResult.Nothing}
      */
     GeneratorResult generateSingleFile(NonEmptySet<ValidatedGeneratorElement> elements, Settings userSettings);
 }

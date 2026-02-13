@@ -20,18 +20,40 @@ sealed interface ValidateElement {
 }
 
 // tag::result[]
+/**
+ * The result of a generator invocation. The processor will write the actual file based on the result.
+ */
 sealed interface GeneratorResult {
+    /**
+     * Describes a to-be generated Kotlin file.
+     * @param metadata metadata about the to-be generated file
+     * @param contents the generated code
+     */
     data class Kotlin(val metadata: Metadata, val contents: String) : GeneratorResult
+    /**
+     * Describes a to-be generated Java file.
+     * @param metadata metadata about the to-be generated file
+     * @param contents the generated code
+     */
     data class Java(val metadata: Metadata, val contents: String) : GeneratorResult
+    /**
+     * Can be used to signal that no should be generated (for instance, when the generator only handles
+     * wrapped values of a certain type)
+     */
     object Nothing : GeneratorResult
 
     /**
      * Provides metadata about generated files.
+     * @param packageName the package name of the generated file
+     * @param className the name of the generated file
      */
-    data class Metadata(val packageName: String, val fileName: String)
+    data class Metadata(val packageName: String, val className: String)
 }
 // end::result[]
 
+/**
+ * Common properties for all SPI generators.
+ */
 @ApiStatus.Experimental
 sealed interface SpiGenerator {
     /**

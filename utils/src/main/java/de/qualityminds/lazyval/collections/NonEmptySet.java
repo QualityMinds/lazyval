@@ -4,8 +4,17 @@ import java.util.*;
 import java.util.stream.Collector;
 import java.util.stream.Stream;
 
+/**
+ * Wrapper for any Set that ensures that it is not empty and does not contain null elements.
+ * @param set the set to wrap
+ * @param <T> the type of elements contained in the set
+ */
 public record NonEmptySet<T>(Set<T> set) implements Iterable<T> {
 
+    /**
+     * Creates a new NonEmptySet from the given set. Elements of the set must not be null.
+     * @param set the set to wrap
+     */
     public NonEmptySet {
         Objects.requireNonNull(set);
         if (set.isEmpty()) {
@@ -16,20 +25,33 @@ public record NonEmptySet<T>(Set<T> set) implements Iterable<T> {
     }
 
     /**
-     * Since Set has no guaranteed order, this method returns any element of the set, which is useful for some test
+     * Retrieves the first element of the set, which depends on the underlying set implementation.
+     * @return any element of the set (never null)
      */
     public T getAny() {
         return set.iterator().next();
     }
 
     /**
-     * Returns the number of elements in this set.
+     * Returns the number of elements in this set (its cardinality).  If this
+     * set contains more than {@code Integer.MAX_VALUE} elements, returns
+     * {@code Integer.MAX_VALUE}.
+     *
+     * @return the number of elements in this set (its cardinality)
      * @see Set#size()
      */
     public int size() {
         return set.size();
     }
 
+    /**
+     * Factory method creating a NonEmptySet from an array of elements.
+     * @param elements the elements to create the set from
+     * @return a NonEmptySet containing the given elements
+     * @param <T> the type of elements in the array
+     * @throws IllegalArgumentException if the array is empty
+     * @throws NullPointerException if the array is null or contains null elements
+     */
     @SafeVarargs
     public static <T> NonEmptySet<T> of(T... elements) {
         Objects.requireNonNull(elements);
@@ -43,10 +65,27 @@ public record NonEmptySet<T>(Set<T> set) implements Iterable<T> {
         }
     }
 
+    /**
+     * Factory method creating a NonEmptySet from a single element.
+     * @param element the element to create the set from
+     * @return a NonEmptySet containing the given element
+     * @param <T> the type of the element
+     * @throws NullPointerException if the element is null
+     */
     public static <T> NonEmptySet<T> of(T element) {
+        Objects.requireNonNull(element);
         return new NonEmptySet<>(Set.of(element));
     }
 
+    /**
+     * Factory method converting an iterable into a NonEmptySet.
+     * The Iterable must not be null, empty and must not contain null elements.
+     * @param iterable the iterable to convert
+     * @return a NonEmptySet containing all elements of the iterable
+     * @param <T> the type of elements in the iterable
+     * @throws NullPointerException if the iterable is null or contains null elements
+     * @throws IllegalArgumentException if the iterable is empty
+     */
     public static <T> NonEmptySet<T> ofAll(Iterable<T> iterable) {
         Objects.requireNonNull(iterable);
         Set<T> set = new LinkedHashSet<>();
@@ -54,7 +93,11 @@ public record NonEmptySet<T>(Set<T> set) implements Iterable<T> {
         return new NonEmptySet<>(set);
     }
 
-
+    /**
+     * Since {@code NonEmptySet} is only implementing {@link Iterable},
+     * this method returns the underlying set (immutable).
+     * @return the underlying set
+     */
     public Set<T> toSet() {
         return set;
     }
@@ -64,10 +107,28 @@ public record NonEmptySet<T>(Set<T> set) implements Iterable<T> {
         return set.iterator();
     }
 
+    /**
+     * Forwards the stream creation to the underlying set.
+     * @return a sequential {@code Stream} over the elements in this collection
+     */
     public Stream<T> stream() {
         return set.stream();
     }
 
+    /**
+     * Creates a {@code Collector} that accumulates elements into a {@code NonEmptySet}.
+     *
+     * <pre>
+     * {@code
+     *   List.of("Hello", "World").stream().collect(NonEmptySet.collector())
+     * }
+     * </pre>
+     *
+     * @return Collector creating {@code NonEmptySet} from {@code Stream}
+     * @param <T> the type of elements in the stream
+     * @throws IllegalStateException if the stream is empty
+     * @throws NullPointerException if the stream contains null elements
+     */
     public static <T> Collector<T, ?, NonEmptySet<T>> collector() {
         return Collector.of(
                 () -> new ArrayList<T>(),

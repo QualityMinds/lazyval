@@ -14,6 +14,7 @@ public non-sealed interface FilePerTypeGenerator extends SpiGenerator {
      * Called for each domain primitive annotated with {@link de.qualityminds.lazyval.LazyValue}.
      * @param validatedElement the element annotated with {@link de.qualityminds.lazyval.LazyValue}, after validation
      * @param userSettings provided {@link de.qualityminds.lazyval.processor.spi.SpiGenerator.Settings}
+     * @return {@link GeneratorResult.Java} for the generated file or {@link GeneratorResult.Nothing}
      */
     GeneratorResult generateFilePerType(ValidatedGeneratorElement validatedElement, Settings userSettings);
 }

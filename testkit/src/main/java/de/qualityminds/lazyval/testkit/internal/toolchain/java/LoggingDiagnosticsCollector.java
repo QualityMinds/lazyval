@@ -1,16 +1,12 @@
 
-package de.qualityminds.lazyval.testkit.toolchain.java;
+package de.qualityminds.lazyval.testkit.internal.toolchain.java;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticListener;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * A simple DiagnosticListener which behaves the same as {@link javax.tools.DiagnosticCollector}, but also logs to SLF4J

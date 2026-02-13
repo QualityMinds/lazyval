@@ -6,7 +6,7 @@ import spock.lang.Specification
 /**
  * There is not much we can test in this module due to chicken-egg problem (cycles between processor/ksp <-> testkit)
  * Dynamic classloading from "target/classes" also doesnt work in a clean reactor build. Hence, the Testkit is tested
- * by using it for testing in processor/ksp
+ * by using it for testing in processor/ksp.
  */
 class ClasspathTest extends Specification {
 
