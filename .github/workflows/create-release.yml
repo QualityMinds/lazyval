@@ -25,7 +25,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '25'
           architecture: x64
           cache: 'maven'
       - name: Build software
@@ -58,7 +58,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '25'
           architecture: x64
           cache: 'maven'
           server-id: central
@@ -109,7 +109,7 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '25'
           architecture: x64
           cache: 'maven'
       - name: Configure Git
