@@ -21,7 +21,7 @@ jobs:
           cache: maven
       - name: Build and Install to Local Repository
         run: mvn --no-snapshot-updates --no-transfer-progress --batch-mode install --file pom.xml
-      - name: Upload Maven Repository
+      - name: Upload Lazyval Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: maven-repo-lazyval
@@ -39,7 +39,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Download Maven Repository
+      - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
@@ -69,7 +69,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Download Maven Repository
+      - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
@@ -99,7 +99,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'gradle'
-      - name: Download Maven Repository
+      - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
@@ -120,23 +120,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: coursier/cache-action@v7
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Download Maven Repository
+      - uses: coursier/cache-action@v7
+      - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/de/qualityminds/lazyval
-#      - name: Clear m2 cache except lazyval (because otherwise coursier will fail to resolve artifacts where only poms are downloaded)
-#        run: |
-#          mv ~/.m2/repository/de/qualityminds/lazyval /tmp/lazyval-backup || true
-#          rm -rf ~/.m2/repository/*
-#          mkdir -p ~/.m2/repository/de/qualityminds
-#          mv /tmp/lazyval-backup ~/.m2/repository/de/qualityminds/lazyval || true
       - name: Download Mill Script
         working-directory: examples/java
         run: curl -L -s https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${MILL_VERSION}/mill-dist-${MILL_VERSION}-mill.sh -o mill && chmod +x mill
@@ -164,7 +158,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Download Maven Repository
+      - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
@@ -195,7 +189,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
-      - name: Download Maven Repository
+      - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
@@ -225,7 +219,7 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
           cache: 'gradle'
-      - name: Download Maven Repository
+      - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
@@ -242,7 +236,6 @@ jobs:
         run: gradle build
 
   examples-kotlin-mill:
-    #if: false # disabled due to weird classloading error only on CI
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -252,17 +245,12 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Download Maven Repository
+      - uses: coursier/cache-action@v7
+      - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/de/qualityminds/lazyval
-#      - name: Clear m2 cache except lazyval (because otherwise coursier will fail to resolve artifacts where only poms are downloaded)
-#        run: |
-#          mv ~/.m2/repository/de/qualityminds/lazyval /tmp/lazyval-backup || true
-#          rm -rf ~/.m2/repository/*
-#          mkdir -p ~/.m2/repository/de/qualityminds
-#          mv /tmp/lazyval-backup ~/.m2/repository/de/qualityminds/lazyval || true
       - name: Download Mill Script
         working-directory: examples/kotlin
         run: curl -L -s https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${MILL_VERSION}/mill-dist-${MILL_VERSION}-mill.sh -o mill && chmod +x mill
@@ -289,7 +277,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Download Maven Repository
+      - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
@@ -301,7 +289,6 @@ jobs:
         working-directory: examples/java-spi-dev
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile
 
-
   examples-kotlin-spi:
     needs: build
     runs-on: ubuntu-latest
@@ -312,7 +299,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-      - name: Download Maven Repository
+      - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
