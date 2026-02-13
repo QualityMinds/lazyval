@@ -16,6 +16,8 @@
 
     <properties>
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
+        <!-- use dokka instead of javadoc for this module -->
+        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
     <dependencies>
@@ -175,6 +177,10 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jetbrains.dokka</groupId>
+                <artifactId>dokka-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

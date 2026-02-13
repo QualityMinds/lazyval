@@ -12,9 +12,11 @@ import java.util.function.Function;
  * INTERNAL USE ONLY!
  * <p>
  * This Dependency is needed to resolve dependencies to the compiled classes of other modules in this tree.
- * This is needed because when executing integration-tests which need access to the latest compiled classes which
+ * This is needed when executing integration-tests, which need access to the latest compiled classes which
  * are not yet available in the local repo.
  * </p>
+ * @param relativeModulePath path to the module relative to the root of the testkit module
+ * @param fallback fallback dependency to use if the module cannot be resolved
  */
 public record InternalModuleDependency(String relativeModulePath, Dependency fallback) {
 
@@ -28,10 +30,12 @@ public record InternalModuleDependency(String relativeModulePath, Dependency fal
 
     private static final Map<InternalModuleDependency, NonEmptySet<File>> cachedDependencies = new java.util.concurrent.ConcurrentHashMap<>();
 
+    @SuppressWarnings("doclint:accessibility,missing")
     public NonEmptySet<File> resolve() {
         return resolve(mavenResolver);
     }
 
+    @SuppressWarnings("doclint:accessibility,missing")
     public NonEmptySet<File> resolve(Function<InternalModuleDependency, NonEmptySet<File>> resolver) {
         Objects.requireNonNull(resolver);
         var files = cachedDependencies.computeIfAbsent(this, d -> {

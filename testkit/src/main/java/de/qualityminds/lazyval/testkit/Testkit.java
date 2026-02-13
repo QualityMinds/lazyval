@@ -1,30 +1,51 @@
 package de.qualityminds.lazyval.testkit;
 
+import de.qualityminds.lazyval.testkit.internal.toolchain.java.CompilerResult;
+import de.qualityminds.lazyval.testkit.internal.toolchain.java.CompilerSetup;
+import de.qualityminds.lazyval.testkit.internal.toolchain.kotlin.ToolchainResult;
+import de.qualityminds.lazyval.testkit.internal.toolchain.kotlin.ToolchainSetup;
 import de.qualityminds.lazyval.testkit.scenarios.Scenario;
 import de.qualityminds.lazyval.testkit.scenarios.ScenarioFactory;
-import de.qualityminds.lazyval.testkit.toolchain.java.CompilerResult;
-import de.qualityminds.lazyval.testkit.toolchain.java.CompilerSetup;
-import de.qualityminds.lazyval.testkit.toolchain.kotlin.ToolchainResult;
-import de.qualityminds.lazyval.testkit.toolchain.kotlin.ToolchainSetup;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Comparator;
+import java.util.Locale;
 import java.util.stream.Stream;
 
 import static org.eclipse.collections.impl.collector.Collectors2.toImmutableList;
 
+/**
+ * The entrypoint to the Testkit. It provides a typed and fluent API to configure a testcase which either runs
+ * Lazyvals Java annotation processor or the Kotlin KSP2 processor.
+ * <p>
+ * The testkit expects a folder and a {@link Scenario}.<br>
+ * The folder is used to set up a complete toolchain and is cleaned before execution. In general testframeworks
+ * provide a way to inject a temp-directory unique for each test which is what should be used.
+ *
+ * @param <S> scenario type used by either Java or Kotlin testkit
+ * @param <R> result type used by either Java or Kotlin testkit
+ */
 public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
+
+    private Testkit(){}
 
     /**
      * Runs the concrete Scenario on the given project directory.
+     * @param projectDir the project directory used to compile the scenario.
+     * @param scenario the scenario to run.
+     * @return the test result
      */
     public abstract R run(Path projectDir, S scenario);
 
     /**
+     * Builds and runs the given scenario factory on the given project directory.
      * Convenience method, not having to call build() on the scenario factory.
+     * @param projectDir the project directory used to compile the scenario.
+     * @param scenarioFactory the scenario to run.
+     * @return the test result
      */
     public R run(Path projectDir, ScenarioFactory<S> scenarioFactory){
         return run(projectDir, scenarioFactory.build());
@@ -32,6 +53,8 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
 
     /**
      * Prepares the testkit to be run with the Java annotation processor.
+     * @return a Java-testkit instance
+     * @throws IllegalStateException if Lazyvals Java annotation processor is not on the classpath.
      */
     public static Testkit.Java java(){
         if(isProcessorMissingOnClasspath("de.qualityminds.lazyval.processor.LazyvalProcessor")){
@@ -42,6 +65,8 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
 
     /**
      * Prepares the testkit to be run with the KSP2 processor.
+     * @return a Kotlin-testkit instance
+     * @throws IllegalStateException if Lazyvals KSP2 processor is not on the classpath.
      */
     public static Testkit.Kotlin kotlin(){
         if(isProcessorMissingOnClasspath("de.qualityminds.lazyval.ksp.LazyvalSymbolProcessor")){
@@ -59,7 +84,7 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         }
     }
 
-    public static void cleanProjectDir(Path directory) {
+    private static void cleanProjectDir(Path directory) {
         if (!Files.exists(directory)) {
             return;
         }
@@ -79,7 +104,25 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         }
     }
 
+    /**
+     * Kotlin-specific testkit which accepts only {@link Scenario.Kotlin} scenarios and returns {@link Testresult.Kotlin}.
+     * <p>
+     * Runs KSP2 and the Kotlin compiler with dependencies configured within the scenario, collects compiler output,
+     * and transforms the result to one of the following results:
+     * <ul>
+     *     <li>{@link Testresult.Kotlin.Success}</li>
+     *     <li>{@link Testresult.Kotlin.SuccessWithWarnings}</li>
+     *     <li>{@link Testresult.Kotlin.NothingGenerated}</li>
+     *     <li>{@link Testresult.Kotlin.Failure}</li>
+     * </ul>
+     * <p>
+     * In contrast to Javac, which includes the annotation processing, KSP2 is not a Kotlin compiler plugin and runs
+     * in a separate process before the actual compilation.
+     * Hence, the testkit also runs the compiler to check if the generated code is correct.
+     */
     public static final class Kotlin extends Testkit<Scenario.Kotlin, Testresult.Kotlin> {
+
+        private Kotlin(){}
 
         @Override
         public Testresult.Kotlin run(Path projectDir, Scenario.Kotlin scenario) {
@@ -123,7 +166,21 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
 
     }
 
+    /**
+     * Java-specific testkit which accepts only {@link Scenario.Java} scenarios and returns {@link Testresult.Java}.
+     * <p>
+     * Runs Javac with dependencies configured within the scenario, collects compiler output, and transforms the result
+     * to one of the following results:
+     * <ul>
+     *     <li>{@link Testresult.Java.Success}</li>
+     *     <li>{@link Testresult.Java.SuccessWithWarnings}</li>
+     *     <li>{@link Testresult.Java.NothingGenerated}</li>
+     *     <li>{@link Testresult.Java.Failure}</li>
+     * </ul>
+     */
     public static final class Java extends Testkit<Scenario.Java, Testresult.Java> {
+
+        private Java(){}
 
         @Override
         public Testresult.Java run(Path projectDir, Scenario.Java scenario) {

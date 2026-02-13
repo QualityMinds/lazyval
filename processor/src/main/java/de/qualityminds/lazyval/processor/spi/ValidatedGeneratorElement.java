@@ -8,6 +8,7 @@ import javax.lang.model.type.TypeMirror;
 import java.util.Optional;
 
 @ApiStatus.Experimental
+@SuppressWarnings("doclint:accessibility,missing") // remove once api stable
 public sealed interface ValidatedGeneratorElement permits RecordElement, ObjectElement {
     TypeElement element();
 

@@ -16,6 +16,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * A JSR 269 annotation Processor which delegates domain-primitives to code generators provided via SPI.
+ * <p>
+ * A domain-primitive is a class annotated with {@link de.qualityminds.lazyval.LazyValue} or configured
+ * via the processor option {@code lazyval.values}
+ */
 @SupportedAnnotationTypes("de.qualityminds.lazyval.LazyValue")
 public class LazyvalProcessor extends AbstractProcessor {
 
@@ -39,6 +45,11 @@ public class LazyvalProcessor extends AbstractProcessor {
         } finally {
             Thread.currentThread().setContextClassLoader(originalContextClassLoader);
         }
+    }
+
+    @SuppressWarnings("doclint:accessibility,missing")
+    public LazyvalProcessor() {
+        // must be public for ServiceLoader
     }
 
     /**

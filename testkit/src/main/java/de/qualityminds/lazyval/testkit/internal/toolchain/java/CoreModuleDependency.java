@@ -1,9 +1,9 @@
-package de.qualityminds.lazyval.testkit.toolchain.java;
+package de.qualityminds.lazyval.testkit.internal.toolchain.java;
 
 import de.qualityminds.lazyval.collections.NonEmptySet;
-import de.qualityminds.lazyval.testkit.Versions;
 import de.qualityminds.lazyval.testkit.dependencies.Dependency;
 import de.qualityminds.lazyval.testkit.dependencies.InternalModuleDependency;
+import de.qualityminds.lazyval.testkit.internal.Versions;
 
 import java.io.File;
 

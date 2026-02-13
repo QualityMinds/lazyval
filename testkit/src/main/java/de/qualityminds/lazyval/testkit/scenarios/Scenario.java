@@ -9,14 +9,39 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * A Scenario defines a testcase for a Lazyval SPI provider. Depending on the chosen testkit type (Java or Kotlin),
+ * it provides a typed descriptor which contains all required and optional information needed by the internal
+ * toolchains to run it.
+ */
 public sealed interface Scenario {
 
     /**
      * The name of the source file this scenario is based on.
+     * @return the name of the source file
      */
     String name();
 
+    /**
+     * Java-specific Scenario to be used in {@link de.qualityminds.lazyval.testkit.Testkit.Java} instance.
+     * @param desc the descriptor containing required and optional information
+     * @see #of(String, String...) factory method "of" for convenient creation
+     */
     record Java(Scenario.Descriptor desc) implements Scenario {
+
+        /**
+         * {@inheritDoc}
+         */
+        public String name(){
+            return desc.source().getName();
+        }
+
+        /**
+         * Creates a scenario factory for testing Java annotation processing.
+         * @param source the source file to be tested, not null.
+         * @param additionalSources additional source files needed to compile the test `source`. Can be omitted.
+         * @return scenario factory for further configuration
+         */
         public static ScenarioFactory<Java> of(String source, String... additionalSources){
             return new ScenarioFactory<>(Java::new, source, additionalSources);
         }
@@ -106,13 +131,31 @@ public sealed interface Scenario {
          * All predefined sample scenarios, without any dependencies.
          */
         public static final List<ScenarioFactory<Java>> All = List.of(Isbn, Quantity, ProductId);
+    }
 
+    /**
+     * Kotlin-specific Scenario to be used in {@link de.qualityminds.lazyval.testkit.Testkit.Kotlin} instance.
+     * @param desc the descriptor containing required and optional information
+     * @see #of(String, String...) factory method "of" for convenient creation
+     */
+    record Kotlin(Scenario.Descriptor desc) implements Scenario {
+
+        /**
+         * {@inheritDoc}
+         */
         public String name(){
             return desc.source().getName();
         }
-    }
 
-    record Kotlin(Scenario.Descriptor desc) implements Scenario {
+        /**
+         * Creates a scenario factory for testing Java annotation processing.
+         * @param source the source file to be tested, not null.
+         * @param additionalSources additional source files needed to compile the test `source`. Can be omitted.
+         * @return scenario factory for further configuration
+         */
+        public static ScenarioFactory<Kotlin> of(String source, String... additionalSources){
+            return new ScenarioFactory<>(Kotlin::new, source, additionalSources);
+        }
 
         /**
          * Default case for a class with a immutable property.
@@ -197,23 +240,15 @@ public sealed interface Scenario {
          * All predefined sample scenarios, without any dependencies.
          */
         public static final List<ScenarioFactory<Kotlin>> All = List.of(Isbn, Quantity, NullableQuantity, ProductId);
-
-        public static ScenarioFactory<Kotlin> of(String source, String... additionalSources){
-            return new ScenarioFactory<>(Kotlin::new, source, additionalSources);
-        }
-
-        public String name(){
-            return desc.source().getName();
-        }
     }
 
 
     /**
-     * TODO
+     * Describes required and optional information for a scenario.
      * @param source the actual source file to process.
-     * @param additionalSources any other source file relevant for the compilation (imports).
-     * @param dependencies will be added to the classpath of the temporary project
-     * @param disabledGenerators will be added as processor-option "lazyval.disabledGenerators" to the compilation.
+     * @param additionalSources any other source file relevant for the compilation (imports). Optional but must not contain null elements.
+     * @param dependencies will be added to the classpath of the temporary project. Optional but must not contain null elements.
+     * @param disabledGenerators will be added as a processor-option "lazyval.disabledGenerators" to the compilation. Optional but must not contain null elements.
      */
     record Descriptor(
             File source,
@@ -221,12 +256,25 @@ public sealed interface Scenario {
             ImmutableCollection<Dependency> dependencies,
             ImmutableCollection<String> disabledGenerators){
 
+        /**
+         * Creates a new Descriptor instance.
+         * @param source the actual source file to process.
+         * @param additionalSources any other source file relevant for the compilation (imports). Optional but must not contain null elements.
+         * @param dependencies will be added to the classpath of the temporary project. Optional but must not contain null elements.
+         * @param disabledGenerators will be added as a processor-option "lazyval.disabledGenerators" to the compilation. Optional but must not contain null elements.
+         */
         public Descriptor {
             Objects.requireNonNull(source);
             Objects.requireNonNull(dependencies);
             Objects.requireNonNull(additionalSources);
             for (File f : additionalSources) {
                 Objects.requireNonNull(f, "additional-sources cannot contain null elements");
+            }
+            for (Dependency d : dependencies) {
+                Objects.requireNonNull(d, "dependencies cannot contain null elements");
+            }
+            for (String disabledGenerator : disabledGenerators) {
+                Objects.requireNonNull(disabledGenerator, "disabled-generators cannot contain null elements");
             }
         }
     }

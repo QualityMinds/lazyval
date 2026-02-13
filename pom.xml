@@ -62,6 +62,7 @@
         <version.plugin.source>3.4.0</version.plugin.source>
         <version.plugin.release>3.3.1</version.plugin.release>
         <version.plugin.publish>0.10.0</version.plugin.publish>
+        <version.plugin.dokka>2.1.0</version.plugin.dokka>
         <version.plugin.ksp2-3rd-party>0.2.0</version.plugin.ksp2-3rd-party>
     </properties>
 
@@ -150,6 +151,25 @@
                             <id>compile</id>
                             <goals>
                                 <goal>compile</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.jetbrains.dokka</groupId>
+                    <artifactId>dokka-maven-plugin</artifactId>
+                    <version>${version.plugin.dokka}</version>
+                    <executions>
+                        <execution>
+                            <phase>package</phase>
+                            <goals>
+                                <!--
+                                    The javadocJar goal uses KotlinAsJava Dokka plugin, which is still experimental and
+                                    translates Kotlin signatures to Java signatures.
+                                    This is required to package a `-javadoc.jar` artifact, which is a requirement
+                                    to publish on Maven Central.
+                                -->
+                                <goal>javadocJar</goal>
                             </goals>
                         </execution>
                     </executions>

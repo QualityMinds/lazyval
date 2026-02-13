@@ -7,6 +7,9 @@ import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+/**
+ * Common properties for all SPI generators.
+ */
 @ApiStatus.Experimental
 public sealed interface SpiGenerator permits SingleFileGenerator, FilePerTypeGenerator {
 
@@ -17,6 +20,7 @@ public sealed interface SpiGenerator permits SingleFileGenerator, FilePerTypeGen
      *     <i>"lazyval.generatorId.optionA"</i> or to disable the generator via the option
      *     <i>"lazyval.disabledGenerators"</i>.
      * </p>
+     * @return the generator id
      */
     String generatorId();
 
@@ -37,11 +41,15 @@ public sealed interface SpiGenerator permits SingleFileGenerator, FilePerTypeGen
 
     /**
      * Settings provided by the user for this generator.
+     * <p>
      * The map will only contain keys which have the current generators id infixed, e.g. *"lazyval.generatorId.optionA"*
+     * @param options the wrapped options map
      */
     record Settings(Map<String, String> options) {
         /**
          * Convenience method to retrieve a single config option.
+         * @param key the key of the option to retrieve
+         * @return the value of the option or empty if the option is not set.
          */
         public Optional<String> get(String key){
             return Optional.ofNullable(options.get(key));
@@ -52,6 +60,8 @@ public sealed interface SpiGenerator permits SingleFileGenerator, FilePerTypeGen
     /**
      * Split the elements FQN into its constituents and returns the substring before the "layer-markers",
      * which will be the root package. If nothing matches, the whole FQN will be returned.
+     * @param element the element to extract the root package from
+     * @return the package until the layer-markers
      */
     default String extractRootPackage(TypeElement element) {
         Set<String> layerPackages = Set.of("boundary", "control", "entity", "application", "infrastructure", "domain");

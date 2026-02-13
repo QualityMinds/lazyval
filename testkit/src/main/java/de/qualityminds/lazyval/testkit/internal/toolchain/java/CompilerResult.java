@@ -1,4 +1,4 @@
-package de.qualityminds.lazyval.testkit.toolchain.java;
+package de.qualityminds.lazyval.testkit.internal.toolchain.java;
 
 import org.eclipse.collections.api.list.ImmutableList;
 
