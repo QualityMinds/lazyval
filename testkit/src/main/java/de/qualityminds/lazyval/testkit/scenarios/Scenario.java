@@ -32,6 +32,7 @@ public sealed interface Scenario {
         /**
          * {@inheritDoc}
          */
+        @Override
         public String name(){
             return desc.source().getName();
         }
@@ -143,6 +144,7 @@ public sealed interface Scenario {
         /**
          * {@inheritDoc}
          */
+        @Override
         public String name(){
             return desc.source().getName();
         }
