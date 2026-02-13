@@ -1,0 +1,61 @@
+name: 'Verify CI Passed'
+description: 'Check that CI workflow passed for the current commit'
+inputs:
+  workflow-name:
+    description: 'Name of the CI workflow to check'
+    required: false
+    default: 'CI'
+  branch:
+    description: 'Branch to check CI status on'
+    required: false
+    default: 'main'
+outputs:
+  ci-run-id:
+    description: 'The workflow run ID of the successful CI run'
+    value: ${{ steps.check.outputs.run-id }}
+  ci-run-url:
+    description: 'URL to the successful CI run'
+    value: ${{ steps.check.outputs.run-url }}
+runs:
+  using: 'composite'
+  steps:
+    - name: Check CI status
+      id: check
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const workflowName = '${{ inputs.workflow-name }}';
+          const branch = '${{ inputs.branch }}';
+
+          const { data: workflows } = await github.rest.actions.listWorkflowRunsForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            branch: branch,
+            per_page: 100
+          });
+
+          const ciRuns = workflows.workflow_runs.filter(run =>
+            run.name === workflowName &&
+            run.head_sha === context.sha
+          );
+
+          if (ciRuns.length === 0) {
+            core.setFailed(`No ${workflowName} run found for current commit (${context.sha}). Please wait for CI to complete.`);
+            return;
+          }
+
+          const latestCiRun = ciRuns[0];
+
+          if (latestCiRun.status !== 'completed') {
+            core.setFailed(`${workflowName} is still running (${latestCiRun.status}). Please wait for completion.`);
+            return;
+          }
+
+          if (latestCiRun.conclusion !== 'success') {
+            core.setFailed(`${workflowName} failed with status: ${latestCiRun.conclusion}. Cannot proceed.`);
+            return;
+          }
+
+          core.info(`✅ ${workflowName} passed for current commit.`);
+          core.setOutput('run-id', latestCiRun.id);
+          core.setOutput('run-url', latestCiRun.html_url);

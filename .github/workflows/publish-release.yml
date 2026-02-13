@@ -14,47 +14,18 @@ permissions:
   contents: write
   actions: read
 
-jobs:
+env:
+  JAVA_VERSION: '25'
+  JAVA_DISTRIBUTION: 'temurin'
 
+jobs:
   verify-ci:
     name: Verify latest commit on main was successful
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Check CI status
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const { data: workflows } = await github.rest.actions.listWorkflowRunsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              branch: 'main',
-              per_page: 100
-            });
-
-            const ciRuns = workflows.workflow_runs.filter(run => 
-              run.name === 'CI' && 
-              run.head_sha === context.sha
-            );
-
-            if (ciRuns.length === 0) {
-              core.setFailed('No CI run found for current commit. Please wait for CI to complete.');
-              return;
-            }
-
-            const latestCiRun = ciRuns[0];
-
-            if (latestCiRun.status !== 'completed') {
-              core.setFailed(`CI is still running (${latestCiRun.status}). Please wait for completion.`);
-              return;
-            }
-
-            if (latestCiRun.conclusion !== 'success') {
-              core.setFailed(`CI failed with status: ${latestCiRun.conclusion}. Cannot proceed with release.`);
-              return;
-            }
-
-            core.info('✅ CI passed for current commit. Proceeding with release.');
+      - name: Verify CI passed
+        uses: ./.github/actions/verify-ci-passed
 
   release:
     name: Perform release
@@ -65,11 +36,11 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up JDK
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v5
         with:
-          java-version: '25'
-          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'maven'
           server-id: central
           server-username: MAVEN_USERNAME
@@ -84,14 +55,14 @@ jobs:
 
       - name: Maven Release
         run: |
-          RELEASE_ARGS=""
+          RELEASE_ARGS="-Darguments=-DskipTests"
           if [ -n "${{ github.event.inputs.releaseVersion }}" ]; then
             RELEASE_ARGS="$RELEASE_ARGS -DreleaseVersion=${{ github.event.inputs.releaseVersion }}"
           fi
           if [ -n "${{ github.event.inputs.developmentVersion }}" ]; then
             RELEASE_ARGS="$RELEASE_ARGS -DdevelopmentVersion=${{ github.event.inputs.developmentVersion }}"
           fi
-          
+
           ./mvnw --batch-mode --no-transfer-progress \
             release:prepare release:perform \
             $RELEASE_ARGS

@@ -5,21 +5,31 @@ on:
 
 permissions:
   contents: read
+  actions: read
+
+env:
+  JAVA_VERSION: '25'
+  JAVA_DISTRIBUTION: 'temurin'
 
 jobs:
-  build-and-test:
-    uses: ./.github/workflows/maven.yml
-
-  publish:
-    needs: build-and-test
+  verify-ci:
+    name: Verify latest commit on main was successful
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK
+      - name: Verify CI passed
+        uses: ./.github/actions/verify-ci-passed
+
+  publish:
+    needs: verify-ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v5
         with:
-          java-version: '25'
-          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'maven'
           server-id: central
           server-username: CENTRAL_USERNAME

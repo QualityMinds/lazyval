@@ -6,21 +6,26 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+
 permissions:
   contents: read
 
+env:
+  JAVA_VERSION_BUILD: '25'
+  JAVA_VERSION_EXAMPLES: '17'
+  JAVA_DISTRIBUTION: 'temurin'
+
 jobs:
-  name: Build & Test
   build:
+    name: Build & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
-          # we compile with 25 but run all samples with 17
-          java-version: '25'
-          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION_BUILD }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: maven
       - name: Build and Install to Local Repository
         run: mvn --no-snapshot-updates --no-transfer-progress --batch-mode install --file pom.xml
@@ -37,11 +42,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'maven'
       - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
@@ -68,11 +73,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'maven'
       - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
@@ -99,11 +104,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'gradle'
       - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
@@ -127,11 +132,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
       - uses: coursier/cache-action@v7
       - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
@@ -160,11 +165,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'maven'
       - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
@@ -192,11 +197,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'maven'
       - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
@@ -223,11 +228,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'gradle'
       - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
@@ -251,11 +256,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
       - uses: coursier/cache-action@v7
       - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
@@ -284,11 +289,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
       - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -307,11 +312,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 17
+      - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
       - name: Download Lazyval Artifacts
         uses: actions/download-artifact@v4
         with:
