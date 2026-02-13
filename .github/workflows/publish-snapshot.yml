@@ -10,7 +10,7 @@ jobs:
   build-and-test:
     uses: ./.github/workflows/maven.yml
 
-  deploy:
+  publish:
     needs: build-and-test
     runs-on: ubuntu-latest
     steps:
@@ -25,10 +25,14 @@ jobs:
           server-username: CENTRAL_USERNAME
           server-password: CENTRAL_TOKEN
           gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
-          gpg-passphrase: GPG_PASSPHRASE
+          gpg-passphrase: MAVEN_GPG_PASSPHRASE
         env:
           CENTRAL_USERNAME: ${{ secrets.MAVEN_USERTOKEN_USERNAME }}
           CENTRAL_TOKEN: ${{ secrets.MAVEN_USERTOKEN_PASSPHRASE }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Deploy to Maven
-        run: ./mvnw -DskipTest -Ppublish deploy
+        run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode -DskipTest -Ppublish deploy
+        env:
+          CENTRAL_USERNAME: ${{ secrets.MAVEN_USERTOKEN_USERNAME }}
+          CENTRAL_TOKEN: ${{ secrets.MAVEN_USERTOKEN_PASSPHRASE }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
