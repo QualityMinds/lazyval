@@ -10,11 +10,12 @@ permissions:
   contents: read
 
 jobs:
+  name: Build & Test
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 25
+      - name: Set up JDK
         uses: actions/setup-java@v5
         with:
           # we compile with 25 but run all samples with 17
@@ -31,6 +32,7 @@ jobs:
           retention-days: 1
 
   examples-java-maven:
+    name: Java-Example - Maven
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -61,6 +63,7 @@ jobs:
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile
 
   examples-java-maven-4:
+    name: Java-Example - Maven 4
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -91,6 +94,7 @@ jobs:
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile -f pom-maven-4.xml
 
   examples-java-gradle:
+    name: Java-Example - Gradle
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -118,6 +122,7 @@ jobs:
         run: gradle build
 
   examples-java-mill:
+    name: Java-Example - Mill
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -150,6 +155,7 @@ jobs:
         run: ./mill --no-daemon __.compile
 
   examples-kotlin-maven:
+    name: Kotlin-Example - Maven
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -181,6 +187,7 @@ jobs:
 
   examples-kotlin-maven-4:
     if: false # disabled due to maven-compiler-plugin 4-beta not seeing compiled kotlin classes
+    name: Kotlin-Example - Maven 4
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -211,6 +218,7 @@ jobs:
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile -f pom-maven-4.xml
 
   examples-kotlin-gradle:
+    name: Kotlin-Example - Gradle
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -238,6 +246,7 @@ jobs:
         run: gradle build
 
   examples-kotlin-mill:
+    name: Kotlin-Example - Mill
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -270,6 +279,7 @@ jobs:
         run: ./mill --no-daemon __.compile
 
   examples-java-spi:
+    name: Java-Example - SPI-Dev
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -292,6 +302,7 @@ jobs:
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode compile
 
   examples-kotlin-spi:
+    name: Kotlin-Example - SPI-Dev
     needs: build
     runs-on: ubuntu-latest
     steps:

@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up JDK 25
+      - name: Set up JDK
         uses: actions/setup-java@v5
         with:
           java-version: '25'
@@ -30,8 +30,9 @@ jobs:
           CENTRAL_USERNAME: ${{ secrets.MAVEN_USERTOKEN_USERNAME }}
           CENTRAL_TOKEN: ${{ secrets.MAVEN_USERTOKEN_PASSPHRASE }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
-      - name: Deploy to Maven
-        run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode -DskipTest -Ppublish deploy
+
+      - name: Publish to Maven Central
+        run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode -DskipTests -Ppublish deploy
         env:
           CENTRAL_USERNAME: ${{ secrets.MAVEN_USERTOKEN_USERNAME }}
           CENTRAL_TOKEN: ${{ secrets.MAVEN_USERTOKEN_PASSPHRASE }}
