@@ -20,19 +20,21 @@ env:
 
 jobs:
   verify-ci:
-    name: Verify latest commit on main was successful
+    name: Verify Main
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Verify CI passed
         uses: ./.github/actions/verify-ci-passed
 
   release:
-    name: Perform release
+    name: Release & Publish
     needs: verify-ci
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -53,7 +55,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Maven Release
+      - name: Run Maven Release and Publish to Maven Central
         run: |
           RELEASE_ARGS="-Darguments=-DskipTests"
           if [ -n "${{ github.event.inputs.releaseVersion }}" ]; then

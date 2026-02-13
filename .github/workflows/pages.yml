@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   build:
+    name: Build Docs
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -38,6 +39,7 @@ jobs:
           path: build/site
 
   deploy:
+    name: Deploy Docs
     needs: build
     runs-on: ubuntu-latest
     permissions:

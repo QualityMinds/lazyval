@@ -13,18 +13,21 @@ env:
 
 jobs:
   verify-ci:
-    name: Verify latest commit on main was successful
+    name: Verify Main
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Verify CI passed
         uses: ./.github/actions/verify-ci-passed
 
   publish:
+    name: Publish Snapshot
     needs: verify-ci
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Set up JDK ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v5
         with:
