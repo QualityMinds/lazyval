@@ -37,33 +37,36 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <version.java>17</version.java>
-        <version.groovy>5.0.4</version.groovy>
-        <version.spock>2.4-groovy-5.0</version.spock>
-        <version.slf4j>2.0.17</version.slf4j>
-        <version.jspecify>1.0.0</version.jspecify>
-        <version.kotlin>2.3.0</version.kotlin>
-        <version.ksp>2.3.4</version.ksp>
-        <version.kotest>6.0.3</version.kotest>
-        <version.javapoet>0.10.0</version.javapoet>
-        <version.kotlinpoet>2.2.0</version.kotlinpoet>
-        <version.jetbrains-annotations>26.0.2-1</version.jetbrains-annotations>
+        <!-- dependencies -->
         <version.eclipse-collections>13.0.0</version.eclipse-collections>
-        <version.plugin.compiler>3.14.1</version.plugin.compiler>
-        <version.plugin.surefire>3.5.4</version.plugin.surefire>
-        <version.plugin.failsafe>3.5.4</version.plugin.failsafe>
-        <version.plugin.gmavenplus>4.2.1</version.plugin.gmavenplus>
-        <version.plugin.gpg>3.2.8</version.plugin.gpg>
+        <version.groovy>5.0.4</version.groovy>
+        <version.javapoet>0.10.0</version.javapoet>
+        <version.jetbrains-annotations>26.0.2-1</version.jetbrains-annotations>
+        <version.jspecify>1.0.0</version.jspecify>
+        <version.kotest>6.0.3</version.kotest>
+        <version.kotlin>2.3.0</version.kotlin>
+        <version.kotlinpoet>2.2.0</version.kotlinpoet>
+        <version.ksp>2.3.4</version.ksp>
+        <version.slf4j>2.0.17</version.slf4j>
+        <version.spock>2.4-groovy-5.0</version.spock>
+        <!-- plugins -->
         <version.plugin.build-helper>3.6.1</version.plugin.build-helper>
-        <version.plugin.templating>3.1.0</version.plugin.templating>
-        <version.plugin.shade>3.6.1</version.plugin.shade>
-        <version.plugin.license>2.7.1</version.plugin.license>
-        <version.plugin.flatten>1.7.3</version.plugin.flatten>
-        <version.plugin.javadoc>3.12.0</version.plugin.javadoc>
-        <version.plugin.source>3.4.0</version.plugin.source>
-        <version.plugin.release>3.3.1</version.plugin.release>
-        <version.plugin.publish>0.10.0</version.plugin.publish>
+        <version.plugin.compiler>3.14.1</version.plugin.compiler>
         <version.plugin.dokka>2.1.0</version.plugin.dokka>
         <version.plugin.exec>3.6.3</version.plugin.exec>
+        <version.plugin.failsafe>3.5.4</version.plugin.failsafe>
+        <version.plugin.flatten>1.7.3</version.plugin.flatten>
+        <version.plugin.gmavenplus>4.2.1</version.plugin.gmavenplus>
+        <version.plugin.gpg>3.2.8</version.plugin.gpg>
+        <version.plugin.jar>3.5.0</version.plugin.jar>
+        <version.plugin.javadoc>3.12.0</version.plugin.javadoc>
+        <version.plugin.license>2.7.1</version.plugin.license>
+        <version.plugin.publish>0.10.0</version.plugin.publish>
+        <version.plugin.release>3.3.1</version.plugin.release>
+        <version.plugin.shade>3.6.1</version.plugin.shade>
+        <version.plugin.source>3.4.0</version.plugin.source>
+        <version.plugin.surefire>3.5.4</version.plugin.surefire>
+        <version.plugin.templating>3.1.0</version.plugin.templating>
         <version.plugin.ksp2-3rd-party>0.2.0</version.plugin.ksp2-3rd-party>
     </properties>
 
@@ -256,6 +259,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-jar-plugin</artifactId>
+                    <version>${version.plugin.jar}</version>
                     <configuration>
                         <!-- for some reason the license-plugin is generating the files twice, we only want to keep
                         the ones in META-INF -->

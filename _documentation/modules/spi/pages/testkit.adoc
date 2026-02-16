@@ -29,8 +29,7 @@ The testkit ships a collection of predefined valid scenarios for both Java and K
 TIP: in general, SPI providers should test against `Scenario.Java.All` and `Scenario.Kotlin.All` to make sure the
 generator can handle all cases Lazyval will throw at it.
 
-Important: the predefined scenarios need still to be configured with the required `Dependency` in order to yield
-generator artifacts.
+IMPORTANT: the predefined scenarios need still to be configured with the required generator `Dependency` in order to yield generator artifacts.
 
 == Verifying Results
 
@@ -52,7 +51,7 @@ result shouldEqual Testresult.Kotlin.Success("LazyvalMapper.java")
 
 == Data-Driven Samples
 
-See the xref:spi:testkit-spock.adoc[Spock Example] or xref:spi:testkit-kotest.adoc[Kotest Example] for how to setup
+See the xref:spi:testkit-spock.adoc[Spock Example] or xref:spi:testkit-kotest.adoc[Kotest Example] for how to set up
 a data-driven test scenario using the predefined scenarios.
 
 == Logging
@@ -65,3 +64,35 @@ since the testkit only depends on `slf4j-api`.
 
 Eclipse Collections are used throughout the testkit since they provide stronger guarantees compared to
 `Collections.unmodifiableXXX` which also aligns better with how Kotlin treats Collections.
+
+== Dependency Resolution
+
+CAUTION: The testkit mimics Maven when downloading and caching dependencies, but it does not read any Maven-specific
+configuration files (settings.xml, pom.xml).
+
+By default, dependencies are downloaded from `https://repo1.maven.org/maven2/` and stored at `<user-home>/.m2/repository`.
+
+This might not work in corporate environments which might block direct access to Maven Central or use an internal
+Registry (Nexus). Or users might have reconfigured their cache-location.
+In this case you can override the defaults via JVM system properties:
+
+|===
+|Property |Description
+
+|`lazyval.testkit.maven-repo`
+|Absolute path to the folder where the dependencies should be cached, (usually Maven cache location)
+
+|`lazyval.testkit.maven-mirror`
+|Base-URL of the repository instance or mirror to be used. Note that this must provide the `maven2` url path to resolve
+dependencies like `https://acme.com/maven2/<groupid>/<artifactid>/<version>`
+
+|===
+
+=== Repository Authentication
+
+In case your repository server does not allow anonymous access, you can use Basic-Auth by specifying the following
+environment variables:
+
+* `LAZYVAL_TESTKIT_MIRROR_USERNAME`
+* `LAZYVAL_TESTKIT_MIRROR_PASSWORD`
+

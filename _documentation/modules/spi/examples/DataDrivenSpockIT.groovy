@@ -10,22 +10,23 @@ import java.nio.file.Path
 
 class DataDrivenSpockIT extends Specification {
 
-    public static final Dependency DependencyMapstruct = new Dependency("org.mapstruct", "mapstruct", "1.6.3")
+    public static final Dependency DependencyNeededByGenerator = new Dependency("groupdId", "artifactId", "version")
 
     @TempDir()
     Path tempDir
 
-    @Unroll("#scenario.name() successfully generates LazyvalMapper")
+    @Unroll("#scenario.name() successfully generates #expectedFile")
     void "Generator working as expected for all predefined scenarios"(){
         given:
         def kit = Testkit.java()
-        scenario.withDependencies(DependencyMapstruct) // 2.
+        scenario.withDependencies(DependencyNeededByGenerator) // 2.
 
         expect:
-        kit.run(tempDir, scenario) == expected // 4.
+        kit.run(tempDir, scenario) == expected // 5.
 
         where:
         scenario << Scenario.Java.All // 1.
-        expected = new Testresult.Java.Success("LazyvalMapper.java") // 3.
+        expectedFile = scenario.name().replace(".java", "Gen.java") // 3.
+        expected = new Testresult.Java.Success(expectedFile) // 4.
     }
 }

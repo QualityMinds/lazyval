@@ -1,6 +1,6 @@
-package de.qualityminds.lazval.testkit
+package de.qualityminds.lazyval.testkit
 
-import de.qualityminds.lazyval.testkit.Testkit
+
 import spock.lang.Specification
 
 /**
