@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+#
+# Updates the lazyval version in all example build files and the CI workflow.
+# Usage: ./update-lazyval-version.sh <new-version>
+#
+set -euo pipefail
+
+VERSION="${1:?Usage: $0 <new-version>}"
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+
+echo "Updating lazyval version to: $VERSION"
+
+# --- GitHub Actions: build-and-test.yml ---
+# Updates: VERSION_LAZYVAL: '<version>'
+sed -i "s|VERSION_LAZYVAL: '.*'|VERSION_LAZYVAL: '${VERSION}'|" \
+  "$PROJECT_ROOT/.github/workflows/build-and-test.yml"
+echo "  ✔ .github/workflows/build-and-test.yml"
+
+# --- Maven (pom.xml) ---
+# Updates: <version.lazyval>...</version.lazyval>
+find "$PROJECT_ROOT/examples" -name "pom.xml" -exec \
+  sed -i "s|<version.lazyval>.*</version.lazyval>|<version.lazyval>${VERSION}</version.lazyval>|" {} +
+echo "  ✔ examples/**/pom.xml"
+
+# --- Maven 4 (pom-maven-4.xml) ---
+# Updates: <version.lazyval>...</version.lazyval>
+find "$PROJECT_ROOT/examples" -name "pom-maven-4.xml" -exec \
+  sed -i "s|<version.lazyval>.*</version.lazyval>|<version.lazyval>${VERSION}</version.lazyval>|" {} +
+echo "  ✔ examples/**/pom-maven-4.xml"
+
+# --- Mill (build.mill) ---
+# Updates: val lazyval = sys.props.getOrElse("version.lazyval", "...")
+find "$PROJECT_ROOT/examples" -name "build.mill" -exec \
+  sed -i "s|getOrElse(\"version.lazyval\", \".*\")|getOrElse(\"version.lazyval\", \"${VERSION}\")|" {} +
+echo "  ✔ examples/**/build.mill"
+
+# --- Gradle (build.gradle.kts) ---
+# Updates: ... ?: "..."
+find "$PROJECT_ROOT/examples" -name "build.gradle.kts" -exec \
+  sed -i "s|as String? ?: \".*\"|as String? ?: \"${VERSION}\"|" {} +
+echo "  ✔ examples/**/build.gradle.kts"
+
+echo "Done."

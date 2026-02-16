@@ -63,6 +63,7 @@
         <version.plugin.release>3.3.1</version.plugin.release>
         <version.plugin.publish>0.10.0</version.plugin.publish>
         <version.plugin.dokka>2.1.0</version.plugin.dokka>
+        <version.plugin.exec>3.6.3</version.plugin.exec>
         <version.plugin.ksp2-3rd-party>0.2.0</version.plugin.ksp2-3rd-party>
     </properties>
 
@@ -290,17 +291,6 @@
                         </execution>
                     </executions>
                 </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-release-plugin</artifactId>
-                    <version>${version.plugin.release}</version>
-                    <configuration>
-                        <autoVersionSubmodules>true</autoVersionSubmodules>
-                        <releaseProfiles>publish</releaseProfiles>
-                        <tagNameFormat>@{project.version}</tagNameFormat>
-                        <goals>deploy</goals>
-                    </configuration>
-                </plugin>
             </plugins>
         </pluginManagement>
     </build>
@@ -333,6 +323,37 @@
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>true</autoPublish>
                         </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-release-plugin</artifactId>
+                        <version>${version.plugin.release}</version>
+                        <configuration>
+                            <autoVersionSubmodules>true</autoVersionSubmodules>
+                            <releaseProfiles>publish</releaseProfiles>
+                            <tagNameFormat>@{project.version}</tagNameFormat>
+                            <goals>deploy</goals>
+                            <completionGoals>exec:exec@update-ci-version</completionGoals>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>${version.plugin.exec}</version>
+                        <executions>
+                            <execution>
+                                <id>update-ci-version</id>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>${project.basedir}/update-lazyval-version.sh</executable>
+                                    <arguments>
+                                        <argument>${project.version}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>

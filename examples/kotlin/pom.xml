@@ -14,7 +14,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <kotlin.version>2.3.0</kotlin.version>
         <mapstruct.version>1.6.3</mapstruct.version>
-        <lazyval.version>0.1.0-SNAPSHOT</lazyval.version>
+        <version.lazyval>0.1.0</version.lazyval>
     </properties>
 
     <!-- tag::docu[] -->
@@ -22,7 +22,7 @@
         <dependency>
             <groupId>de.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
-            <version>${lazyval.version}</version>
+            <version>${version.lazyval}</version>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -87,7 +87,7 @@
                     <dependency>
                         <groupId>de.qualityminds.lazyval</groupId>
                         <artifactId>lazyval-ksp</artifactId>
-                        <version>${lazyval.version}</version>
+                        <version>${version.lazyval}</version>
                     </dependency>
                 </dependencies>
                 <configuration>
