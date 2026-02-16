@@ -1,6 +1,7 @@
 package de.qualityminds.lazyval.testkit.dependencies;
 
 import de.qualityminds.lazyval.collections.NonEmptySet;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,10 +18,31 @@ import java.util.regex.Pattern;
  */
 class MavenResolver {
 
+    static final String PROP_RESOLVER_REPO = "lazyval.testkit.maven-repo";
+    static final String PROP_RESOLVER_MIRROR = "lazyval.testkit.maven-mirror";
+    static final String ENV_RESOLVER_MIRROR_USERNAME = "LAZYVAL_TESTKIT_MIRROR_USERNAME";
+    static final String ENV_MIRROR_PASSWORD = "LAZYVAL_TESTKIT_MIRROR_PASSWORD";
+
     private static final Logger logger = LoggerFactory.getLogger(MavenResolver.class);
+    private static final String userHome = System.getProperty("user.home");
+    private static final String defaultMavenRepo = userHome + "/.m2/repository";
+//    private static final File localRepo = new File(System.getProperty(PROP_RESOLVER_REPO, defaultMavenRepo));
+    private static final String defaultMavenMirror = "https://repo1.maven.org/maven2/";
+//    private static final String mavenMirror = ensureTrailingSlash(System.getProperty(PROP_RESOLVER_MIRROR, defaultMavenMirror));
+
+    private static File getLocalRepo() {
+        return new File(System.getProperty(PROP_RESOLVER_REPO, defaultMavenRepo));
+    }
+
+    private static String getMavenMirror() {
+        return ensureTrailingSlash(System.getProperty(PROP_RESOLVER_MIRROR, defaultMavenMirror));
+    }
+
+    private static String ensureTrailingSlash(String url) {
+        return url.endsWith("/") ? url : url + "/";
+    }
 
     static NonEmptySet<File> resolveDependencies(String... coordinates) {
-        var localRepo = new File(System.getProperty("user.home"), ".m2/repository");
         List<File> files = new ArrayList<>();
 
         for (String coord : coordinates) {
@@ -34,21 +56,21 @@ class MavenResolver {
             var artifactId = parts[1];
             var version = parts[2];
 
+            var localRepo = getLocalRepo();
             var localFile = findInLocalRepository(localRepo, groupId, artifactId, version);
 
-            if (localFile != null && localFile.exists() && localFile.length() > 0) {
+            if (localFile.exists() && localFile.length() > 0) {
                 logger.debug("Found in local Maven repo: {} ({} bytes)", localFile.getName(), localFile.length());
                 files.add(localFile);
             } else {
                 var downloadedFile = downloadToLocalRepository(localRepo, groupId, artifactId, version);
-                if (downloadedFile != null) {
+                if(downloadedFile != null)
                     files.add(downloadedFile);
-                }
             }
         }
 
         return files.stream()
-                .filter(file -> file != null && file.exists() && file.length() > 0)
+                .filter(file -> file.exists() && file.length() > 0)
                 .collect(NonEmptySet.collector());
     }
 
@@ -60,10 +82,10 @@ class MavenResolver {
         return new File(localRepo, artifactPath);
     }
 
-    private static File downloadToLocalRepository(File localRepo, String groupId, String artifactId, String version) {
+    private static @Nullable File downloadToLocalRepository(File localRepo, String groupId, String artifactId, String version) {
         var groupPath = groupId.replace('.', '/');
         var jarName = artifactId + "-" + version + ".jar";
-        var url = "https://repo1.maven.org/maven2/" + groupPath + "/" + artifactId + "/" + version + "/" + jarName;
+        var url = getMavenMirror() + groupPath + "/" + artifactId + "/" + version + "/" + jarName;
 
         var localGroupPath = groupId.replace('.', File.separatorChar);
         var localPath = localGroupPath + File.separator + artifactId + File.separator +
@@ -78,7 +100,16 @@ class MavenResolver {
             // Download to temporary file first (atomic operation)
             var tempFile = new File(localFile.getParentFile(), jarName + ".tmp");
 
-            try (InputStream input = new URL(url).openStream();
+            var connection = new URL(url).openConnection();
+            var username = System.getenv(ENV_RESOLVER_MIRROR_USERNAME);
+            var password = System.getenv(ENV_MIRROR_PASSWORD);
+            if (username != null && password != null) {
+                var credentials = java.util.Base64.getEncoder()
+                        .encodeToString((username + ":" + password).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                connection.setRequestProperty("Authorization", "Basic " + credentials);
+            }
+
+            try (InputStream input = connection.getInputStream();
                  OutputStream output = Files.newOutputStream(tempFile.toPath())) {
 
                 var buffer = new byte[8192];

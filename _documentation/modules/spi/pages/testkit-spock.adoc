@@ -4,7 +4,8 @@
 ----
 include::example$DataDrivenSpockIT.groovy[]
 ----
-1. Create multiple test-runs from the predefined scenario listing
+1. Create multiple test-runs from the predefined Java scenario listing
 2. Enhance the scenario with the required compile-time-dependency.
-3. Specify your expected result, in this case a Mapstruct mapper named `LazyvalMapper.java` must be generated.
-4. Use Spocks PowerAssert to compare
+3. Compute the required name (if needed) for the generated file.
+4. Construct expected `Testresult`
+5. Use Spocks PowerAssert to compare
