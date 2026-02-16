@@ -12,13 +12,14 @@ repositories {
 }
 // end::excluded[]
 
+val versionLazyval = project.findProperty("version.lazyval") as String? ?: "0.1.0"
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.20")
-    compileOnly("de.qualityminds.lazyval:lazyval:0.1.0-SNAPSHOT")
+    compileOnly("de.qualityminds.lazyval:lazyval:$versionLazyval")
     implementation("org.mapstruct:mapstruct:1.6.3")
     compileOnly("jakarta.platform:jakarta.jakartaee-api:11.0.0")
 
-    ksp("de.qualityminds.lazyval:lazyval-ksp:0.1.0-SNAPSHOT")
+    ksp("de.qualityminds.lazyval:lazyval-ksp:$versionLazyval")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
 }
 
