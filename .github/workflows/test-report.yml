@@ -1,0 +1,19 @@
+name: 'Test Report'
+on:
+  workflow_run:
+    workflows: ['CI']                     # runs after CI workflow
+    types:
+      - completed
+permissions:
+  contents: read
+  actions: read
+  checks: write
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: dorny/test-reporter@v2
+        with:
+          reporter: java-junit
+          name: Spock Tests
+          path: '**/target/**/TEST-*.xml'
