@@ -1,35 +1,40 @@
 = Testkit
 
-Lazyval provides a Testkit which can run either the Java Annotation Processor Toolchain or the KSP2 Toolchain together
-with the Kotlin Compiler.
+Lazyval provides a testkit which can run either the Java Annotation Processor toolchain or the KSP2 toolchain together
+with the Kotlin compiler.
 
 [source, java]
 ----
-var tmpDir = Path.of(System.getProperty("java.io.tmpdir")); // 1.
-var scenario = Scenario.Java.of("scenarios/java/MyTestLazyval.java") // 2.
-    .withDependencies(new Dependency("some.groupId", "some.artifactId", "1.0.0")); // 3.
-var result = Testkit.java() // 4.
-    .run(tmpDir, scenario); // 5.
+var tmpDir = Path.of(System.getProperty("java.io.tmpdir")); // <1>
+var scenario = Scenario.Java.of("scenarios/java/MyTestLazyval.java") // <2>
+    .withDependencies(new Dependency("some.groupId", "some.artifactId", "1.0.0")); // <3>
+var result = Testkit.java() // <4>
+    .run(tmpDir, scenario); // <5>
 ----
-1. The testkit needs a folder where it can create folders for generated-sources, as well as compiled classes. Usually
+<1> The testkit needs a folder where it can put generated-sources, as well as compiled classes. Usually
 you would use your test-framework to get a temporary folder for the test execution.
-2. Define the scenario with the main source file, as well as any additionaly required sources. The sources must be
+<2> Define the scenario with the main source file, as well as any additionally required sources. The sources must be
 located in your classpath meaning `src/test/resources`.
-3. Add the dependency which is required for your SPI implementation. Remember, if the required classpath is not available,
-Lazyval will not trigger any generation for that SPI
-4. Initialize the testkit either with `java()` when you are targeting Lazyvals Java Annotation Processor or `kotlin()`
+<3> Add the dependency which is required for your SPI implementation. Remember, if the required classpath is not available,
+Lazyval will not trigger any generation for that SPI.
+<4> Initialize the testkit either with `java()` when you are targeting Lazyvals Java Annotation Processor or `kotlin()`
 when targeting KSP2.
-5. Run the scenario and verify the result.
+<5> Run the scenario and verify the result.
 
 == Using Predefined Scenarios
 
 The testkit ships a collection of predefined valid scenarios for both Java and Kotlin. For instance,
-`Scenario.Java.Quantity` used a primitive `int` which might need boxing in some generators (like JPA AttributeConverter)
+`Scenario.Java.Quantity` uses a primitive `int` which might need boxing in some generators (like JPA AttributeConverter)
 
 TIP: in general, SPI providers should test against `Scenario.Java.All` and `Scenario.Kotlin.All` to make sure the
 generator can handle all cases Lazyval will throw at it.
 
 IMPORTANT: the predefined scenarios need still to be configured with the required generator `Dependency` in order to yield generator artifacts.
+
+=== Data-Driven Samples
+
+See the xref:spi:testkit-spock.adoc[Spock Example] or xref:spi:testkit-kotest.adoc[Kotest Example] for how to set up
+a data-driven test scenario using the predefined scenarios.
 
 == Verifying Results
 
@@ -49,10 +54,11 @@ result == new Testresult.Java.Success("LazyvalMapper.java")
 result shouldEqual Testresult.Kotlin.Success("LazyvalMapper.java")
 ----
 
-== Data-Driven Samples
-
-See the xref:spi:testkit-spock.adoc[Spock Example] or xref:spi:testkit-kotest.adoc[Kotest Example] for how to set up
-a data-driven test scenario using the predefined scenarios.
+.JUnit uses assertEquals
+[source, java]
+----
+assertEquals(new Testresult.Java.Success("LazyvalMapper.java"), result);
+----
 
 == Logging
 

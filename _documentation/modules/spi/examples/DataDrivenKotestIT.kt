@@ -12,15 +12,15 @@ class DataDrivenKotestIT : DescribeSpec({
         val dependencyNeededByGenerator = Dependency("groupdId", "artifactId", "version")
         withData(
             nameFn = { "${it.name()} successfully generates classes" },
-            Scenario.Kotlin.All // 1.
+            Scenario.Kotlin.All // <1>
         ){ scenario ->
             val tempDir = Files.createTempDirectory("test")
             def kit = Testkit.kotlin()
-            scenario.withDependencies(dependencyNeededByGenerator) // 2.
+            scenario.withDependencies(dependencyNeededByGenerator) // <2>
 
-            val expectedFile = scenario.name().replace(".kt", "Gen.kt") // 3.
-            val expected = Testresult.Kotlin.Success(expectedFile) // 4.
-            kit.run(tempDir, scenario) shouldEqual expected // 5.
+            val expectedFile = scenario.name().replace(".kt", "Gen.kt") // <3>
+            val expected = Testresult.Kotlin.Success(expectedFile) // <4>
+            kit.run(tempDir, scenario) shouldEqual expected // <5>
         }
     }
 })

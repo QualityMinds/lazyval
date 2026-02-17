@@ -19,14 +19,14 @@ class DataDrivenSpockIT extends Specification {
     void "Generator working as expected for all predefined scenarios"(){
         given:
         def kit = Testkit.java()
-        scenario.withDependencies(DependencyNeededByGenerator) // 2.
+        scenario.withDependencies(DependencyNeededByGenerator) // <2>
 
         expect:
-        kit.run(tempDir, scenario) == expected // 5.
+        kit.run(tempDir, scenario) == expected // <5>
 
         where:
-        scenario << Scenario.Java.All // 1.
-        expectedFile = scenario.name().replace(".java", "Gen.java") // 3.
-        expected = new Testresult.Java.Success(expectedFile) // 4.
+        scenario << Scenario.Java.All // <1>
+        expectedFile = scenario.name().replace(".java", "Gen.java") // <3>
+        expected = new Testresult.Java.Success(expectedFile) // <4>
     }
 }
