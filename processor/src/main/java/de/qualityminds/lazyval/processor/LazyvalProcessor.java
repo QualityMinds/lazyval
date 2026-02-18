@@ -4,6 +4,7 @@ import de.qualityminds.lazyval.collections.NonEmptySet;
 import de.qualityminds.lazyval.processor.spi.*;
 
 import javax.annotation.processing.AbstractProcessor;
+import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.SourceVersion;
@@ -66,6 +67,12 @@ public class LazyvalProcessor extends AbstractProcessor {
     private LazyvalEnvironment lazyvalEnvironment;
 
     @Override
+    public synchronized void init(ProcessingEnvironment processingEnv) {
+        super.init(processingEnv);
+        lazyvalEnvironment = new LazyvalEnvironment(processingEnv);
+    }
+
+    @Override
     public SourceVersion getSupportedSourceVersion() {
         return SourceVersion.latestSupported();
     }
@@ -84,13 +91,6 @@ public class LazyvalProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        // initialization can only be done here, since the processingEnv is set via init.
-        try {
-            lazyvalEnvironment = new LazyvalEnvironment(processingEnv);
-        }catch (IllegalArgumentException e){
-            return false;
-        }
-
         for(TypeElement annotation : annotations){
             Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
             var configuredElements = lazyvalEnvironment.getConfiguredValues();
@@ -100,7 +100,7 @@ public class LazyvalProcessor extends AbstractProcessor {
                     .flatMap(Optional::stream)
                     .collect(Collectors.toUnmodifiableSet());
             if(validatedElements.isEmpty()){
-                return true;
+                return false;
             }
             getActiveGenerators()
                     .flatMap(generator -> {
@@ -141,7 +141,7 @@ public class LazyvalProcessor extends AbstractProcessor {
                     });
         }
 
-        return true;
+        return false;
     }
 
     private void writeJavaFile(InternalResult.Java javaResult){

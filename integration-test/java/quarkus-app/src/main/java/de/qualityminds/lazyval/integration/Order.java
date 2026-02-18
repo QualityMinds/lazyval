@@ -10,7 +10,7 @@ import jakarta.persistence.Table;
 @Table(name = "orders")
 public class Order extends PanacheEntity {
     public Isbn isbn;
-    // Quantity tests an boxed primitive from shared
+    // Quantity tests a boxed primitive from shared
     public Quantity quantity;
     public EMail email;
 

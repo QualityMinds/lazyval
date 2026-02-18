@@ -46,8 +46,8 @@ class MavenResolver {
         List<File> files = new ArrayList<>();
 
         for (String coord : coordinates) {
-            var parts = coord.split(":");
-            if (parts.length < 3) {
+            var parts = coord.split(":", -1);
+            if (parts.length < 3 || parts[0].isBlank() || parts[1].isBlank() || parts[2].isBlank()) {
                 logger.error("Invalid coordinate format: {} (expected groupId:artifactId:version)", coord);
                 continue;
             }

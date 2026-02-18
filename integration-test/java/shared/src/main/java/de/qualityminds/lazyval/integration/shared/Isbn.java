@@ -32,23 +32,27 @@ public final class Isbn {
     }
 
     private static void validateIsbn10(String isbn) {
+        int sum = 0;
+
         for (int i = 0; i < 9; i++) {
-            if (!Character.isDigit(isbn.charAt(i))) {
+            char c = isbn.charAt(i);
+            int digit = Character.digit(c, 10);
+            if (digit == -1) {
                 throw new IllegalArgumentException("Invalid ISBN-10 format: contains non-digit characters");
             }
+            sum += digit * (10 - i);
         }
 
         char lastChar = isbn.charAt(9);
-        if (!Character.isDigit(lastChar) && lastChar != 'X' && lastChar != 'x') {
-            throw new IllegalArgumentException("Invalid ISBN-10 format: last character must be digit or X");
+        int checkDigit;
+        if (lastChar == 'X' || lastChar == 'x') {
+            checkDigit = 10;
+        } else {
+            checkDigit = Character.digit(lastChar, 10);
+            if (checkDigit == -1) {
+                throw new IllegalArgumentException("Invalid ISBN-10 format: last character must be digit or X");
+            }
         }
-
-        int sum = 0;
-        for (int i = 0; i < 9; i++) {
-            sum += Character.getNumericValue(isbn.charAt(i)) * (10 - i);
-        }
-
-        int checkDigit = (lastChar == 'X' || lastChar == 'x') ? 10 : Character.getNumericValue(lastChar);
         sum += checkDigit;
 
         if (sum % 11 != 0) {
@@ -57,19 +61,22 @@ public final class Isbn {
     }
 
     private static void validateIsbn13(String isbn) {
-        for (char c : isbn.toCharArray()) {
-            if (!Character.isDigit(c)) {
+        int sum = 0;
+
+        for (int i = 0; i < 12; i++) {
+            char c = isbn.charAt(i);
+            int digit = Character.digit(c, 10);
+            if (digit == -1) {
                 throw new IllegalArgumentException("Invalid ISBN-13 format: contains non-digit characters");
             }
-        }
-
-        int sum = 0;
-        for (int i = 0; i < 12; i++) {
-            int digit = Character.getNumericValue(isbn.charAt(i));
             sum += (i % 2 == 0) ? digit : digit * 3;
         }
 
-        int checkDigit = Character.getNumericValue(isbn.charAt(12));
+        int checkDigit = Character.digit(isbn.charAt(12), 10);
+        if (checkDigit == -1) {
+            throw new IllegalArgumentException("Invalid ISBN-13 format: contains non-digit characters");
+        }
+
         int calculatedCheckDigit = (10 - (sum % 10)) % 10;
 
         if (checkDigit != calculatedCheckDigit) {

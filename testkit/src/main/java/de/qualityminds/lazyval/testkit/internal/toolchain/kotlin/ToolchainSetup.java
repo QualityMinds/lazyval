@@ -46,13 +46,19 @@ public class ToolchainSetup {
             }
 
             var kspConfig = (KSPJvmConfig) kspSetup.getKspConfig();
-            var generatedJavaFiles = Files.walk(kspConfig.getJavaOutputDir().toPath())
-                    .filter(p -> !Files.isDirectory(p))
-                    .collect(Collectors.toCollection(TreeSet::new));
+            TreeSet<Path> generatedJavaFiles;
+            try (var stream = Files.walk(kspConfig.getJavaOutputDir().toPath())) {
+                generatedJavaFiles = stream
+                        .filter(p -> !Files.isDirectory(p))
+                        .collect(Collectors.toCollection(TreeSet::new));
+            }
 
-            var generatedKotlinFiles = Files.walk(kspConfig.getKotlinOutputDir().toPath())
-                    .filter(p -> !Files.isDirectory(p))
-                    .collect(Collectors.toCollection(TreeSet::new));
+            TreeSet<Path> generatedKotlinFiles;
+            try (var stream = Files.walk(kspConfig.getKotlinOutputDir().toPath())) {
+                generatedKotlinFiles = stream
+                        .filter(p -> !Files.isDirectory(p))
+                        .collect(Collectors.toCollection(TreeSet::new));
+            }
 
             return new ToolchainResult(
                     exitCode == KotlinSymbolProcessing.ExitCode.OK,

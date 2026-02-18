@@ -21,23 +21,22 @@ class Isbn private constructor(val value: String) {
         }
 
         private fun validateIsbn10(isbn: String) {
+            var sum = 0
+
             for (i in 0..8) {
-                if (!isbn[i].isDigit()) {
+                val c = isbn[i]
+                if (!c.isDigit()) {
                     throw IllegalArgumentException("Invalid ISBN-10 format: contains non-digit characters")
                 }
+                sum += c.digitToInt() * (10 - i)
             }
 
             val lastChar = isbn[9]
-            if (!lastChar.isDigit() && lastChar != 'X' && lastChar != 'x') {
-                throw IllegalArgumentException("Invalid ISBN-10 format: last character must be digit or X")
+            val checkDigit = when {
+                lastChar == 'X' || lastChar == 'x' -> 10
+                lastChar.isDigit() -> lastChar.digitToInt()
+                else -> throw IllegalArgumentException("Invalid ISBN-10 format: last character must be digit or X")
             }
-
-            var sum = 0
-            for (i in 0..8) {
-                sum += isbn[i].digitToInt() * (10 - i)
-            }
-
-            val checkDigit = if (lastChar == 'X' || lastChar == 'x') 10 else lastChar.digitToInt()
             sum += checkDigit
 
             if (sum % 11 != 0) {
@@ -46,19 +45,22 @@ class Isbn private constructor(val value: String) {
         }
 
         private fun validateIsbn13(isbn: String) {
-            for (c in isbn) {
+            var sum = 0
+
+            for (i in 0..11) {
+                val c = isbn[i]
                 if (!c.isDigit()) {
                     throw IllegalArgumentException("Invalid ISBN-13 format: contains non-digit characters")
                 }
-            }
-
-            var sum = 0
-            for (i in 0..11) {
-                val digit = isbn[i].digitToInt()
+                val digit = c.digitToInt()
                 sum += if (i % 2 == 0) digit else digit * 3
             }
 
-            val checkDigit = isbn[12].digitToInt()
+            val lastChar = isbn[12]
+            if (!lastChar.isDigit()) {
+                throw IllegalArgumentException("Invalid ISBN-13 format: contains non-digit characters")
+            }
+            val checkDigit = lastChar.digitToInt()
             val calculatedCheckDigit = (10 - (sum % 10)) % 10
 
             if (checkDigit != calculatedCheckDigit) {

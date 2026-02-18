@@ -14,6 +14,7 @@ import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
@@ -38,11 +39,12 @@ public class CompilerSetup {
             Thread.currentThread().setContextClassLoader(processorClassLoader);
 
             boolean result = task.call();
-            return new CompilerResult(
-                    result,
-                    diagnostics.getDiagnostics(),
-                    new TreeSet<>(Files.walk(sourceOutputDir).filter(p -> !Files.isDirectory(p)).toList())
-            );
+            TreeSet<Path> sourceFiles;
+            try (var stream = Files.walk(sourceOutputDir)) {
+                sourceFiles = stream.filter(p -> !Files.isDirectory(p))
+                        .collect(Collectors.toCollection(TreeSet::new));
+            }
+            return new CompilerResult(result, diagnostics.getDiagnostics(), sourceFiles);
         } catch (Exception e) {
             throw new RuntimeException("Failed to collect generated files", e);
         }finally {

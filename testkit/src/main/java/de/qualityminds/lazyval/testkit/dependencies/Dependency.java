@@ -23,8 +23,9 @@ import java.util.function.Function;
  */
 public record Dependency(String groupId, String artifactId, String version) {
 
-    private static final Function<Dependency, NonEmptySet<File>> mavenResolver = d -> MavenResolver
-            .resolveDependencies(d.toCoordinates());
+    private static NonEmptySet<File> mavenResolve(Dependency d) {
+        return MavenResolver.resolveDependencies(d.toCoordinates());
+    }
 
     private static final Map<Dependency, NonEmptySet<File>> cachedDependencies = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -58,7 +59,7 @@ public record Dependency(String groupId, String artifactId, String version) {
      */
     // FIXME: check if instead of NonEmtpySet just the File should be returned.
     public NonEmptySet<File> resolve() {
-        return resolve(mavenResolver);
+        return resolve(Dependency::mavenResolve);
     }
 
     /**
