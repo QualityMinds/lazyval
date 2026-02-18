@@ -20,19 +20,19 @@ import java.util.function.Function;
  */
 public record InternalModuleDependency(String relativeModulePath, Dependency fallback) {
 
-    private static final Function<InternalModuleDependency, NonEmptySet<File>> mavenResolver = d -> {
+    private static NonEmptySet<File> mavenResolver(InternalModuleDependency d) {
         try {
             return MavenResolver.getModuleClasses(d.relativeModulePath);
-        }catch(RuntimeException ignored){
+        } catch (RuntimeException ignored) {
             return MavenResolver.resolveDependencies(d.fallback.toCoordinates());
         }
-    };
+    }
 
     private static final Map<InternalModuleDependency, NonEmptySet<File>> cachedDependencies = new java.util.concurrent.ConcurrentHashMap<>();
 
     @SuppressWarnings("doclint:accessibility,missing")
     public NonEmptySet<File> resolve() {
-        return resolve(mavenResolver);
+        return resolve(InternalModuleDependency::mavenResolver);
     }
 
     @SuppressWarnings("doclint:accessibility,missing")
