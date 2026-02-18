@@ -185,4 +185,65 @@
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>static-analysis</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-antrun-plugin</artifactId>
+                        <version>${version.plugin.antrun}</version>
+                        <executions>
+                            <execution>
+                                <id>detekt</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>run</goal>
+                                </goals>
+                                <configuration>
+                                    <target name="detekt">
+                                        <property name="detekt.jar" refid="maven.plugin.classpath"/>
+                                        <java taskname="detekt" dir="${basedir}"
+                                              fork="true"
+                                              failonerror="false"
+                                              classname="dev.detekt.cli.Main">
+                                            <classpath>
+                                                <path refid="maven.plugin.classpath"/>
+                                            </classpath>
+                                            <arg value="--input"/>
+                                            <arg value="${basedir}/src/main/kotlin"/>
+                                            <arg value="--config"/>
+                                            <arg value="${basedir}/detekt.yml"/>
+                                            <arg value="--build-upon-default-config"/>
+                                            <arg value="--report"/>
+                                            <arg value="sarif:${project.build.directory}/detekt.sarif"/>
+                                        </java>
+                                    </target>
+                                </configuration>
+                            </execution>
+                        </executions>
+                        <dependencies>
+                            <dependency>
+                                <groupId>dev.detekt</groupId>
+                                <artifactId>detekt-cli</artifactId>
+                                <version>${version.checks.detekt}</version>
+                                <classifier>all</classifier>
+                                <type>jar</type>
+                                <exclusions>
+                                    <!-- Exclude all transitive dependencies since the -all JAR is self-contained -->
+                                    <!-- see https://github.com/detekt/detekt/issues/8626 -->
+                                    <exclusion>
+                                        <groupId>*</groupId>
+                                        <artifactId>*</artifactId>
+                                    </exclusion>
+                                </exclusions>
+                            </dependency>
+                        </dependencies>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
 </project>

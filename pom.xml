@@ -50,6 +50,7 @@
         <version.slf4j>2.0.17</version.slf4j>
         <version.spock>2.4-groovy-5.0</version.spock>
         <!-- plugins -->
+        <version.plugin.antrun>3.2.0</version.plugin.antrun>
         <version.plugin.build-helper>3.6.1</version.plugin.build-helper>
         <version.plugin.compiler>3.14.1</version.plugin.compiler>
         <version.plugin.dokka>2.1.0</version.plugin.dokka>
@@ -68,6 +69,10 @@
         <version.plugin.surefire>3.5.4</version.plugin.surefire>
         <version.plugin.templating>3.1.0</version.plugin.templating>
         <version.plugin.ksp2-3rd-party>0.2.0</version.plugin.ksp2-3rd-party>
+        <!-- static analysis -->
+        <version.checks.error-prone>2.46.0</version.checks.error-prone>
+        <version.checks.error-prone.nullaway>0.13.1</version.checks.error-prone.nullaway>
+        <version.checks.detekt>2.0.0-alpha.2</version.checks.detekt>
     </properties>
 
     <dependencyManagement>
@@ -300,6 +305,36 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>static-analysis</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <configuration>
+                            <compilerArgs>
+                                <arg>-XDcompilePolicy=simple</arg>
+                                <arg>--should-stop=ifError=FLOW</arg>
+                                <arg>-Xplugin:ErrorProne -XepOpt:NullAway:AnnotatedPackages=de.qualityminds.lazyval -XepOpt:NullAway:JSpecifyMode=true</arg>
+                            </compilerArgs>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>com.google.errorprone</groupId>
+                                    <artifactId>error_prone_core</artifactId>
+                                    <version>${version.checks.error-prone}</version>
+                                </path>
+                                <path>
+                                    <groupId>com.uber.nullaway</groupId>
+                                    <artifactId>nullaway</artifactId>
+                                    <version>${version.checks.error-prone.nullaway}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
         <profile>
             <id>publish</id>
             <build>
