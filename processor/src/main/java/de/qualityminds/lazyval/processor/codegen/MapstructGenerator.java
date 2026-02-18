@@ -34,6 +34,7 @@ final public class MapstructGenerator implements SingleFileGenerator {
         return Set.of(OPTION_GENERATED_PACKAGE);
     }
 
+    @Override
     public GeneratorResult generateSingleFile(NonEmptySet<ValidatedGeneratorElement> elements, Settings userSettings){
         var mapperAnnotationBuilder = AnnotationSpec.builder(ClassName.get("org.mapstruct", "Mapper"))
                 .addMember("unmappedTargetPolicy", "$L", "org.mapstruct.ReportingPolicy.ERROR");

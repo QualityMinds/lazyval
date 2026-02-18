@@ -35,6 +35,7 @@ public class JpaGenerator implements FilePerTypeGenerator {
         return Set.of(OPTION_GENERATED_PACKAGE);
     }
 
+    @Override
     public GeneratorResult generateFilePerType(ValidatedGeneratorElement validatedElement, Settings userSettings){
         // end::docu[]
         TypeElement element = validatedElement.element();
