@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 env:
   JAVA_VERSION_BUILD: '25'
@@ -30,13 +31,21 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: maven
       - name: Build and Install to Local Repository
-        run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode install --file pom.xml
+        run: ./mvnw -Pstatic-analysis  --no-snapshot-updates --no-transfer-progress --batch-mode install --file pom.xml
       - name: Upload Lazyval Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/de/qualityminds/lazyval
           retention-days: 1
+      - name: Upload Detekt SARIF
+        if: always() && !env.ACT # doesnt work locally
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          # currently error-prone does not support sarif, hence we only upload kotlin-detekt
+          # see https://github.com/google/error-prone/issues/3766
+          sarif_file: ksp/target/detekt.sarif
+          category: detekt
 
   examples-java-maven:
     name: Java-Example - Maven
