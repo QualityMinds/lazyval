@@ -10,6 +10,7 @@ import com.google.devtools.ksp.symbol.KSFile
 import de.qualityminds.lazyval.LazyValue
 import de.qualityminds.lazyval.collections.NonEmptySet
 import de.qualityminds.lazyval.ksp.spi.*
+import java.io.IOException
 import java.util.*
 import java.util.stream.Stream
 
@@ -59,6 +60,7 @@ class LazyvalSymbolProcessor(
 
     private lateinit var lazyvalEnvironment: LazyvalKspEnvironment
 
+    @Suppress("CyclomaticComplexMethod") // reads as a top-to-bottom pipeline, splitting would reduce clarity
     override fun process(resolver: Resolver): List<KSAnnotated> {
         try {
             lazyvalEnvironment = LazyvalKspEnvironment(environment, resolver)
@@ -195,7 +197,7 @@ class LazyvalSymbolProcessor(
             // This is common in incremental builds; usually, we can ignore it
             // as the existing file is considered up-to-date by KSP
             // TODO double check if this is really no problem and if it can be solved
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             lazyvalEnvironment.error("Failed to write Kotlin file: ${e.message}")
             throw e
         }
@@ -225,7 +227,7 @@ class LazyvalSymbolProcessor(
             // This is common in incremental builds; usually, we can ignore it
             // as the existing file is considered up-to-date by KSP
             // TODO double check if this is really no problem and if it can be solved
-        } catch (e: Exception) {
+        } catch (e: IOException) {
             lazyvalEnvironment.error("Failed to write Java file: ${e.message}")
             throw e
         }
