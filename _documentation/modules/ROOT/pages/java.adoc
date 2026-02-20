@@ -3,8 +3,7 @@
 [#usage]
 == Usage
 
-First, add the annotation and processor dependencies to your favorite build-tool. See below for <<_maven>>, <<_gradle>>
-or <<_mill>>.
+First, add the annotation and processor dependencies to your favorite build-tool. See below for <<setup>>.
 
 Mark your domain-primitive with the `@LazyValue` annotation and the processor will figure out the rest.
 
@@ -95,27 +94,47 @@ In case neither Mapstruct, nor JPA is available, a Warning message will be logge
 [#setup]
 == Setup
 
-=== Maven
+The following snippets only contain the relevant parts to set up and configure Lazyval.
+The `jakarta-ee` dependency can be replaced by any that ships `jakarta-persistence`.
+Keep in mind, Lazyval will only activate generators whose required dependencies are
+available.
 
+[tabs]
+====
+Maven::
++
 .pom.xml
 [source, xml]
 ----
 include::ROOT:example$java/pom.xml[tags=docu;!excluded]
 ----
-1. mark the dependency as optional to avoid runtime-dependency
+<1> mark the dependency as optional to avoid runtime-dependency
 
-=== Gradle
+Maven 4::
++
+Maven 4 changes the way the annotation-processor-classpath is set.
++
+.pom.xml
+[source, xml]
+----
+include::ROOT:example$java/pom-maven-4.xml[tags=docu;!excluded]
+----
+<1> mark the dependency as optional to avoid runtime-dependency
+<2> annotation-processors have their own scope now
 
+Gradle::
++
 .build.gradle.kts
 [source, kotlin]
 ----
 include::ROOT:example$java/build.gradle.kts[tags=docu;!excluded]
 ----
 
-=== Mill
-
+Mill::
++
 .build.mill
 [source, scala]
 ----
 include::ROOT:example$java/build.mill[tags=docu;!excluded]
 ----
+====

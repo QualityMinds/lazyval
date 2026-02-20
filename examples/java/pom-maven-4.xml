@@ -26,7 +26,7 @@
             <groupId>de.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
             <version>${version.lazyval}</version>
-            <optional>true</optional> <!-- 1. -->
+            <optional>true</optional> <!--1-->
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
@@ -44,7 +44,7 @@
             <groupId>de.qualityminds.lazyval</groupId>
             <artifactId>lazyval-processor</artifactId>
             <version>${version.lazyval}</version>
-            <type>processor</type>
+            <type>processor</type> <!--2-->
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
