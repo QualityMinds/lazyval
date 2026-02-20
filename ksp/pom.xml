@@ -213,7 +213,7 @@
                                         <property name="detekt.jar" refid="maven.plugin.classpath"/>
                                         <java taskname="detekt" dir="${basedir}"
                                               fork="true"
-                                              failonerror="false"
+                                              failonerror="true"
                                               classname="dev.detekt.cli.Main">
                                             <classpath>
                                                 <path refid="maven.plugin.classpath"/>

@@ -1,3 +1,4 @@
+@file:Suppress("TooManyFunctions")
 package de.qualityminds.lazyval.ksp
 
 import com.google.devtools.ksp.processing.KSPLogger
