@@ -1,19 +1,18 @@
-= Lazyval: Compile-Time Code Generator for Domain Primimtives in Java or Kotlin
+= Lazyval: Compile-Time Code Generator for Domain Primitives in Java or Kotlin
 
 == What is Lazyval / Motivation
 
 Lazyval is a Java annotation processor & Kotlin symbol processor generating boilerplate code,
 often needed when modeling _"Domain Primitives"_, which are simple, domain-specific wrapper types around primitives.
 The initial idea was inspired by Scalas https://www.scala-lang.org/api/current/scala/AnyVal.html[Anyval];
-even though this works completely differently, it allows you to easily define a wrapper-type which captures
-the domain's intent.
+even though this works completely differently, it allows you to easily define a domain-type which
+encapsulates invariants.
 
 NOTE: the term _"Domain Primitive"_ was taken from the book https://www.manning.com/books/secure-by-design[Secure by Design].
 
 Unfortunately, the ecosystem usually requires additional work when modeling custom types, which is
-often seen as too much of a burden.
-
-As an example, take a regular project (Quarkus, Spring Boot) with Mapstruct and JPA.
+often seen as too much of a burden and proper modeling falls short.
+As an example, take a regular Java enterprise project with Mapstruct and JPA.
 For each custom domain primitive, it is necessary to provide a JPA AttributeConverter to read/write
 to the Database, as well as a Mapstruct Mapper definition to wrap/unpack the type.
 
@@ -25,8 +24,8 @@ to the Database, as well as a Mapstruct Mapper definition to wrap/unpack the typ
 
 NOTE: for custom generators, see xref:spi:index.adoc[Lazyvals SPI].
 
-NOTE: In a possible future where Java value-types are released and fully supported by the
-ecosystem (meaning you can use a value-type in an JPA entity without hassle),
+In a possible future, where Java value-types are released and fully supported by the
+ecosystem, (meaning you can use a value-type in an JPA entity without hassle),
 this project is probably not needed anymore.
 
 == Usage

@@ -1,0 +1,17 @@
+= Project Website
+
+Antora is used to convert Asciidoc files to HTML which is published to Github Pages via Actions.
+
+== Build locally
+
+.Prerequisites
+[source, bash]
+----
+npm install @antora/cli@3.1 @antora/site-generator@3.1 @antora/collector-extension@1.0 @asciidoctor/tabs
+----
+
+.Build
+[source, bash]
+----
+npx antora antora-playbook.yml
+----

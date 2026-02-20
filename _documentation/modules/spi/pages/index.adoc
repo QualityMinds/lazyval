@@ -3,6 +3,9 @@
 To support users with the option to add custom code-generators, two SPIs (service-provider-interfaces) have been added for each processor implementation.
 In fact, the internal generators use the same mechanism and act as a reference implementation.
 
+NOTE: the SPI also allows the project to hold new generators in an external incubation phase before shipping them
+as part of the Lazyval bundle.
+
 CAUTION: the SPI is currently experimental and will change!
 
 First, you have to decide if you need a generator for Java (Annotation Processing) or Kotlin (KSP2). This is necessary

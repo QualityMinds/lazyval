@@ -10,20 +10,23 @@
 
     <name>Lazyval Sample Kotlin</name>
 
+    <!-- tag::docu[] -->
     <properties>
+        <!-- tag::excluded[] -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- end::excluded[] -->
         <kotlin.version>2.3.0</kotlin.version>
-        <mapstruct.version>1.6.3</mapstruct.version>
         <version.lazyval>0.1.0</version.lazyval>
+        <mapstruct.version>1.6.3</mapstruct.version>
+        <version.jakarta-ee>11.0.0</version.jakarta-ee>
     </properties>
 
-    <!-- tag::docu[] -->
     <dependencies>
         <dependency>
             <groupId>de.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
             <version>${version.lazyval}</version>
-            <optional>true</optional>
+            <optional>true</optional> <!--1-->
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -36,9 +39,10 @@
             <version>${mapstruct.version}</version>
         </dependency>
         <dependency>
-            <groupId>jakarta.persistence</groupId>
-            <artifactId>jakarta.persistence-api</artifactId>
-            <version>3.2.0</version>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+            <version>${version.jakarta-ee}</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
     <build>

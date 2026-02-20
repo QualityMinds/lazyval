@@ -1,4 +1,3 @@
-
 plugins {
     kotlin("jvm") version "2.2.20"
     id("com.google.devtools.ksp") version "2.2.20-2.0.3"
@@ -10,9 +9,9 @@ repositories {
     mavenCentral()
     mavenLocal() // For local SNAPSHOT dependencies
 }
-// end::excluded[]
 
 val versionLazyval = project.findProperty("version.lazyval") as String? ?: "0.1.0"
+// end::excluded[]
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.20")
     compileOnly("de.qualityminds.lazyval:lazyval:$versionLazyval")

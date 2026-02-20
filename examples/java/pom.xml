@@ -26,7 +26,7 @@
             <groupId>de.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
             <version>${version.lazyval}</version>
-            <optional>true</optional> <!-- 1. -->
+            <optional>true</optional> <!--1-->
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
