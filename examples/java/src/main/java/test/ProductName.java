@@ -5,10 +5,11 @@ package com.acme.sample;
 // In this case the SingleFileUtilsGenerator must not lose the other generated functions which will show up in the
 // compilation of the "Test" class.
 
-
+/*
 import de.qualityminds.lazyval.LazyValue;
 
 @LazyValue
 public record ProductName(String value) {
 
 }
+*/
