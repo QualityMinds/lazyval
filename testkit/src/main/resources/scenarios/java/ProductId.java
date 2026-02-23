@@ -1,8 +1,9 @@
 package scanarios.java;
 
-import java.util.UUID;
-import de.qualityminds.lazyval.LazyValue;
+import com.qualityminds.lazyval.LazyValue;
 import util.IdGenerator;
+
+import java.util.UUID;
 
 @LazyValue
 public record ProductId(String value) {

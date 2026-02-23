@@ -6,7 +6,7 @@ package com.acme.sample;
 // compilation of the "Test" class.
 
 /*
-import de.qualityminds.lazyval.LazyValue;
+import com.qualityminds.lazyval.LazyValue;
 
 @LazyValue
 public record ProductName(String value) {

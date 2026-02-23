@@ -1,6 +1,6 @@
 package scenarios.failing
 
-import de.qualityminds.lazyval.LazyValue
+import com.qualityminds.lazyval.LazyValue
 
 /**
  * A nullable wrapped type is illegal, because you would rather mark the wrapper nullable (not like JPA Embeddables,

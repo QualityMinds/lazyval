@@ -12,14 +12,14 @@ ext:
         dir: examples
         into: modules/ROOT/examples
     - scan:
-        dir: processor/src/main/java/de/qualityminds/lazyval/processor/codegen
+        dir: processor/src/main/java/com/qualityminds/lazyval/processor/codegen
         into: modules/spi/examples
     - scan:
-        dir: processor/src/main/java/de/qualityminds/lazyval/processor/spi
+        dir: processor/src/main/java/com/qualityminds/lazyval/processor/spi
         into: modules/spi/examples
     - scan:
-        dir: ksp/src/main/kotlin/de/qualityminds/lazyval/ksp/codegen
+        dir: ksp/src/main/kotlin/com/qualityminds/lazyval/ksp/codegen
         into: modules/spi/examples
     - scan:
-        dir: ksp/src/main/kotlin/de/qualityminds/lazyval/ksp/spi
+        dir: ksp/src/main/kotlin/com/qualityminds/lazyval/ksp/spi
         into: modules/spi/examples

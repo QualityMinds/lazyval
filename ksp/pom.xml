@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>de.qualityminds.lazyval</groupId>
+        <groupId>com.qualityminds.lazyval</groupId>
         <artifactId>lazyval-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
@@ -22,12 +22,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.qualityminds.lazyval</groupId>
+            <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>de.qualityminds.lazyval</groupId>
+            <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval-utils</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -59,7 +59,7 @@
         </dependency>
         <!-- Tests -->
         <dependency>
-            <groupId>de.qualityminds.lazyval</groupId>
+            <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval-testkit</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
@@ -127,7 +127,7 @@
                     <artifactSet>
                         <excludes>
                             <!-- user must manage core module -->
-                            <exclude>de.qualityminds.lazyval:lazyval</exclude>
+                            <exclude>com.qualityminds.lazyval:lazyval</exclude>
                             <!-- compile-time annotations aren't needed -->
                             <exclude>org.jetbrains:annotations</exclude>
                             <exclude>org.jspecify:jspecify</exclude> <!-- transitive from utils -->
@@ -139,11 +139,11 @@
                     <relocations>
                         <relocation>
                             <pattern>com.palantir.javapoet</pattern>
-                            <shadedPattern>de.qualityminds.lazyval.shaded.javapoet</shadedPattern>
+                            <shadedPattern>com.qualityminds.lazyval.shaded.javapoet</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>com.squareup.kotlinpoet</pattern>
-                            <shadedPattern>de.qualityminds.lazyval.shaded.kotlinpoet</shadedPattern>
+                            <shadedPattern>com.qualityminds.lazyval.shaded.kotlinpoet</shadedPattern>
                         </relocation>
                     </relocations>
                     <filters>
@@ -162,7 +162,7 @@
                             </excludes>
                         </filter>
                         <filter>
-                            <artifact>de.qualityminds.lazyval:lazyval-utils</artifact>
+                            <artifact>com.qualityminds.lazyval:lazyval-utils</artifact>
                             <excludes>
                                 <exclude>META-INF/**</exclude>
                             </excludes>

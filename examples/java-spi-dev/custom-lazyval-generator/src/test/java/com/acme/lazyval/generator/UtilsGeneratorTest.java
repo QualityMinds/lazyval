@@ -1,8 +1,8 @@
 package com.acme.lazyval.generator;
 
-import de.qualityminds.lazyval.testkit.Testkit;
-import de.qualityminds.lazyval.testkit.Testresult;
-import de.qualityminds.lazyval.testkit.scenarios.Scenario;
+import com.qualityminds.lazyval.testkit.Testkit;
+import com.qualityminds.lazyval.testkit.Testresult;
+import com.qualityminds.lazyval.testkit.scenarios.Scenario;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

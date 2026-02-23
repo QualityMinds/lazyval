@@ -28,12 +28,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.qualityminds.lazyval</groupId>
+            <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval-ksp</artifactId>
             <version>${version.lazyval}</version>
         </dependency>
         <dependency>
-            <groupId>de.qualityminds.lazyval</groupId>
+            <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval-testkit</artifactId>
             <version>${version.lazyval}</version>
             <scope>test</scope>

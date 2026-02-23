@@ -1,6 +1,6 @@
 package scenarios.failing
 
-import de.qualityminds.lazyval.LazyValue
+import com.qualityminds.lazyval.LazyValue
 
 @LazyValue
 abstract class AbstractClass constructor(val value: String) {

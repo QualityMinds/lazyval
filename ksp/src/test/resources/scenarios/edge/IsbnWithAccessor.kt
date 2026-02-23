@@ -1,6 +1,6 @@
 package scenarios.edge
 
-import de.qualityminds.lazyval.LazyValue
+import com.qualityminds.lazyval.LazyValue
 
 @LazyValue
 class IsbnWithAccessor private constructor(private val value: String) {

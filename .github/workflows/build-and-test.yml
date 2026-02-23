@@ -36,7 +36,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: maven-repo-lazyval
-          path: ~/.m2/repository/de/qualityminds/lazyval
+          path: ~/.m2/repository/com/qualityminds/lazyval
           retention-days: 1
       - name: Upload Detekt SARIF
         if: always() && !env.ACT # doesnt work locally
@@ -63,7 +63,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
-          path: ~/.m2/repository/de/qualityminds/lazyval
+          path: ~/.m2/repository/com/qualityminds/lazyval
       - name: Create Maven 3 wrapper
         working-directory: examples/java
         run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=3.9.12
@@ -94,7 +94,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
-          path: ~/.m2/repository/de/qualityminds/lazyval
+          path: ~/.m2/repository/com/qualityminds/lazyval
       - name: Create Maven 4 wrapper
         working-directory: examples/java
         run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=4.0.0-rc-5
@@ -125,17 +125,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
-          path: ~/.m2/repository/de/qualityminds/lazyval
+          path: ~/.m2/repository/com/qualityminds/lazyval
       - name: Run Java-Example with Gradle
         working-directory: examples/java
-        run: gradle build -Pversion.lazyval=$VERSION_LAZYVAL
+        run: gradle build -Dversion.lazyval=$VERSION_LAZYVAL
       - name: Uncomment type in source tree
         working-directory: examples/java
         # removes /* and */ from ProductName.java
         run: sed -i '/^\/\*$/d; /^\*\/$/d' src/main/java/test/ProductName.java
       - name: Run Incremental Compilation
         working-directory: examples/java
-        run: gradle build -Pversion.lazyval=$VERSION_LAZYVAL
+        run: gradle build -Dversion.lazyval=$VERSION_LAZYVAL
 
   examples-java-mill:
     name: Java-Example - Mill
@@ -153,7 +153,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
-          path: ~/.m2/repository/de/qualityminds/lazyval
+          path: ~/.m2/repository/com/qualityminds/lazyval
       - name: Download Mill Script
         working-directory: examples/java
         run: curl -L -s https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${MILL_VERSION}/mill-dist-${MILL_VERSION}-mill.sh -o mill && chmod +x mill
@@ -186,7 +186,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
-          path: ~/.m2/repository/de/qualityminds/lazyval
+          path: ~/.m2/repository/com/qualityminds/lazyval
       - name: Create Maven 3 wrapper
         working-directory: examples/kotlin
         run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=3.9.12
@@ -218,7 +218,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
-          path: ~/.m2/repository/de/qualityminds/lazyval
+          path: ~/.m2/repository/com/qualityminds/lazyval
       - name: Create Maven 4 wrapper
         working-directory: examples/kotlin
         run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=4.0.0-rc-5
@@ -249,17 +249,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
-          path: ~/.m2/repository/de/qualityminds/lazyval
+          path: ~/.m2/repository/com/qualityminds/lazyval
       - name: Run Kotlin-Example with Gradle
         working-directory: examples/kotlin
-        run: gradle build -Pversion.lazyval=$VERSION_LAZYVAL
+        run: gradle build -Dversion.lazyval=$VERSION_LAZYVAL
       - name: Uncomment type in source tree
         working-directory: examples/kotlin
         # removes /* and */ from ProductName.kt
         run: sed -i '/^\/\*$/d; /^\*\/$/d' src/main/kotlin/test/ProductName.kt
       - name: Run Incremental Compilation
         working-directory: examples/kotlin
-        run: gradle build -Pversion.lazyval=$VERSION_LAZYVAL
+        run: gradle build -Dversion.lazyval=$VERSION_LAZYVAL
 
   examples-kotlin-mill:
     name: Kotlin-Example - Mill
@@ -277,7 +277,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
-          path: ~/.m2/repository/de/qualityminds/lazyval
+          path: ~/.m2/repository/com/qualityminds/lazyval
       - name: Download Mill Script
         working-directory: examples/kotlin
         run: curl -L -s https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${MILL_VERSION}/mill-dist-${MILL_VERSION}-mill.sh -o mill && chmod +x mill
@@ -309,7 +309,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
-          path: ~/.m2/repository/de/qualityminds/lazyval
+          path: ~/.m2/repository/com/qualityminds/lazyval
       - name: Create Maven 3 wrapper
         working-directory: examples/java-spi-dev
         run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=3.9.12
@@ -332,7 +332,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: maven-repo-lazyval
-          path: ~/.m2/repository/de/qualityminds/lazyval
+          path: ~/.m2/repository/com/qualityminds/lazyval
       - name: Create Maven 3 wrapper
         working-directory: examples/kotlin-spi-dev
         run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=3.9.12

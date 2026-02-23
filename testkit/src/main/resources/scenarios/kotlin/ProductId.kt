@@ -1,6 +1,6 @@
 package scenarios.kotlin
 
-import de.qualityminds.lazyval.LazyValue
+import com.qualityminds.lazyval.LazyValue
 import java.util.UUID
 import util.IdGenerator
 

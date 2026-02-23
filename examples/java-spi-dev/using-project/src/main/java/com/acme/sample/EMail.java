@@ -1,6 +1,6 @@
 package com.acme.sample;
 
-import de.qualityminds.lazyval.LazyValue;
+import com.qualityminds.lazyval.LazyValue;
 
 import java.util.regex.Pattern;
 

@@ -1,6 +1,6 @@
 package test;
 
-import de.qualityminds.lazyval.LazyValue;
+import com.qualityminds.lazyval.LazyValue;
 // tag::docu[]
 @LazyValue()
 public record Quantity(int value) {

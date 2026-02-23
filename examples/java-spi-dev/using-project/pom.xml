@@ -16,7 +16,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.qualityminds.lazyval</groupId>
+            <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
             <version>${version.lazyval}</version>
             <optional>true</optional>
@@ -43,7 +43,7 @@
                             <version>${project.version}</version>
                         </path>
                         <path>
-                            <groupId>de.qualityminds.lazyval</groupId>
+                            <groupId>com.qualityminds.lazyval</groupId>
                             <artifactId>lazyval-processor</artifactId>
                             <version>${version.lazyval}</version>
                         </path>

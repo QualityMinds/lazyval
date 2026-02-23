@@ -1,0 +1,24 @@
+package com.qualityminds.lazyval.integration;
+
+import com.qualityminds.lazyval.integration.shared.Isbn;
+import com.qualityminds.lazyval.integration.shared.Quantity;
+import io.quarkus.hibernate.orm.panache.PanacheEntity;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "orders")
+public class Order extends PanacheEntity {
+    public Isbn isbn;
+    // Quantity tests a boxed primitive from shared
+    public Quantity quantity;
+    public EMail email;
+
+    public Order(Isbn isbn, Quantity quantity, EMail email) {
+        this.isbn = isbn;
+        this.quantity = quantity;
+        this.email = email;
+    }
+
+    protected Order() {}
+}

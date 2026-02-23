@@ -1,8 +1,8 @@
 package com.acme.lazyval.generator;
 
-import de.qualityminds.lazyval.processor.spi.FilePerTypeGenerator;
-import de.qualityminds.lazyval.processor.spi.GeneratorResult;
-import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
+import com.qualityminds.lazyval.processor.spi.FilePerTypeGenerator;
+import com.qualityminds.lazyval.processor.spi.GeneratorResult;
+import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 import org.jspecify.annotations.NullMarked;
 
 import javax.lang.model.element.TypeElement;

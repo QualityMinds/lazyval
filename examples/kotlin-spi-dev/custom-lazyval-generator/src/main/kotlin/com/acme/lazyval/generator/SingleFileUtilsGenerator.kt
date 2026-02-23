@@ -1,10 +1,10 @@
 package com.acme.lazyval.generator
 
-import de.qualityminds.lazyval.collections.NonEmptySet
-import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
-import de.qualityminds.lazyval.ksp.spi.GeneratorResult
-import de.qualityminds.lazyval.ksp.spi.SingleFileGenerator
-import de.qualityminds.lazyval.ksp.spi.SpiGenerator
+import com.qualityminds.lazyval.collections.NonEmptySet
+import com.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
+import com.qualityminds.lazyval.ksp.spi.GeneratorResult
+import com.qualityminds.lazyval.ksp.spi.SingleFileGenerator
+import com.qualityminds.lazyval.ksp.spi.SpiGenerator
 import java.util.Collections.emptyList
 
 class SingleFileUtilsGenerator : SingleFileGenerator {

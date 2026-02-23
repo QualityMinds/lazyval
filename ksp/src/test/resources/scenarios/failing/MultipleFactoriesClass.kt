@@ -1,6 +1,6 @@
 package scenarios.failing
 
-import de.qualityminds.lazyval.LazyValue
+import com.qualityminds.lazyval.LazyValue
 
 @LazyValue
 class MultipleFactoriesClass private constructor(val value: String) {
