@@ -1,6 +1,6 @@
 package test;
 
-import de.qualityminds.lazyval.LazyValue;
+import com.qualityminds.lazyval.LazyValue;
 
 @LazyValue
 public record RecordValid(String value) {

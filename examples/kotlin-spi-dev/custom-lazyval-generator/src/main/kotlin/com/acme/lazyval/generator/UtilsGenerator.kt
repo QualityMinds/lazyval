@@ -1,9 +1,9 @@
 package com.acme.lazyval.generator
 
-import de.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
-import de.qualityminds.lazyval.ksp.spi.FilePerTypeGenerator
-import de.qualityminds.lazyval.ksp.spi.GeneratorResult
-import de.qualityminds.lazyval.ksp.spi.SpiGenerator
+import com.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
+import com.qualityminds.lazyval.ksp.spi.FilePerTypeGenerator
+import com.qualityminds.lazyval.ksp.spi.GeneratorResult
+import com.qualityminds.lazyval.ksp.spi.SpiGenerator
 import java.util.Collections.emptyList
 
 class UtilsGenerator : FilePerTypeGenerator {

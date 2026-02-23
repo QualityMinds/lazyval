@@ -1,9 +1,9 @@
 package com.acme.lazyval.generator;
 
-import de.qualityminds.lazyval.collections.NonEmptySet;
-import de.qualityminds.lazyval.processor.spi.GeneratorResult;
-import de.qualityminds.lazyval.processor.spi.SingleFileGenerator;
-import de.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
+import com.qualityminds.lazyval.collections.NonEmptySet;
+import com.qualityminds.lazyval.processor.spi.GeneratorResult;
+import com.qualityminds.lazyval.processor.spi.SingleFileGenerator;
+import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 import org.jspecify.annotations.NullMarked;
 
 import javax.lang.model.element.TypeElement;

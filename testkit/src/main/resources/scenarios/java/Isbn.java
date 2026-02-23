@@ -1,6 +1,6 @@
 package scenarios.java;
 
-import de.qualityminds.lazyval.LazyValue;
+import com.qualityminds.lazyval.LazyValue;
 
 @LazyValue
 public final class Isbn {

@@ -1,7 +1,7 @@
 package com.acme
 
-import de.qualityminds.lazyval.testkit.dependencies.Dependency
-import de.qualityminds.lazyval.testkit.scenarios.Scenario
+import com.qualityminds.lazyval.testkit.dependencies.Dependency
+import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf

@@ -10,7 +10,7 @@
 
     -->
 
-    <groupId>de.qualityminds.lazyval.example</groupId>
+    <groupId>com.qualityminds.lazyval.example</groupId>
     <artifactId>example-maven</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 
@@ -26,7 +26,7 @@
     <!-- tag::docu[] -->
     <dependencies>
         <dependency>
-            <groupId>de.qualityminds.lazyval</groupId>
+            <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
             <version>${version.lazyval}</version>
             <optional>true</optional>
@@ -85,7 +85,7 @@
                 </executions>
                 <dependencies>
                     <dependency>
-                        <groupId>de.qualityminds.lazyval</groupId>
+                        <groupId>com.qualityminds.lazyval</groupId>
                         <artifactId>lazyval-ksp</artifactId>
                         <version>${version.lazyval}</version>
                     </dependency>

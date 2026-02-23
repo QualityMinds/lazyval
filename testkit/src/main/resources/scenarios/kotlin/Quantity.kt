@@ -1,6 +1,6 @@
 package scenarios.kotlin
 
-import de.qualityminds.lazyval.LazyValue
+import com.qualityminds.lazyval.LazyValue
 
 @LazyValue
 data class Quantity(val value: Int) {

@@ -1,6 +1,6 @@
 package scenarios.failing
 
-import de.qualityminds.lazyval.LazyValue
+import com.qualityminds.lazyval.LazyValue
 
 @LazyValue
 data class MultiplePropertyDataClass(val value: Int, val value2: String) {

@@ -16,7 +16,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.qualityminds.lazyval</groupId>
+            <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
             <version>${version.lazyval}</version>
             <optional>true</optional>
@@ -52,7 +52,7 @@
                         <version>${project.version}</version>
                     </dependency>
                     <dependency>
-                        <groupId>de.qualityminds.lazyval</groupId>
+                        <groupId>com.qualityminds.lazyval</groupId>
                         <artifactId>lazyval-ksp</artifactId>
                         <version>${version.lazyval}</version>
                     </dependency>

@@ -30,7 +30,7 @@ object `package` extends KotlinMavenModule with KspModule {
   )
 
   override def compileMvnDeps: T[Seq[Dep]] = Seq(
-    mvn"de.qualityminds.lazyval:lazyval:${Version.lazyval}",
+    mvn"com.qualityminds.lazyval:lazyval:${Version.lazyval}",
     mvn"jakarta.persistence:jakarta.persistence-api:${Version.jpa}",
     mvn"org.mapstruct:mapstruct-processor:${Version.mapstruct}"
   )
@@ -43,7 +43,7 @@ object `package` extends KotlinMavenModule with KspModule {
   // end::excluded[]
 
   override def kotlinSymbolProcessors: T[Seq[Dep]] = Seq(
-    mvn"de.qualityminds.lazyval:lazyval-ksp:${Version.lazyval}"
+    mvn"com.qualityminds.lazyval:lazyval-ksp:${Version.lazyval}"
   )
 
   def javacOptions = super.javacOptions() ++ Seq(

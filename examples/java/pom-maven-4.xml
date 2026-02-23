@@ -23,7 +23,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.qualityminds.lazyval</groupId>
+            <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
             <version>${version.lazyval}</version>
             <optional>true</optional> <!--1-->
@@ -41,7 +41,7 @@
         </dependency>
         <!-- new way to define processors in Maven 4 (parameters remain in maven-compiler-plugin) -->
         <dependency>
-            <groupId>de.qualityminds.lazyval</groupId>
+            <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval-processor</artifactId>
             <version>${version.lazyval}</version>
             <type>processor</type> <!--2-->

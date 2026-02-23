@@ -24,12 +24,12 @@ object `package` extends JavaModule with MavenModule{
   )
 
   override def compileMvnDeps: T[Seq[Dep]] = Seq(
-    mvn"de.qualityminds.lazyval:lazyval:${Version.lazyval}",
+    mvn"com.qualityminds.lazyval:lazyval:${Version.lazyval}",
     mvn"jakarta.persistence:jakarta.persistence-api:${Version.jpa}"
   )
 
   override def annotationProcessorsMvnDeps = Seq(
-    mvn"de.qualityminds.lazyval:lazyval-processor:${Version.lazyval}",
+    mvn"com.qualityminds.lazyval:lazyval-processor:${Version.lazyval}",
     mvn"org.mapstruct:mapstruct-processor:${Version.mapstruct}"
   )
 

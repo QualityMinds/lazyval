@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>de.qualityminds.lazyval</groupId>
+        <groupId>com.qualityminds.lazyval</groupId>
         <artifactId>lazyval-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
@@ -15,12 +15,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.qualityminds.lazyval</groupId>
+            <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>de.qualityminds.lazyval</groupId>
+            <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval-utils</artifactId>
             <version>${project.version}</version>
             <!-- shipped as part of ksp/processor module -->
@@ -121,7 +121,7 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
                         <configuration>
-                            <excludePackageNames>de.qualityminds.lazyval.testkit.internal.*</excludePackageNames>
+                            <excludePackageNames>com.qualityminds.lazyval.testkit.internal.*</excludePackageNames>
                         </configuration>
                     </plugin>
                 </plugins>

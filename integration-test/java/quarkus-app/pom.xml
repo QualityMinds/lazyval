@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>de.qualityminds.lazyval.integration</groupId>
+        <groupId>com.qualityminds.lazyval.integration</groupId>
         <artifactId>integration-test-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
@@ -38,12 +38,12 @@
 
     <dependencies>
         <dependency>
-            <groupId>de.qualityminds.lazyval.integration</groupId>
+            <groupId>com.qualityminds.lazyval.integration</groupId>
             <artifactId>integration-test-java-shared</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>de.qualityminds.lazyval</groupId>
+            <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
             <version>${version.lazyval}</version>
         </dependency>
@@ -111,7 +111,7 @@
                     <proc>full</proc>
                     <annotationProcessorPaths>
                         <path>
-                            <groupId>de.qualityminds.lazyval</groupId>
+                            <groupId>com.qualityminds.lazyval</groupId>
                             <artifactId>lazyval-processor</artifactId>
                             <version>${version.lazyval}</version>
                         </path>
@@ -126,9 +126,9 @@
                         <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
                         <arg>-Amapstruct.defaultComponentModel=cdi</arg>
                         <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
-                        <arg>-Alazyval.jpa.generatedPackage=de.qualityminds.lazyval.integration</arg>
-                        <arg>-Alazyval.mapstruct.generatedPackage=de.qualityminds.lazyval.integration</arg>
-                        <arg>-Alazyval.values=de.qualityminds.lazyval.integration.shared.Quantity,de.qualityminds.lazyval.integration.shared.Isbn</arg>
+                        <arg>-Alazyval.jpa.generatedPackage=com.qualityminds.lazyval.integration</arg>
+                        <arg>-Alazyval.mapstruct.generatedPackage=com.qualityminds.lazyval.integration</arg>
+                        <arg>-Alazyval.values=com.qualityminds.lazyval.integration.shared.Quantity,com.qualityminds.lazyval.integration.shared.Isbn</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
