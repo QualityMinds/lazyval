@@ -280,27 +280,7 @@
                         <releaseProfiles>publish</releaseProfiles>
                         <tagNameFormat>v@{project.version}</tagNameFormat>
                         <goals>deploy</goals>
-                        <completionGoals>exec:exec@update-ci-version</completionGoals>
                     </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.codehaus.mojo</groupId>
-                    <artifactId>exec-maven-plugin</artifactId>
-                    <version>${version.plugin.exec}</version>
-                    <executions>
-                        <execution>
-                            <id>update-ci-version</id>
-                            <goals>
-                                <goal>exec</goal>
-                            </goals>
-                            <configuration>
-                                <executable>${project.basedir}/update-lazyval-version.sh</executable>
-                                <arguments>
-                                    <argument>${project.version}</argument>
-                                </arguments>
-                            </configuration>
-                        </execution>
-                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>
