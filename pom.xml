@@ -377,7 +377,7 @@
                         <configuration>
                             <autoVersionSubmodules>true</autoVersionSubmodules>
                             <releaseProfiles>publish</releaseProfiles>
-                            <tagNameFormat>@{project.version}</tagNameFormat>
+                            <tagNameFormat>@{releaseVersion}</tagNameFormat>
                             <goals>deploy</goals>
                             <completionGoals>exec:exec@update-ci-version</completionGoals>
                         </configuration>
