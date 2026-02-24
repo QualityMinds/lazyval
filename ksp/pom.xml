@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>com.qualityminds.lazyval</groupId>
         <artifactId>lazyval-parent</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>0.1.0</version>
     </parent>
 
     <artifactId>lazyval-ksp</artifactId>
@@ -114,7 +112,7 @@
                     <dependencyReducedPomLocation>${project.build.directory}/dependency-reduced-pom.xml</dependencyReducedPomLocation>
                     <useDependencyReducedPomInJar>true</useDependencyReducedPomInJar>
                     <transformers>
-                        <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+                        <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer" />
                         <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer">
                             <addHeader>false</addHeader>
                         </transformer>
@@ -210,21 +208,18 @@
                                 </goals>
                                 <configuration>
                                     <target name="detekt">
-                                        <property name="detekt.jar" refid="maven.plugin.classpath"/>
-                                        <java taskname="detekt" dir="${basedir}"
-                                              fork="true"
-                                              failonerror="true"
-                                              classname="dev.detekt.cli.Main">
+                                        <property name="detekt.jar" refid="maven.plugin.classpath" />
+                                        <java taskname="detekt" dir="${basedir}" fork="true" failonerror="true" classname="dev.detekt.cli.Main">
                                             <classpath>
-                                                <path refid="maven.plugin.classpath"/>
+                                                <path refid="maven.plugin.classpath" />
                                             </classpath>
-                                            <arg value="--input"/>
-                                            <arg value="${basedir}/src/main/kotlin"/>
-                                            <arg value="--config"/>
-                                            <arg value="${basedir}/detekt.yml"/>
-                                            <arg value="--build-upon-default-config"/>
-                                            <arg value="--report"/>
-                                            <arg value="sarif:${project.build.directory}/detekt.sarif"/>
+                                            <arg value="--input" />
+                                            <arg value="${basedir}/src/main/kotlin" />
+                                            <arg value="--config" />
+                                            <arg value="${basedir}/detekt.yml" />
+                                            <arg value="--build-upon-default-config" />
+                                            <arg value="--report" />
+                                            <arg value="sarif:${project.build.directory}/detekt.sarif" />
                                         </java>
                                     </target>
                                 </configuration>
