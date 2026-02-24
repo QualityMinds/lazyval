@@ -52,7 +52,7 @@ jobs:
         id: version
         run: |
           VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Built Lazyval Version: $VERSION"
 
   examples-java-maven:
