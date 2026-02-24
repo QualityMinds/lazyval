@@ -30,7 +30,6 @@
         <module>processor</module>
         <module>ksp</module>
         <module>testkit</module>
-        <module>integration-test</module>
     </modules>
 
     <properties>
@@ -278,6 +277,16 @@
 
     <profiles>
         <profile>
+            <id>with-integration-tests</id>
+            <activation>
+                <!-- will be disabled when publish is activated -->
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <modules>
+                <module>integration-test</module>
+            </modules>
+        </profile>
+        <profile>
             <id>static-analysis</id>
             <build>
                 <plugins>
@@ -359,13 +368,6 @@
                         <configuration>
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>true</autoPublish>
-                            <excludeArtifacts>
-                                <excludeArtifact>integration-test-parent</excludeArtifact>
-                                <excludeArtifact>integration-test-java-shared</excludeArtifact>
-                                <excludeArtifact>integration-test-java-quarkus-app</excludeArtifact>
-                                <excludeArtifact>integration-test-kotlin-shared</excludeArtifact>
-                                <excludeArtifact>integration-test-kotlin-spring-app</excludeArtifact>
-                            </excludeArtifacts>
                         </configuration>
                     </plugin>
                     <plugin>
