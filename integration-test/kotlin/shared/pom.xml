@@ -11,7 +11,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>shared-kotlin</artifactId>
+    <artifactId>integration-test-kotlin-shared</artifactId>
     <name>Integration Test Kotlin Shared</name>
 
     <dependencies>

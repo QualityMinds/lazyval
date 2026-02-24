@@ -11,7 +11,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>spring-app</artifactId>
+    <artifactId>integration-test-kotlin-spring-app</artifactId>
     <name>Integration Test Kotlin Spring-App</name>
 
     <properties>
@@ -35,7 +35,7 @@
     <dependencies>
         <dependency>
             <groupId>com.qualityminds.lazyval.integration</groupId>
-            <artifactId>shared-kotlin</artifactId>
+            <artifactId>integration-test-kotlin-shared</artifactId>
             <version>${version.lazyval}</version>
         </dependency>
         <dependency>
