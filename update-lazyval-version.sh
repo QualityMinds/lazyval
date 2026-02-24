@@ -33,7 +33,7 @@ echo "  ✔ examples/**/build.mill"
 # --- Gradle (build.gradle.kts) ---
 # Updates: ... ?: "..."
 find "$PROJECT_ROOT/examples" -name "build.gradle.kts" -exec \
-  sed -i "s|as String? ?: \".*\"|as String? ?: \"${VERSION}\"|" {} +
+  sed -i "s|System.getProperty(\"version.lazyval\") ?: \".*\"|System.getProperty(\"version.lazyval\") ?: \"${VERSION}\"|" {} +
 echo "  ✔ examples/**/build.gradle.kts"
 
 echo "Done."
