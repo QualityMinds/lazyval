@@ -21,6 +21,8 @@ jobs:
   build:
     name: Build & Test
     runs-on: ubuntu-latest
+    outputs:
+      lazyval-version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,11 +48,19 @@ jobs:
           # see https://github.com/google/error-prone/issues/3766
           sarif_file: ksp/target/detekt.sarif
           category: detekt
+      - name: Extract version to be used in examples
+        id: version
+        run: |
+          VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo "$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Built Lazyval Version: $VERSION"
 
   examples-java-maven:
     name: Java-Example - Maven
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
@@ -82,6 +92,8 @@ jobs:
     name: Java-Example - Maven 4
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
@@ -113,6 +125,8 @@ jobs:
     name: Java-Example - Gradle
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
@@ -141,6 +155,8 @@ jobs:
     name: Java-Example - Mill
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
@@ -174,6 +190,8 @@ jobs:
     name: Kotlin-Example - Maven
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
@@ -206,6 +224,8 @@ jobs:
     name: Kotlin-Example - Maven 4
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
@@ -237,6 +257,8 @@ jobs:
     name: Kotlin-Example - Gradle
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
@@ -265,6 +287,8 @@ jobs:
     name: Kotlin-Example - Mill
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
@@ -298,6 +322,8 @@ jobs:
     name: Java-Example - SPI-Dev
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
@@ -321,6 +347,8 @@ jobs:
     name: Kotlin-Example - SPI-Dev
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}

@@ -11,10 +11,6 @@ PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 echo "Updating lazyval version to: $VERSION"
 
 # --- GitHub Actions: build-and-test.yml ---
-# Updates: VERSION_LAZYVAL: '<version>'
-sed -i "s|VERSION_LAZYVAL: '.*'|VERSION_LAZYVAL: '${VERSION}'|" \
-  "$PROJECT_ROOT/.github/workflows/build-and-test.yml"
-echo "  ✔ .github/workflows/build-and-test.yml"
 
 # --- Maven (pom.xml) ---
 # Updates: <version.lazyval>...</version.lazyval>
