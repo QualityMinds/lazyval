@@ -27,7 +27,10 @@ ui:
     snapshot: false
   supplemental_files:
     # needed to get rid of stuff in the default template
-    - path: ./_documentation/supplemental-ui
+    # map your custom header-content.hbs explicitly as a virtual file as simple "- path" will not work together
+    # with the additional setup for asciidoctor-tabs
+    - path: partials/header-content.hbs
+      contents: ./_documentation/supplemental-ui/partials/header-content.hbs
     # the following configures asciidoctor-tabs for antora
     # see https://github.com/asciidoctor/asciidoctor-tabs/blob/main/docs/use-with-antora.adoc
     - path: css/vendor/tabs.css
