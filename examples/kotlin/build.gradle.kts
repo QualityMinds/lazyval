@@ -1,6 +1,6 @@
 plugins {
     kotlin("jvm") version "2.2.20"
-    id("com.google.devtools.ksp") version "2.2.20-2.0.3"
+    id("com.google.devtools.ksp") version "2.3.6"
 }
 
 // tag::docu[]
