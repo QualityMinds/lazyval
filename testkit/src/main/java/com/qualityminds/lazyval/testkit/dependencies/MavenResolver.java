@@ -141,6 +141,8 @@ class MavenResolver {
 
     /**
      * Resolves the compiled classes of the given module for testing purposes.
+     * Is especially needed when no `mvn install` was run before, like when checking out the project and directly
+     * running a test from the IDE.
      */
     public static NonEmptySet<File> getModuleClasses(String relativeModulePath) {
         File mavenWorkspace = findMavenWorkspaceRoot();
@@ -189,7 +191,7 @@ class MavenResolver {
 
                 // 2. Check for GroupId and ArtifactId within that block
                 // Using regex handles varying whitespace around the values
-                boolean hasGroupId = Pattern.compile("<groupId>\\s*de\\.qualityminds\\.lazyval\\s*</groupId>")
+                boolean hasGroupId = Pattern.compile("<groupId>\\s*com\\.qualityminds\\.lazyval\\s*</groupId>")
                         .matcher(parentContent).find();
 
                 boolean hasArtifactId = Pattern.compile("<artifactId>\\s*lazyval-parent\\s*</artifactId>")
