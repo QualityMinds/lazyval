@@ -41,7 +41,7 @@
         <version.eclipse-collections>13.0.0</version.eclipse-collections>
         <version.groovy>5.0.4</version.groovy>
         <version.javapoet>0.10.0</version.javapoet>
-        <version.jetbrains-annotations>26.0.2-1</version.jetbrains-annotations>
+        <version.jetbrains-annotations>26.1.0</version.jetbrains-annotations>
         <version.jspecify>1.0.0</version.jspecify>
         <version.kotest>6.0.3</version.kotest>
         <version.kotlin>2.3.0</version.kotlin>
