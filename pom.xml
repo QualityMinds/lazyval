@@ -52,7 +52,7 @@
         <!-- plugins -->
         <version.plugin.antrun>3.2.0</version.plugin.antrun>
         <version.plugin.build-helper>3.6.1</version.plugin.build-helper>
-        <version.plugin.compiler>3.14.1</version.plugin.compiler>
+        <version.plugin.compiler>3.15.0</version.plugin.compiler>
         <version.plugin.dokka>2.1.0</version.plugin.dokka>
         <version.plugin.exec>3.6.3</version.plugin.exec>
         <version.plugin.failsafe>3.5.4</version.plugin.failsafe>
