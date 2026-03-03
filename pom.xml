@@ -57,7 +57,7 @@
         <version.plugin.exec>3.6.3</version.plugin.exec>
         <version.plugin.failsafe>3.5.4</version.plugin.failsafe>
         <version.plugin.flatten>1.7.3</version.plugin.flatten>
-        <version.plugin.gmavenplus>4.2.1</version.plugin.gmavenplus>
+        <version.plugin.gmavenplus>4.3.1</version.plugin.gmavenplus>
         <version.plugin.gpg>3.2.8</version.plugin.gpg>
         <version.plugin.jar>3.5.0</version.plugin.jar>
         <version.plugin.javadoc>3.12.0</version.plugin.javadoc>
