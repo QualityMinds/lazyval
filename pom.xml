@@ -46,7 +46,7 @@
         <version.kotest>6.0.3</version.kotest>
         <version.kotlin>2.3.0</version.kotlin>
         <version.kotlinpoet>2.2.0</version.kotlinpoet>
-        <version.ksp>2.3.4</version.ksp>
+        <version.ksp>2.3.6</version.ksp>
         <version.slf4j>2.0.17</version.slf4j>
         <version.spock>2.4-groovy-5.0</version.spock>
         <!-- plugins -->
