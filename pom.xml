@@ -44,7 +44,7 @@
         <version.jetbrains-annotations>26.1.0</version.jetbrains-annotations>
         <version.jspecify>1.0.0</version.jspecify>
         <version.kotest>6.0.3</version.kotest>
-        <version.kotlin>2.3.0</version.kotlin>
+        <version.kotlin>2.3.10</version.kotlin>
         <version.kotlinpoet>2.2.0</version.kotlinpoet>
         <version.ksp>2.3.6</version.ksp>
         <version.slf4j>2.0.17</version.slf4j>
