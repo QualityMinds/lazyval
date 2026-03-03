@@ -59,6 +59,9 @@ class NonEmptySetSpec extends Specification {
 
         then:
         streamedSet ==~ ["Hello", "World"]
+
+        and:
+        streamedSet instanceof NonEmptySet
     }
 
 }
