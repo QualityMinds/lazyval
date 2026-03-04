@@ -78,7 +78,7 @@ jobs:
           ./update-lazyval-version.sh "$VERSION"
           git add -A
           git diff --cached --quiet || {
-            git commit -m "[ci] update example versions to release $VERSION"
+            git commit -m "[release] update example versions to release $VERSION"
             git push
           }
         env:
