@@ -73,11 +73,12 @@ jobs:
           MAVEN_PASSWORD: ${{ secrets.MAVEN_USERTOKEN_PASSPHRASE }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
       - name: Update version references
+        working-directory: examples
         run: |
           ./update-lazyval-version.sh "$VERSION"
           git add -A
           git diff --cached --quiet || {
-            git commit -m "[ci] update example versions to $VERSION"
+            git commit -m "[ci] update example versions to release $VERSION"
             git push
           }
         env:
