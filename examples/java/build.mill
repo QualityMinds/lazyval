@@ -35,8 +35,8 @@ object `package` extends JavaModule with MavenModule{
 
   def javacOptions = super.javacOptions() ++ Seq(
     "-Amapstruct.unmappedTargetPolicy=ERROR",
-    "-Alazyval.jpa.generatedPackage=test.boundary.persistence",
-    "-Alazyval.mapstruct.generatedPackage=test",
+    "-Alazyval.jpa.generatedPackage=test.boundary.custom",
+    "-Alazyval.mapstruct.generatedPackage=test.custom",
   )
   // end::docu[]
 }

@@ -23,8 +23,8 @@ dependencies {
 }
 
 ksp {
-    arg("lazyval.jpa.generatedPackage", "test.boundary.persistence")
-    arg("lazyval.mapstruct.generatedPackage", "test")
+    arg("lazyval.jpa.generatedPackage", "test.boundary.custom")
+    arg("lazyval.mapstruct.generatedPackage", "test.custom")
 }
 // end::docu[]
 

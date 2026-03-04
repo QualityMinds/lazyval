@@ -65,8 +65,8 @@
                     <proc>full</proc>
                     <compilerArgs>
                         <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
-                        <arg>-Alazyval.jpa.generatedPackage=test.boundary.persistence</arg>
-                        <arg>-Alazyval.mapstruct.generatedPackage=test</arg>
+                        <arg>-Alazyval.jpa.generatedPackage=test.boundary.custom</arg>
+                        <arg>-Alazyval.mapstruct.generatedPackage=test.custom</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>

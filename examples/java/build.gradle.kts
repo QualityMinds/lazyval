@@ -29,8 +29,8 @@ tasks.withType<JavaCompile>().configureEach {
     // end::excluded[]
     options.compilerArgs.apply{
         add("-Amapstruct.unmappedTargetPolicy=ERROR")
-        add("-Alazyval.jpa.generatedPackage=test.boundary.persistence")
-        add("-Alazyval.mapstruct.generatedPackage=test")
+        add("-Alazyval.jpa.generatedPackage=test.boundary.custom")
+        add("-Alazyval.mapstruct.generatedPackage=test.custom")
     }
 }
 // end::docu[]

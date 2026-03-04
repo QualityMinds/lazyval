@@ -97,10 +97,10 @@
                 <configuration>
                     <apOptions>
                         <lazyval.jpa.generatedPackage>
-                            test.boundary.persistence
+                            test.boundary.custom
                         </lazyval.jpa.generatedPackage>
                         <lazyval.mapstruct.generatedPackage>
-                            test
+                            test.custom
                         </lazyval.mapstruct.generatedPackage>
                     </apOptions>
                 </configuration>

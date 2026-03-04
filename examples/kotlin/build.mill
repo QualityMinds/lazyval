@@ -54,8 +54,8 @@ object `package` extends KotlinMavenModule with KspModule {
   )
 
   override def kspProcessorOptions: T[Map[String, String]] = Map(
-    "lazyval.jpa.generatedPackage" -> "test.boundary.persistence",
-    "lazyval.mapstruct.generatedPackage" -> "test"
+    "lazyval.jpa.generatedPackage" -> "test.boundary.custom",
+    "lazyval.mapstruct.generatedPackage" -> "test.custom"
   )
   // end::docu[]
 }
