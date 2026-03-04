@@ -167,7 +167,7 @@ public class LazyvalProcessor extends AbstractProcessor {
 
             throw new RuntimeException(e);
         }
-        lazyvalEnvironment.info("Written '%s.%s".formatted(javaResult.metadata().packageName(), javaResult.metadata().className()));
+        lazyvalEnvironment.info("Written '%s'".formatted(javaResult.metadata().qualifiedName()));
     }
 
     /**

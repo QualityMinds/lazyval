@@ -192,7 +192,7 @@ class LazyvalSymbolProcessor(
             )
             file.write(fileSpec.contents.toByteArray())
             file.close()
-            lazyvalEnvironment.info("Written Kotlin file '${fileSpec.metadata.packageName}.${fileSpec.metadata.className}'")
+            lazyvalEnvironment.info("Written Kotlin file '${fileSpec.metadata.qualifiedName}'")
         } catch (_: FileAlreadyExistsException) {
             // This is common in incremental builds; usually, we can ignore it
             // as the existing file is considered up-to-date by KSP
@@ -222,7 +222,7 @@ class LazyvalSymbolProcessor(
 
             file.write(javaFileSpec.contents.toByteArray())
             file.close()
-            lazyvalEnvironment.info("Written Java file '${javaFileSpec.metadata.packageName}.${javaFileSpec.metadata.className}'")
+            lazyvalEnvironment.info("Written Java file '${javaFileSpec.metadata.qualifiedName}'")
         } catch (_: FileAlreadyExistsException) {
             // This is common in incremental builds; usually, we can ignore it
             // as the existing file is considered up-to-date by KSP

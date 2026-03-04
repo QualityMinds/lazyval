@@ -47,7 +47,12 @@ sealed interface GeneratorResult {
      * @param packageName the package name of the generated file
      * @param className the name of the generated file
      */
-    data class Metadata(val packageName: String, val className: String)
+    data class Metadata(val packageName: String, val className: String){
+        /**
+         * The fully qualified name of the generated file.
+         */
+        val qualifiedName: String = "$packageName.$className"
+    }
 }
 // end::result[]
 
