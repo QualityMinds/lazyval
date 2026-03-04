@@ -16,7 +16,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <!-- end::excluded[] -->
-        <version.lazyval>0.1.1</version.lazyval>
+        <version.lazyval>0.1.2</version.lazyval>
         <version.mapstruct>1.6.3</version.mapstruct>
         <version.jakarta-ee>11.0.0</version.jakarta-ee>
     </properties>

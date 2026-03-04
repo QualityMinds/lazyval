@@ -10,7 +10,7 @@ repositories {
     mavenLocal() // For local SNAPSHOT dependencies
 }
 
-val versionLazyval = System.getProperty("version.lazyval") ?: "0.1.1"
+val versionLazyval = System.getProperty("version.lazyval") ?: "0.1.2"
 // end::excluded[]
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.20")

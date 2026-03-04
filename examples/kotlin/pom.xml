@@ -16,7 +16,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- end::excluded[] -->
         <kotlin.version>2.3.0</kotlin.version>
-        <version.lazyval>0.1.1</version.lazyval>
+        <version.lazyval>0.1.2</version.lazyval>
         <mapstruct.version>1.6.3</mapstruct.version>
         <version.jakarta-ee>11.0.0</version.jakarta-ee>
     </properties>
