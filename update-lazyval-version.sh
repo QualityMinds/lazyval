@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# Updates the lazyval version in all example build files and the CI workflow.
+# Updates the lazyval version in all example build files.
 # Usage: ./update-lazyval-version.sh <new-version>
+# Executed as part of the Release workflow
 #
 set -euo pipefail
 
@@ -9,8 +10,6 @@ VERSION="${1:?Usage: $0 <new-version>}"
 PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 
 echo "Updating lazyval version to: $VERSION"
-
-# --- GitHub Actions: build-and-test.yml ---
 
 # --- Maven (pom.xml) ---
 # Updates: <version.lazyval>...</version.lazyval>
