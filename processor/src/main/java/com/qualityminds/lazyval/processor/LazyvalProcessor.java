@@ -149,8 +149,8 @@ public class LazyvalProcessor extends AbstractProcessor {
         JavaFileObject filerSourceFile = null;
         try {
             filerSourceFile = processingEnv.getFiler().createSourceFile(
-                    javaResult.metadata().className(),
-                    javaResult.originatingElements().toArray(new Element[0]));
+                    javaResult.metadata().qualifiedName(),
+                    javaResult.originatingElements().toArray(new Element[1]));
 
             try (Writer writer = filerSourceFile.openWriter()) {
                 writer.write(javaResult.contents());
@@ -173,7 +173,7 @@ public class LazyvalProcessor extends AbstractProcessor {
     /**
      * Loads all generators from the classpath and returns the ones that have their classpath dependencies satisfied
      * and have not been disabled by a configuration option.
-     *
+     * <p>
      * Has to make use of TCCL to work for complex classloader setup (Spring, Quarkus) as well as simple ones.
      */
     private Stream<? extends SpiGenerator> getActiveGenerators(){

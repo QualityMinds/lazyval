@@ -35,6 +35,14 @@ public sealed interface GeneratorResult {
             Objects.requireNonNull(packageName);
             Objects.requireNonNull(className);
         }
+
+        /**
+         * Constructs the FQN from package and class name.
+         * @return the fully qualified name of the generated class
+         */
+        public String qualifiedName(){
+            return packageName + "." + className;
+        }
     }
 }
 // end::result[]
