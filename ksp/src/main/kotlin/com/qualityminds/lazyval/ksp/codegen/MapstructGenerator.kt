@@ -12,10 +12,11 @@ import javax.lang.model.element.Modifier
 class MapstructGenerator : SingleFileGenerator {
 
     companion object {
+        private const val GENERATOR_ID = "mapstruct"
         private const val OPTION_GENERATED_PACKAGE = "lazyval.mapstruct.generatedPackage"
     }
 
-    override fun generatorId(): String = "mapstruct"
+    override fun generatorId(): String = GENERATOR_ID
 
     override fun requiredClasspath(): Collection<String> = listOf("org.mapstruct.Mapper")
 

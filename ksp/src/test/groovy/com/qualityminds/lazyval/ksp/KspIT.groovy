@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.ksp
 
+import com.qualityminds.lazyval.ksp.codegen.MapstructGenerator
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
@@ -26,7 +27,17 @@ class KspIT extends Specification {
 
     void "does not generate anything when classpath is empty"(){
         expect:
-        testkitKotlin.run(projectDir, Scenario.Kotlin.Isbn) == new Testresult.Kotlin.NothingGenerated()
+        testkitKotlin.run(projectDir, Scenario.Kotlin.isbn()) == new Testresult.Kotlin.NothingGenerated()
+    }
+
+    void "does not generate anything when generator is disabled"(){
+        given:
+        def scenario = Scenario.Kotlin.isbn()
+                .withDependencies(DependencyMapstruct)
+                .withDisabledGenerators(MapstructGenerator.GENERATOR_ID)
+
+        expect:
+        testkitKotlin.run(projectDir, scenario) == new Testresult.Kotlin.NothingGenerated()
     }
 
     @Unroll("#scenario.name() fails with '#error'")
@@ -87,11 +98,11 @@ class KspIT extends Specification {
         result == expected
 
         where:
-        scenario                            | generatedJpaMapper
-        Scenario.Kotlin.Isbn                | "IsbnAttributeConverter.kt"
-        Scenario.Kotlin.Quantity            | "QuantityAttributeConverter.kt"
-        Scenario.Kotlin.NullableQuantity    | "NullableQuantityAttributeConverter.kt"
-        Scenario.Kotlin.ProductId           | "ProductIdAttributeConverter.kt"
+        scenario                              | generatedJpaMapper
+        Scenario.Kotlin.isbn() | "IsbnAttributeConverter.kt"
+        Scenario.Kotlin.quantity() | "QuantityAttributeConverter.kt"
+        Scenario.Kotlin.nullableQuantity() | "NullableQuantityAttributeConverter.kt"
+        Scenario.Kotlin.productId() | "ProductIdAttributeConverter.kt"
         expected = new Testresult.Kotlin.Success(GENERATED_MAPSTRUCT_MAPPER_NAME, generatedJpaMapper)
     }
 }

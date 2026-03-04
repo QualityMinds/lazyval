@@ -84,8 +84,11 @@ public sealed interface Scenario {
          *     }
          * }
          * }</pre>
+         * @return new ScenarioFactory instance
          */
-        public static final ScenarioFactory<Java> Isbn = Scenario.Java.of("scenarios/java/Isbn.java");
+        public static ScenarioFactory<Java> isbn() {
+            return Scenario.Java.of("scenarios/java/Isbn.java");
+        }
         /**
          * Default record case wrapping a primitive int (which might need boxing in some generated code).
          * <pre>{@code
@@ -98,8 +101,11 @@ public sealed interface Scenario {
          *     }
          * }
          * }</pre>
+         * @return new ScenarioFactory instance
          */
-        public static final ScenarioFactory<Java> Quantity = Scenario.Java.of("scenarios/java/Quantity.java");
+        public static ScenarioFactory<Java> quantity() {
+            return Scenario.Java.of("scenarios/java/Quantity.java");
+        }
         /**
          * Edge-Case: a record defining multiple factories where only <code>of(String value)</code> is relevant for Lazyval.
          * <pre>{@code
@@ -126,13 +132,19 @@ public sealed interface Scenario {
          *     }
          * }
          * }</pre>
+         * @return new ScenarioFactory instance
          */
-        public static final ScenarioFactory<Java> ProductId = Scenario.Java.of("scenarios/java/ProductId.java", "util/IdGenerator.java");
+        public static ScenarioFactory<Java> productId() {
+            return Scenario.Java.of("scenarios/java/ProductId.java", "util/IdGenerator.java");
+        }
 
         /**
          * All predefined sample scenarios, without any dependencies.
+         * @return immutable list of all predefined scenarios
          */
-        public static final List<ScenarioFactory<Java>> All = List.of(Isbn, Quantity, ProductId);
+        public static List<ScenarioFactory<Java>> all() {
+            return List.of(isbn(), quantity(), productId());
+        }
     }
 
     /**
@@ -174,8 +186,11 @@ public sealed interface Scenario {
          *     }
          * }
          * }</pre>
+         * @return new ScenarioFactory instance
          */
-        public static final ScenarioFactory<Kotlin> Isbn = Scenario.Kotlin.of("scenarios/kotlin/Isbn.kt");
+        public static ScenarioFactory<Kotlin> isbn() {
+            return Scenario.Kotlin.of("scenarios/kotlin/Isbn.kt");
+        }
         /**
          * Default data class case.
          * <pre>{@code
@@ -186,8 +201,11 @@ public sealed interface Scenario {
          *     }
          * }
          * }</pre>
+         * @return new ScenarioFactory instance
          */
-        public static final ScenarioFactory<Kotlin> Quantity = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt");
+        public static ScenarioFactory<Kotlin> quantity() {
+            return Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt");
+        }
         /**
          * A data class which uses a factory capable of returning null.
          * <pre>{@code
@@ -206,8 +224,11 @@ public sealed interface Scenario {
          *     }
          * }
          * }</pre>
+         * @return new ScenarioFactory instance
          */
-        public static final ScenarioFactory<Kotlin> NullableQuantity = Scenario.Kotlin.of("scenarios/kotlin/NullableQuantity.kt");
+        public static ScenarioFactory<Kotlin> nullableQuantity() {
+            return Scenario.Kotlin.of("scenarios/kotlin/NullableQuantity.kt");
+        }
         /**
          * Edge-Case: a class defining multiple factories where only <code>of(value: String)</code> is relevant for Lazyval.
          * <pre>{@code
@@ -236,13 +257,19 @@ public sealed interface Scenario {
          *     }
          * }
          * }</pre>
+         * @return new ScenarioFactory instance
          */
-        public static final ScenarioFactory<Kotlin> ProductId = Scenario.Kotlin.of("scenarios/kotlin/ProductId.kt", "util/IdGenerator.java");
+        public static ScenarioFactory<Kotlin> productId() {
+            return Scenario.Kotlin.of("scenarios/kotlin/ProductId.kt", "util/IdGenerator.java");
+        }
 
         /**
          * All predefined sample scenarios, without any dependencies.
+         * @return immutable list of all predefined scenarios
          */
-        public static final List<ScenarioFactory<Kotlin>> All = List.of(Isbn, Quantity, NullableQuantity, ProductId);
+        public static List<ScenarioFactory<Kotlin>> all() {
+            return List.of(isbn(), quantity(), nullableQuantity(), productId());
+        }
     }
 
 
