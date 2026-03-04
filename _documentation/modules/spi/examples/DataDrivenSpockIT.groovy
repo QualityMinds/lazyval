@@ -25,7 +25,7 @@ class DataDrivenSpockIT extends Specification {
         kit.run(tempDir, scenario) == expected // <5>
 
         where:
-        scenario << Scenario.Java.All // <1>
+        scenario << Scenario.Java.all() // <1>
         expectedFile = scenario.name().replace(".java", "Gen.java") // <3>
         expected = new Testresult.Java.Success(expectedFile) // <4>
     }

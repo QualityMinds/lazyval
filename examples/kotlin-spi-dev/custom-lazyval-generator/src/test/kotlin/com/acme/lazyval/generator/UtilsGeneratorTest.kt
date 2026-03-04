@@ -15,7 +15,7 @@ class UtilsGeneratorTest {
     fun testGenerator(@TempDir tempDir: Path) {
         // GIVEN
         val kit = Testkit.kotlin()
-        val scenario = Scenario.Kotlin.Isbn
+        val scenario = Scenario.Kotlin.isbn()
 
         // WHEN
         val result: Testresult.Kotlin = kit.run(tempDir, scenario)

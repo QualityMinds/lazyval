@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.processor
 
+import com.qualityminds.lazyval.processor.codegen.MapstructGenerator
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
@@ -26,7 +27,17 @@ class AnnotationProcessorIT extends Specification {
 
     void "does not generate anything when classpath is empty"(){
         expect:
-        testkitJava.run(projectDir, Scenario.Java.Isbn) == new Testresult.Java.NothingGenerated()
+        testkitJava.run(projectDir, Scenario.Java.isbn()) == new Testresult.Java.NothingGenerated()
+    }
+
+    void "does not generate anything when generator is disabled"(){
+        given:
+        def scenario = Scenario.Java.isbn()
+                .withDependencies(DependencyMapstruct)
+                .withDisabledGenerators(MapstructGenerator.GENERATOR_ID)
+
+        expect:
+        testkitJava.run(projectDir, scenario) == new Testresult.Java.NothingGenerated()
     }
 
     @Unroll("#scenario.name() fails with '#error'")
@@ -80,10 +91,10 @@ class AnnotationProcessorIT extends Specification {
         result == expected
 
         where:
-        scenario                | generatedJpaMapper
-        Scenario.Java.Isbn      | "IsbnAttributeConverter.java"
-        Scenario.Java.Quantity  | "QuantityAttributeConverter.java"
-        Scenario.Java.ProductId | "ProductIdAttributeConverter.java"
+        scenario                  | generatedJpaMapper
+        Scenario.Java.isbn() | "IsbnAttributeConverter.java"
+        Scenario.Java.quantity() | "QuantityAttributeConverter.java"
+        Scenario.Java.productId() | "ProductIdAttributeConverter.java"
         expected = new Testresult.Java.Success(GENERATED_MAPSTRUCT_MAPPER_NAME, generatedJpaMapper)
     }
 }

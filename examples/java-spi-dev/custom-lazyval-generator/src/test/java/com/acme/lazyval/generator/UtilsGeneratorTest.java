@@ -16,7 +16,7 @@ public class UtilsGeneratorTest {
     public void testGenerator(@TempDir Path tempDir) {
         // GIVEN
         var kit = Testkit.java();
-        var scenario = Scenario.Java.Isbn;
+        var scenario = Scenario.Java.isbn();
 
         // WHEN
         Testresult.Java result = kit.run(tempDir, scenario);

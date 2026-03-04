@@ -13,10 +13,11 @@ import com.squareup.kotlinpoet.ksp.toTypeName
 class JpaGenerator : FilePerTypeGenerator {
 
     companion object {
+        private const val GENERATOR_ID = "jpa"
         private const val OPTION_GENERATED_PACKAGE = "lazyval.jpa.generatedPackage"
     }
 
-    override fun generatorId(): String = "jpa"
+    override fun generatorId(): String = GENERATOR_ID
 
     override fun requiredClasspath(): Collection<String> = listOf("jakarta.persistence.AttributeConverter")
 
