@@ -4,7 +4,7 @@ import mill.javalib.*
 object `package` extends JavaModule with MavenModule{
   
   object Version{
-    val lazyval = sys.props.getOrElse("version.lazyval", "0.1.0")
+    val lazyval = sys.props.getOrElse("version.lazyval", "0.1.1")
     val mapstruct = "1.6.3"
     val jpa = "3.2.0"
   }
