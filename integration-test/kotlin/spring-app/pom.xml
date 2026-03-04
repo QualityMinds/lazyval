@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.qualityminds.lazyval.integration</groupId>
         <artifactId>integration-test-parent</artifactId>
-        <version>0.1.2-SNAPSHOT</version>
+        <version>0.1.2</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -13,7 +13,7 @@
     <name>Integration Test Kotlin Spring-App</name>
 
     <properties>
-        <version.lazyval>0.1.2-SNAPSHOT</version.lazyval>
+        <version.lazyval>0.1.2</version.lazyval>
         <version.spring-boot>4.0.2</version.spring-boot>
         <version.mapstruct>1.6.3</version.mapstruct>
     </properties>
