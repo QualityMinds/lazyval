@@ -67,7 +67,6 @@
                         </goals>
                         <configuration>
                             <sourceDirs>
-                                <sourceDir>src/main/kotlin</sourceDir>
                                 <!-- Ensure Kotlin code can reference Java code -->
                                 <sourceDir>src/main/java</sourceDir>
                             </sourceDirs>

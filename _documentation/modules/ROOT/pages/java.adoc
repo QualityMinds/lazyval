@@ -59,7 +59,7 @@ include::ROOT:example$java/src/main/java/test/DefaultMapperConfig.java[tag=docu]
 @Converter(
     autoApply = true
 )
-public class QuantityAttributeConverter implements AttributeConverter<Quantity, Integer> { // 1.
+public class QuantityAttributeConverter implements AttributeConverter<Quantity, Integer> { // <1>
     public Integer convertToDatabaseColumn(Quantity type) {
         return type.value();
     }
@@ -82,7 +82,7 @@ public class IsbnAttributeConverter implements AttributeConverter<Isbn, String> 
     }
 }
 ----
-1. where needed, wrapped primitives are boxed
+<1> where needed, wrapped primitives are boxed
 
 These converters will be automatically picked up by your persistence provider.
 

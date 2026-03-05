@@ -26,9 +26,7 @@ class MavenResolver {
     private static final Logger logger = LoggerFactory.getLogger(MavenResolver.class);
     private static final String userHome = System.getProperty("user.home");
     private static final String defaultMavenRepo = userHome + "/.m2/repository";
-//    private static final File localRepo = new File(System.getProperty(PROP_RESOLVER_REPO, defaultMavenRepo));
     private static final String defaultMavenMirror = "https://repo1.maven.org/maven2/";
-//    private static final String mavenMirror = ensureTrailingSlash(System.getProperty(PROP_RESOLVER_MIRROR, defaultMavenMirror));
 
     private static File getLocalRepo() {
         return new File(System.getProperty(PROP_RESOLVER_REPO, defaultMavenRepo));
