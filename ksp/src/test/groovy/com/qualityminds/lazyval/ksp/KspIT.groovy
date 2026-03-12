@@ -99,10 +99,10 @@ class KspIT extends Specification {
 
         where:
         scenario                              | generatedJpaMapper
-        Scenario.Kotlin.isbn() | "IsbnAttributeConverter.kt"
-        Scenario.Kotlin.quantity() | "QuantityAttributeConverter.kt"
-        Scenario.Kotlin.nullableQuantity() | "NullableQuantityAttributeConverter.kt"
-        Scenario.Kotlin.productId() | "ProductIdAttributeConverter.kt"
+        Scenario.Kotlin.isbn()                | "IsbnAttributeConverter.kt"
+        Scenario.Kotlin.quantity()            | "QuantityAttributeConverter.kt"
+        Scenario.Kotlin.nullableQuantity()    | "NullableQuantityAttributeConverter.kt"
+        Scenario.Kotlin.productId()           | "ProductIdAttributeConverter.kt"
         expected = new Testresult.Kotlin.Success(GENERATED_MAPSTRUCT_MAPPER_NAME, generatedJpaMapper)
     }
 }

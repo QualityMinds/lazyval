@@ -142,7 +142,7 @@ class MavenResolver {
      * Is especially needed when no `mvn install` was run before, like when checking out the project and directly
      * running a test from the IDE.
      */
-    public static NonEmptySet<File> getModuleClasses(String relativeModulePath) {
+    static NonEmptySet<File> getModuleClasses(String relativeModulePath) {
         File mavenWorkspace = findMavenWorkspaceRoot();
         List<File> compiledClasses = new ArrayList<>();
 
