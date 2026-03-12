@@ -91,10 +91,10 @@ class AnnotationProcessorIT extends Specification {
         result == expected
 
         where:
-        scenario                  | generatedJpaMapper
-        Scenario.Java.isbn() | "IsbnAttributeConverter.java"
-        Scenario.Java.quantity() | "QuantityAttributeConverter.java"
-        Scenario.Java.productId() | "ProductIdAttributeConverter.java"
+        scenario                    | generatedJpaMapper
+        Scenario.Java.isbn()        | "IsbnAttributeConverter.java"
+        Scenario.Java.quantity()    | "QuantityAttributeConverter.java"
+        Scenario.Java.productId()   | "ProductIdAttributeConverter.java"
         expected = new Testresult.Java.Success(GENERATED_MAPSTRUCT_MAPPER_NAME, generatedJpaMapper)
     }
 }
