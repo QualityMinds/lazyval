@@ -14,3 +14,10 @@ data class EMail(val value: String) {
         require(REGEX.matches(value)) { "Invalid EMail format!" }
     }
 }
+
+@LazyValue
+data class ProductId(val value: String)
+
+
+@LazyValue
+data class Quantity(val value: Int)

@@ -38,7 +38,7 @@ class SingleFileUtilsGenerator : SingleFileGenerator {
                 val element = validatedElement.element
                 val typeName = element.simpleName.asString()
                 val wrappedTypeName = validatedElement.wrappedTypeName
-                imports.add("import ${element.qualifiedName?.asString()}\n")
+                imports.add("import ${element.qualifiedName?.asString()}")
                 val method = "public fun ${typeName}.toUpperCase2(): String = this.${wrappedTypeName}.uppercase()"
                 methods.add(method)
             }
@@ -48,13 +48,13 @@ class SingleFileUtilsGenerator : SingleFileGenerator {
             ?: "${extractRootPackage(validatedElements.any.element)}.test"
 
         val contents = """
-            package $packageName
-
-            ${imports.joinToString("\n")}
-            import kotlin.String
-
-            ${methods.joinToString("\n")}
-        """.trimIndent().replace("\n", System.lineSeparator())
+            |package $packageName
+|
+            |${imports.joinToString("\n")}
+            |import kotlin.String
+|
+            |${methods.joinToString("\n")}
+        """.trimMargin().replace("\n", System.lineSeparator())
 
         return GeneratorResult.Kotlin(
             GeneratorResult.Metadata(packageName, "Utils"),

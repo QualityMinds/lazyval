@@ -41,10 +41,10 @@ class UtilsGenerator : FilePerTypeGenerator {
 
         val contents = """
             package $packageName
-
+            
             import ${element.qualifiedName?.asString()}
             import kotlin.String
-
+            
             public fun ${typeName}.toUpperCase(): String = this.${wrappedTypeName}.uppercase()
         """.trimIndent().replace("\n", System.lineSeparator())
 
