@@ -134,7 +134,7 @@ class LazyvalEnvironment {
 
         var fields = lazyvalElement.getRecordComponents();
         if(fields.size() > 1){
-            error(lazyvalElement, "Not a simple ValueType. Lazyval only supported Records with one non-transient field name 'value'.");
+            error(lazyvalElement, "Not a simple ValueType. Lazyval only supports Records with one non-transient field.");
             valid = false;
         }
 

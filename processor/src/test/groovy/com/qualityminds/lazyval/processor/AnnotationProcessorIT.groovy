@@ -48,7 +48,7 @@ class AnnotationProcessorIT extends Specification {
         where:
         scenario                                                                | error
         Scenario.Java.of( "scenarios/failing/AbstractClass.java")               | "Abstract class is not a valid ValueType."
-        Scenario.Java.of( "scenarios/failing/RecordMoreThanOneProperty.java")   | "Not a simple ValueType. Lazyval only supported Records with one non-transient field name 'value'."
+        Scenario.Java.of( "scenarios/failing/RecordMoreThanOneProperty.java")   | "Not a simple ValueType. Lazyval only supports Records with one non-transient field."
         Scenario.Java.of( "scenarios/failing/ObjectMoreThanOneProperty.java")   | "Not a simple ValueType. Lazyval only supports Objects with one non-transient value."
         Scenario.Java.of( "scenarios/failing/ObjectMultipleFactories.java")     | "Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
         Scenario.Java.of( "scenarios/failing/RecordMultipleFactories.java")     | "Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
