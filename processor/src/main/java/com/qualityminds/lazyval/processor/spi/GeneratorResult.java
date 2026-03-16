@@ -16,7 +16,7 @@ public sealed interface GeneratorResult {
 
     /**
      * Can be used to signal that no file should be generated (for instance, when the generator only handles
-     * wrapped values of a certain type)
+     * wrapped values of a certain typeMirror)
      */
     record Nothing() implements GeneratorResult {}
 
