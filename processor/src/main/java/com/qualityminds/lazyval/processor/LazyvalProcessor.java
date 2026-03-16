@@ -114,7 +114,7 @@ public class LazyvalProcessor extends AbstractProcessor {
                             }else if(generatorResult instanceof GeneratorResult.Nothing){
                                 return Stream.of(InternalResult.NOTHING);
                             }else {
-                                throw new IllegalStateException("Unknown generator result type: " + generatorResult.getClass().getName());
+                                throw new IllegalStateException("Unknown generator result typeMirror: " + generatorResult.getClass().getName());
                             }
                         }else if(generator instanceof FilePerTypeGenerator filePerTypeGenerator){
                             return validatedElements.stream().map(validatedElement -> {
@@ -124,12 +124,12 @@ public class LazyvalProcessor extends AbstractProcessor {
                                 }else if(generatorResult instanceof GeneratorResult.Nothing){
                                     return InternalResult.NOTHING;
                                 }else {
-                                    throw new IllegalStateException("Unknown generator result type: " + generatorResult.getClass().getName());
+                                    throw new IllegalStateException("Unknown generator result typeMirror: " + generatorResult.getClass().getName());
                                 }
                             });
                         }else{
                             // move to switch-pattern-match once Java 21 is the minimum required version
-                            throw new IllegalStateException("Unknown generator type: " + this.getClass().getName());
+                            throw new IllegalStateException("Unknown generator typeMirror: " + this.getClass().getName());
                         }
                     })
                     // remove potential null, since external generators might not use JSpecify annotations/tooling

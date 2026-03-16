@@ -1,7 +1,5 @@
 package com.qualityminds.lazyval.processor;
 
-import com.qualityminds.lazyval.processor.spi.ObjectElement;
-import com.qualityminds.lazyval.processor.spi.RecordElement;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.annotation.processing.ProcessingEnvironment;
@@ -143,32 +141,11 @@ class LazyvalEnvironment {
             error(lazyvalElement, "Multiple matching factory methods with the same signature found. Please check methods:" + factoryMethods.stream().map(ExecutableElement::getSimpleName).collect(Collectors.joining(", ")));
             valid = false;
         }
-        Optional<ExecutableElement> factoryMethod = factoryMethods.isEmpty() ? Optional.empty() : Optional.of(factoryMethods.get(0));
 
-        return valid ? Optional.of(new RecordElement(lazyvalElement, fields.get(0), factoryMethod)) : Optional.empty();
+        ExecutableElement factoryMethod = factoryMethods.isEmpty() ? null : factoryMethods.get(0);
+        return valid ? Optional.of(ValidatedGeneratorElement.fromRecord(lazyvalElement, factoryMethod, fields.get(0))) : Optional.empty();
     }
 
-    private List<VariableElement> findAccessor(TypeElement lazyvalElement){
-        var typeUtils = processingEnvironment.getTypeUtils();
-        var accessors = lazyvalElement.getEnclosedElements().stream()
-                .filter(element -> element.getKind() == ElementKind.METHOD)
-                .map(element -> (ExecutableElement) element)
-                .filter(method ->
-                        method.getModifiers().contains(Modifier.PUBLIC)
-                                && method.getParameters().isEmpty()
-                                && method.getReturnType().getKind() != TypeKind.VOID
-                                && !method.getModifiers().contains(Modifier.STATIC))
-                .toList();
-
-        return lazyvalElement.getEnclosedElements().stream()
-                .filter(element -> element.getKind() == ElementKind.FIELD)
-                .map(element -> (VariableElement) element)
-                .filter(field ->
-                        accessors.stream().anyMatch(accessor -> typeUtils.isSameType(accessor.getReturnType(), field.asType()))
-                                && !field.getModifiers().contains(Modifier.STATIC)
-                                && !field.getModifiers().contains(Modifier.TRANSIENT))
-                .toList();
-    }
 
     private List<ExecutableElement> findFactoryMethods(TypeElement lazyvalElement, TypeMirror wrappedType){
         var typeUtils = processingEnvironment.getTypeUtils();
@@ -178,7 +155,7 @@ class LazyvalEnvironment {
                 .filter(method -> method.getModifiers().contains(Modifier.STATIC)
                         && typeUtils.isSameType(method.getReturnType(), lazyvalElement.asType())
                         && method.getParameters().size() == 1  // Should have exactly one parameter
-                        && typeUtils.isSameType(method.getParameters().get(0).asType(), wrappedType))  // Parameter type should match field-type
+                        && typeUtils.isSameType(method.getParameters().get(0).asType(), wrappedType))  // Parameter typeMirror should match field-typeMirror
                 .toList();
     }
 
@@ -194,33 +171,65 @@ class LazyvalEnvironment {
             valid = false;
         }
 
-        var valueFields = findAccessor(lazyvalElement);
-        if(valueFields.size() > 1){
+        var fieldAccessorPairs = findFieldAccessorPairs(lazyvalElement);
+        if(fieldAccessorPairs.size() > 1){
             error(lazyvalElement, "Not a simple ValueType. Lazyval only supports Objects with one non-transient value.");
             valid = false;
-        }else if(valueFields.isEmpty()){
+        }else if(fieldAccessorPairs.isEmpty()){
             // FIXME find a way not to stop validation here. Instead of passing accessors, use the field
             error(lazyvalElement,"No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation.");
             return Optional.empty(); // we have to stop here because we need the value field to look up the factory method
         }
 
-        var factoryMethods = findFactoryMethods(lazyvalElement, valueFields.get(0).asType());
+        var pair = fieldAccessorPairs.get(0);
+        var factoryMethods = findFactoryMethods(lazyvalElement, pair.field().asType());
         if(factoryMethods.size() > 1){
             error(lazyvalElement, "Multiple matching factory methods with the same signature found. Please check methods:" + factoryMethods.stream().map(ExecutableElement::getSimpleName).collect(Collectors.joining(", ")));
             valid = false;
         }
-        Optional<ExecutableElement> factoryMethod = factoryMethods.isEmpty() ? Optional.empty() : Optional.of(factoryMethods.get(0));
+        ExecutableElement factoryMethod = factoryMethods.isEmpty() ? null : factoryMethods.get(0);
 
         // run warning checks only when the definition is valid in general
         if(valid){
             if(!lazyvalElement.getModifiers().contains(Modifier.FINAL)){
                 warn(lazyvalElement, NOT_FINAL_OBJECT_WARNING);
             }
-            if(!valueFields.get(0).getModifiers().contains(Modifier.FINAL)){
-                warn(valueFields.get(0), NOT_FINAL_VALUE_WARNING);
+            if(!pair.field().getModifiers().contains(Modifier.FINAL)){
+                warn(pair.field(), NOT_FINAL_VALUE_WARNING);
             }
         }
 
-        return valid ? Optional.of(new ObjectElement(lazyvalElement, valueFields.get(0), factoryMethod)) : Optional.empty();
+        return valid ? Optional.of(ValidatedGeneratorElement.fromClass(lazyvalElement, factoryMethod, pair.field(), pair.accessor())) : Optional.empty();
     }
+
+    /**
+     * Finds fields paired with their public accessor methods.
+     * An accessor is a public, non-static, no-arg method whose return type matches the field type.
+     */
+    private List<FieldAccessorPair> findFieldAccessorPairs(TypeElement lazyvalElement){
+        var typeUtils = processingEnvironment.getTypeUtils();
+        var accessors = lazyvalElement.getEnclosedElements().stream()
+                .filter(element -> element.getKind() == ElementKind.METHOD)
+                .map(element -> (ExecutableElement) element)
+                .filter(method ->
+                        method.getModifiers().contains(Modifier.PUBLIC)
+                                && method.getParameters().isEmpty()
+                                && method.getReturnType().getKind() != TypeKind.VOID
+                                && !method.getModifiers().contains(Modifier.STATIC))
+                .toList();
+
+        return lazyvalElement.getEnclosedElements().stream()
+                .filter(element -> element.getKind() == ElementKind.FIELD)
+                .map(element -> (VariableElement) element)
+                .filter(field -> !field.getModifiers().contains(Modifier.STATIC)
+                        && !field.getModifiers().contains(Modifier.TRANSIENT))
+                .flatMap(field -> accessors.stream()
+                        .filter(accessor -> typeUtils.isSameType(accessor.getReturnType(), field.asType()))
+                        .findFirst()
+                        .map(accessor -> new FieldAccessorPair(field, accessor))
+                        .stream())
+                .toList();
+    }
+
+    private record FieldAccessorPair(VariableElement field, ExecutableElement accessor) {}
 }

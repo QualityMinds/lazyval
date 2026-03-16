@@ -6,8 +6,6 @@ import com.qualityminds.lazyval.processor.spi.SingleFileGenerator;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 import org.jspecify.annotations.NullMarked;
 
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -40,21 +38,20 @@ public class SingleFileUtilsGenerator implements SingleFileGenerator {
         List<String> methods = new ArrayList<>(elements.size());
 
         elements.stream()
-                .filter(ve -> "java.lang.String".equals(ve.wrappedType().toString()))
+                .filter(ve -> "String".equals(ve.wrappedType().typeName().toString()))
                 .forEach(validatedElement -> {
-                    TypeElement element = validatedElement.element();
-                    TypeMirror wrappedType = validatedElement.wrappedType();
-                    imports.add("import %s;\n".formatted(element.getQualifiedName()));
+                    var  wrappedType = validatedElement.wrappedType();
+                    imports.add("import %s;\n".formatted(validatedElement.element().getQualifiedName()));
 
                     var method = """
                             public static %s toUpperCase(%s type) {
                             if(type == null) {
                               return null;
                             }
-                            return type.%s().toUpperCase();
+                            return type.%s.toUpperCase();
                           }
                         """.formatted(
-                            wrappedType.toString(), element.getSimpleName(), validatedElement.wrappedTypeName());
+                            wrappedType.typeName(), validatedElement.typeName(), validatedElement.accessor());
                     methods.add(method);
                 });
 
