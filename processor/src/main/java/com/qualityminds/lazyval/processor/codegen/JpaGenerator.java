@@ -6,7 +6,6 @@ import com.qualityminds.lazyval.processor.spi.GeneratorResult;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
-import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.TypeMirror;
 import java.util.Collection;
 import java.util.List;
@@ -36,49 +35,42 @@ public class JpaGenerator implements FilePerTypeGenerator {
     }
 
     @Override
-    public GeneratorResult generateFilePerType(ValidatedGeneratorElement validatedElement, Settings userSettings){
+    public GeneratorResult generateFilePerType(ValidatedGeneratorElement validElement, Settings userSettings){
         // end::docu[]
-        TypeElement element = validatedElement.element();
-
-        TypeMirror type = element.asType();
-        TypeMirror wrappedType = validatedElement.wrappedType();
+        TypeMirror type = validElement.element().asType();
+        var wrappedType = validElement.wrappedType();
         TypeName wrappedTypeName;
-        if (wrappedType.getKind().isPrimitive()) {
+        if (wrappedType.isPrimitive()) {
             // Box primitive types for JPA generics
-            wrappedTypeName = TypeName.get(wrappedType).box();
+            wrappedTypeName = TypeName.get(wrappedType.typeMirror()).box();
         } else {
-            wrappedTypeName = TypeName.get(wrappedType);
+            wrappedTypeName = TypeName.get(wrappedType.typeMirror());
         }
 
+        var parameterName = "typeMirror";
         // Jpa Converter needs to check for null due to boxing primitive types
         final MethodSpec convertToDatabaseColumn = MethodSpec.methodBuilder("convertToDatabaseColumn")
                     .addModifiers(Modifier.PUBLIC)
                     .returns(wrappedTypeName)
-                    .addParameter(TypeName.get(type), "type")
-                    .beginControlFlow("if(type == null)")
+                    .addParameter(TypeName.get(type), parameterName)
+                    .beginControlFlow("if(%s == null)".formatted(parameterName))
                     .addStatement("return null")
                     .endControlFlow()
-                    .addStatement(String.format("return type.%s()", validatedElement.wrappedTypeName()))
+                    .addStatement(String.format("return %s.%s", parameterName, validElement.accessor()))
                     .build();
 
-        var lazyvalTypeName = TypeName.get(type);
-        var objectCreation = String.format("new %s(dbValue)", lazyvalTypeName);
-        if(validatedElement.factoryMethod().isPresent()){
-            var method = validatedElement.factoryMethod().get();
-            objectCreation = String.format("%s.%s(dbValue)", lazyvalTypeName, method.getSimpleName());
-        }
-
+        parameterName = "dbValue";
         final MethodSpec convertToEntityAttribute = MethodSpec.methodBuilder("convertToEntityAttribute")
                     .addModifiers(Modifier.PUBLIC)
                     .returns(TypeName.get(type))
-                    .addParameter(wrappedTypeName, "dbValue")
-                    .beginControlFlow("if(dbValue == null)")
+                    .addParameter(wrappedTypeName, parameterName)
+                    .beginControlFlow("if(%s == null)".formatted(parameterName))
                     .addStatement("return null")
                     .endControlFlow()
-                    .addStatement("return $L", objectCreation)
+                    .addStatement("return $L", validElement.objectCreation(parameterName))
                     .build();
 
-        TypeSpec jpaConverter = TypeSpec.classBuilder(element.getSimpleName() + "AttributeConverter")
+        TypeSpec jpaConverter = TypeSpec.classBuilder(validElement.typeName() + "AttributeConverter")
                 .addAnnotation(AnnotationSpec.builder(ClassName.get("jakarta.persistence", "Converter"))
                         .addMember("autoApply", "$L", "true")
                         .build())
@@ -92,7 +84,7 @@ public class JpaGenerator implements FilePerTypeGenerator {
                 .build();
 
         String jpaConverterPackage = userSettings.get(OPTION_GENERATED_PACKAGE)
-                .orElse(String.format("%s.boundary.persistence", extractRootPackage(element)));
+                .orElse(String.format("%s.boundary.persistence", extractRootPackage(validElement.element())));
         if(jpaConverterPackage.charAt(0) == '.'){
             jpaConverterPackage = jpaConverterPackage.substring(1);
         }

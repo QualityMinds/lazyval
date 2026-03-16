@@ -149,7 +149,11 @@ internal class LazyvalKspEnvironment(
             if (valueProperty.isMutable) {
                 warn(valueProperty, NOT_FINAL_VALUE_WARNING)
             }
-            KspClassElement(classDeclaration, valueProperty, accessorMethod, factoryMethod)
+            ValidatedKspGeneratorElement(
+                classDeclaration,
+                WrappedProperty(valueProperty),
+                factoryMethod,
+                accessorMethod)
         } else {
             null
         }

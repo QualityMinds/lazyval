@@ -43,57 +43,49 @@ final public class MapstructGenerator implements SingleFileGenerator {
                 .addAnnotation(mapperAnnotationBuilder.build())
                 .addModifiers(Modifier.PUBLIC);
 
-        for(ValidatedGeneratorElement valid : elements){
-            var lazyvalElement = valid.element();
-
-            TypeMirror type = lazyvalElement.asType();
-            TypeMirror wrappedType = valid.wrappedType();
+        for(ValidatedGeneratorElement validElement : elements){
+            TypeMirror type = validElement.element().asType();
+            var wrappedType = validElement.wrappedType();
 
             final MethodSpec mapToWrappedType;
-            if(wrappedType.getKind().isPrimitive()) {
-                mapToWrappedType = MethodSpec.methodBuilder(String.format("map%sToWrappedType", lazyvalElement.getSimpleName()))
+            var parameterName = "type";
+            if(wrappedType.isPrimitive()) {
+                mapToWrappedType = MethodSpec.methodBuilder(String.format("map%sTo%s", validElement.typeName(), wrappedType.typeNameUpper()))
                         .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
-                        .returns(TypeName.get(wrappedType))
-                        .addParameter(TypeName.get(type), "type")
-                        .addStatement(String.format("return type.%s()", valid.wrappedTypeName()))
+                        .returns(TypeName.get(wrappedType.typeMirror()))
+                        .addParameter(TypeName.get(type), parameterName)
+                        .addStatement(String.format("return %s.%s", parameterName, validElement.accessor()))
                         .build();
             } else {
-                mapToWrappedType = MethodSpec.methodBuilder(String.format("map%sToWrappedType", lazyvalElement.getSimpleName()))
+                mapToWrappedType = MethodSpec.methodBuilder(String.format("map%sTo%s", validElement.typeName(), wrappedType.typeName()))
                         .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
-                        .returns(TypeName.get(wrappedType))
-                        .addParameter(TypeName.get(type), "type")
-                        .beginControlFlow("if(type == null)")
+                        .returns(TypeName.get(wrappedType.typeMirror()))
+                        .addParameter(TypeName.get(type), parameterName)
+                        .beginControlFlow("if(%s == null)".formatted(parameterName))
                         .addStatement("return null")
                         .endControlFlow()
-                        .addStatement(String.format("return type.%s()", valid.wrappedTypeName()))
+                        .addStatement(String.format("return %s.%s", parameterName, validElement.accessor()))
                         .build();
             }
 
-
-            var lazyvalTypeName = TypeName.get(type);
-            var objectCreation = String.format("new %s(value)", lazyvalTypeName);
-            if(valid.factoryMethod().isPresent()){
-                var method = valid.factoryMethod().get();
-                objectCreation = String.format("%s.%s(value)", lazyvalTypeName, method.getSimpleName());
-            }
-
+            parameterName = "value";
             final MethodSpec map;
-            if(wrappedType.getKind().isPrimitive()){
-                map = MethodSpec.methodBuilder(String.format("map%s", lazyvalElement.getSimpleName()))
+            if(wrappedType.isPrimitive()){
+                map = MethodSpec.methodBuilder(String.format("map%s", validElement.typeName()))
                         .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                         .returns(TypeName.get(type))
-                        .addParameter(TypeName.get(wrappedType), "value")
-                        .addStatement("return $L", objectCreation)
+                        .addParameter(TypeName.get(wrappedType.typeMirror()), parameterName)
+                        .addStatement("return $L", validElement.objectCreation(parameterName))
                         .build();
             } else {
-                map = MethodSpec.methodBuilder(String.format("map%s", lazyvalElement.getSimpleName()))
+                map = MethodSpec.methodBuilder(String.format("map%s", validElement.typeName()))
                         .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                         .returns(TypeName.get(type))
-                        .addParameter(TypeName.get(wrappedType), "value")
-                        .beginControlFlow("if(value == null)")
+                        .addParameter(TypeName.get(wrappedType.typeMirror()), parameterName)
+                        .beginControlFlow("if(%s == null)".formatted(parameterName))
                         .addStatement("return null")
                         .endControlFlow()
-                        .addStatement("return $L", objectCreation)
+                        .addStatement("return $L", validElement.objectCreation(parameterName))
                         .build();
             }
 

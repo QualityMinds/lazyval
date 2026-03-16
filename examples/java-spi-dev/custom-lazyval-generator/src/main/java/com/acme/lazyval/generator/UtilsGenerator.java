@@ -5,8 +5,6 @@ import com.qualityminds.lazyval.processor.spi.GeneratorResult;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 import org.jspecify.annotations.NullMarked;
 
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -34,32 +32,31 @@ public class UtilsGenerator implements FilePerTypeGenerator {
     @Override
     public GeneratorResult generateFilePerType(ValidatedGeneratorElement validatedElement, Settings userSettings) {
 
-        TypeElement element = validatedElement.element();
-        TypeMirror wrappedType = validatedElement.wrappedType();
+        var wrappedType = validatedElement.wrappedType();
         // this generator should only handle String types
-        if (!"java.lang.String".equals(wrappedType.toString())) {
+        if (!"String".equals(wrappedType.typeName().simpleName())) {
             return new GeneratorResult.Nothing();
         }
 
-        String className = element.getSimpleName() + "Utils";
+        String className = validatedElement.typeName() + "Utils";
         String packageName = userSettings.get(OPTION_GENERATED_PACKAGE)
-                .orElse(String.format("%s.test", extractRootPackage(element)));
+                .orElse(String.format("%s.test", extractRootPackage(validatedElement.element())));
         if(packageName.charAt(0) == '.'){
             packageName = packageName.substring(1);
         }
 
         var contents = ("package %s;\n\n".formatted(packageName) +
-                "import %s;\n\n".formatted(element.getQualifiedName()) +
+                "import %s;\n\n".formatted(validatedElement.element().getQualifiedName()) +
                 "public final class %s {\n".formatted(className) +
                 """
                             public static %s toUpperCase(%s type) {
                             if(type == null) {
                               return null;
                             }
-                            return type.%s().toUpperCase();
+                            return type.%s.toUpperCase();
                           }
                         """.formatted(
-                        wrappedType.toString(), element.getSimpleName(), validatedElement.wrappedTypeName()) +
+                        wrappedType.typeName(), validatedElement.typeName(), validatedElement.accessor()) +
                 "}").replaceAll("\\n", System.lineSeparator());
 
 
