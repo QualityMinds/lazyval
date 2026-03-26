@@ -1,9 +1,9 @@
 package com.acme.lazyval.generator
 
-import com.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import com.qualityminds.lazyval.ksp.spi.FilePerTypeGenerator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.SpiGenerator
+import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import java.util.Collections.emptyList
 
 class UtilsGenerator : FilePerTypeGenerator {
@@ -26,11 +26,9 @@ class UtilsGenerator : FilePerTypeGenerator {
         userSettings: SpiGenerator.Settings
     ): GeneratorResult {
         val element = validatedElement.element
-        val wrappedType = validatedElement.wrappedType
-        val wrappedTypeName = validatedElement.wrappedTypeName
 
         // this generator should only handle String types
-        if ("String" != wrappedType.toString()) {
+        if ("String" != validatedElement.wrappedProperty.type.toString()) {
             return GeneratorResult.Nothing
         }
 
@@ -45,7 +43,7 @@ class UtilsGenerator : FilePerTypeGenerator {
             import ${element.qualifiedName?.asString()}
             import kotlin.String
             
-            public fun ${typeName}.toUpperCase(): String = this.${wrappedTypeName}.uppercase()
+            public fun ${typeName}.toUpperCase(): String = this.${validatedElement.kotlinAccessor}.uppercase()
         """.trimIndent().replace("\n", System.lineSeparator())
 
         return GeneratorResult.Kotlin(
