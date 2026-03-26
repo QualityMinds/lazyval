@@ -2,9 +2,7 @@ package com.qualityminds.lazyval.ksp.spi
 
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
-import com.google.devtools.ksp.symbol.KSType
 import com.qualityminds.lazyval.collections.NonEmptySet
-import com.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import com.qualityminds.lazyval.ksp.spi.SpiGenerator.Settings
 import org.jetbrains.annotations.ApiStatus
 
@@ -87,21 +85,6 @@ sealed interface SpiGenerator {
      */
     fun supportedOptions(): Set<String>
 
-
-    fun KSType.isPrimitive(): Boolean {
-        return when (declaration.simpleName.asString()) {
-            "Int", "Long", "Short", "Byte", "Double", "Float", "Boolean", "Char" -> true
-            else -> false
-        }
-    }
-
-    fun KSType.isBoxedPrimitive(): Boolean {
-        return when (declaration.qualifiedName?.asString()) {
-            "java.lang.Integer", "java.lang.Long", "java.lang.Short", "java.lang.Byte",
-            "java.lang.Double", "java.lang.Float", "java.lang.Boolean", "java.lang.Character" -> true
-            else -> false
-        }
-    }
 
     /**
      * Split the elements FQN into its constituents and returns the substring before the "layer-markers",

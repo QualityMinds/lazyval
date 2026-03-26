@@ -1,9 +1,9 @@
 package com.qualityminds.lazyval.ksp.codegen
 
-import com.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import com.qualityminds.lazyval.ksp.spi.FilePerTypeGenerator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.SpiGenerator
+import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ksp.toClassName
@@ -31,17 +31,12 @@ class JpaGenerator : FilePerTypeGenerator {
     ): GeneratorResult {
         // end::docu[]
         val element = validatedElement.element
-        val wrappedType = validatedElement.wrappedType
         val lazyvalTypeName = element.toClassName()
+        val wrappedType = validatedElement.wrappedProperty
+        // KotlinPoet specific type-name
+        val wrappedTypeName = wrappedType.type.toTypeName()
 
-        // Handle primitive boxing for JPA generics
-        val wrappedTypeName = if (wrappedType.isBoxedPrimitive() || wrappedType.isPrimitive()) {
-            wrappedType.toTypeName().copy(nullable = false)
-        } else {
-            wrappedType.toTypeName()
-        }
-
-        val converterClassName = "${element.simpleName.asString()}AttributeConverter"
+        val converterClassName = "${validatedElement.typeName}AttributeConverter"
 
         // Build convertToDatabaseColumn method - use the Kotlin accessor method name
         val convertToDatabaseColumn = FunSpec.builder("convertToDatabaseColumn")
@@ -49,25 +44,18 @@ class JpaGenerator : FilePerTypeGenerator {
             .returns(wrappedTypeName.copy(nullable = true))
             .addParameter("type", lazyvalTypeName.copy(nullable = true))
             .apply {
-                addStatement("return type?.${validatedElement.kotlinAccessorMethodName}")
+                addStatement("return type?.${validatedElement.kotlinAccessor}")
             }
             .build()
 
-        // Store factory method in local variable to avoid smart cast issues
-        val factoryMethod = validatedElement.factoryMethod
-        val objectCreation = if (factoryMethod != null) {
-            "${lazyvalTypeName.simpleName}.${factoryMethod.simpleName.asString()}(dbValue)"
-        } else {
-            "${lazyvalTypeName.simpleName}(dbValue)"
-        }
-
+        val parameterName = "dbValue"
         // Build convertToEntityAttribute method
         val convertToEntityAttribute = FunSpec.builder("convertToEntityAttribute")
             .addModifiers(KModifier.OVERRIDE)
             .returns(lazyvalTypeName.copy(nullable = true))
-            .addParameter("dbValue", wrappedTypeName.copy(nullable = true))
+            .addParameter(parameterName, wrappedTypeName.copy(nullable = true))
             .apply {
-                addStatement("return dbValue?.let { $objectCreation }")
+                addStatement("return $parameterName?.let { ${validatedElement.objectCreation(parameterName)} }")
             }
             .build()
 
