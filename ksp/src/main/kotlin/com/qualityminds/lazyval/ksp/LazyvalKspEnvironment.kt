@@ -6,6 +6,8 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.*
+import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
+import com.qualityminds.lazyval.ksp.spi.WrappedProperty
 import java.util.*
 
 internal class LazyvalKspEnvironment(

@@ -3,10 +3,10 @@ package com.qualityminds.lazyval.ksp.codegen
 import com.google.devtools.ksp.symbol.KSType
 import com.palantir.javapoet.*
 import com.qualityminds.lazyval.collections.NonEmptySet
-import com.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.SingleFileGenerator
 import com.qualityminds.lazyval.ksp.spi.SpiGenerator
+import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import javax.lang.model.element.Modifier
 
 class MapstructGenerator : SingleFileGenerator {
@@ -61,7 +61,7 @@ class MapstructGenerator : SingleFileGenerator {
             element.element.packageName.asString(),
             element.element.simpleName.asString()
         )
-        val wrappedTypeName = getJavaTypeName(element.wrappedType)
+        val wrappedTypeName = getJavaTypeName(element.wrappedProperty.type)
 
         val methodBuilder = MethodSpec.methodBuilder("map${className}ToWrappedType")
             .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
@@ -69,14 +69,14 @@ class MapstructGenerator : SingleFileGenerator {
             .addParameter(lazyvalTypeClassName, "type")
 
         // Use Java accessor method name for MapStruct
-        if (element.wrappedType.isPrimitive()) {
-            methodBuilder.addStatement("return type.${element.javaAccessorMethodName}")
+        if (element.wrappedProperty.isPrimitive()) {
+            methodBuilder.addStatement("return type.${element.javaAccessor}")
         } else {
             methodBuilder
                 .beginControlFlow("if (type == null)")
                 .addStatement("return null")
                 .endControlFlow()
-                .addStatement("return type.${element.javaAccessorMethodName}")
+                .addStatement("return type.${element.javaAccessor}")
         }
 
         return methodBuilder.build()
@@ -88,7 +88,7 @@ class MapstructGenerator : SingleFileGenerator {
             element.element.packageName.asString(),
             element.element.simpleName.asString()
         )
-        val wrappedTypeName = getJavaTypeName(element.wrappedType)
+        val wrappedTypeName = getJavaTypeName(element.wrappedProperty.type)
 
         // Store factory method in local variable to avoid smart cast issues
         val factoryMethod = element.factoryMethod
@@ -103,7 +103,7 @@ class MapstructGenerator : SingleFileGenerator {
             .returns(lazyvalTypeClassName)
             .addParameter(wrappedTypeName, "value")
 
-        if (element.wrappedType.isPrimitive()) {
+        if (element.wrappedProperty.isPrimitive()) {
             methodBuilder.addStatement("return $objectCreation")
         } else {
             methodBuilder

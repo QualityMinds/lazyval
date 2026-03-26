@@ -1,10 +1,10 @@
 package com.acme.lazyval.generator
 
 import com.qualityminds.lazyval.collections.NonEmptySet
-import com.qualityminds.lazyval.ksp.ValidatedKspGeneratorElement
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.SingleFileGenerator
 import com.qualityminds.lazyval.ksp.spi.SpiGenerator
+import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import java.util.Collections.emptyList
 
 class SingleFileUtilsGenerator : SingleFileGenerator {
@@ -32,14 +32,13 @@ class SingleFileUtilsGenerator : SingleFileGenerator {
 
         validatedElements.stream()
             .filter { ve: ValidatedKspGeneratorElement ->
-                "String" == ve.wrappedType.toString()
+                "String" == ve.wrappedProperty.type.toString()
             }
             .forEach { validatedElement: ValidatedKspGeneratorElement ->
                 val element = validatedElement.element
                 val typeName = element.simpleName.asString()
-                val wrappedTypeName = validatedElement.wrappedTypeName
                 imports.add("import ${element.qualifiedName?.asString()}")
-                val method = "public fun ${typeName}.toUpperCase2(): String = this.${wrappedTypeName}.uppercase()"
+                val method = "public fun ${typeName}.toUpperCase2(): String = this.${validatedElement.kotlinAccessor}.uppercase()"
                 methods.add(method)
             }
 
