@@ -15,7 +15,7 @@ import javax.lang.model.util.SimpleTypeVisitor14;
  */
 public record TypeName(String simpleName){
     public static final TypeName BOOLEAN = new TypeName("boolean");
-    private static final TypeName BOOLEAN_BOXED = new TypeName("Boolean");
+    public static final TypeName BOOLEAN_BOXED = new TypeName("Boolean");
     public static final TypeName BYTE = new TypeName("byte");
     public static final TypeName BYTE_BOXED = new TypeName("Byte");
     public static final TypeName SHORT = new TypeName("short");
@@ -25,7 +25,7 @@ public record TypeName(String simpleName){
     public static final TypeName LONG = new TypeName("long");
     public static final TypeName LONG_BOXED = new TypeName("Long");
     public static final TypeName CHAR = new TypeName("char");
-    public static final TypeName CHAR_BOXED = new TypeName("Char");
+    public static final TypeName CHAR_BOXED = new TypeName("Character");
     public static final TypeName FLOAT = new TypeName("float");
     public static final TypeName FLOAT_BOXED = new TypeName("Float");
     public static final TypeName DOUBLE = new TypeName("double");
@@ -55,6 +55,8 @@ public record TypeName(String simpleName){
     /**
      * Returns a boxed type if this is a primitive type (like {@code Integer} for {@code int}) or
      * {@code void}. Returns this type if boxing doesn't apply.
+     *
+     * @throws UnsupportedOperationException if this type isn't eligible for boxing.
      */
     public TypeName box() {
         TypeName boxed;
@@ -75,7 +77,7 @@ public record TypeName(String simpleName){
         } else if (simpleName.equals(DOUBLE.simpleName)) {
             boxed = TypeName.DOUBLE_BOXED;
         } else {
-            throw new IllegalStateException(simpleName);
+            throw new UnsupportedOperationException("Cannot box " + simpleName);
         }
         return boxed;
     }
@@ -105,7 +107,7 @@ public record TypeName(String simpleName){
         } else if (this.equals(TypeName.DOUBLE_BOXED)) {
             unboxed = DOUBLE;
         } else {
-            throw new UnsupportedOperationException("cannot unbox " + this);
+            throw new UnsupportedOperationException("Cannot unbox " + this.simpleName);
         }
         return unboxed;
     }
