@@ -64,7 +64,7 @@
         <version.plugin.license>2.7.1</version.plugin.license>
         <version.plugin.publish>0.10.0</version.plugin.publish>
         <version.plugin.release>3.3.1</version.plugin.release>
-        <version.plugin.shade>3.6.1</version.plugin.shade>
+        <version.plugin.shade>3.6.2</version.plugin.shade>
         <version.plugin.source>3.4.0</version.plugin.source>
         <version.plugin.surefire>3.5.4</version.plugin.surefire>
         <version.plugin.templating>3.1.0</version.plugin.templating>
