@@ -40,7 +40,7 @@
         <!-- dependencies -->
         <version.eclipse-collections>13.0.0</version.eclipse-collections>
         <version.groovy>5.0.4</version.groovy>
-        <version.javapoet>0.10.0</version.javapoet>
+        <version.javapoet>0.14.0</version.javapoet>
         <version.jetbrains-annotations>26.1.0</version.jetbrains-annotations>
         <version.jspecify>1.0.0</version.jspecify>
         <version.kotest>6.0.3</version.kotest>
