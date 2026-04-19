@@ -18,6 +18,7 @@ dependencies {
     compileOnly("com.qualityminds.lazyval:lazyval:$versionLazyval")
     implementation("org.mapstruct:mapstruct:1.6.3")
     compileOnly("jakarta.platform:jakarta.jakartaee-api:11.0.0")
+    implementation("tools.jackson.core:jackson-databind:3.1.0")
 
     annotationProcessor("com.qualityminds.lazyval:lazyval-processor:$versionLazyval")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
@@ -29,8 +30,8 @@ tasks.withType<JavaCompile>().configureEach {
     // end::excluded[]
     options.compilerArgs.apply{
         add("-Amapstruct.unmappedTargetPolicy=ERROR")
-        add("-Alazyval.jpa.generatedPackage=test.boundary.custom")
-        add("-Alazyval.mapstruct.generatedPackage=test.custom")
+        add("-Alazyval.generators.basePackage=test")
+        add("-Alazyval.mapstruct.package=test.custom")
     }
 }
 // end::docu[]

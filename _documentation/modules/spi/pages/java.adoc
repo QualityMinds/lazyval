@@ -2,14 +2,20 @@
 
 TODO
 
+.SPI type definition
+[source,java]
+----
+include::spi:example$Generator.java[tags=generator;!context]
+----
+
+.Context type definition
+[source,java,indent=0]
+----
+include::spi:example$Generator.java[tag=context]
+----
+
 .Result type definition
 [source,java]
 ----
 include::spi:example$GeneratorResult.java[tag=result]
-----
-
-.JPA Generator
-[source,java]
-----
-include::spi:example$JpaGenerator.java[tag=docu]
 ----

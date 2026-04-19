@@ -19,6 +19,7 @@
         <version.lazyval>0.1.2</version.lazyval>
         <version.mapstruct>1.6.3</version.mapstruct>
         <version.jakarta-ee>11.0.0</version.jakarta-ee>
+        <version.jackson>3.1.0</version.jackson>
     </properties>
 
     <dependencies>
@@ -43,6 +44,11 @@
             <artifactId>jakarta.jakartaee-api</artifactId>
             <version>${version.jakarta-ee}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${version.jackson}</version>
         </dependency>
     </dependencies>
     <build>
@@ -95,12 +101,12 @@
                 </dependencies>
                 <configuration>
                     <apOptions>
-                        <lazyval.jpa.generatedPackage>
-                            test.boundary.custom
-                        </lazyval.jpa.generatedPackage>
-                        <lazyval.mapstruct.generatedPackage>
+                        <lazyval.generators.basePackage>
+                            test
+                        </lazyval.generators.basePackage>
+                        <lazyval.mapstruct.package>
                             test.custom
-                        </lazyval.mapstruct.generatedPackage>
+                        </lazyval.mapstruct.package>
                     </apOptions>
                 </configuration>
             </plugin>

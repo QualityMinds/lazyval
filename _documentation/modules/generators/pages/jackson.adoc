@@ -1,0 +1,198 @@
+= Jackson
+
+Since domain-primitives are complex objects (not primitives from a language perspective), they would usually serialize
+to JSON as objects rather than values.
+
+This generator registers a custom Jackson module which will make sure that each domain-primitive is serialized as a
+simple value and deserializing uses the proper construction method.
+
+Since there are subtle differences from Jackson-2 to Jackson-3, Lazyval ships two dedicated generators for Java as well
+as Kotlin.
+
+== Config Options
+
+|===
+|Property |Description
+
+|_lazyval.jackson.package_
+|Specifies the package where the `LazyvalJacksonModule` interface is generated to.
+Overrides `lazyval.generators.basePackage`.
+
+|===
+
+== Generated Files
+
+[tabs]
+====
+Java (Jackson 2.x)::
++
+[source, java]
+----
+public class LazyvalJacksonModule extends SimpleModule {
+  @Override
+  public void setupModule(Module.SetupContext context) {
+    super.setupModule(context);
+    SimpleSerializers sers = new SimpleSerializers();
+    SimpleDeserializers desers = new SimpleDeserializers();
+    sers.addSerializer(Isbn.class, IsbnSerializer.INSTANCE);
+    sers.addSerializer(Quantity.class, QuantitySerializer.INSTANCE);
+    desers.addDeserializer(Isbn.class, IsbnDeserializer.INSTANCE);
+    desers.addDeserializer(Quantity.class, QuantityDeserializer.INSTANCE);
+    context.addSerializers(sers);
+    context.addDeserializers(desers);
+  }
+
+  static class IsbnSerializer extends StdSerializer<Isbn> {  // <1>
+    static final IsbnSerializer INSTANCE = new IsbnSerializer();
+
+    protected IsbnSerializer() {
+      super(Isbn.class);
+    }
+
+    @Override
+    public void serialize(Isbn value, JsonGenerator gen, SerializerProvider provider) throws
+        IOException {
+      gen.writeString(value.value());
+    }
+  }
+
+  static class QuantitySerializer extends StdSerializer<Quantity> {
+    static final QuantitySerializer INSTANCE = new QuantitySerializer();
+
+    protected QuantitySerializer() {
+      super(Quantity.class);
+    }
+
+    @Override
+    public void serialize(Quantity value, JsonGenerator gen, SerializerProvider provider) throws
+        IOException {
+      gen.writeNumber(value.value());  // <2>
+    }
+  }
+
+  static class IsbnDeserializer extends StdDeserializer<Isbn> {
+    static final IsbnDeserializer INSTANCE = new IsbnDeserializer();
+
+    protected IsbnDeserializer() {
+      super(Isbn.class);
+    }
+
+    @Override
+    public Isbn deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
+        JacksonException {
+      var value = p.getValueAsString();
+      return Isbn.parse(value);
+    }
+  }
+
+  static class QuantityDeserializer extends StdDeserializer<Quantity> {
+    static final QuantityDeserializer INSTANCE = new QuantityDeserializer();
+
+    protected QuantityDeserializer() {
+      super(Quantity.class);
+    }
+
+    @Override
+    public Quantity deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
+        JacksonException {
+      var value = p.getValueAsInt();
+      return new Quantity(value);
+    }
+  }
+
+}
+----
+
+Kotlin (Jackson 3.x)::
++
+[source,kotlin]
+----
+public class LazyvalJacksonModule : SimpleModule() {
+  override fun setupModule(context: JacksonModule.SetupContext) {
+    super.setupModule(context)
+    val sers = SimpleSerializers()
+    val desers = SimpleDeserializers()
+    sers.addSerializer(EMail::class.java, eMailSerializer)
+    sers.addSerializer(Quantity::class.java, quantitySerializer)
+    sers.addSerializer(Isbn::class.java, isbnSerializer)
+    desers.addDeserializer(EMail::class.java, eMailDeserializer)
+    desers.addDeserializer(Quantity::class.java, quantityDeserializer)
+    desers.addDeserializer(Isbn::class.java, isbnDeserializer)
+    context.addSerializers(sers)
+    context.addDeserializers(desers)
+  }
+
+  public companion object {
+    private val quantitySerializer: QuantitySerializer = QuantitySerializer()
+
+    private val isbnSerializer: IsbnSerializer = IsbnSerializer()
+
+    private val quantityDeserializer: QuantityDeserializer = QuantityDeserializer()
+
+    private val isbnDeserializer: IsbnDeserializer = IsbnDeserializer()
+  }
+
+  private class IsbnSerializer : StdSerializer<Isbn>(Isbn::class.java) { // <1>
+    override fun serialize(
+      `value`: Isbn,
+      gen: JsonGenerator,
+      ctx: SerializationContext,
+    ) {
+      gen.writeString(value.value)
+    }
+  }
+
+  private class QuantitySerializer : StdSerializer<Quantity>(Quantity::class.java) {
+    override fun serialize(
+      `value`: Quantity,
+      gen: JsonGenerator,
+      ctx: SerializationContext,
+    ) {
+      gen.writeNumber(value.value) // <2>
+    }
+  }
+
+  private class IsbnDeserializer : StdDeserializer<Isbn>(Isbn::class.java) {
+    override fun deserialize(p: JsonParser, ctx: DeserializationContext): Isbn? {
+      val value = p.valueAsString
+      return Isbn.parse(value)
+    }
+  }
+
+  private class QuantityDeserializer : StdDeserializer<Quantity>(Quantity::class.java) {
+    override fun deserialize(p: JsonParser, ctx: DeserializationContext): Quantity? {
+      val value = p.valueAsInt
+      return Quantity(value)
+    }
+  }
+}
+----
+====
+<1> Null-handling is already provided by Jacksons `Std(De)Serializer`
+<2> Will use the proper JSON primitive when applicable
+
+
+The module is registered via ServiceLoader `META-INF\services\com.fasterxml.jackson.databind.Module` (Jackson 2.x) or
+`META-INF\services\tools.jackson.databind.JacksonModule` (Jackson 3.x)  which is written to the compiler output
+folder. This way other frameworks like RestAssured will also pick it up.
+
+
+
+== Quarkus
+
+In case Quarkus is detected, the module will be registed as `ObjectMapperCustomizer` and `@Singleton` bean.
+See https://quarkus.io/guides/rest-json#json[Quarkus docs] for details.
+
+[source,java]
+----
+@Singleton
+public class LazyvalJacksonModule extends SimpleModule implements ObjectMapperCustomizer {
+
+  @Override
+  public void customize(ObjectMapper objectMapper) {
+    objectMapper.registerModule(this);
+  }
+
+  // ...
+}
+----

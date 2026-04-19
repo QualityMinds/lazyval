@@ -1,0 +1,169 @@
+package com.qualityminds.lazyval.ksp.internal.codegen.jackson
+
+import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
+import com.squareup.kotlinpoet.*
+import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
+import com.squareup.kotlinpoet.ksp.toClassName
+
+/**
+ * Shared code-generation logic for Jackson serializer/deserializer modules.
+ * Parameterized by [JacksonVersion] to handle Jackson 2 vs 3 differences.
+ */
+internal class JacksonCodegen(private val version: JacksonVersion) {
+
+    fun generateSerializer(element: ValidatedKspGeneratorElement): TypeSpec {
+        val elementClassName = element.element.toClassName()
+        val wrappedType = element.wrappedProperty
+        val serializerName = "${element.typeName}Serializer"
+
+        val wrappedTypeName = wrappedType.type.declaration.simpleName.asString()
+        val writeStatement = if (wrappedType.isPrimitive()) {
+            when (wrappedTypeName) {
+                "Int", "Long", "Short" -> "gen.writeNumber(value.${element.kotlinAccessor})"
+                "Float", "Double" -> "gen.writeNumber(value.${element.kotlinAccessor})"
+                "Boolean" -> "gen.writeBoolean(value.${element.kotlinAccessor})"
+                "Char", "Byte" -> "gen.writeString(value.${element.kotlinAccessor})"
+                else -> "gen.writeString(value.${element.kotlinAccessor})"
+            }
+        } else {
+            val wrappedTypeName = wrappedType.type.declaration.simpleName.asString()
+            if (wrappedTypeName == "String") {
+                "gen.writeString(value.${element.kotlinAccessor})"
+            } else {
+                "gen.writeString(value.${element.kotlinAccessor}.toString())"
+            }
+        }
+
+        return TypeSpec.classBuilder(serializerName)
+            .superclass(version.stdSerializer().parameterizedBy(elementClassName))
+            .addSuperclassConstructorParameter(CodeBlock.of("%T::class.java", elementClassName))
+            .addFunction(
+                FunSpec.builder("serialize")
+                    .addModifiers(KModifier.OVERRIDE)
+                    .addParameter("value", elementClassName)
+                    .addParameter("gen", version.jsonGenerator())
+                    .addParameter("ctx", version.serializerProvider())
+                    .addStatement(writeStatement)
+                    .build()
+            )
+            .build()
+    }
+
+    fun generateDeserializer(element: ValidatedKspGeneratorElement): TypeSpec {
+        val elementClassName = element.element.toClassName()
+        val wrappedType = element.wrappedProperty
+        val deserializerName = "${element.typeName}Deserializer"
+
+        val wrappedTypeName = wrappedType.type.declaration.simpleName.asString()
+        val readValueStatement = if (wrappedType.isPrimitive()) {
+            when (wrappedTypeName) {
+                "Int" -> "val value = p.valueAsInt"
+                "Long" -> "val value = p.valueAsLong"
+                "Double" -> "val value = p.valueAsDouble"
+                "Boolean" -> "val value = p.valueAsBoolean"
+                "Float" -> "val value = p.valueAsDouble.toFloat()"
+                "Short" -> "val value = p.valueAsInt.toShort()"
+                "Byte" -> "val value = p.valueAsInt.toByte()"
+                "Char" -> "val value = p.valueAsString[0]"
+                else -> "val value = p.valueAsString"
+            }
+        } else {
+            "val value = p.valueAsString"
+        }
+
+        val deserializeMethod = FunSpec.builder("deserialize")
+            .addModifiers(KModifier.OVERRIDE)
+            .returns(elementClassName.copy(nullable = true))
+            .addParameter("p", version.jsonParser())
+            .addParameter("ctx", version.deserializationContext())
+            .addStatement(readValueStatement)
+            .addStatement("return ${element.objectCreation("value")}")
+
+        return TypeSpec.classBuilder(deserializerName)
+            .superclass(version.stdDeserializer().parameterizedBy(elementClassName))
+            .addSuperclassConstructorParameter(CodeBlock.of("%T::class.java", elementClassName))
+            .addFunction(deserializeMethod.build())
+            .build()
+    }
+
+    fun generateModule(
+        serializers: List<TypeSpec>,
+        deserializers: List<TypeSpec>,
+        elementTypes: List<ClassName>,
+        isQuarkus: Boolean
+    ): TypeSpec {
+        val companionBuilder = TypeSpec.companionObjectBuilder()
+
+        for (serializer in serializers) {
+            val name = serializer.name!!
+            val instanceName = name.replaceFirstChar { it.lowercase() }
+            companionBuilder.addProperty(
+                PropertySpec.builder(instanceName, ClassName("", name))
+                    .addModifiers(KModifier.PRIVATE)
+                    .initializer("%T()", ClassName("", name))
+                    .build()
+            )
+        }
+        for (deserializer in deserializers) {
+            val name = deserializer.name!!
+            val instanceName = name.replaceFirstChar { it.lowercase() }
+            companionBuilder.addProperty(
+                PropertySpec.builder(instanceName, ClassName("", name))
+                    .addModifiers(KModifier.PRIVATE)
+                    .initializer("%T()", ClassName("", name))
+                    .build()
+            )
+        }
+
+        val moduleBuilder = TypeSpec.classBuilder("LazyvalJacksonModule")
+            .superclass(version.simpleModule())
+            .addType(companionBuilder.build())
+            .addFunction(buildSetupModule(serializers, deserializers, elementTypes))
+
+        if (isQuarkus) {
+            moduleBuilder
+                .addSuperinterface(ClassName("io.quarkus.jackson", "ObjectMapperCustomizer"))
+                .addAnnotation(AnnotationSpec.builder(ClassName("jakarta.inject", "Singleton")).build())
+                .addFunction(buildQuarkusCustomizer())
+        }
+
+        serializers.forEach { moduleBuilder.addType(it.toBuilder().addModifiers(KModifier.PRIVATE).build()) }
+        deserializers.forEach { moduleBuilder.addType(it.toBuilder().addModifiers(KModifier.PRIVATE).build()) }
+
+        return moduleBuilder.build()
+    }
+
+    private fun buildSetupModule(
+        serializers: List<TypeSpec>,
+        deserializers: List<TypeSpec>,
+        elementTypes: List<ClassName>
+    ): FunSpec {
+        val builder = FunSpec.builder("setupModule")
+            .addModifiers(KModifier.OVERRIDE)
+            .addParameter("context", version.setupContext())
+            .addStatement("super.setupModule(context)")
+            .addStatement("val sers = %T()", version.simpleSerializers())
+            .addStatement("val desers = %T()", version.simpleDeserializers())
+
+        for (i in serializers.indices) {
+            val instanceName = serializers[i].name!!.replaceFirstChar { it.lowercase() }
+            builder.addStatement("sers.addSerializer(%T::class.java, $instanceName)", elementTypes[i])
+        }
+        for (i in deserializers.indices) {
+            val instanceName = deserializers[i].name!!.replaceFirstChar { it.lowercase() }
+            builder.addStatement("desers.addDeserializer(%T::class.java, $instanceName)", elementTypes[i])
+        }
+
+        return builder
+            .addStatement("context.addSerializers(sers)")
+            .addStatement("context.addDeserializers(desers)")
+            .build()
+    }
+
+    private fun buildQuarkusCustomizer(): FunSpec =
+        FunSpec.builder("customize")
+            .addModifiers(KModifier.OVERRIDE)
+            .addParameter("objectMapper", version.objectMapper())
+            .addStatement("objectMapper.registerModule(this)")
+            .build()
+}

@@ -57,7 +57,7 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
      * @throws IllegalStateException if Lazyvals Java annotation processor is not on the classpath.
      */
     public static Testkit.Java java(){
-        if(isProcessorMissingOnClasspath("com.qualityminds.lazyval.processor.LazyvalProcessor")){
+        if(isProcessorMissingOnClasspath("com.qualityminds.lazyval.processor.internal.LazyvalProcessor")){
             throw new IllegalStateException("Lazyval Java processor is not on the classpath. Cannot start Java testkit.");
         }
         return new Testkit.Java();
@@ -69,7 +69,7 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
      * @throws IllegalStateException if Lazyvals KSP2 processor is not on the classpath.
      */
     public static Testkit.Kotlin kotlin(){
-        if(isProcessorMissingOnClasspath("com.qualityminds.lazyval.ksp.LazyvalSymbolProcessor")){
+        if(isProcessorMissingOnClasspath("com.qualityminds.lazyval.ksp.internal.LazyvalSymbolProcessor")){
             throw new IllegalStateException("Lazyval Kotlin processor is not on the classpath. Cannot start Kotlin testkit.");
         }
         return new Testkit.Kotlin();

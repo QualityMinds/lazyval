@@ -1,6 +1,6 @@
 = Using the Lazyval SPI
 
-To support users with the option to add custom code-generators, two SPIs (service-provider-interfaces) have been added for each processor implementation.
+To support users with the option to add custom code-generators, an SPI (service-provider-interface) has been added for each processor implementation.
 In fact, the internal generators use the same mechanism and act as a reference implementation.
 
 NOTE: the SPI also allows the project to hold new generators in an external incubation phase before shipping them
@@ -9,22 +9,15 @@ as part of the Lazyval bundle.
 CAUTION: the SPI is currently experimental and will change!
 
 First, you have to decide if you need a generator for Java (Annotation Processing) or Kotlin (KSP2). This is necessary
-because the SPI has to leak the underlying processing API to the consumer, at least at the moment.
+because the SPI has to leak the underlying processing API to the consumer.
 
-Add the chosen processor as a dependency and select the SPI(s) you need.
+Add the chosen processor as a dependency and implement the SPI.
 
-.Java SPIs
-* https://github.com/QualityMinds/lazyval/blob/main/processor/src/main/java/com/qualityminds/lazyval/processor/spi/FilePerTypeGenerator.java[com.qualityminds.lazyval.processor.spi.FilePerTypeGenerator]
-* https://github.com/QualityMinds/lazyval/blob/main/processor/src/main/java/com/qualityminds/lazyval/processor/spi/SingleFileGenerator.java[com.qualityminds.lazyval.processor.spi.SingleFileGenerator]
+.Java SPI
+* https://github.com/QualityMinds/lazyval/blob/main/processor/src/main/java/com/qualityminds/lazyval/processor/spi/Generator.java[com.qualityminds.lazyval.processor.spi.Generator]
 
-.Kotlin SPIs
-* https://github.com/QualityMinds/lazyval/blob/main/ksp/src/main/kotlin/com/qualityminds/lazyval/ksp/spi/SpiGenerators.kt[com.qualityminds.lazyval.ksp.spi.FilePerTypeGenerator]
-* https://github.com/QualityMinds/lazyval/blob/main/ksp/src/main/kotlin/com/qualityminds/lazyval/ksp/spi/SpiGenerators.kt[com.qualityminds.lazyval.ksp.spi.SingleFileGenerator]
-
-A `FilePerTypeGenerator` will be called for each annotated class and generate a source file for every
-domain-primitive (for instance a JPA AttributeConverter).
-In contrast, a `SingleFileGenerator` will be called with a list of all annotated classes and generate only a single
-source file (for instance a Mapstruct Mapper containing all mappings).
+.Kotlin SPI
+* https://github.com/QualityMinds/lazyval/blob/main/ksp/src/main/kotlin/com/qualityminds/lazyval/ksp/spi/SpiGenerators.kt[com.qualityminds.lazyval.ksp.spi.Generator]
 
 To use a custom generator, it must be located in a separate JAR with a file named after the SPI in `META-INF/services/`
 with the fully qualified name of your implementation. The JAR needs to be added to the compile-classpath (in some tools

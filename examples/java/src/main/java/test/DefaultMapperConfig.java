@@ -5,7 +5,7 @@ import org.mapstruct.MapperConfig;
 
 // tag::docu[]
 @MapperConfig(
-        uses = LazyvalMapper.class
+        uses = LazyvalMapper.class // <1>
 )
 public interface DefaultMapperConfig {
 }

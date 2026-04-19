@@ -133,12 +133,12 @@
                 </dependencies>
                 <configuration>
                     <apOptions>
-                        <lazyval.jpa.generatedPackage>
+                        <lazyval.jpa.package>
                             com.qualityminds.lazyval.integration
-                        </lazyval.jpa.generatedPackage>
-                        <lazyval.mapstruct.generatedPackage>
+                        </lazyval.jpa.package>
+                        <lazyval.mapstruct.package>
                             com.qualityminds.lazyval.integration
-                        </lazyval.mapstruct.generatedPackage>
+                        </lazyval.mapstruct.package>
                         <lazyval.values>
                             com.qualityminds.lazyval.integration.shared.Quantity,com.qualityminds.lazyval.integration.shared.Isbn
                         </lazyval.values>

@@ -1,0 +1,4 @@
+com.qualityminds.lazyval.processor.internal.codegen.MapstructGenerator
+com.qualityminds.lazyval.processor.internal.codegen.JpaGenerator
+com.qualityminds.lazyval.processor.internal.codegen.jackson.Jackson2Generator
+com.qualityminds.lazyval.processor.internal.codegen.jackson.Jackson3Generator

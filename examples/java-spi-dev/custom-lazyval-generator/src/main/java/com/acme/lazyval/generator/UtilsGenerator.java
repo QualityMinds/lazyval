@@ -1,22 +1,25 @@
 package com.acme.lazyval.generator;
 
-import com.qualityminds.lazyval.processor.spi.FilePerTypeGenerator;
+import com.qualityminds.lazyval.collections.NonEmptySet;
+import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 import org.jspecify.annotations.NullMarked;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @NullMarked
-public class UtilsGenerator implements FilePerTypeGenerator {
+public class UtilsGenerator implements Generator {
 
     private static final String OPTION_GENERATED_PACKAGE = "acme.some.lazyval.generatedPackage";
 
     @Override
     public String generatorId() {
-        return "acme-utils";
+        return "acme-utils-single";
     }
 
     @Override
@@ -30,25 +33,18 @@ public class UtilsGenerator implements FilePerTypeGenerator {
     }
 
     @Override
-    public GeneratorResult generateFilePerType(ValidatedGeneratorElement validatedElement, Settings userSettings) {
+    public Stream<GeneratorResult> generate(NonEmptySet<ValidatedGeneratorElement> elements, Context ctx) {
 
-        var wrappedType = validatedElement.wrappedType();
-        // this generator should only handle String types
-        if (!"String".equals(wrappedType.typeName().simpleName())) {
-            return new GeneratorResult.Nothing();
-        }
+        List<String> imports = new ArrayList<>(elements.size());
+        List<String> methods = new ArrayList<>(elements.size());
 
-        String className = validatedElement.typeName() + "Utils";
-        String packageName = userSettings.get(OPTION_GENERATED_PACKAGE)
-                .orElse(String.format("%s.test", extractRootPackage(validatedElement.element())));
-        if(packageName.charAt(0) == '.'){
-            packageName = packageName.substring(1);
-        }
+        elements.stream()
+                .filter(ve -> "String".equals(ve.wrappedType().typeName().toString()))
+                .forEach(validatedElement -> {
+                    var  wrappedType = validatedElement.wrappedType();
+                    imports.add("import %s;\n".formatted(validatedElement.element().getQualifiedName()));
 
-        var contents = ("package %s;\n\n".formatted(packageName) +
-                "import %s;\n\n".formatted(validatedElement.element().getQualifiedName()) +
-                "public final class %s {\n".formatted(className) +
-                """
+                    var method = """
                             public static %s toUpperCase(%s type) {
                             if(type == null) {
                               return null;
@@ -56,12 +52,21 @@ public class UtilsGenerator implements FilePerTypeGenerator {
                             return type.%s.toUpperCase();
                           }
                         """.formatted(
-                        wrappedType.typeName(), validatedElement.typeName(), validatedElement.accessor()) +
+                            wrappedType.typeName(), validatedElement.typeName(), validatedElement.accessor());
+                    methods.add(method);
+                });
+
+        String packageName = ctx.generatorPackage(null, OPTION_GENERATED_PACKAGE);
+
+        var contents = ("package %s;\n\n".formatted(packageName) +
+                String.join("\n", imports) +
+                "public final class Utils {\n" +
+                String.join("\n", methods) +
                 "}").replaceAll("\\n", System.lineSeparator());
 
 
-        return new GeneratorResult.Java(
-                new GeneratorResult.Metadata(packageName, className),
-                contents);
+        return Stream.of(new GeneratorResult.Java(
+                new GeneratorResult.Metadata(packageName, "Utils"),
+                contents));
     }
 }

@@ -15,11 +15,20 @@ public sealed interface GeneratorResult {
     record Java(Metadata metadata, String contents) implements GeneratorResult {}
 
     /**
+     * ServiceLoader entry to be created in META-INF/services. The processor will collect all such entries
+     * and merge the same SPI-types into a single file.
+     * @param spiType the interface being implemented
+     * @param providerType the class implementing the interface
+     */
+    record ServiceLoader(Metadata spiType, Metadata providerType) implements GeneratorResult {}
+
+    /**
      * Can be used to signal that no file should be generated (for instance, when the generator only handles
      * wrapped values of a certain typeMirror)
      */
     record Nothing() implements GeneratorResult {}
 
+    // FIXME potential rename
     /**
      * Provides metadata for a generated file.
      * @param packageName the package name of the generated file

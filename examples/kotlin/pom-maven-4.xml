@@ -21,6 +21,7 @@
         <version.kotlin>2.3.0</version.kotlin>
         <version.mapstruct>1.6.3</version.mapstruct>
         <version.lazyval>0.1.2</version.lazyval>
+        <version.jackson>2.21.2</version.jackson>
     </properties>
 
     <!-- tag::docu[] -->
@@ -45,6 +46,11 @@
             <groupId>jakarta.persistence</groupId>
             <artifactId>jakarta.persistence-api</artifactId>
             <version>3.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${version.jackson}</version>
         </dependency>
         <!-- new way to define processors in Maven 4 (parameters remain in maven-compiler-plugin) -->
         <dependency>
@@ -97,12 +103,12 @@
                         <sourceDir>${project.basedir}/src/main/java</sourceDir>
                     </sourceDirs>
                     <apOptions>
-                        <lazyval.jpa.generatedPackage>
-                            test.boundary.custom
-                        </lazyval.jpa.generatedPackage>
-                        <lazyval.mapstruct.generatedPackage>
+                        <lazyval.generators.basePackage>
+                            test
+                        </lazyval.generators.basePackage>
+                        <lazyval.mapstruct.package>
                             test.custom
-                        </lazyval.mapstruct.generatedPackage>
+                        </lazyval.mapstruct.package>
                     </apOptions>
                 </configuration>
             </plugin>

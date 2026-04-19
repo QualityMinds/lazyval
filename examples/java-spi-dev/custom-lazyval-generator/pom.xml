@@ -33,6 +33,11 @@
             <version>${version.lazyval}</version>
         </dependency>
         <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
             <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval-testkit</artifactId>
             <version>${version.lazyval}</version>

@@ -19,6 +19,7 @@
         <version.lazyval>0.1.2</version.lazyval>
         <version.mapstruct>1.6.3</version.mapstruct>
         <version.jakarta-ee>11.0.0</version.jakarta-ee>
+        <version.jackson>3.1.0</version.jackson>
     </properties>
 
     <dependencies>
@@ -38,6 +39,11 @@
             <artifactId>jakarta.jakartaee-api</artifactId>
             <version>${version.jakarta-ee}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${version.jackson}</version>
         </dependency>
     </dependencies>
 
@@ -64,8 +70,8 @@
                     </annotationProcessorPaths>
                     <compilerArgs>
                         <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
-                        <arg>-Alazyval.jpa.generatedPackage=test.boundary.custom</arg>
-                        <arg>-Alazyval.mapstruct.generatedPackage=test.custom</arg>
+                        <arg>-Alazyval.generators.basePackage=test</arg>
+                        <arg>-Alazyval.mapstruct.package=test.custom</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>

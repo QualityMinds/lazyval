@@ -1,7 +1,10 @@
 package com.qualityminds.lazyval.integration;
 
+import com.qualityminds.lazyval.integration.shared.Isbn;
+import com.qualityminds.lazyval.integration.shared.Quantity;
+
 public record CreateOrderDto(
-        String isbn,
-        int quantity,
-        String email
+        Isbn isbn,
+        Quantity quantity,
+        EMail email
 ){}

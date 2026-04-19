@@ -1,5 +1,7 @@
 package com.qualityminds.lazyval.integration
 
+import com.qualityminds.lazyval.integration.shared.Isbn
+import com.qualityminds.lazyval.integration.shared.Quantity
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Test
@@ -27,8 +29,8 @@ class SpringIT {
     @Test
     fun testAllOrders() {
         val expected = listOf(
-            OrderDto(1, "3-86680-192-0", 1, "a@b.de"),
-            OrderDto(2, "978-3-86680-192-9", 1, "x@y.de")
+            OrderDto(1, Isbn.parse("3-86680-192-0"), Quantity(1), EMail("a@b.de")),
+            OrderDto(2, Isbn.parse("978-3-86680-192-9"), Quantity(1), EMail("x@y.de"))
         )
 
         webTestClient.get()
@@ -45,7 +47,7 @@ class SpringIT {
     @Order(2)
     @Test
     fun addOrder() {
-        val createOrderDto = CreateOrderDto("978-3-16-148410-0", 2, "test@post.de")
+        val createOrderDto = CreateOrderDto(Isbn.parse("978-3-16-148410-0"), Quantity(2), EMail("test@post.de"))
 
         webTestClient.post()
             .uri(baseUrl)
@@ -60,5 +62,22 @@ class SpringIT {
                 assertEquals(createOrderDto.quantity, order.quantity)
                 assertEquals(createOrderDto.email, order.email)
             }
+    }
+
+    @Order(3)
+    @Test
+    fun jacksonHandlingNull() {
+        val jsonBody = """{
+            |   "quantity":null,
+            |   "isbn":"978-3-16-148410-0",
+            |   "email":"test@post.de"
+            |}""".trimMargin()
+
+        webTestClient.post()
+            .uri(baseUrl)
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(jsonBody)
+            .exchange()
+            .expectStatus().isBadRequest
     }
 }

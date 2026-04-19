@@ -3,9 +3,13 @@ package com.qualityminds.lazyval.testkit.scenarios;
 import com.qualityminds.lazyval.testkit.dependencies.Dependency;
 import org.eclipse.collections.api.collection.ImmutableCollection;
 import org.eclipse.collections.api.factory.Lists;
+import org.eclipse.collections.api.factory.Maps;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 import static org.eclipse.collections.impl.collector.Collectors2.toImmutableList;
 
@@ -19,6 +23,8 @@ public class ScenarioFactory<T extends Scenario> {
     private final java.util.function.Function<Scenario.Descriptor, T> constructionFunction;
     private ImmutableCollection<Dependency> dependencies = Lists.immutable.empty();
     private ImmutableCollection<String> disabledGenerators = Lists.immutable.empty();
+    private boolean basePackageDisabled = false;
+    private Map<String, String> options = new HashMap<>();
 
     /**
      * Returns the name of the source file this scenario is based on.
@@ -64,6 +70,7 @@ public class ScenarioFactory<T extends Scenario> {
 
     /**
      * Disables the given generators for this scenario.
+     * Convenience method in favor of {@link #withOption(String, String)}.
      * @param disabledGenerators the generators to disable
      * @return this scenario factory
      */
@@ -73,11 +80,37 @@ public class ScenarioFactory<T extends Scenario> {
     }
 
     /**
+     * Disables the default base-package (test) configuration which the factory passes down to the scenario.
+     * Convenience method in favor of {@link #withOption(String, String)}.
+     * @return this scenario factory
+     */
+    public ScenarioFactory<T> withDisabledBasePackage() {
+        basePackageDisabled = true;
+        return this;
+    }
+
+    /**
+     * Appends an additional processor-option to the scenario.
+     */
+    public void withOption(String key, String value) {
+        // null-checks needed for cases where JSpecify is not used.
+        Objects.requireNonNull(key, "key must not be null");
+        Objects.requireNonNull(value, "value must not be null");
+        options.put(key, value);
+    }
+
+    /**
      * Builds the scenario.
      * @return scenario to be used by testkit
      */
     public T build() {
-        var descriptor = new Scenario.Descriptor(sourceFile, additionalSourceFiles, dependencies, disabledGenerators);
+        if(!disabledGenerators.isEmpty()){
+            options.put("lazyval.generators.disable", String.join(",", disabledGenerators));
+        }
+        if(!basePackageDisabled){
+            options.put("lazyval.generators.basePackage", "test");
+        }
+        var descriptor = new Scenario.Descriptor(sourceFile, additionalSourceFiles, dependencies, Maps.immutable.ofMap(options));
         return constructionFunction.apply(descriptor);
     }
 }

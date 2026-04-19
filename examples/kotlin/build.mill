@@ -8,6 +8,7 @@ object `package` extends KotlinMavenModule with KspModule {
     val lazyval = sys.props.getOrElse("version.lazyval", "0.1.2")
     val mapstruct = "1.6.3"
     val jpa = "3.2.0"
+    val jackson = "3.1.0"
   }
 
   override def kotlinVersion = "2.3.0"
@@ -32,7 +33,8 @@ object `package` extends KotlinMavenModule with KspModule {
   override def compileMvnDeps: T[Seq[Dep]] = Seq(
     mvn"com.qualityminds.lazyval:lazyval:${Version.lazyval}",
     mvn"jakarta.persistence:jakarta.persistence-api:${Version.jpa}",
-    mvn"org.mapstruct:mapstruct-processor:${Version.mapstruct}"
+    mvn"org.mapstruct:mapstruct-processor:${Version.mapstruct}",
+    mvn"tools.jackson.core:jackson-databind:${Version.jackson}"
   )
 
   // tag::excluded[]
@@ -54,8 +56,8 @@ object `package` extends KotlinMavenModule with KspModule {
   )
 
   override def kspProcessorOptions: T[Map[String, String]] = Map(
-    "lazyval.jpa.generatedPackage" -> "test.boundary.custom",
-    "lazyval.mapstruct.generatedPackage" -> "test.custom"
+    "lazyval.generators.basePackage" -> "test",
+    "lazyval.mapstruct.package" -> "test.custom"
   )
   // end::docu[]
 }

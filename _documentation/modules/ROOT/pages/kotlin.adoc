@@ -25,58 +25,6 @@ include::ROOT:example$kotlin/src/main/kotlin/test/Quantity.kt[tags=docu;!exclude
 include::ROOT:example$kotlin/src/main/kotlin/test/Isbn.kt[tags=docu;!excluded]
 ----
 
-IMPORTANT: The generated Mapstruct interface will still be a Java file because Mapstruct
-is a Java Annotation Processor that cannot read Kotlin sources.
-
-.Generated Mapper definition
-[source,java]
-----
-@Mapper(
-    unmappedTargetPolicy = ReportingPolicy.ERROR
-)
-public interface LazyvalMapper {
-  default String mapIsbnToWrappedType(Isbn type) {
-    if (type == null) {
-      return null;
-    }
-    return type.value();
-  }
-
-  default Isbn mapIsbn(String value) {
-    if (value == null) {
-      return null;
-    }
-    return Isbn.parse(value);
-  }
-
-  default int mapQuantityToWrappedType(Quantity type) {
-    return type.getValue();
-  }
-
-  default Quantity mapQuantity(int value) {
-    return new Quantity(value);
-  }
-}
-----
-
-
-.Generated JPA AttributeConverter definition
-[source, kotlin]
-----
-@Converter(autoApply = true)
-public class IsbnAttributeConverter :  AttributeConverter<Isbn?, String?> {
-  override fun convertToDatabaseColumn(type: Isbn?): String? = type?.value()
-
-  override fun convertToEntityAttribute(dbValue: String?): Isbn? = dbValue?.let { Isbn.parse(dbValue) }
-}
-
-@Converter(autoApply = true)
-public class QuantityAttributeConverter : AttributeConverter<Quantity?, Int?> {
-  override fun convertToDatabaseColumn(type: Quantity?): Int? = type?.value
-
-  override fun convertToEntityAttribute(dbValue: Int?): Quantity? = dbValue?.let { Quantity(dbValue) }
-}
-----
 
 [#setup]
 == Setup
@@ -85,6 +33,9 @@ The following snippets only contain the relevant parts to set up and configure L
 The `jakartaee-api` dependency can be replaced by any that ships `jakarta-persistence`.
 Keep in mind, Lazyval will only activate generators whose required dependencies are
 available.
+
+NOTE: These samples show the full setup, using the smallest dependencies. In case a feature is not needed, just remove
+the dependency.
 
 [tabs]
 ====

@@ -77,12 +77,12 @@ public class CompilerSetup {
                     scenarioDescriptor.additionalSources().stream()
             ).toArray(File[]::new);
             var compilationUnits = fileManager.getJavaFileObjects(allSources);
-            List<String> options = null;
-            if (!scenarioDescriptor.disabledGenerators().isEmpty()) {
-                options = List.of("-Alazyval.disabledGenerators=" + String.join(",", scenarioDescriptor.disabledGenerators()));
-            }
-            var task = compiler.getTask(null, fileManager, diagnostics, options, null, compilationUnits);
 
+            var processorOptions = scenarioDescriptor.options()
+                    .keyValuesView()
+                    .collect(pair -> "-A" + pair.getOne() + "=" + pair.getTwo());
+
+            var task = compiler.getTask(null, fileManager, diagnostics, processorOptions, null, compilationUnits);
 
             URL[] urls = additionalClasspath.stream()
                     .map(file -> {

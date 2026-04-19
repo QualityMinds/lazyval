@@ -1,0 +1,68 @@
+package com.qualityminds.lazyval.processor.internal.codegen.jackson;
+
+import com.palantir.javapoet.JavaFile;
+import com.palantir.javapoet.TypeName;
+import com.palantir.javapoet.TypeSpec;
+import com.qualityminds.lazyval.collections.NonEmptySet;
+import com.qualityminds.lazyval.processor.spi.Generator;
+import com.qualityminds.lazyval.processor.spi.GeneratorResult;
+import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
+
+import static com.qualityminds.lazyval.processor.spi.GeneratorResult.Metadata;
+
+public class Jackson2Generator implements Generator {
+
+    private static final String GENERATOR_ID = "jackson-2";
+    private static final String OPTION_GENERATED_PACKAGE = "lazyval.jackson.package";
+
+    private static final JacksonVersion VERSION = JacksonVersion.JACKSON_2;
+    private final JacksonCodegen codegen = new JacksonCodegen(VERSION);
+
+    @Override
+    public String generatorId() {
+        return GENERATOR_ID;
+    }
+
+    @Override
+    public Collection<String> requiredClasspath() {
+        return List.of("com.fasterxml.jackson.databind.Module");
+    }
+
+    @Override
+    public Set<String> supportedOptions() {
+        return Set.of(OPTION_GENERATED_PACKAGE);
+    }
+
+    @SuppressWarnings("DuplicatedCode")
+    @Override
+    public Stream<GeneratorResult> generate(NonEmptySet<ValidatedGeneratorElement> elements, Context context) {
+
+        List<TypeSpec> serializers = new ArrayList<>(elements.size());
+        List<TypeSpec> deserializers = new ArrayList<>(elements.size());
+        List<TypeName> elementTypes = new ArrayList<>(elements.size());
+        elements.forEach(element -> {
+            serializers.add(codegen.generateSerializer(element));
+            deserializers.add(codegen.generateDeserializer(element));
+            elementTypes.add(TypeName.get(element.element().asType()));
+        });
+
+        var typeSpec = codegen.generateModule(serializers, deserializers, elementTypes, context);
+
+        final String packageName = context.generatorPackage(null, OPTION_GENERATED_PACKAGE);
+
+        final JavaFile javaFile = JavaFile.builder(packageName, typeSpec).build();
+        var fileMetadata = new Metadata(javaFile.packageName(), javaFile.typeSpec().name());
+        return Stream.of(
+                new GeneratorResult.ServiceLoader(
+                        new Metadata(VERSION.spiPackage(), VERSION.spiClass()),
+                        fileMetadata),
+                new GeneratorResult.Java(fileMetadata, javaFile.toString())
+        );
+    }
+}
