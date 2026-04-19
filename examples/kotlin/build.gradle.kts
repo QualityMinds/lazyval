@@ -17,14 +17,15 @@ dependencies {
     compileOnly("com.qualityminds.lazyval:lazyval:$versionLazyval")
     implementation("org.mapstruct:mapstruct:1.6.3")
     compileOnly("jakarta.platform:jakarta.jakartaee-api:11.0.0")
+    implementation("tools.jackson.core:jackson-databind:3.1.0")
 
     ksp("com.qualityminds.lazyval:lazyval-ksp:$versionLazyval")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
 }
 
 ksp {
-    arg("lazyval.jpa.generatedPackage", "test.boundary.custom")
-    arg("lazyval.mapstruct.generatedPackage", "test.custom")
+    arg("lazyval.generators.basePackage", "test")
+    arg("lazyval.mapstruct.package", "test.custom")
 }
 // end::docu[]
 

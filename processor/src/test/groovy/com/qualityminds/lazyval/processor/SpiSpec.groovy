@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.processor
 
+import com.qualityminds.lazyval.processor.spi.Generator
 import com.qualityminds.lazyval.processor.spi.TypeName
 import spock.lang.Specification
 import spock.lang.Unroll

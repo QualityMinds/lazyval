@@ -1,0 +1,56 @@
+= Mapstruct
+
+This generator will create a single Mapstruct mapper interface with mappings from and to every defined domain-primitive.
+
+IMPORTANT: the Mapstruct annotation processor must be active because it needs to generate the actual implementation.
+
+== Config Options
+
+|===
+|Property |Description
+
+|_lazyval.mapstruct.package_
+|Specifies the package where the `LazyvalMapper` interface is generated to.
+Overrides `lazyval.generators.basePackage`.
+
+|===
+
+== Generated Files
+
+.Generated Mapper definition
+[source, java]
+----
+@Mapper(
+    unmappedTargetPolicy = ReportingPolicy.ERROR
+)
+public interface LazyvalMapper {
+    default int mapQuantityToWrappedType(Quantity type) {
+        return type.value();
+    }
+
+    default Quantity mapQuantity(int value) {
+        return new Quantity(value);
+    }
+
+    default String mapIsbnToWrappedType(Isbn type) {
+        return type == null ? null : type.value();
+    }
+
+    default Isbn mapIsbn(String value) {
+        return value == null ? null : Isbn.parse(value);
+    }
+}
+----
+
+IMPORTANT: For Kotlin projects the generated Mapstruct interface will still be a Java file because Mapstruct
+is a Java Annotation Processor that cannot read Kotlin sources.
+
+Since Mapstruct currently lacks a way to automatically register mappers, the generated LazyvalMapper needs to be
+"used" in another Mapper or in a default MapperConfig.
+See Mapstructs docu on https://mapstruct.org/documentation/stable/reference/html/#shared-configurations[shared configurations]
+
+[source, java]
+----
+include::ROOT:example$java/src/main/java/test/DefaultMapperConfig.java[tag=docu]
+----
+1. `uses` will make the mapper visible to other mappers using this configuration

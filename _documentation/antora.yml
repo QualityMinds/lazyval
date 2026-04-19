@@ -4,6 +4,7 @@ version: 'main'
 start_page: ROOT:index.adoc
 nav:
   - modules/ROOT/nav.adoc
+  - modules/generators/nav.adoc
   - modules/spi/nav.adoc
 
 ext:
@@ -12,13 +13,13 @@ ext:
         dir: examples
         into: modules/ROOT/examples
     - scan:
-        dir: processor/src/main/java/com/qualityminds/lazyval/processor/codegen
+        dir: processor/src/main/java/com/qualityminds/lazyval/processor/internal/codegen
         into: modules/spi/examples
     - scan:
         dir: processor/src/main/java/com/qualityminds/lazyval/processor/spi
         into: modules/spi/examples
     - scan:
-        dir: ksp/src/main/kotlin/com/qualityminds/lazyval/ksp/codegen
+        dir: ksp/src/main/kotlin/com/qualityminds/lazyval/ksp/internal/codegen
         into: modules/spi/examples
     - scan:
         dir: ksp/src/main/kotlin/com/qualityminds/lazyval/ksp/spi

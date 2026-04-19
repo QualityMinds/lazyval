@@ -10,7 +10,10 @@ import kotlin.KotlinVersion;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ServiceLoader;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -128,13 +131,6 @@ public class ToolchainSetup {
                     .map(ServiceLoader.Provider::get)
                     .toList();
 
-            Map<String, String> options;
-            if (!scenarioDescriptor.disabledGenerators().isEmpty()) {
-                options = Map.of("lazyval.disabledGenerators", String.join(",", scenarioDescriptor.disabledGenerators()));
-            } else {
-                options = Map.of();
-            }
-
             var allSources = Stream.concat(
                     Stream.of(scenarioDescriptor.source()),
                     scenarioDescriptor.additionalSources().stream()
@@ -151,10 +147,10 @@ public class ToolchainSetup {
                     builder.setClassOutputDir(Files.createDirectories(projectDir.resolve("build/classes")).toFile());
                     builder.setJavaOutputDir(Files.createDirectories(projectDir.resolve("build/generated/ksp/java")).toFile());
                     builder.setKotlinOutputDir(Files.createDirectories(projectDir.resolve("build/generated/ksp/kotlin")).toFile());
-                    builder.setResourceOutputDir(Files.createDirectories(projectDir.resolve("build/generated/ksp/kotlin")).toFile());
+                    builder.setResourceOutputDir(Files.createDirectories(projectDir.resolve("build/generated/ksp/resources")).toFile());
                     builder.setCachesDir(Files.createDirectories(projectDir.resolve("build/resources")).toFile());
                     builder.setSourceRoots(allSources);
-                    builder.setProcessorOptions(options);
+                    builder.setProcessorOptions(scenarioDescriptor.options().toMap());
                     builder.setLibraries(List.copyOf(compilationUnit));
             var config = builder.build();
 

@@ -1,0 +1,4 @@
+com.qualityminds.lazyval.ksp.internal.codegen.MapstructGenerator
+com.qualityminds.lazyval.ksp.internal.codegen.JpaGenerator
+com.qualityminds.lazyval.ksp.internal.codegen.jackson.Jackson2Generator
+com.qualityminds.lazyval.ksp.internal.codegen.jackson.Jackson3Generator

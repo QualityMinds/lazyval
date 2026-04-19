@@ -1,0 +1,73 @@
+= JPA
+
+This generator will create a single JPA AttributeConverter class for each defined domain-primitive.
+
+== Config Options
+
+|===
+|Property |Description
+
+|_lazyval.jpa.package_
+|Specifies the package where the `AttributeConverter` classes are generated to.
+Overrides `lazyval.generators.basePackage`.
+
+|===
+
+== Generated Files
+
+[tabs]
+====
+Java::
++
+[source, java]
+----
+@Converter(
+    autoApply = true
+)
+public class QuantityAttributeConverter implements AttributeConverter<Quantity, Integer> {
+    public Integer convertToDatabaseColumn(Quantity type) {
+        return type.value();
+    }
+
+    public Quantity convertToEntityAttribute(Integer dbValue) { // <1>
+        return new Quantity(dbValue);
+    }
+}
+
+@Converter(
+    autoApply = true
+)
+public class IsbnAttributeConverter implements AttributeConverter<Isbn, String> {
+    public String convertToDatabaseColumn(Isbn type) {
+        return type == null ? null : type.value();
+    }
+
+    public Isbn convertToEntityAttribute(String dbValue) {
+        return dbValue == null ? null : Isbn.parse(dbValue);
+    }
+}
+----
+<1> where needed, wrapped primitives are boxed
++
+These converters will be automatically picked up by your persistence provider.
+
+Kotlin::
++
+[source,kotlin]
+----
+@Converter(autoApply = true)
+public class IsbnAttributeConverter :  AttributeConverter<Isbn?, String?> { // <1>
+  override fun convertToDatabaseColumn(type: Isbn?): String? = type?.value()
+
+  override fun convertToEntityAttribute(dbValue: String?): Isbn? = dbValue?.let { Isbn.parse(dbValue) }
+}
+
+@Converter(autoApply = true)
+public class QuantityAttributeConverter : AttributeConverter<Quantity?, Int?> {
+  override fun convertToDatabaseColumn(type: Quantity?): Int? = type?.value
+
+  override fun convertToEntityAttribute(dbValue: Int?): Quantity? = dbValue?.let { Quantity(dbValue) }
+}
+----
+
+====

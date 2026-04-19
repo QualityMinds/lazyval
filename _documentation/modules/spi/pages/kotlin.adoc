@@ -1,18 +1,22 @@
 = Kotlin SPI
 
+.SPI type definition
+[source,kotlin]
+----
+include::spi:example$Generator.kt[tags=generator;!context]
+----
+
+.Context type definition
+[source,kotlin,indent=0]
+----
+include::spi:example$Generator.kt[tag=context]
+----
+
 IMPORTANT: The Kotlin SPI distinguishes the results for Java or Kotlin sources. Depending on what your generator creates,
 you have to return the corresponding result-type.
 
 .Result type definition
 [source,kotlin]
 ----
-include::spi:example$SpiGenerators.kt[tag=result]
-----
-
-TODO
-
-.JPA Generator
-[source,kotlin]
-----
-include::spi:example$JpaGenerator.kt[tag=docu]
+include::spi:example$Generator.kt[tag=result]
 ----

@@ -1,0 +1,4 @@
+.Generators
+* xref:jackson.adoc[Jackson (2/3)]
+* xref:jpa.adoc[JPA]
+* xref:mapstruct.adoc[Mapstruct]

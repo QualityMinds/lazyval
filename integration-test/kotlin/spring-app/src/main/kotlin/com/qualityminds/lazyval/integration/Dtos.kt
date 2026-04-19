@@ -1,5 +1,8 @@
 package com.qualityminds.lazyval.integration
 
-data class CreateOrderDto(val isbn: String, val quantity: Int, val email: String)
+import com.qualityminds.lazyval.integration.shared.Isbn
+import com.qualityminds.lazyval.integration.shared.Quantity
 
-data class OrderDto(val id: Long, val isbn: String, val quantity: Int, val email: String)
+data class CreateOrderDto(val isbn: Isbn, val quantity: Quantity, val email: EMail)
+
+data class OrderDto(val id: Long, val isbn: Isbn, val quantity: Quantity, val email: EMail)

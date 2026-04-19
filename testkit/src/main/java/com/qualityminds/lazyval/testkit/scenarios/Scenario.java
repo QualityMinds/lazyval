@@ -4,6 +4,7 @@ package com.qualityminds.lazyval.testkit.scenarios;
 import com.qualityminds.lazyval.testkit.Testkit;
 import com.qualityminds.lazyval.testkit.dependencies.Dependency;
 import org.eclipse.collections.api.collection.ImmutableCollection;
+import org.eclipse.collections.api.map.ImmutableMap;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -182,6 +183,15 @@ public sealed interface Scenario {
             return Scenario.Java.of("scenarios/java/SocialSecurityNumber.java");
         }
 
+//        /**
+//         * Combines all sources into a single scenario.
+//         * @return new ScenarioFactory instance
+//         */
+        // FIXME needed to catch errors when multiple source are processed in one round
+//        public static ScenarioFactory<Java> combined() {
+//            return Scenario.Java.of();
+//        }
+
         /**
          * All predefined sample scenarios, without any dependencies.
          * @return immutable list of all predefined scenarios
@@ -322,20 +332,20 @@ public sealed interface Scenario {
      * @param source the actual source file to process.
      * @param additionalSources any other source file relevant for the compilation (imports). Optional but must not contain null elements.
      * @param dependencies will be added to the classpath of the temporary project. Optional but must not contain null elements.
-     * @param disabledGenerators will be added as a processor-option "lazyval.disabledGenerators" to the compilation. Optional but must not contain null elements.
+     * @param options will be added as a processor-option "lazyval.generators.disable" to the compilation. Optional but must not contain null elements.
      */
     record Descriptor(
             File source,
             ImmutableCollection<File> additionalSources,
             ImmutableCollection<Dependency> dependencies,
-            ImmutableCollection<String> disabledGenerators){
+            ImmutableMap<String, String> options){
 
         /**
          * Creates a new Descriptor instance.
          * @param source the actual source file to process.
-         * @param additionalSources any other source file relevant for the compilation (imports). Optional but must not contain null elements.
-         * @param dependencies will be added to the classpath of the temporary project. Optional but must not contain null elements.
-         * @param disabledGenerators will be added as a processor-option "lazyval.disabledGenerators" to the compilation. Optional but must not contain null elements.
+         * @param additionalSources any other source file relevant for the compilation (imports). Can be empty (optional) but must not contain null elements.
+         * @param dependencies will be added to the classpath of the temporary project. Can be empty (optional) but must not contain null elements.
+         * @param options will be added as a processor-option. Can be empty (optional).
          */
         public Descriptor {
             Objects.requireNonNull(source);
@@ -346,9 +356,6 @@ public sealed interface Scenario {
             }
             for (Dependency d : dependencies) {
                 Objects.requireNonNull(d, "dependencies cannot contain null elements");
-            }
-            for (String disabledGenerator : disabledGenerators) {
-                Objects.requireNonNull(disabledGenerator, "disabled-generators cannot contain null elements");
             }
         }
     }

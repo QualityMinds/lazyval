@@ -21,7 +21,7 @@ class UtilsGeneratorTest {
         val result: Testresult.Kotlin = kit.run(tempDir, scenario)
 
         // THEN
-        val expected = Testresult.Kotlin.Success("IsbnUtils.kt", "Utils.kt")
+        val expected = Testresult.Kotlin.Success("Utils.kt")
         assertEquals(expected, result)
     }
 }

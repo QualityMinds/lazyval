@@ -36,7 +36,11 @@ public record KotlinCompilerSetup(Path projectDir, CompilationService service,
                     .flatMap(f -> findAllSourceFiles(f).stream())
                     .toList();
         } else {
-            return List.of(file);
+            var name = file.getName();
+            if (name.endsWith(".kt") || name.endsWith(".java")) {
+                return List.of(file);
+            }
+            return List.of();
         }
     }
 
@@ -51,7 +55,15 @@ public record KotlinCompilerSetup(Path projectDir, CompilationService service,
             allSources.addAll(kspJavaSources);
             allSources.addAll(kspKotlinSources);
 
-            var classpathString = compilerClasspath.stream()
+            // KSP resources (e.g. META-INF/services) are written to a separate directory
+            // and need to be on the classpath for ServiceLoader discovery
+            var classpathEntries = new ArrayList<>(compilerClasspath);
+            var kspResourceDir = projectDir.resolve("build/generated/ksp/resources").toFile();
+            if (kspResourceDir.isDirectory()) {
+                classpathEntries.add(kspResourceDir);
+            }
+
+            var classpathString = classpathEntries.stream()
                     .map(File::getAbsolutePath)
                     .reduce((a, b) -> a + File.pathSeparator + b)
                     .orElse("");
