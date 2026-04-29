@@ -17,7 +17,7 @@ Add the chosen processor as a dependency and implement the SPI.
 * https://github.com/QualityMinds/lazyval/blob/main/processor/src/main/java/com/qualityminds/lazyval/processor/spi/Generator.java[com.qualityminds.lazyval.processor.spi.Generator]
 
 .Kotlin SPI
-* https://github.com/QualityMinds/lazyval/blob/main/ksp/src/main/kotlin/com/qualityminds/lazyval/ksp/spi/SpiGenerators.kt[com.qualityminds.lazyval.ksp.spi.Generator]
+* https://github.com/QualityMinds/lazyval/blob/main/ksp/src/main/kotlin/com/qualityminds/lazyval/ksp/spi/Generator.kt[com.qualityminds.lazyval.ksp.spi.Generator]
 
 To use a custom generator, it must be located in a separate JAR with a file named after the SPI in `META-INF/services/`
 with the fully qualified name of your implementation. The JAR needs to be added to the compile-classpath (in some tools
