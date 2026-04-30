@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.qualityminds.lazyval.integration</groupId>
         <artifactId>integration-test-parent</artifactId>
-        <version>0.2.1</version>
+        <version>0.2.2-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -13,7 +13,7 @@
     <name>Integration Test Java Quarkus-App</name>
 
     <properties>
-        <version.lazyval>0.2.1</version.lazyval>
+        <version.lazyval>0.2.2-SNAPSHOT</version.lazyval>
         <version.mapstruct>1.6.3</version.mapstruct>
         <quarkus.platform.version>3.34.5</quarkus.platform.version>
     </properties>
