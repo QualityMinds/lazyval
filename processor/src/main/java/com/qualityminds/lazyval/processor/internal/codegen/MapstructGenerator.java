@@ -40,7 +40,7 @@ final public class MapstructGenerator implements Generator {
         var mapperAnnotationBuilder = AnnotationSpec.builder(ClassName.get("org.mapstruct", "Mapper"))
                 .addMember("unmappedTargetPolicy", "$L", "org.mapstruct.ReportingPolicy.ERROR");
 
-        final String mapperPackage = context.generatorPackage(null, OPTION_GENERATED_PACKAGE);
+        final String mapperPackage = context.generatorPackage(OPTION_GENERATED_PACKAGE, null);
 
         TypeSpec.Builder typeSpecBuilder = TypeSpec.interfaceBuilder("LazyvalMapper")
                 .addAnnotation(mapperAnnotationBuilder.build())

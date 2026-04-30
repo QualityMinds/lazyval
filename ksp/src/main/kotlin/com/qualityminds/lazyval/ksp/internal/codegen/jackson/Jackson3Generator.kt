@@ -44,7 +44,7 @@ class Jackson3Generator : Generator {
 
         val typeSpec = codegen.generateModule(serializers, deserializers, elementTypes, isQuarkus)
 
-        val jacksonModulePackage = context.generatorPackage(null, OPTION_GENERATED_PACKAGE)
+        val jacksonModulePackage = context.generatorPackage(OPTION_GENERATED_PACKAGE, null)
 
         val fileSpec = FileSpec.builder(jacksonModulePackage, typeSpec.name!!)
             .addType(typeSpec)

@@ -56,7 +56,7 @@ public class UtilsGenerator implements Generator {
                     methods.add(method);
                 });
 
-        String packageName = ctx.generatorPackage(null, OPTION_GENERATED_PACKAGE);
+        String packageName = ctx.generatorPackage(OPTION_GENERATED_PACKAGE, null);
 
         var contents = ("package %s;\n\n".formatted(packageName) +
                 String.join("\n", imports) +

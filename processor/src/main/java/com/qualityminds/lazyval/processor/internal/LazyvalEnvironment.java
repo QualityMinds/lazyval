@@ -78,10 +78,10 @@ class LazyvalEnvironment {
             }
 
             @Override
-            public String generatorPackage(@Nullable String generatorLayer, String overridePackageOptionKey) {
+            public String generatorPackage(String overridePackageOptionKey, @Nullable String defaultLayer) {
                 var basePackage = getSetting(BASE_PACKAGE);
                 return getSetting(overridePackageOptionKey)
-                    .orElseGet(() -> basePackage.map(it -> generatorLayer != null ? it + "." + generatorLayer : it)
+                    .orElseGet(() -> basePackage.map(it -> defaultLayer != null ? it + "." + defaultLayer : it)
                             .orElseGet(() -> {
                                 var fallbackPackage = processingEnvironment.getElementUtils()
                                         .getPackageOf(fallback.element())

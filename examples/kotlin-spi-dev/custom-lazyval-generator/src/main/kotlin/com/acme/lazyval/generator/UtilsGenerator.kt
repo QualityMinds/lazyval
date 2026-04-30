@@ -42,7 +42,7 @@ class UtilsGenerator : Generator {
                 methods.add(method)
             }
 
-        val packageName = ctx.generatorPackage(null, OPTION_GENERATED_PACKAGE)
+        val packageName = ctx.generatorPackage( OPTION_GENERATED_PACKAGE, null)
 
         val contents = """
             |package $packageName

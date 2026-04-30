@@ -53,7 +53,7 @@ public class Jackson3Generator implements Generator {
 
         var typeSpec = codegen.generateModule(serializers, deserializers, elementTypes, context);
 
-        final String packageName = context.generatorPackage(null, OPTION_GENERATED_PACKAGE);
+        final String packageName = context.generatorPackage(OPTION_GENERATED_PACKAGE, null);
 
         final JavaFile javaFile = JavaFile.builder(packageName, typeSpec).build();
         var fileMetadata = new Metadata(javaFile.packageName(), javaFile.typeSpec().name());

@@ -3,7 +3,6 @@ package com.qualityminds.lazyval.ksp.internal.codegen
 import com.google.devtools.ksp.symbol.KSType
 import com.palantir.javapoet.*
 import com.qualityminds.lazyval.collections.NonEmptySet
-import com.qualityminds.lazyval.ksp.internal.codegen.jackson.Jackson2Generator
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
@@ -44,7 +43,7 @@ class MapstructGenerator : Generator {
             interfaceBuilder.addMethod(createJavaMapFromWrappedTypeMethod(element))
         }
 
-        val packageName = context.generatorPackage(null, OPTION_GENERATED_PACKAGE)
+        val packageName = context.generatorPackage(OPTION_GENERATED_PACKAGE, null)
 
         val javaFile = JavaFile.builder(packageName, interfaceBuilder.build())
             .build()

@@ -63,9 +63,9 @@ internal class LazyvalKspEnvironment(
                 return environment.options[key]
             }
 
-            override fun generatorPackage(generatorLayer: String?, overridePackageOptionKey: String): String {
+            override fun generatorPackage(overridePackageOptionKey: String, defaultLayer: String?): String {
                 return getSetting(overridePackageOptionKey)
-                    ?: getSetting(BASE_PACKAGE).let{ bp -> if (generatorLayer != null) "$bp.$generatorLayer" else bp }
+                    ?: getSetting(BASE_PACKAGE).let{ bp -> if (defaultLayer != null) "$bp.$defaultLayer" else bp }
                     ?: run {
                         val fallbackPackage = fallback.element.packageName.asString()
                         warn("Neither configuration for '$BASE_PACKAGE' nor '$overridePackageOptionKey' is set. Falling back to package of first element: '$fallbackPackage'")

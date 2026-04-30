@@ -117,13 +117,13 @@ interface Generator {
         fun getSetting(key: String): String?
 
         /**
-         * If a base-package is configured, it will be combined with the generator default layer.
-         * If no base package is configured, the fallback override for the generator-package will be used.
+         * If the user configured the generator-package override, it will be used.
+         * In case no override is configured, the global base-package configuration is checked and combined with the generator default layer.
          * If nothing is configured, the package of the first domain-primitive is used as a last resort.
-         * @param generatorLayer when the base-package is configured, this is the default layer where the generator places the output (when null, the base-package is used)
          * @param overridePackageOptionKey the option-key that overrides the full package for a particular generator
+         * @param defaultLayer             when the base-package is configured, this is the default layer where the generator places the output (when null, the base-package is used)
          */
-        fun generatorPackage(generatorLayer: String?, overridePackageOptionKey: String): String
+        fun generatorPackage(overridePackageOptionKey: String, defaultLayer: String?): String
     }
     // end::context[]
 }
