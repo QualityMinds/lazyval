@@ -15,7 +15,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <version.kotlin>2.3.0</version.kotlin>
-        <version.lazyval>0.2.0</version.lazyval>
+        <version.lazyval>0.2.1</version.lazyval>
     </properties>
 
     <modules>
