@@ -27,20 +27,6 @@ final class JacksonCodegen {
         var wrappedType = element.wrappedType();
         var serializerName = element.typeName() + "Serializer";
 
-        String writeStatement;
-        if (wrappedType.isPrimitive()) {
-            String wrappedTypeName = wrappedType.typeName().simpleName();
-            writeStatement = switch (wrappedTypeName) {
-                case "int", "long", "short" -> "gen.writeNumber(value.$L)";
-                case "float", "double" -> "gen.writeNumber(value.$L)";
-                case "boolean" -> "gen.writeBoolean(value.$L)";
-                case "char", "byte" -> "gen.writeString(String.valueOf(value.$L))";
-                default -> "gen.writeString(String.valueOf(value.$L))";
-            };
-        } else {
-            writeStatement = "gen.writeString(value.$L)";
-        }
-
         var serializeMethod = MethodSpec.methodBuilder("serialize")
                 .addAnnotation(OVERRIDE_ANNOTATION)
                 .addModifiers(Modifier.PUBLIC)
@@ -53,7 +39,21 @@ final class JacksonCodegen {
             serializeMethod.addException(ClassName.get("java.io", "IOException"));
         }
 
-        serializeMethod.addStatement(writeStatement, element.accessor());
+        if (wrappedType.isPrimitive()) {
+            String wrappedTypeName = wrappedType.typeName().simpleName();
+            String writeStatement = switch (wrappedTypeName) {
+                case "int", "long", "short" -> "gen.writeNumber(value.$L)";
+                case "float", "double" -> "gen.writeNumber(value.$L)";
+                case "boolean" -> "gen.writeBoolean(value.$L)";
+                case "char", "byte" -> "gen.writeString(String.valueOf(value.$L))";
+                default -> "gen.writeString(String.valueOf(value.$L))";
+            };
+            serializeMethod.addStatement(writeStatement, element.accessor());
+        } else {
+            // Delegate to the already-registered serializer (e.g. JavaTimeModule for DateTime types)
+            serializeMethod.addStatement("var ser = provider.findValueSerializer($T.class)", TypeName.get(wrappedType.typeMirror()));
+            serializeMethod.addStatement("ser.serialize(value.$L, gen, provider)", element.accessor());
+        }
 
         return TypeSpec.classBuilder(serializerName)
                 .superclass(ParameterizedTypeName.get(version.stdSerializer(), elementType))
@@ -73,24 +73,6 @@ final class JacksonCodegen {
         var wrappedType = element.wrappedType();
         var deserializerName = element.typeName() + "Deserializer";
 
-        String readValueStatement;
-        if (wrappedType.isPrimitive()) {
-            String wrappedTypeName = wrappedType.typeName().simpleName();
-            readValueStatement = switch (wrappedTypeName) {
-                case "int" -> "var value = p.getValueAsInt()";
-                case "long" -> "var value = p.getValueAsLong()";
-                case "double" -> "var value = p.getValueAsDouble()";
-                case "boolean" -> "var value = p.getValueAsBoolean()";
-                case "float" -> "var value = (float) p.getValueAsDouble()";
-                case "short" -> "var value = (short) p.getValueAsInt()";
-                case "byte" -> "var value = (byte) p.getValueAsInt()";
-                case "char" -> "var value = p.getValueAsString().charAt(0)";
-                default -> "var value = p.getValueAsString()";
-            };
-        } else {
-            readValueStatement = "var value = p.getValueAsString()";
-        }
-
         var deserializeMethod = MethodSpec.methodBuilder("deserialize")
                 .addAnnotation(OVERRIDE_ANNOTATION)
                 .addModifiers(Modifier.PUBLIC)
@@ -104,8 +86,29 @@ final class JacksonCodegen {
                     .addException(ClassName.get(version.corePackage(), "JacksonException"));
         }
 
+        if (wrappedType.isPrimitive()) {
+            String wrappedTypeName = wrappedType.typeName().simpleName();
+            String readValueStatement = switch (wrappedTypeName) {
+                case "int" -> "var value = p.getValueAsInt()";
+                case "long" -> "var value = p.getValueAsLong()";
+                case "double" -> "var value = p.getValueAsDouble()";
+                case "boolean" -> "var value = p.getValueAsBoolean()";
+                case "float" -> "var value = (float) p.getValueAsDouble()";
+                case "short" -> "var value = (short) p.getValueAsInt()";
+                case "byte" -> "var value = (byte) p.getValueAsInt()";
+                case "char" -> "var value = p.getValueAsString().charAt(0)";
+                default -> "var value = p.getValueAsString()";
+            };
+            deserializeMethod.addStatement(readValueStatement);
+        } else {
+            // Delegate to the already-registered deserializer (e.g. JavaTimeModule for DateTime types)
+            deserializeMethod.addStatement("var deser = ctxt.findContextualValueDeserializer(ctxt.constructType($T.class), null)",
+                    TypeName.get(wrappedType.typeMirror()));
+            deserializeMethod.addStatement("var value = ($T) deser.deserialize(p, ctxt)",
+                    TypeName.get(wrappedType.typeMirror()));
+        }
+
         deserializeMethod
-                .addStatement(readValueStatement)
                 .addStatement("return $L", element.objectCreation("value"));
 
         return TypeSpec.classBuilder(deserializerName)

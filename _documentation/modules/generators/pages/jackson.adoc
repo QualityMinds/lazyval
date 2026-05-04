@@ -9,6 +9,9 @@ simple value and deserializing uses the proper construction method.
 Since there are subtle differences from Jackson-2 to Jackson-3, Lazyval ships two dedicated generators for Java as well
 as Kotlin.
 
+When wrapping another type (like LocalDate), the implementation will look up already registered and configured
+de-/serializers.
+
 == Config Options
 
 |===
@@ -34,25 +37,26 @@ public class LazyvalJacksonModule extends SimpleModule {
     super.setupModule(context);
     SimpleSerializers sers = new SimpleSerializers();
     SimpleDeserializers desers = new SimpleDeserializers();
-    sers.addSerializer(Isbn.class, IsbnSerializer.INSTANCE);
+    sers.addSerializer(OrderDate.class, OrderDateSerializer.INSTANCE);
     sers.addSerializer(Quantity.class, QuantitySerializer.INSTANCE);
-    desers.addDeserializer(Isbn.class, IsbnDeserializer.INSTANCE);
+    desers.addDeserializer(OrderDate.class, OrderDateDeserializer.INSTANCE);
     desers.addDeserializer(Quantity.class, QuantityDeserializer.INSTANCE);
     context.addSerializers(sers);
     context.addDeserializers(desers);
   }
 
-  static class IsbnSerializer extends StdSerializer<Isbn> {  // <1>
-    static final IsbnSerializer INSTANCE = new IsbnSerializer();
+  static class OrderDateSerializer extends StdSerializer<OrderDate> {
+    static final OrderDateSerializer INSTANCE = new OrderDateSerializer();
 
-    protected IsbnSerializer() {
-      super(Isbn.class);
+    protected OrderDateSerializer() {
+      super(OrderDate.class);
     }
 
     @Override
-    public void serialize(Isbn value, JsonGenerator gen, SerializerProvider provider) throws
+    public void serialize(OrderDate value, JsonGenerator gen, SerializerProvider provider) throws
         IOException {
-      gen.writeString(value.value());
+      var ser = provider.findValueSerializer(LocalDate.class);
+      ser.serialize(value.date(), gen, provider);
     }
   }
 
@@ -66,22 +70,23 @@ public class LazyvalJacksonModule extends SimpleModule {
     @Override
     public void serialize(Quantity value, JsonGenerator gen, SerializerProvider provider) throws
         IOException {
-      gen.writeNumber(value.value());  // <2>
+      gen.writeNumber(value.value());
     }
   }
 
-  static class IsbnDeserializer extends StdDeserializer<Isbn> {
-    static final IsbnDeserializer INSTANCE = new IsbnDeserializer();
+  static class OrderDateDeserializer extends StdDeserializer<OrderDate> {
+    static final OrderDateDeserializer INSTANCE = new OrderDateDeserializer();
 
-    protected IsbnDeserializer() {
-      super(Isbn.class);
+    protected OrderDateDeserializer() {
+      super(OrderDate.class);
     }
 
     @Override
-    public Isbn deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
+    public OrderDate deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
         JacksonException {
-      var value = p.getValueAsString();
-      return Isbn.parse(value);
+      var deser = ctxt.findContextualValueDeserializer(ctxt.constructType(LocalDate.class), null);
+      var value = (LocalDate) deser.deserialize(p, ctxt);
+      return new OrderDate(value);
     }
   }
 
@@ -99,7 +104,6 @@ public class LazyvalJacksonModule extends SimpleModule {
       return new Quantity(value);
     }
   }
-
 }
 ----
 
@@ -112,33 +116,33 @@ public class LazyvalJacksonModule : SimpleModule() {
     super.setupModule(context)
     val sers = SimpleSerializers()
     val desers = SimpleDeserializers()
-    sers.addSerializer(EMail::class.java, eMailSerializer)
+    sers.addSerializer(OrderDate::class.java, orderDateSerializer)
     sers.addSerializer(Quantity::class.java, quantitySerializer)
-    sers.addSerializer(Isbn::class.java, isbnSerializer)
-    desers.addDeserializer(EMail::class.java, eMailDeserializer)
+    desers.addDeserializer(OrderDate::class.java, orderDateDeserializer)
     desers.addDeserializer(Quantity::class.java, quantityDeserializer)
-    desers.addDeserializer(Isbn::class.java, isbnDeserializer)
     context.addSerializers(sers)
     context.addDeserializers(desers)
   }
 
   public companion object {
+    private val eMailSerializer: EMailSerializer = EMailSerializer()
+    private val orderDateSerializer: OrderDateSerializer = OrderDateSerializer()
     private val quantitySerializer: QuantitySerializer = QuantitySerializer()
-
     private val isbnSerializer: IsbnSerializer = IsbnSerializer()
-
+    private val eMailDeserializer: EMailDeserializer = EMailDeserializer()
+    private val orderDateDeserializer: OrderDateDeserializer = OrderDateDeserializer()
     private val quantityDeserializer: QuantityDeserializer = QuantityDeserializer()
-
     private val isbnDeserializer: IsbnDeserializer = IsbnDeserializer()
   }
 
-  private class IsbnSerializer : StdSerializer<Isbn>(Isbn::class.java) { // <1>
+  private class OrderDateSerializer : StdSerializer<OrderDate>(OrderDate::class.java) {
     override fun serialize(
-      `value`: Isbn,
+      `value`: OrderDate,
       gen: JsonGenerator,
       ctx: SerializationContext,
     ) {
-      gen.writeString(value.value)
+      val ser = ctx.findValueSerializer(LocalDate::class.java)
+      ser.serialize(value.value, gen, ctx)
     }
   }
 
@@ -148,14 +152,15 @@ public class LazyvalJacksonModule : SimpleModule() {
       gen: JsonGenerator,
       ctx: SerializationContext,
     ) {
-      gen.writeNumber(value.value) // <2>
+      gen.writeNumber(value.value)
     }
   }
 
-  private class IsbnDeserializer : StdDeserializer<Isbn>(Isbn::class.java) {
-    override fun deserialize(p: JsonParser, ctx: DeserializationContext): Isbn? {
-      val value = p.valueAsString
-      return Isbn.parse(value)
+  private class OrderDateDeserializer : StdDeserializer<OrderDate>(OrderDate::class.java) {
+    override fun deserialize(p: JsonParser, ctx: DeserializationContext): OrderDate? {
+      val deser = ctx.findContextualValueDeserializer(ctx.constructType(LocalDate::class.java), null)
+      val value = deser.deserialize(p, ctx) as LocalDate
+      return OrderDate(value)
     }
   }
 

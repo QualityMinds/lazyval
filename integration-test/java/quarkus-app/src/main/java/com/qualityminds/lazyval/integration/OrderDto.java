@@ -7,6 +7,7 @@ public record OrderDto(
     Long id,
     Isbn isbn,
     Quantity quantity,
-    EMail email
+    EMail email,
+    OrderDate orderDate
 ){}
 
