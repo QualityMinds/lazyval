@@ -13,6 +13,7 @@ import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTest
 import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.expectBody
+import java.time.LocalDate
 import kotlin.test.assertEquals
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
@@ -29,8 +30,8 @@ class SpringIT {
     @Test
     fun testAllOrders() {
         val expected = listOf(
-            OrderDto(1, Isbn.parse("3-86680-192-0"), Quantity(1), EMail("a@b.de")),
-            OrderDto(2, Isbn.parse("978-3-86680-192-9"), Quantity(1), EMail("x@y.de"))
+            OrderDto(1, Isbn.parse("3-86680-192-0"), Quantity(1), EMail("a@b.de"), OrderDate.now()),
+            OrderDto(2, Isbn.parse("978-3-86680-192-9"), Quantity(1), EMail("x@y.de"), OrderDate.now())
         )
 
         webTestClient.get()
@@ -61,6 +62,7 @@ class SpringIT {
                 assertEquals(createOrderDto.isbn, order.isbn)
                 assertEquals(createOrderDto.quantity, order.quantity)
                 assertEquals(createOrderDto.email, order.email)
+                assertEquals(OrderDate(LocalDate.now()), order.orderDate)
             }
     }
 

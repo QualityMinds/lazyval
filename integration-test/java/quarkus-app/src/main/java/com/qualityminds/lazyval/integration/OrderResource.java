@@ -8,6 +8,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @Produces(MediaType.APPLICATION_JSON)
@@ -28,6 +29,7 @@ public class OrderResource {
     @POST
     public OrderDto addOrder(CreateOrderDto dto) {
         Order order = mapper.toEntity(dto);
+        order.orderDate = new OrderDate(LocalDate.now());
         order.persist();
         return mapper.toDto(order);
     }

@@ -13,11 +13,13 @@ public class Order extends PanacheEntity {
     // Quantity tests a boxed primitive from shared
     public Quantity quantity;
     public EMail email;
+    public OrderDate orderDate;
 
     public Order(Isbn isbn, Quantity quantity, EMail email) {
         this.isbn = isbn;
         this.quantity = quantity;
         this.email = email;
+        this.orderDate = OrderDate.now();
     }
 
     protected Order() {}

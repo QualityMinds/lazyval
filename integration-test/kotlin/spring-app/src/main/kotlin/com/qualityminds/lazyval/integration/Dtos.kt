@@ -5,4 +5,4 @@ import com.qualityminds.lazyval.integration.shared.Quantity
 
 data class CreateOrderDto(val isbn: Isbn, val quantity: Quantity, val email: EMail)
 
-data class OrderDto(val id: Long, val isbn: Isbn, val quantity: Quantity, val email: EMail)
+data class OrderDto(val id: Long, val isbn: Isbn, val quantity: Quantity, val email: EMail, val orderDate: OrderDate)

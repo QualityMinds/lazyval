@@ -1,10 +1,6 @@
 package com.qualityminds.lazyval.integation
 
-
-import com.qualityminds.lazyval.integration.CreateOrderDto
-import com.qualityminds.lazyval.integration.EMail
-import com.qualityminds.lazyval.integration.OrderDto
-import com.qualityminds.lazyval.integration.OrderResource
+import com.qualityminds.lazyval.integration.*
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import io.quarkus.test.common.http.TestHTTPEndpoint
@@ -14,6 +10,8 @@ import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestMethodOrder
+
+import java.time.LocalDate
 
 import static io.restassured.RestAssured.given
 import static io.restassured.RestAssured.when
@@ -35,8 +33,8 @@ class QuarkusIT {
                 .statusCode(200)
                 .extract().body().as(new TypeRef<List<OrderDto>>() {})
         assert orders == List.of(
-                new OrderDto(1, Isbn.parse('3-86680-192-0'), new Quantity(1), new EMail('a@b.de')),
-                new OrderDto(2, Isbn.parse('978-3-86680-192-9'), new Quantity(1), new EMail('x@y.de')),
+                new OrderDto(1, Isbn.parse('3-86680-192-0'), new Quantity(1), new EMail('a@b.de'), OrderDate.now()),
+                new OrderDto(2, Isbn.parse('978-3-86680-192-9'), new Quantity(1), new EMail('x@y.de'), OrderDate.now()),
         )
     }
 
@@ -53,8 +51,8 @@ class QuarkusIT {
                 .statusCode(200)
                 .extract().body().as(OrderDto.class)
 
-        assert [order.isbn, order.quantity, order.email] ==
-                [createOrderDto.isbn, createOrderDto.quantity, createOrderDto.email]
+        assert [order.isbn, order.quantity, order.email, order.orderDate()] ==
+                [createOrderDto.isbn, createOrderDto.quantity, createOrderDto.email, new OrderDate(LocalDate.now())]
     }
 
     @Order(3)
