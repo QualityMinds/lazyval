@@ -14,7 +14,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <version.lazyval>0.2.1</version.lazyval>
+        <version.lazyval>0.2.2</version.lazyval>
     </properties>
 
     <modules>

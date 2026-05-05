@@ -12,7 +12,7 @@ repositories {
     mavenCentral()
     mavenLocal() // For local SNAPSHOT dependencies
 }
-val versionLazyval = System.getProperty("version.lazyval") ?: "0.2.1"
+val versionLazyval = System.getProperty("version.lazyval") ?: "0.2.2"
 // end::excluded[]
 dependencies {
     compileOnly("com.qualityminds.lazyval:lazyval:$versionLazyval")
