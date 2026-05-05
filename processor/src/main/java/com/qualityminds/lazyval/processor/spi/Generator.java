@@ -46,7 +46,7 @@ public interface Generator {
      *
      * @param elements all elements annotated with {@link LazyValue}. Guaranteed to be non-empty.
      * @param context  provided {@link Context}
-     * @return {@link GeneratorResult.Java} for the generated file or {@link GeneratorResult.Nothing}
+     * @return a stream of {@link GeneratorResult}s.
      */
     Stream<GeneratorResult> generate(NonEmptySet<ValidatedGeneratorElement> elements, Context context);
     // tag::context[]

@@ -58,9 +58,6 @@ public class LazyvalProcessor extends AbstractProcessor {
     private sealed interface InternalResult {
         record Java(GeneratorResult.Metadata metadata, String contents, List<Element> originatingElements) implements InternalResult {}
         record ServiceLoader(GeneratorResult.Metadata spiType, GeneratorResult.Metadata providerType, List<Element> originatingElements) implements InternalResult {}
-        record Nothing() implements InternalResult {}
-
-        InternalResult NOTHING = new Nothing();
     }
 
     private boolean classpathWarningAlreadyIssued = false;
@@ -163,10 +160,12 @@ public class LazyvalProcessor extends AbstractProcessor {
     }
 
     private Stream<InternalResult> callGenerator(Generator generator, Set<ValidatedGeneratorElement> validatedElements, List<Element> orignatingElements) {
-//        difiableMap(Map.Entry::getKey, Map.Entry::getValue));
+        //noinspection ConstantValue
         return generator.generate(
                 NonEmptySet.ofAll(validatedElements),
                         lazyvalEnvironment.createContext(validatedElements.iterator().next()))
+                // remove potential null, since external generators might not use JSpecify annotations/tooling
+                .filter(Objects::nonNull)
                 .map(output -> mapToInternalOutput(output, orignatingElements));
     }
 
@@ -175,13 +174,7 @@ public class LazyvalProcessor extends AbstractProcessor {
             return new InternalResult.Java(javaResult.metadata(), javaResult.contents(), orignatingElements);
         }else if(output instanceof GeneratorResult.ServiceLoader serviceLoaderResult) {
             return new InternalResult.ServiceLoader(serviceLoaderResult.spiType(), serviceLoaderResult.providerType(), orignatingElements);
-        }
-        // remove potential null, since external generators might not use JSpecify annotations/tooling
-        else //noinspection ConstantValue
-            if(output instanceof GeneratorResult.Nothing || output == null){
-            // TODO maybe log something about bad generator returning null
-            return InternalResult.NOTHING;
-        }else {
+        } else {
             throw new IllegalStateException("Unknown generator result typeMirror: " + output.getClass().getName());
         }
     }

@@ -41,12 +41,6 @@ sealed interface GeneratorResult {
      */
     data class ServiceLoader(val spiType: Metadata, val providerType: Metadata) : GeneratorResult
     /**
-     * Can be used to signal that no should be generated (for instance, when the generator only handles
-     * wrapped values of a certain type)
-     */
-    object Nothing : GeneratorResult
-
-    /**
      * Provides metadata about generated files.
      * @param packageName the package name of the generated file
      * @param className the name of the generated file
@@ -92,6 +86,7 @@ interface Generator {
      * Called only once with a list of all domain primitives annotated with [com.qualityminds.lazyval.LazyValue].
      * @param validatedElements all elements annotated with [com.qualityminds.lazyval.LazyValue]. Guaranteed to be non-empty.
      * @param context provided [Context]
+     * @return a stream of [GeneratorResult]s.
      */
     fun generate(
         validatedElements: NonEmptySet<ValidatedKspGeneratorElement>,

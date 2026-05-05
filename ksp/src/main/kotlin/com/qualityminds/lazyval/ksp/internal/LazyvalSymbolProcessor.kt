@@ -20,14 +20,12 @@ private sealed interface InternalResult {
     data class Kotlin(val metadata: GeneratorResult.Metadata, val contents: String, val sources: List<KSFile>) : InternalResult
     data class Java(val metadata: GeneratorResult.Metadata, val contents: String, val sources: List<KSFile>) : InternalResult
     data class ServiceLoader(val spiType: GeneratorResult.Metadata, val providerType: GeneratorResult.Metadata, val sources: List<KSFile>) : InternalResult
-    object Nothing : InternalResult
 
     companion object {
         fun from(generatorResult: GeneratorResult, sources: List<KSFile>) = when(generatorResult) {
             is GeneratorResult.Java -> Java(generatorResult.metadata, generatorResult.contents, sources)
             is GeneratorResult.Kotlin -> Kotlin(generatorResult.metadata, generatorResult.contents, sources)
             is GeneratorResult.ServiceLoader -> ServiceLoader(generatorResult.spiType, generatorResult.providerType, sources)
-            GeneratorResult.Nothing -> Nothing
         }
     }
 }
@@ -112,7 +110,6 @@ class LazyvalSymbolProcessor(
                         is InternalResult.Kotlin -> writeKotlinFile(result)
                         is InternalResult.Java -> writeJavaFile(result)
                         is InternalResult.ServiceLoader -> writeServiceLoaderFile(result)
-                        InternalResult.Nothing -> { /* nothing to do */ }
                     }
                 }
         }

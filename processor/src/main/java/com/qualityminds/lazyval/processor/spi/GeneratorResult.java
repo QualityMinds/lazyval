@@ -22,13 +22,7 @@ public sealed interface GeneratorResult {
      */
     record ServiceLoader(Metadata spiType, Metadata providerType) implements GeneratorResult {}
 
-    /**
-     * Can be used to signal that no file should be generated (for instance, when the generator only handles
-     * wrapped values of a certain typeMirror)
-     */
-    record Nothing() implements GeneratorResult {}
-
-    // FIXME potential rename
+    // TODO potential rename
     /**
      * Provides metadata for a generated file.
      * @param packageName the package name of the generated file
