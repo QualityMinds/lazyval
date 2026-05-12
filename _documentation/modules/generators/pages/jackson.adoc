@@ -1,7 +1,7 @@
 = Jackson
 
-Since domain-primitives are complex objects (not primitives from a language perspective), they would usually serialize
-to JSON as objects rather than values.
+Since domain-primitives are complex objects, (not primitives from a language perspective), they would usually serialize
+to JSON as objects rather than values, which just creates overhead on the wire and makes consumption more complex.
 
 This generator registers a custom Jackson module which will make sure that each domain-primitive is serialized as a
 simple value and deserializing uses the proper construction method.
@@ -173,15 +173,10 @@ public class LazyvalJacksonModule : SimpleModule() {
 }
 ----
 ====
-<1> Null-handling is already provided by Jacksons `Std(De)Serializer`
-<2> Will use the proper JSON primitive when applicable
-
 
 The module is registered via ServiceLoader `META-INF\services\com.fasterxml.jackson.databind.Module` (Jackson 2.x) or
 `META-INF\services\tools.jackson.databind.JacksonModule` (Jackson 3.x)  which is written to the compiler output
 folder. This way other frameworks like RestAssured will also pick it up.
-
-
 
 == Quarkus
 

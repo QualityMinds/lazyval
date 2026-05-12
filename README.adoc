@@ -7,15 +7,17 @@ ifdef::env-github[]
 :warning-caption: :warning:
 endif::[]
 
+_Stop writing database converters, json marshallers, and object mappers for simple domain types — Lazyval generates them at compile time for both Java and Kotlin._
+
 == What is Lazyval
 
-Lazyval is a Java annotation processor & Kotlin symbol processor generating boilerplate code,
-often needed when modeling _"Domain Primitives"_, which are simple, domain-specific wrapper types around primitives.
+Lazyval is a Java annotation processor & Kotlin symbol processor generating integration code,
+often needed when modeling _"Domain Primitives"_, which are simple, domain-specific wrapper types.
 
-At the moment Lazyval has the following features:
+=== Features
 
 * Codegenerators
-** Mapstruct
+** Mapstruct mapper
 ** JPA AttributeConverters
 ** Jackson module with de/serializers
 * Smart
@@ -25,7 +27,6 @@ At the moment Lazyval has the following features:
 ** Proper feedback during compilation with warnings/error
 * SPI for custom generators
 ** Testkit
-
 
 A core design goal of Lazyval is that it will never require any runtime dependency for itself: no marker interfaces or
 generic types, nor glue code.
