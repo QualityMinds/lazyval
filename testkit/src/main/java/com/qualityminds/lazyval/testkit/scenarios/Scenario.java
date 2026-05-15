@@ -183,6 +183,27 @@ public sealed interface Scenario {
             return Scenario.Java.of("scenarios/java/SocialSecurityNumber.java");
         }
 
+        /**
+         * A record wrapping a non-primitive reference type (LocalDate).
+         * <pre>{@code
+         * import java.time.LocalDate;
+         * import com.qualityminds.lazyval.LazyValue;
+         *
+         * @LazyValue
+         * public record Birthday(LocalDate value) {
+         *     public Birthday {
+         *         if (value == null) {
+         *             throw new IllegalArgumentException("Birthday must not be null");
+         *         }
+         *     }
+         * }
+         * }</pre>
+         * @return new ScenarioFactory instance
+         */
+        public static ScenarioFactory<Java> birthday() {
+            return Scenario.Java.of("scenarios/java/Birthday.java");
+        }
+
 //        /**
 //         * Combines all sources into a single scenario.
 //         * @return new ScenarioFactory instance
@@ -318,11 +339,27 @@ public sealed interface Scenario {
         }
 
         /**
+         * A data class wrapping a non-primitive reference type (LocalDate).
+         * <pre>{@code
+         * @LazyValue
+         * data class Birthday(val date: LocalDate) {
+         *     init {
+         *         require(date != null) { "Birthday date cannot be null" }
+         *     }
+         * }
+         * }</pre>
+         * @return new ScenarioFactory instance
+         */
+        public static ScenarioFactory<Kotlin> birthday() {
+            return Scenario.Kotlin.of("scenarios/kotlin/Birthday.kt");
+        }
+
+        /**
          * All predefined sample scenarios, without any dependencies.
          * @return immutable list of all predefined scenarios
          */
         public static List<ScenarioFactory<Kotlin>> all() {
-            return List.of(isbn(), quantity(), nullableQuantity(), productId());
+            return List.of(isbn(), quantity(), nullableQuantity(), productId(), birthday());
         }
     }
 
