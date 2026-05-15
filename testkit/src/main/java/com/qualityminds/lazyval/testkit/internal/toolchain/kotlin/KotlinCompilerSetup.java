@@ -24,8 +24,6 @@ public record KotlinCompilerSetup(Path projectDir, CompilationService service,
                                   JvmCompilationConfiguration compilationConfig, List<File> sources,
                                   List<File> compilerClasspath) {
 
-
-
     private List<File> findAllSourceFiles(File file) {
         if (file.isDirectory()) {
             var files = file.listFiles();
@@ -73,6 +71,8 @@ public record KotlinCompilerSetup(Path projectDir, CompilationService service,
                     "-d", projectDir.resolve("build/classes").toAbsolutePath().toString(),
                     // classpath
                     "-classpath", classpathString,
+                    // needed to resolve Java types like LocalDate
+                    "-jdk-home", System.getProperty("java.home"),
                     // std-lib and kotlin-reflect will be added to classpath manually
                     // because the kotlin compiler otherwise expects a kotlin-stdlib on the filesystem
                     "-no-stdlib", "-no-reflect"

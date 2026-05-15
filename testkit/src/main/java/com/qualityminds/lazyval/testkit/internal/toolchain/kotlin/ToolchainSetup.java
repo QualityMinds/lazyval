@@ -142,6 +142,7 @@ public class ToolchainSetup {
                     builder.setLanguageVersion(kotlinVersion.toString());
                     builder.setApiVersion(kotlinVersion.getMajor() + "." + kotlinVersion.getMinor());
                     builder.setModuleName("test");
+                    builder.setJdkHome(Path.of(System.getProperty("java.home")).toFile());
                     builder.setProjectBaseDir(projectDir.toFile());
                     builder.setOutputBaseDir(Files.createDirectories(projectDir.resolve("build")).toFile());
                     builder.setClassOutputDir(Files.createDirectories(projectDir.resolve("build/classes")).toFile());
