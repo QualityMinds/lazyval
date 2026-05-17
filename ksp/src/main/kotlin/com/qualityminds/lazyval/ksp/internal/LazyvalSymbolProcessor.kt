@@ -9,6 +9,8 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.qualityminds.lazyval.LazyValue
 import com.qualityminds.lazyval.collections.NonEmptySet
+import com.qualityminds.lazyval.ksp.internal.codegen.jackson.Jackson2Generator
+import com.qualityminds.lazyval.ksp.internal.codegen.jackson.Jackson3Generator
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.ValidatedElement
@@ -137,6 +139,17 @@ class LazyvalSymbolProcessor(
 
             lazyvalEnvironment.info(
                 "Active Providers: " + generators.joinToString(", ") { it.generatorId() })
+
+            val activeIds = generators.map { it.generatorId() }.toSet()
+            if (activeIds.contains("cassandra") && activeIds.contains("cassandra-spring-data")) {
+                lazyvalEnvironment.info("Both 'cassandra' and 'cassandra-spring-data' generators are active. " +
+                    "You can disable one via 'lazyval.generators.disable'.")
+            }
+            if (activeIds.contains(Jackson3Generator.GENERATOR_ID) && activeIds.contains(Jackson2Generator.GENERATOR_ID)) {
+                lazyvalEnvironment.warn("Both 'jackson-2' and 'jackson-3' generators are active (probably due to transitive dependencies). " +
+                        "This might be intentional, then ignore this warning. " +
+                        "Otherwise, disable via one 'lazyval.generators.disable'")
+            }
 
             if (generators.isEmpty()) {
                 lazyvalEnvironment.warnMissingClasspath()

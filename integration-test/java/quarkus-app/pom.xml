@@ -14,8 +14,6 @@
 
     <properties>
         <version.lazyval>0.2.3-SNAPSHOT</version.lazyval>
-        <version.mapstruct>1.6.3</version.mapstruct>
-        <quarkus.platform.version>3.34.5</quarkus.platform.version>
     </properties>
 
     <dependencyManagement>
@@ -23,15 +21,9 @@
             <dependency>
                 <groupId>io.quarkus.platform</groupId>
                 <artifactId>quarkus-bom</artifactId>
-                <version>${quarkus.platform.version}</version>
+                <version>${version.it.quarkus}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <dependency>
-                <!-- force upgrade until Quarkus ships 6 in its BOM -->
-                <groupId>io.rest-assured</groupId>
-                <artifactId>rest-assured</artifactId>
-                <version>6.0.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -50,7 +42,7 @@
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
-            <version>${version.mapstruct}</version>
+            <version>${version.it.mapstruct}</version>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -74,7 +66,23 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-rest</artifactId>
+            <artifactId>quarkus-hibernate-validator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.datastax.oss.quarkus</groupId>
+            <artifactId>cassandra-quarkus-client</artifactId>
+            <version>${version.it.cassandra.quarkus}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.cassandra</groupId>
+            <artifactId>java-driver-mapper-runtime</artifactId>
+            <version>${version.it.cassandra}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.qualityminds.lazyval.integration</groupId>
+            <artifactId>integration-test-api-client</artifactId>
+            <version>0.2.3-SNAPSHOT</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -82,8 +90,13 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.rest-assured</groupId>
-            <artifactId>rest-assured</artifactId>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-cassandra</artifactId>
+            <version>${version.it.testcontainers.cassandra}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -93,7 +106,7 @@
             <plugin>
                 <groupId>io.quarkus.platform</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>
-                <version>${quarkus.platform.version}</version>
+                <version>${version.it.quarkus}</version>
                 <extensions>true</extensions>
                 <executions>
                     <execution>
@@ -118,20 +131,77 @@
                         <path>
                             <groupId>org.mapstruct</groupId>
                             <artifactId>mapstruct-processor</artifactId>
-                            <version>${version.mapstruct}</version>
+                            <version>${version.it.mapstruct}</version>
+                        </path>
+                        <path>
+                            <groupId>com.datastax.oss.quarkus</groupId>
+                            <artifactId>cassandra-quarkus-mapper-processor</artifactId>
+                            <version>${version.it.cassandra.quarkus}</version>
                         </path>
                     </annotationProcessorPaths>
                     <compilerArgs>
                         <arg>-parameters</arg>
                         <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
-                        <arg>-Amapstruct.defaultComponentModel=cdi</arg>
+                        <arg>-Amapstruct.defaultComponentModel=jakarta</arg>
                         <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
-                        <arg>-Alazyval.jpa.package=com.qualityminds.lazyval.integration</arg>
-                        <arg>-Alazyval.mapstruct.package=com.qualityminds.lazyval.integration</arg>
-                        <arg>-Alazyval.jackson.package=com.qualityminds.lazyval.integration</arg>
+                        <arg>-Alazyval.generators.disable=jackson-3</arg><!-- disabled as Jackson 3 only on test path -->
+                        <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
                         <arg>-Alazyval.values=com.qualityminds.lazyval.integration.shared.Quantity,com.qualityminds.lazyval.integration.shared.Isbn</arg>
                     </compilerArgs>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>${version.plugin.openapi-generator}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../api/test-api.yaml</inputSpec>
+                            <generatorName>jaxrs-spec</generatorName>
+
+                            <!-- Generate API interfaces and models, but no tests -->
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelTests>false</generateModelTests>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+
+                            <configOptions>
+                                <sourceFolder>src/main/java</sourceFolder>
+                                <apiPackage>com.qualityminds.lazyval.integration.boundary.rest.api</apiPackage>
+                                <modelPackage>com.qualityminds.lazyval.integration.boundary.rest.model</modelPackage>
+                                <dateLibrary>java8</dateLibrary>
+                                <useJakartaEe>true</useJakartaEe>
+                                <useBeanValidation>true</useBeanValidation>
+                                <interfaceOnly>true</interfaceOnly>
+                                <returnResponse>false</returnResponse>
+                                <useSwaggerAnnotations>false</useSwaggerAnnotations>
+                                <openApiNullable>false</openApiNullable>
+                                <useTags>true</useTags>
+                            </configOptions>
+
+                            <!-- Type mappings: map type+format to domain primitives -->
+                            <typeMappings>
+                                <typeMapping>string+isbn=Isbn</typeMapping>
+                                <typeMapping>string+email=EMail</typeMapping>
+                                <typeMapping>string+date=OrderDate</typeMapping>
+                                <typeMapping>integer+quantity=Quantity</typeMapping>
+                            </typeMappings>
+
+                            <!-- Import mappings: fully qualified class names -->
+                            <importMappings>
+                                <!-- From shared module -->
+                                <importMapping>Isbn=com.qualityminds.lazyval.integration.shared.Isbn</importMapping>
+                                <importMapping>Quantity=com.qualityminds.lazyval.integration.shared.Quantity</importMapping>
+                                <!-- From quarkus-app domain -->
+                                <importMapping>EMail=com.qualityminds.lazyval.integration.domain.EMail</importMapping>
+                                <importMapping>OrderDate=com.qualityminds.lazyval.integration.domain.OrderDate</importMapping>
+                            </importMappings>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.gmavenplus</groupId>

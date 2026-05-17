@@ -133,7 +133,7 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
             )
         }
 
-        val moduleBuilder = TypeSpec.classBuilder("LazyvalJacksonModule")
+        val moduleBuilder = TypeSpec.classBuilder(version.lazyvalJacksonModuleName)
             .superclass(version.simpleModule())
             .addType(companionBuilder.build())
             .addFunction(buildSetupModule(serializers, deserializers, elementTypes))

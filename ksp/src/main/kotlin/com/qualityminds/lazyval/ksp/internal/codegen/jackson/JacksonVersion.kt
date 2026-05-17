@@ -16,7 +16,8 @@ internal enum class JacksonVersion(
     val serializerProviderClass: String,
     val deserializationContextClass: String,
     val setupContextOuterClass: String,
-    val objectMapperPackage: String
+    val objectMapperPackage: String,
+    val lazyvalJacksonModuleName: String
 ) {
     JACKSON_2(
         spiPackage = "com.fasterxml.jackson.databind",
@@ -29,7 +30,8 @@ internal enum class JacksonVersion(
         serializerProviderClass = "SerializerProvider",
         deserializationContextClass = "DeserializationContext",
         setupContextOuterClass = "Module",
-        objectMapperPackage = "com.fasterxml.jackson.databind"
+        objectMapperPackage = "com.fasterxml.jackson.databind",
+        lazyvalJacksonModuleName = "LazyvalJackson2Module"
     ),
     JACKSON_3(
         spiPackage = "tools.jackson.databind",
@@ -42,7 +44,8 @@ internal enum class JacksonVersion(
         serializerProviderClass = "SerializationContext",
         deserializationContextClass = "DeserializationContext",
         setupContextOuterClass = "JacksonModule",
-        objectMapperPackage = "tools.jackson.databind"
+        objectMapperPackage = "tools.jackson.databind",
+        lazyvalJacksonModuleName = "LazyvalJacksonModule"
     );
 
     fun jsonGenerator(): ClassName = ClassName(corePackage, "JsonGenerator")

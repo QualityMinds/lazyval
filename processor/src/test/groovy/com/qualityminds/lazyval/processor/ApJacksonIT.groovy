@@ -17,7 +17,8 @@ class ApJacksonIT extends Specification {
     public static final Dependency dependencyJackson_3_Core = new Dependency("tools.jackson.core", "jackson-core", "3.1.0")
     public static final Dependency dependencyJackson_3_Databind = new Dependency("tools.jackson.core", "jackson-databind", "3.1.0")
 
-    private static final String GENERATED_FILE_NAME = "LazyvalJacksonModule.java"
+    private static final String GENERATED_FILE_NAME_2 = "LazyvalJackson2Module.java"
+    private static final String GENERATED_FILE_NAME_3 = "LazyvalJacksonModule.java"
 
     @TempDir()
     Path projectDir
@@ -38,7 +39,7 @@ class ApJacksonIT extends Specification {
 
         where:
         scenario << Scenario.Java.all()
-        expected = new Testresult.Java.Success("LazyvalJacksonModule.java")
+        expected = new Testresult.Java.Success(GENERATED_FILE_NAME_2)
     }
 
     void "Jackson 2.x generated at correct default location when no override is given"(){
@@ -50,7 +51,7 @@ class ApJacksonIT extends Specification {
         testkitJava.run(projectDir, scenario)
 
         then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME").toFile().exists()
+        projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_2").toFile().exists()
     }
 
     void "Jackson 2.x package override by generator works as expected"(){
@@ -64,10 +65,10 @@ class ApJacksonIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Java.Success(Lists.immutable.of(GENERATED_FILE_NAME))
+        result == new Testresult.Java.Success(Lists.immutable.of(GENERATED_FILE_NAME_2))
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/test/custom/$GENERATED_FILE_NAME").toFile().exists()
+        projectDir.resolve("build/generated/test/custom/$GENERATED_FILE_NAME_2").toFile().exists()
     }
 
     @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
@@ -82,11 +83,11 @@ class ApJacksonIT extends Specification {
         result == expected
 
         and: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME").toFile().exists()
+        projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_3").toFile().exists()
 
         where:
         scenario << Scenario.Java.all()
-        expected = new Testresult.Java.Success(GENERATED_FILE_NAME)
+        expected = new Testresult.Java.Success(GENERATED_FILE_NAME_3)
     }
 
     void "Jackson 3.x generated at correct default location when no override is given"(){
@@ -98,7 +99,7 @@ class ApJacksonIT extends Specification {
         testkitJava.run(projectDir, scenario)
 
         then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME").toFile().exists()
+        projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_3").toFile().exists()
     }
 
     void "Jackson 3.x package override by generator works as expected"(){
@@ -112,9 +113,26 @@ class ApJacksonIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Java.Success(Lists.immutable.of(GENERATED_FILE_NAME))
+        result == new Testresult.Java.Success(Lists.immutable.of(GENERATED_FILE_NAME_3))
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/test/custom/$GENERATED_FILE_NAME").toFile().exists()
+        projectDir.resolve("build/generated/test/custom/$GENERATED_FILE_NAME_3").toFile().exists()
+    }
+
+    void "When Jackson 2 and 3 are active are warning is issued"(){
+        given:
+        def scenario = Scenario.Java.quantity()
+                .withDependencies(
+                        dependencyJackson_2_Databind, dependencyJackson_2_Core,
+                        dependencyJackson_3_Databind, dependencyJackson_3_Core)
+        def expectedWarning = "Lazyval: Both 'jackson-2' and 'jackson-3' generators are active (probably due to transitive dependencies). " +
+                "This might be intentional, then ignore this warning. " +
+                "Otherwise, disable via one 'lazyval.generators.disable'"
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then: 'no warning is issued'
+
+        result == new Testresult.Java.SuccessWithWarnings(Lists.immutable.of(GENERATED_FILE_NAME_2, GENERATED_FILE_NAME_3), Lists.immutable.of(expectedWarning))
     }
 }
