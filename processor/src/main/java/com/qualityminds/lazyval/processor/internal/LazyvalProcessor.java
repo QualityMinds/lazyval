@@ -2,6 +2,8 @@ package com.qualityminds.lazyval.processor.internal;
 
 import com.qualityminds.lazyval.LazyValue;
 import com.qualityminds.lazyval.collections.NonEmptySet;
+import com.qualityminds.lazyval.processor.internal.codegen.jackson.Jackson2Generator;
+import com.qualityminds.lazyval.processor.internal.codegen.jackson.Jackson3Generator;
 import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
@@ -145,6 +147,18 @@ public class LazyvalProcessor extends AbstractProcessor {
                     .toList();
 
             lazyvalEnvironment.info("Active Providers: " + generators.stream().map(Generator::generatorId).collect(Collectors.joining(", ")));
+
+            var activeIds = generators.stream().map(Generator::generatorId).collect(Collectors.toSet());
+            if (activeIds.contains("cassandra") && activeIds.contains("cassandra-spring-data")) {
+                lazyvalEnvironment.info("Both 'cassandra' and 'cassandra-spring-data' generators are active. " +
+                        "You can disable one via 'lazyval.generators.disable' if only one integration is needed.");
+            }
+            if (activeIds.contains(Jackson3Generator.GENERATOR_ID) && activeIds.contains(Jackson2Generator.GENERATOR_ID)) {
+                lazyvalEnvironment.warn("""
+                        Both 'jackson-2' and 'jackson-3' generators are active (probably due to transitive dependencies). \
+                        This might be intentional, then ignore this warning. \
+                        Otherwise, disable via one 'lazyval.generators.disable'""");
+            }
 
             if(generators.isEmpty()){
                 if(!classpathWarningAlreadyIssued){

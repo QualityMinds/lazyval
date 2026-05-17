@@ -18,6 +18,7 @@ record JacksonVersion(
         String deserializationContextClass,
         String setupContextOuterClass,
         String objectMapperPackage,
+        String lazyvalJacksonModuleName,
         boolean deserializerDeclaresExceptions
 ) {
     static final JacksonVersion JACKSON_2 = new JacksonVersion(
@@ -33,6 +34,7 @@ record JacksonVersion(
             "DeserializationContext",
             "Module",
             "com.fasterxml.jackson.databind",
+            "LazyvalJackson2Module",
             true
     );
 
@@ -49,6 +51,7 @@ record JacksonVersion(
             "DeserializationContext",
             "JacksonModule",
             "tools.jackson.databind",
+            "LazyvalJacksonModule",
             false
     );
 

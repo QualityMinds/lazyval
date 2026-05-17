@@ -47,7 +47,7 @@ class ApJpaIT extends Specification {
         testkitJava.run(projectDir, scenario)
 
         then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/test/boundary/persistence/QuantityAttributeConverter.java").toFile().exists()
+        projectDir.resolve("build/generated/test/boundary/persistence/jpa/QuantityAttributeConverter.java").toFile().exists()
     }
 
     void "Package override by generator works as expected"(){

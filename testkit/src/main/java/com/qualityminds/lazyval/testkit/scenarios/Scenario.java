@@ -218,7 +218,7 @@ public sealed interface Scenario {
          * @return immutable list of all predefined scenarios
          */
         public static List<ScenarioFactory<Java>> all() {
-            return List.of(isbn(), quantity(), productId(), ssn());
+            return List.of(isbn(), quantity(), productId(), ssn(), birthday());
         }
     }
 

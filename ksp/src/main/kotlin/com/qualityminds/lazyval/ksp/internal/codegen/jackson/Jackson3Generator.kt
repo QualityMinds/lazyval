@@ -13,7 +13,7 @@ import java.util.stream.Stream
 class Jackson3Generator : Generator {
 
     companion object {
-        private const val GENERATOR_ID = "jackson-3"
+        const val GENERATOR_ID = "jackson-3"
         private const val OPTION_GENERATED_PACKAGE = "lazyval.jackson.package"
         private val VERSION = JacksonVersion.JACKSON_3
     }

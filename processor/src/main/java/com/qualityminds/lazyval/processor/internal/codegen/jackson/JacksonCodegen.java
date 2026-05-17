@@ -128,7 +128,7 @@ final class JacksonCodegen {
                             List<TypeName> elementTypes, Generator.Context context) {
         boolean isQuarkus = context.isOnClasspath("io.quarkus.jackson.ObjectMapperCustomizer");
 
-        var moduleBuilder = TypeSpec.classBuilder("LazyvalJacksonModule")
+        var moduleBuilder = TypeSpec.classBuilder(version.lazyvalJacksonModuleName())
                 .addModifiers(Modifier.PUBLIC)
                 .superclass(version.simpleModule())
                 .addMethod(buildSetupModule(serializers, deserializers, elementTypes));

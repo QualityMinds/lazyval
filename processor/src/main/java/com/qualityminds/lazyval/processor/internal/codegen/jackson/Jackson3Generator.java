@@ -18,7 +18,7 @@ import static com.qualityminds.lazyval.processor.spi.GeneratorResult.Metadata;
 
 public class Jackson3Generator implements Generator {
 
-    private static final String GENERATOR_ID = "jackson-3";
+    public static final String GENERATOR_ID = "jackson-3";
     private static final String OPTION_GENERATED_PACKAGE = "lazyval.jackson.package";
 
     private static final JacksonVersion VERSION = JacksonVersion.JACKSON_3;
