@@ -19,6 +19,8 @@ class ApJacksonIT extends Specification {
 
     private static final String GENERATED_FILE_NAME_2 = "LazyvalJackson2Module.java"
     private static final String GENERATED_FILE_NAME_3 = "LazyvalJacksonModule.java"
+    private static final String GENERATED_SERVICELOADER_JACKSON_2 = "com.fasterxml.jackson.databind.Module"
+    private static final String GENERATED_SERVICELOADER_JACKSON_3 = "tools.jackson.databind.JacksonModule"
 
     @TempDir()
     Path projectDir
@@ -52,6 +54,9 @@ class ApJacksonIT extends Specification {
 
         then: 'file is generated at correct location using base-package with generator-default'
         projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_2").toFile().exists()
+
+        and: 'ServiceLoader file is generated'
+        projectDir.resolve("build/classes/META-INF/services/$GENERATED_SERVICELOADER_JACKSON_2").toFile().exists()
     }
 
     void "Jackson 2.x package override by generator works as expected"(){
@@ -100,6 +105,9 @@ class ApJacksonIT extends Specification {
 
         then: 'file is generated at correct location using base-package with generator-default'
         projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_3").toFile().exists()
+
+        and: 'ServiceLoader file is generated'
+        projectDir.resolve("build/classes/META-INF/services/$GENERATED_SERVICELOADER_JACKSON_3").toFile().exists()
     }
 
     void "Jackson 3.x package override by generator works as expected"(){

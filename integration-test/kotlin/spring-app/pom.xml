@@ -15,8 +15,6 @@
     <properties>
         <version.lazyval>0.2.3-SNAPSHOT</version.lazyval>
         <version.spring-boot>4.0.5</version.spring-boot>
-        <version.mapstruct>1.6.3</version.mapstruct>
-        <version.testcontainers.cassandra>2.0.5</version.testcontainers.cassandra>
     </properties>
 
     <dependencyManagement>
@@ -74,16 +72,11 @@
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct</artifactId>
-            <version>${version.mapstruct}</version>
+            <version>${version.it.mapstruct}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-test-junit5</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -106,14 +99,13 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-cassandra</artifactId>
-            <version>${version.it.testcontainers.cassandra}</version>
+            <version>${version.it.testcontainers}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
 
     <build>
         <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
-        <testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -133,6 +125,11 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
             </plugin>
 
             <plugin>
@@ -223,7 +220,7 @@
                         <path>
                             <groupId>org.mapstruct</groupId>
                             <artifactId>mapstruct-processor</artifactId>
-                            <version>${version.mapstruct}</version>
+                            <version>${version.it.mapstruct}</version>
                         </path>
                     </annotationProcessorPaths>
                     <compilerArgs>

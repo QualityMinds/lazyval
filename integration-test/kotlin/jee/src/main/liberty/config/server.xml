@@ -1,0 +1,35 @@
+<server description="Lazyval Testserver">
+    <featureManager>
+        <feature>webProfile-10.0</feature>
+        <feature>persistence-3.1</feature>
+        <feature>jdbc-4.3</feature>
+        <feature>mpConfig-3.1</feature>
+    </featureManager>
+
+    <variable name="http.port" defaultValue="9080"/>
+    <variable name="https.port" defaultValue="9443"/>
+
+    <httpEndpoint httpPort="${http.port}"
+                  httpsPort="${https.port}" id="defaultHttpEndpoint" host="*"/>
+    <!-- SLF4J Debug -> JUL FINE -->
+    <logging
+            consoleLogLevel="INFO"
+            consoleFormat="DEV"
+            copySystemStreams="true"
+            traceSpecification="com.qualityminds.lazyval.integration.*=fine"
+            traceFileName="stdout"
+            messageFileName="stdout" />
+
+    <library id="h2Lib">
+        <fileset dir="${server.config.dir}/apps/integration-test-kotlin-jee-app/WEB-INF/lib"
+                 includes="h2-*.jar"/>
+    </library>
+
+    <dataSource id="lazyvalDS" jndiName="jdbc/lazyvalDS">
+        <jdbcDriver libraryRef="h2Lib"
+                    javax.sql.DataSource="org.h2.jdbcx.JdbcDataSource"/>
+        <properties URL="jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1" user="sa" password=""/>
+    </dataSource>
+
+    <webApplication id="lazyval-app" location="integration-test-kotlin-jee-app" contextRoot="/"/>
+</server>
