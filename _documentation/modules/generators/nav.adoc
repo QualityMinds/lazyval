@@ -1,4 +1,6 @@
 .Generators
 * xref:jackson.adoc[Jackson (2/3)]
 * xref:jpa.adoc[JPA]
+* xref:cassandra.adoc[Cassandra]
+* xref:beanvalidation.adoc[Bean Validation]
 * xref:mapstruct.adoc[Mapstruct]
