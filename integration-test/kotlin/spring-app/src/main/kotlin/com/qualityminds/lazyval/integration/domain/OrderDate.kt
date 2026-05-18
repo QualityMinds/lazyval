@@ -11,6 +11,7 @@ data class OrderDate(val value: LocalDate){
     }
 
     companion object {
+        @JvmStatic
         fun now(): OrderDate = OrderDate(LocalDate.now())
     }
 }

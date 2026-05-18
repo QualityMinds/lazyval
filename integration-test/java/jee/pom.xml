@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.qualityminds.lazyval.integration</groupId>
+        <artifactId>integration-test-parent</artifactId>
+        <version>0.2.3-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>integration-test-java-jee-app</artifactId>
+    <packaging>war</packaging>
+    <name>Integration Test Java JakartaEE-App (OpenLiberty)</name>
+
+    <properties>
+        <version.lazyval>0.2.3-SNAPSHOT</version.lazyval>
+<!--        <version.it.cassandra>3.10.0</version.it.cassandra>-->
+        <!-- Liberty configuration -->
+        <liberty.var.http.port>9080</liberty.var.http.port>
+        <liberty.var.https.port>9443</liberty.var.https.port>
+        <liberty.var.app.context.root>${project.artifactId}</liberty.var.app.context.root>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.spockframework</groupId>
+                <artifactId>spock-bom</artifactId>
+                <version>${version.spock}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.qualityminds.lazyval.integration</groupId>
+            <artifactId>integration-test-java-shared</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.qualityminds.lazyval</groupId>
+            <artifactId>lazyval</artifactId>
+            <version>${version.lazyval}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${version.it.mapstruct}</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.platform</groupId>
+            <artifactId>jakarta.jakartaee-api</artifactId>
+            <version>${version.it.jakarta-ee}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.microprofile.config</groupId>
+            <artifactId>microprofile-config-api</artifactId>
+            <version>3.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.microprofile.rest.client</groupId>
+            <artifactId>microprofile-rest-client-api</artifactId>
+            <version>4.0</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>${version.it.h2}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <!-- use shaded as the internal jackson deps conflict with testcontainers-cassandra -->
+            <groupId>org.apache.cassandra</groupId>
+            <artifactId>java-driver-core-shaded</artifactId>
+            <version>${version.it.cassandra}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${version.slf4j}</version>
+        </dependency>
+        <dependency>
+            <!-- route slf4j to liberty jul -->
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-jdk14</artifactId> <!-- JUL binding -->
+            <version>${version.slf4j}</version>
+        </dependency>
+
+        <!-- Test -->
+        <dependency>
+            <groupId>com.qualityminds.lazyval.integration</groupId>
+            <artifactId>integration-test-api-client</artifactId>
+            <version>0.2.3-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.spockframework</groupId>
+            <artifactId>spock-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-spock</artifactId>
+            <version>${version.it.testcontainers}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-cassandra</artifactId>
+            <version>${version.it.testcontainers}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>integration-test-java-jee-app</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>${version.plugin.openapi-generator}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../api/test-api.yaml</inputSpec>
+                            <!-- use microprofile to force jsonb as jaxrs-spec only generates jackson -->
+                            <generatorName>java-microprofile</generatorName>
+
+                            <!-- Generate API interfaces and models, but no tests -->
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelTests>false</generateModelTests>
+                            <generateSupportingFiles>true</generateSupportingFiles>
+                            <supportingFilesToGenerate>ApiExceptionMapper.java,ApiException.java</supportingFilesToGenerate>
+
+                            <configOptions>
+                                <sourceFolder>src/main/java</sourceFolder>
+                                <apiPackage>com.qualityminds.lazyval.integration.boundary.rest.api</apiPackage>
+                                <modelPackage>com.qualityminds.lazyval.integration.boundary.rest.model</modelPackage>
+                                <library>microprofile</library>
+                                <microprofileRestClientVersion>3.0</microprofileRestClientVersion>
+                                <dateLibrary>java8</dateLibrary>
+                                <serializationLibrary>jsonb</serializationLibrary>
+                                <useJakartaEe>true</useJakartaEe>
+                                <useBeanValidation>true</useBeanValidation>
+                                <interfaceOnly>true</interfaceOnly>
+                                <returnResponse>false</returnResponse>
+                                <annotationLibrary>none</annotationLibrary>
+                                <openApiNullable>false</openApiNullable>
+                                <useTags>true</useTags>
+                            </configOptions>
+
+                            <!-- Type mappings: map type+format to domain primitives -->
+                            <typeMappings>
+                                <typeMapping>string+isbn=Isbn</typeMapping>
+                                <typeMapping>string+email=EMail</typeMapping>
+                                <typeMapping>string+date=OrderDate</typeMapping>
+                                <typeMapping>integer+quantity=Quantity</typeMapping>
+                            </typeMappings>
+
+                            <!-- Import mappings: fully qualified class names -->
+                            <importMappings>
+                                <!-- From shared module -->
+                                <importMapping>Isbn=com.qualityminds.lazyval.integration.shared.Isbn</importMapping>
+                                <importMapping>Quantity=com.qualityminds.lazyval.integration.shared.Quantity</importMapping>
+                                <!-- From quarkus-app domain -->
+                                <importMapping>EMail=com.qualityminds.lazyval.integration.domain.EMail</importMapping>
+                                <importMapping>OrderDate=com.qualityminds.lazyval.integration.domain.OrderDate</importMapping>
+                            </importMappings>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.openliberty.tools</groupId>
+                <artifactId>liberty-maven-plugin</artifactId>
+                <version>${version.plugin.liberty}</version>
+            </plugin>
+            <plugin>
+                <artifactId>maven-war-plugin</artifactId>
+                <configuration>
+                    <failOnMissingWebXml>false</failOnMissingWebXml>
+                    <!-- Pin the war filename so JeeJpaIT can reference it without a version suffix. -->
+                    <warName>integration-test-java-jee-app</warName>
+                </configuration>
+                <executions>
+                    <execution>
+                        <!-- exploded war used for deployment to openliberety -->
+                        <id>exploded-war</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>exploded</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <proc>full</proc>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>com.qualityminds.lazyval</groupId>
+                            <artifactId>lazyval-processor</artifactId>
+                            <version>${version.lazyval}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${version.it.mapstruct}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                        <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
+                        <arg>-Amapstruct.defaultComponentModel=cdi</arg>
+                        <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
+                        <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
+                        <arg>-Alazyval.values=com.qualityminds.lazyval.integration.shared.Quantity,com.qualityminds.lazyval.integration.shared.Isbn</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

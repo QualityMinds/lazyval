@@ -159,7 +159,9 @@ The following Java-to-CQL type mappings are supported:
 
 Domain-primitives wrapping types not listed above will be skipped by this generator.
 
-== Quarkus
+== Framework Integration
+
+=== Quarkus
 
 When the Quarkus Cassandra extension (`QuarkusCqlSession`) is detected on the classpath, an additional
 `LazyvalCassandraCodecRegistrar` CDI bean is generated. It acts as an `@Alternative` producer that wraps
@@ -200,7 +202,7 @@ public class LazyvalCassandraCodecRegistrar {
 
 No manual registration is needed — the codecs are available as soon as the Cassandra session is injected.
 
-== Spring Data
+=== Spring Data
 
 When Spring Data Cassandra (`CassandraCustomConversions`) is detected on the classpath, a separate set of
 Spring `Converter` classes is generated instead of (or in addition to) the raw codecs. For each

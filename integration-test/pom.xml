@@ -24,8 +24,11 @@
     <modules>
         <module>api-client</module>
         <module>java/shared</module>
+        <module>java/jee</module>
         <module>java/quarkus-app</module>
+        <module>java/quarkus-jsonb-app</module>
         <module>kotlin/shared</module>
         <module>kotlin/spring-app</module>
+        <module>kotlin/jee</module>
     </modules>
 </project>

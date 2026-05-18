@@ -1,0 +1,197 @@
+= JSON-B
+
+Since domain-primitives are complex objects (not primitives from a language perspective), they would usually serialize
+to JSON as objects rather than values, which just creates overhead on the wire and makes consumption more complex.
+
+This generator creates a `jakarta.json.bind.adapter.JsonbAdapter` for every domain-primitive so that each one is
+serialized as a simple value and deserializing uses the proper construction method. All adapters are bundled in a
+single `LazyvalJsonbAdapters` class that also exposes a ready-to-use `JsonbConfig`.
+
+When wrapping another type (like `LocalDate`), the JSON-B runtime will look up already registered and configured
+de-/serializers for the inner type — no extra wiring is needed.
+
+NOTE: JSON-B and Jackson address the same problem from two different ecosystems. If your application uses Jackson
+instead of (or in addition to) JSON-B, see xref:jackson.adoc[Jackson].
+
+== Config Options
+
+|===
+|Property |Description
+
+|_lazyval.jsonb.package_
+|Specifies the package where the `LazyvalJsonbAdapters` (and, when applicable, `LazyvalJsonbContextResolver`) class
+is generated to. Overrides `lazyval.generators.basePackage`.
+
+|_lazyval.jsonb.register_
+|Controls whether the JAX-RS `LazyvalJsonbContextResolver` is generated when `jakarta.ws.rs.ext.ContextResolver` is
+detected on the classpath. Defaults to `true`. Set to `false` to disable automatic registration.
+
+|===
+
+== Generated Files
+
+A single `LazyvalJsonbAdapters` class is generated that contains one `JsonbAdapter` inner class per domain-primitive,
+plus two static convenience methods: `adapters()` returning all adapter instances and `config()` returning a
+pre-populated `JsonbConfig`.
+
+[tabs]
+====
+Java::
++
+[source,java]
+----
+public class LazyvalJsonbAdapters {
+  public static JsonbAdapter[] adapters() {
+    return new JsonbAdapter[]{
+            new QuantityAdapter(),
+            new OrderDateAdapter(),
+            new EMailAdapter(),
+            new IsbnAdapter()
+        };
+  }
+
+  public static JsonbConfig config() {
+    return new JsonbConfig().withAdapters(adapters());
+  }
+
+  static class QuantityAdapter implements JsonbAdapter<Quantity, Integer> {
+    @Override
+    public Integer adaptToJson(Quantity obj) throws Exception {
+      return obj.value();
+    }
+
+    @Override
+    public Quantity adaptFromJson(Integer value) throws Exception {
+      return new Quantity(value);
+    }
+  }
+
+  static class OrderDateAdapter implements JsonbAdapter<OrderDate, LocalDate> {
+    @Override
+    public LocalDate adaptToJson(OrderDate obj) throws Exception {
+      return obj.date();
+    }
+
+    @Override
+    public OrderDate adaptFromJson(LocalDate value) throws Exception {
+      return new OrderDate(value);
+    }
+  }
+
+  // ... one adapter per domain-primitive
+}
+----
+
+Kotlin::
++
+[source,kotlin]
+----
+public class LazyvalJsonbAdapters {
+  public companion object {
+    @JvmStatic
+    public fun adapters(): Array<JsonbAdapter<*, *>> = arrayOf(
+      EMailAdapter(),
+      OrderDateAdapter(),
+      QuantityAdapter(),
+      IsbnAdapter()
+    )
+
+    @JvmStatic
+    public fun config(): JsonbConfig = JsonbConfig().withAdapters(*adapters())
+  }
+
+  public class QuantityAdapter : JsonbAdapter<Quantity, Int> {
+    override fun adaptToJson(obj: Quantity): Int = obj.value
+
+    override fun adaptFromJson(`value`: Int): Quantity? = Quantity(value)
+  }
+
+  public class OrderDateAdapter : JsonbAdapter<OrderDate, LocalDate> {
+    override fun adaptToJson(obj: OrderDate): LocalDate = obj.value
+
+    override fun adaptFromJson(`value`: LocalDate): OrderDate? = OrderDate(value)
+  }
+
+  // ... one adapter per domain-primitive
+}
+----
+====
+
+To manually configure a `Jsonb` instance with all adapters:
+
+[source,java]
+----
+Jsonb jsonb = JsonbBuilder.create(LazyvalJsonbAdapters.config());
+----
+
+== Framework Integration
+
+=== JAX-RS
+
+When `jakarta.ws.rs.ext.ContextResolver` is on the classpath (typically because the project depends on Jakarta REST),
+an additional `LazyvalJsonbContextResolver` class is generated. It is annotated with `@Provider` and produces a
+pre-configured `Jsonb` instance for the JAX-RS runtime so that the adapters are applied to every request/response
+that uses JSON-B for marshalling.
+
+[tabs]
+====
+Java::
++
+[source,java]
+----
+@Provider
+public class LazyvalJsonbContextResolver implements ContextResolver<Jsonb> {
+  @Override
+  public Jsonb getContext(Class<?> type) {
+    return JsonbBuilder.create(LazyvalJsonbAdapters.config());
+  }
+}
+----
+
+Kotlin::
++
+[source,kotlin]
+----
+@Provider
+public class LazyvalJsonbContextResolver : ContextResolver<Jsonb> {
+  override fun getContext(type: Class<*>): Jsonb = JsonbBuilder.create(LazyvalJsonbAdapters.config())
+}
+----
+====
+
+JAX-RS implementations discover `@Provider` classes automatically, so no additional registration is required.
+
+To opt out — for example because a custom `ContextResolver` is already in place — set
+`lazyval.jsonb.register=false`.
+
+=== Quarkus
+
+When `io.quarkus.jsonb.JsonbConfigCustomizer` is detected on the classpath (typically via the
+`quarkus-rest-jsonb` extension), `LazyvalJsonbAdapters` is generated as a `@Singleton` CDI bean
+that implements `JsonbConfigCustomizer` directly. Quarkus discovers the bean automatically and
+applies the adapters to the shared `Jsonb` instance — no manual wiring is required.
+
+In this mode the JAX-RS `LazyvalJsonbContextResolver` is _not_ generated: Quarkus' REST layer
+already routes through the customized `JsonbConfig`, and a parallel `ContextResolver` would
+register the same adapters twice.
+
+[source,java]
+----
+@Singleton
+public class LazyvalJsonbAdapters implements JsonbConfigCustomizer {
+
+  public static JsonbAdapter[] adapters() { /* ... */ }
+
+  public static JsonbConfig config() { /* ... */ }
+
+  @Override
+  public void customize(JsonbConfig jsonbConfig) {
+    jsonbConfig.withAdapters(adapters());
+  }
+
+  // ... one inner adapter per domain-primitive
+}
+----
+
+See https://quarkus.io/guides/rest-json[Quarkus docs — REST JSON] for details on
+`JsonbConfigCustomizer`.

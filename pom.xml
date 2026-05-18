@@ -70,13 +70,16 @@
         <version.plugin.templating>3.1.0</version.plugin.templating>
         <version.plugin.ksp2-3rd-party>0.2.0</version.plugin.ksp2-3rd-party>
         <version.plugin.openapi-generator>7.22.0</version.plugin.openapi-generator>
+        <version.plugin.liberty>3.11.5</version.plugin.liberty>
         <!-- integration testing -->
         <version.it.quarkus>3.34.5</version.it.quarkus>
         <version.it.spring-boot>4.0.5</version.it.spring-boot>
-        <version.it.testcontainers.cassandra>2.0.5</version.it.testcontainers.cassandra>
+        <version.it.testcontainers>2.0.5</version.it.testcontainers>
         <version.it.mapstruct>1.6.3</version.it.mapstruct>
         <version.it.cassandra.quarkus>1.4.1</version.it.cassandra.quarkus>
         <version.it.cassandra>4.19.2</version.it.cassandra>
+        <version.it.jakarta-ee>11.0.0</version.it.jakarta-ee>
+        <version.it.h2>2.4.240</version.it.h2>
         <!-- static analysis -->
         <version.checks.error-prone>2.46.0</version.checks.error-prone>
         <version.checks.error-prone.nullaway>0.13.1</version.checks.error-prone.nullaway>
@@ -295,6 +298,14 @@
                     <groupId>io.quarkus.platform</groupId>
                     <artifactId>quarkus-maven-plugin</artifactId>
                     <version>${version.it.quarkus}</version>
+                </plugin>
+                <plugin>
+                    <groupId>io.openliberty.tools</groupId>
+                    <artifactId>liberty-maven-plugin</artifactId>
+                    <version>${version.plugin.liberty}</version>
+                    <configuration>
+                        <serverName>lazyvalServer</serverName>
+                    </configuration>
                 </plugin>
             </plugins>
         </pluginManagement>
