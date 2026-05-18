@@ -93,7 +93,7 @@ class LazyvalSymbolProcessor(
 
         if(validatedElements.isNotEmpty() && !hasProcessed) {
             validateOptions()
-            getActiveGenerators()
+            val results = getActiveGenerators()
                 .flatMap { generator ->
                     val context = lazyvalEnvironment.createContext(validatedElements.first().element)
                     generator
@@ -106,14 +106,17 @@ class LazyvalSymbolProcessor(
                                 }
                             })
                         }
-                }
-                .forEach { result ->
-                    when(result) {
+                }.toList()
+
+                results.forEach { result ->
+                    when (result) {
                         is InternalResult.Kotlin -> writeKotlinFile(result)
                         is InternalResult.Java -> writeJavaFile(result)
-                        is InternalResult.ServiceLoader -> writeServiceLoaderFile(result)
+                        is InternalResult.ServiceLoader -> { /* handled below */ }
                     }
                 }
+
+                writeServiceLoaderFiles(results.filterIsInstance<InternalResult.ServiceLoader>())
         }
         hasProcessed = true
         return emptyList()
@@ -218,29 +221,39 @@ class LazyvalSymbolProcessor(
         }
     }
 
-    private fun writeServiceLoaderFile(serviceLoaderResult: InternalResult.ServiceLoader) {
-        try {
-            val dependencies = if (serviceLoaderResult.sources.isNotEmpty()) {
-                Dependencies(true, *serviceLoaderResult.sources.toTypedArray())
-            } else {
-                Dependencies(true)
-            }
+    private fun writeServiceLoaderFiles(serviceLoaderResults: List<InternalResult.ServiceLoader>) {
+        // group all providers by spi-type in order to place them in a single file
+        serviceLoaderResults
+            .groupBy { it.spiType.qualifiedName }
+            .forEach { (spiTypeName, group) ->
+                val allSources = group.flatMap { it.sources }.distinct()
+                val dependencies = if (allSources.isNotEmpty()) {
+                    Dependencies(true, *allSources.toTypedArray())
+                } else {
+                    Dependencies(true)
+                }
 
-            val resourcePath = "META-INF/services/${serviceLoaderResult.spiType.qualifiedName}"
-            val file = environment.codeGenerator.createNewFileByPath(
-                dependencies = dependencies,
-                path = resourcePath,
-                extensionName = ""
-            )
-            file.write(serviceLoaderResult.providerType.qualifiedName.toByteArray())
-            file.close()
-            lazyvalEnvironment.info("Written META-INF/services/ '${serviceLoaderResult.spiType.qualifiedName}'")
-        } catch (_: FileAlreadyExistsException) {
-            // Incremental build — file already exists
-        } catch (e: IOException) {
-            lazyvalEnvironment.error("Failed to write ServiceLoader file: ${e.message}")
-            throw e
-        }
+                val fileContent = group
+                    .map { it.providerType.qualifiedName }
+                    .distinct()
+                    .joinToString("\n")
+
+                try {
+                    val file = environment.codeGenerator.createNewFileByPath(
+                        dependencies = dependencies,
+                        path = "META-INF/services/$spiTypeName",
+                        extensionName = ""
+                    )
+                    file.write(fileContent.toByteArray())
+                    file.close()
+                    lazyvalEnvironment.info("Written 'META-INF/services/$spiTypeName' with ${group.size} provider(s)")
+                } catch (_: FileAlreadyExistsException) {
+                    // Incremental build — file already exists
+                } catch (e: IOException) {
+                    lazyvalEnvironment.error("Failed to write ServiceLoader file: ${e.message}")
+                    throw e
+                }
+            }
     }
 
     /**
