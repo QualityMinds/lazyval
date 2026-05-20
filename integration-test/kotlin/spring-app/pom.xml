@@ -12,17 +12,12 @@
     <artifactId>integration-test-kotlin-spring-app</artifactId>
     <name>Integration Test Kotlin Spring-App</name>
 
-    <properties>
-        <version.lazyval>0.2.3-SNAPSHOT</version.lazyval>
-        <version.spring-boot>4.0.5</version.spring-boot>
-    </properties>
-
     <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
-                <version>${version.spring-boot}</version>
+                <version>${version.it.spring-boot}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -33,7 +28,7 @@
         <dependency>
             <groupId>com.qualityminds.lazyval.integration</groupId>
             <artifactId>integration-test-kotlin-shared</artifactId>
-            <version>${version.lazyval}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -66,7 +61,7 @@
         <dependency>
             <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
-            <version>${version.lazyval}</version>
+            <version>${project.version}</version>
             <optional>true</optional>
         </dependency>
         <dependency>
@@ -147,7 +142,7 @@
                     <dependency>
                         <groupId>com.qualityminds.lazyval</groupId>
                         <artifactId>lazyval-ksp</artifactId>
-                        <version>${version.lazyval}</version>
+                        <version>${project.version}</version>
                     </dependency>
                 </dependencies>
                 <configuration>
@@ -234,7 +229,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>${version.spring-boot}</version>
+                <version>${version.it.spring-boot}</version>
             </plugin>
 
             <plugin>
