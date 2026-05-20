@@ -27,8 +27,11 @@
         <module>java/jee</module>
         <module>java/quarkus-app</module>
         <module>java/quarkus-jsonb-app</module>
+        <module>java/spring-app</module>
         <module>kotlin/shared</module>
         <module>kotlin/spring-app</module>
         <module>kotlin/jee</module>
+        <module>kotlin/quarkus-app</module>
+        <module>kotlin/quarkus-jsonb-app</module>
     </modules>
 </project>
