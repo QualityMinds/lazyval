@@ -32,7 +32,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: maven
       - name: Build and Install to Local Repository
-        run: ./mvnw -Pstatic-analysis  --no-snapshot-updates --no-transfer-progress --batch-mode install --file pom.xml
+        run: ./mvnw -Pstatic-analysis '-P!with-integration-tests' --no-snapshot-updates --no-transfer-progress --batch-mode install --file pom.xml
       - name: Upload Lazyval Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -53,6 +53,40 @@ jobs:
           VERSION=$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Built Lazyval Version: $VERSION"
+
+  integration-tests:
+    name: IT - ${{ matrix.module }}
+    needs: build
+    if: ${{ github.actor != 'nektos/act' }} # testcontainers cannot reach a docker daemon when running under act
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - java/jee
+          - java/quarkus-app
+          - java/quarkus-jsonb-app
+          - java/spring-app
+          - kotlin/jee
+          - kotlin/quarkus-app
+          - kotlin/quarkus-jsonb-app
+          - kotlin/spring-app
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          java-version: ${{ env.JAVA_VERSION_BUILD }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: maven
+      - name: Download Lazyval Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: maven-repo-lazyval
+          path: ~/.m2/repository/com/qualityminds/lazyval
+      - name: Run Integration Tests for ${{ matrix.module }}
+        run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode -f integration-test/pom.xml -pl ${{ matrix.module }} -am verify
 
   examples-java-maven:
     name: Java-Example - Maven
