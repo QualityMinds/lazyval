@@ -50,13 +50,13 @@
             <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval-processor</artifactId>
             <version>${version.lazyval}</version>
-            <type>processor</type> <!--2-->
+            <type>classpath-processor</type> <!--2-->
         </dependency>
         <dependency>
             <groupId>org.mapstruct</groupId>
             <artifactId>mapstruct-processor</artifactId>
             <version>${version.mapstruct}</version>
-            <type>processor</type>
+            <type>classpath-processor</type>
         </dependency>
     </dependencies>
 
