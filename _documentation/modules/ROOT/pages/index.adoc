@@ -76,11 +76,10 @@ fallback (custom generators might choose a different strategy).
 |Comma separated List of Generator-IDs that should not generate output despite being found on the classpath.
 Active Generator-IDs are printed to the console during compilation.
 
-|_lazyval.values_
-|Comma separated List with FQNs for classes which are not part of the current compilation-unit,
-but found on the classpath. See also xref:multi-module.adoc[Multi-Module Support].
-
 |===
+
+NOTE: External value types from other modules are declared via the `@LazyvalConfiguration` annotation rather than a
+processor option. See xref:multi-module.adoc[Multi-Module Support].
 
 For generator-specific options, see the Generators section.
 
