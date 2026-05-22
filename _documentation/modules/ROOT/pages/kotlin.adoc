@@ -25,6 +25,17 @@ include::ROOT:example$kotlin/src/main/kotlin/test/Quantity.kt[tags=docu;!exclude
 include::ROOT:example$kotlin/src/main/kotlin/test/Isbn.kt[tags=docu;!excluded]
 ----
 
+.Birthdate with derived state
+[source,kotlin]
+----
+include::ROOT:example$kotlin/src/main/kotlin/test/Birthdate.kt[tag=docu]
+----
+
+A value type may carry derived properties that are computed from the stored payload (here `asLocalDate` from `value`).
+Lazyval validates that exactly one non-transient property is the stored payload, so any derived property must
+be marked `@kotlin.jvm.Transient` to keep it out of the validation. Additional constructors, accessors, or
+convenience factories with other signatures are allowed and ignored by the processor.
+
 
 [#setup]
 == Setup

@@ -19,6 +19,17 @@ include::ROOT:example$java/src/main/java/test/Quantity.java[tag=docu]
 include::ROOT:example$java/src/main/java/test/Isbn.java[tag=docu]
 ----
 
+.Birthdate with derived state
+[source,java]
+----
+include::ROOT:example$java/src/main/java/test/Birthdate.java[tag=docu]
+----
+
+A value type may carry derived fields that are computed from the stored payload (here `parsed` from `value`).
+Lazyval validates that exactly one non-transient instance field is the stored payload, so any derived field must
+be marked `transient` to keep it out of the validation. Additional constructors, accessors, or convenience
+factories with other signatures are allowed and ignored by the processor.
+
 [#setup]
 == Setup
 
