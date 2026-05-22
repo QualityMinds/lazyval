@@ -1,5 +1,7 @@
 package scenarios.edge
 
+import com.qualityminds.lazyval.LazyValue
+
 @LazyValue
 class ClassWithTransientProperty private constructor(val value: String) {
 

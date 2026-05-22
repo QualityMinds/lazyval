@@ -7,11 +7,11 @@ import org.jspecify.annotations.Nullable;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
-import javax.lang.model.element.*;
-import javax.lang.model.type.MirroredTypeException;
+import javax.lang.model.element.Element;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.MirroredTypesException;
-import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
 import java.util.*;
 import java.util.function.Supplier;
@@ -24,12 +24,14 @@ class LazyvalEnvironment {
     private final ProcessingEnvironment processingEnvironment;
 
     private static final String NO_GENERATION_WARNING = "None of the required classes are available on the classpath! Lazyval will not generate any sources.";
-    private static final String NOT_FINAL_OBJECT_WARNING = "Value Types should not be extendable, hence the class should be final.";
-    private static final String NOT_FINAL_VALUE_WARNING = "Value Types should be immutable, hence the wrapped field should be final.";
 
     LazyvalEnvironment(ProcessingEnvironment processingEnvironment) {
         Objects.requireNonNull(processingEnvironment);
         this.processingEnvironment = processingEnvironment;
+    }
+
+    Types typeUtils() {
+        return processingEnvironment.getTypeUtils();
     }
 
     public void info(String message) {
@@ -141,13 +143,8 @@ class LazyvalEnvironment {
             return List.of();
         }
 
-        List<? extends TypeMirror> mirrors;
-        try {
-            config.externalTypes();
-            return List.of(); // unreachable — class literals always throw
-        } catch (MirroredTypesException e) {
-            mirrors = e.getTypeMirrors();
-        }
+        // extract externalTypes classes from Annotation
+        List<? extends TypeMirror> mirrors = mirrors(config::externalTypes);
 
         Set<TypeElement> localTypes = roundEnv.getRootElements().stream()
                 .filter(e -> e instanceof TypeElement)
@@ -182,139 +179,21 @@ class LazyvalEnvironment {
 
     /**
      * While annotation processing, no classes can be loaded (since they are not yet compiled).
-     * For annotations whose methods return a class, a TypeMirror is needed.
-     * Interestingly enough, the TypeMirror returned by the MirroredTypeException is just what is needed to be used in
-     * JavaPoet.
+     * For annotations whose methods return an array of classes ({@code Class<?>[]}),
+     * the compiler throws a {@link MirroredTypesException} instead of returning the array,
+     * carrying the corresponding {@link TypeMirror}s — exactly what is needed for tools like JavaPoet.
      *
-     * @param classValue access to a class from the current compilation unit.
-     * @return TypeMirror from the class.
+     * @param classValues access to a class-array attribute from the current compilation unit.
+     * @return the list of {@link TypeMirror}s for the classes in the array.
      */
-    // Currently not needed but kept for future reference.
-    static TypeMirror mirror(Supplier<Class<?>> classValue){
+    static List<? extends TypeMirror> mirrors(Supplier<Class<?>[]> classValues){
         try {
-            var ignored = classValue.get();
-            throw new IllegalStateException("Expected a MirroredTypeException to be thrown but got " + ignored);
-        }catch (MirroredTypeException e){
-            return e.getTypeMirror();
+            var ignored = classValues.get();
+            throw new IllegalStateException("Expected a MirroredTypesException to be thrown but got " + Arrays.toString(ignored));
+        } catch (MirroredTypesException e) {
+            return e.getTypeMirrors();
         }
     }
 
 
-    Optional<ValidatedGeneratorElement> validateElement(TypeElement element){
-        var result = validateRecord(element);
-        if(result.isPresent()){
-            return result;
-        }else{
-            return validateObject(element);
-        }
-    }
-
-    private Optional<ValidatedGeneratorElement> validateRecord(TypeElement lazyvalElement){
-        if(lazyvalElement.getKind() != ElementKind.RECORD){
-            return Optional.empty();
-        }
-        boolean valid = true;
-
-        var fields = lazyvalElement.getRecordComponents();
-        if(fields.size() > 1){
-            error(lazyvalElement, "Not a simple ValueType. Lazyval only supports Records with one non-transient field.");
-            valid = false;
-        }
-
-        var factoryMethods = findFactoryMethods(lazyvalElement, fields.get(0).asType());
-        if(factoryMethods.size() > 1){
-            error(lazyvalElement, "Multiple matching factory methods with the same signature found. Please check methods:" + factoryMethods.stream().map(ExecutableElement::getSimpleName).collect(Collectors.joining(", ")));
-            valid = false;
-        }
-
-        ExecutableElement factoryMethod = factoryMethods.isEmpty() ? null : factoryMethods.get(0);
-        return valid ? Optional.of(ValidatedGeneratorElement.fromRecord(lazyvalElement, factoryMethod, fields.get(0))) : Optional.empty();
-    }
-
-
-    private List<ExecutableElement> findFactoryMethods(TypeElement lazyvalElement, TypeMirror wrappedType){
-        var typeUtils = processingEnvironment.getTypeUtils();
-        return lazyvalElement.getEnclosedElements().stream()
-                .filter(element -> element.getKind() == ElementKind.METHOD)
-                .map(method -> (ExecutableElement) method)
-                .filter(method -> method.getModifiers().contains(Modifier.STATIC)
-                        && typeUtils.isSameType(method.getReturnType(), lazyvalElement.asType())
-                        && method.getParameters().size() == 1  // Should have exactly one parameter
-                        && typeUtils.isSameType(method.getParameters().get(0).asType(), wrappedType))  // Parameter typeMirror should match field-typeMirror
-                .toList();
-    }
-
-    private Optional<ValidatedGeneratorElement> validateObject(TypeElement lazyvalElement){
-        if(lazyvalElement.getKind() != ElementKind.CLASS){
-            return Optional.empty();
-        }
-
-        boolean valid = true;
-
-        if (lazyvalElement.getModifiers().contains(Modifier.ABSTRACT)) {
-            error(lazyvalElement, "Abstract class is not a valid ValueType.");
-            valid = false;
-        }
-
-        var fieldAccessorPairs = findFieldAccessorPairs(lazyvalElement);
-        if(fieldAccessorPairs.size() > 1){
-            error(lazyvalElement, "Not a simple ValueType. Lazyval only supports Objects with one non-transient value.");
-            valid = false;
-        }else if(fieldAccessorPairs.isEmpty()){
-            // FIXME find a way not to stop validation here. Instead of passing accessors, use the field
-            error(lazyvalElement,"No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation.");
-            return Optional.empty(); // we have to stop here because we need the value field to look up the factory method
-        }
-
-        var pair = fieldAccessorPairs.get(0);
-        var factoryMethods = findFactoryMethods(lazyvalElement, pair.field().asType());
-        if(factoryMethods.size() > 1){
-            error(lazyvalElement, "Multiple matching factory methods with the same signature found. Please check methods:" + factoryMethods.stream().map(ExecutableElement::getSimpleName).collect(Collectors.joining(", ")));
-            valid = false;
-        }
-        ExecutableElement factoryMethod = factoryMethods.isEmpty() ? null : factoryMethods.get(0);
-
-        // run warning checks only when the definition is valid in general
-        if(valid){
-            if(!lazyvalElement.getModifiers().contains(Modifier.FINAL)){
-                warn(lazyvalElement, NOT_FINAL_OBJECT_WARNING);
-            }
-            if(!pair.field().getModifiers().contains(Modifier.FINAL)){
-                warn(pair.field(), NOT_FINAL_VALUE_WARNING);
-            }
-        }
-
-        return valid ? Optional.of(ValidatedGeneratorElement.fromClass(lazyvalElement, factoryMethod, pair.field(), pair.accessor())) : Optional.empty();
-    }
-
-    /**
-     * Finds fields paired with their public accessor methods.
-     * An accessor is a public, non-static, no-arg method whose return type matches the field type.
-     */
-    private List<FieldAccessorPair> findFieldAccessorPairs(TypeElement lazyvalElement){
-        var typeUtils = processingEnvironment.getTypeUtils();
-        var accessors = lazyvalElement.getEnclosedElements().stream()
-                .filter(element -> element.getKind() == ElementKind.METHOD)
-                .map(element -> (ExecutableElement) element)
-                .filter(method ->
-                        method.getModifiers().contains(Modifier.PUBLIC)
-                                && method.getParameters().isEmpty()
-                                && method.getReturnType().getKind() != TypeKind.VOID
-                                && !method.getModifiers().contains(Modifier.STATIC))
-                .toList();
-
-        return lazyvalElement.getEnclosedElements().stream()
-                .filter(element -> element.getKind() == ElementKind.FIELD)
-                .map(element -> (VariableElement) element)
-                .filter(field -> !field.getModifiers().contains(Modifier.STATIC)
-                        && !field.getModifiers().contains(Modifier.TRANSIENT))
-                .flatMap(field -> accessors.stream()
-                        .filter(accessor -> typeUtils.isSameType(accessor.getReturnType(), field.asType()))
-                        .findFirst()
-                        .map(accessor -> new FieldAccessorPair(field, accessor))
-                        .stream())
-                .toList();
-    }
-
-    private record FieldAccessorPair(VariableElement field, ExecutableElement accessor) {}
 }
