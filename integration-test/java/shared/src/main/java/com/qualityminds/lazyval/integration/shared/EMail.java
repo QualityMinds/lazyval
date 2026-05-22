@@ -1,10 +1,7 @@
-package com.qualityminds.lazyval.integration.domain;
-
-import com.qualityminds.lazyval.LazyValue;
+package com.qualityminds.lazyval.integration.shared;
 
 import static java.util.Objects.requireNonNull;
 
-@LazyValue
 public record EMail(String value) {
 
     public EMail {

@@ -35,8 +35,8 @@ private sealed interface InternalResult {
 /**
  * A KSP2 annotation Processor which delegates domain-primitives to code generators provided via SPI.
  *
- * A domain-primitive is a class annotated with [LazyValue] or configured
- * via the processor option `lazyval.values`.
+ * A domain-primitive is a class annotated with [LazyValue], or an external type listed in
+ * `@LazyvalConfiguration.externalTypes` on the module's `package-info.java`.
  */
 class LazyvalSymbolProcessor(
     private val environment: SymbolProcessorEnvironment
@@ -263,7 +263,6 @@ class LazyvalSymbolProcessor(
     private fun validateOptions() {
         val supportedOptions = setOf(
             LazyvalKspEnvironment.DISABLED_GENERATORS,
-            LazyvalKspEnvironment.CONFIGURED_VALUES,
             LazyvalKspEnvironment.BASE_PACKAGE
         ) + allProviderGenerators.flatMap { it.supportedOptions() }.toSet()
 

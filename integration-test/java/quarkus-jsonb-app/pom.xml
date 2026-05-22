@@ -85,7 +85,6 @@
                         <!-- disabled, only jsonb is needed for this sample -->
                         <arg>-Alazyval.generators.disable=jackson-2,jackson-3,jpa,cassandra,beanvalidation,mapstruct</arg>
                         <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
-                        <arg>-Alazyval.values=com.qualityminds.lazyval.integration.shared.Quantity,com.qualityminds.lazyval.integration.shared.Isbn</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>

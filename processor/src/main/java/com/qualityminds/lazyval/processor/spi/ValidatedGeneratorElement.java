@@ -75,7 +75,8 @@ public final class ValidatedGeneratorElement {
     }
 
     /**
-     * Returns the low-level {@link TypeElement} annotated as LazyValue or configured by <code>lazyval.values</code>.
+     * Returns the low-level {@link TypeElement} annotated as LazyValue or listed in
+     * {@code @LazyvalConfiguration#externalTypes()}.
      * Can be used to further analyze the code structure.
      * @return the annotated/configured element.
      */

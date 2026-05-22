@@ -177,7 +177,7 @@
                             <importMappings>
                                 <importMapping>Isbn=com.qualityminds.lazyval.integration.shared.Isbn</importMapping>
                                 <importMapping>Quantity=com.qualityminds.lazyval.integration.shared.Quantity</importMapping>
-                                <importMapping>EMail=com.qualityminds.lazyval.integration.domain.EMail</importMapping>
+                                <importMapping>EMail=com.qualityminds.lazyval.integration.shared.EMail</importMapping>
                                 <importMapping>OrderDate=com.qualityminds.lazyval.integration.domain.OrderDate</importMapping>
                             </importMappings>
                         </configuration>
@@ -228,9 +228,6 @@
                         <lazyval.generators.basePackage>
                             com.qualityminds.lazyval.integration
                         </lazyval.generators.basePackage>
-                        <lazyval.values>
-                            com.qualityminds.lazyval.integration.shared.Quantity,com.qualityminds.lazyval.integration.shared.Isbn
-                        </lazyval.values>
                     </apOptions>
                 </configuration>
             </plugin>

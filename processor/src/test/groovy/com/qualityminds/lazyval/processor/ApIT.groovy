@@ -86,4 +86,19 @@ class ApIT extends Specification {
         def expectedWarning = "Lazyval: Neither configuration for 'lazyval.generators.basePackage' nor 'lazyval.mapstruct.package' is set. Falling back to package of first element: 'scenarios.java'"
         result == new Testresult.Java.SuccessWithWarnings(Lists.immutable.of("LazyvalMapper.java"), Lists.immutable.of(expectedWarning))
     }
+
+    void "Error is issued when multiple LazyvalConfigurations are present" (){
+        given:
+        def scenario = Scenario.Java.of("test/package-info.java", "scenarios/failing/package-info.java")
+        expect:
+        testkitJava.run(projectDir, scenario) == new Testresult.Java.Failure("Lazyval: Only one @LazyvalConfiguration is allowed per compilation unit.")
+    }
+
+    void "Error is issued when LazyvalConfiguration marks an local type of the current compilation unit as external" (){
+        given:
+        def scenario = Scenario.Java.of("scenarios/failing/LocalTypeAsExternal.java", "scenarios/failing/LocalTypeAsExternalReferenz.java")
+        expect:
+        testkitJava.run(projectDir, scenario) == new Testresult.Java.Failure("Lazyval: Type 'test.LocalTypeAsExternalReferenz' listed in @LazyvalConfiguration.externalTypes belongs to the current compilation unit. Annotate it with @LazyValue directly.")
+    }
+
 }
