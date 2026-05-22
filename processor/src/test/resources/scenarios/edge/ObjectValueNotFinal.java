@@ -1,4 +1,4 @@
-package test;
+package scenarios.edge;
 
 import com.qualityminds.lazyval.LazyValue;
 

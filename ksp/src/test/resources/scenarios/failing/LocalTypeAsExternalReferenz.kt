@@ -1,6 +1,6 @@
-package test;
+package scenarios.failing
 
-import com.qualityminds.lazyval.LazyValue;
+import com.qualityminds.lazyval.LazyValue
 
 // TODO move this file as a subtype of LocalTypeAsExternal once subtypes are working
 

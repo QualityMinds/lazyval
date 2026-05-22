@@ -66,11 +66,16 @@ class ApIT extends Specification {
         result == expected
 
         where:
-        scenario                                                    | warning
-        Scenario.Java.of("scenarios/edge/ObjectValueNotFinal.java") | "Lazyval: Value Types should be immutable, hence the wrapped field should be final."
-        Scenario.Java.of("scenarios/edge/ObjectNotFinal.java")      | "Lazyval: Value Types should not be extendable, hence the class should be final."
-        expected = new Testresult.Java.SuccessWithWarnings(Lists.immutable.of("LazyvalMapper.java"), Lists.immutable.of(warning))
-        message = "succeeds with warning '$warning'"
+        scenario                                                            | warning
+        Scenario.Java.of("scenarios/edge/ObjectValueNotFinal.java")         | "Lazyval: Value Types should be immutable, hence the wrapped field should be final."
+        Scenario.Java.of("scenarios/edge/ObjectNotFinal.java")              | "Lazyval: Value Types should not be extendable, hence the class should be final."
+        Scenario.Java.of("scenarios/edge/ObjectWithTransientField.java")    | null
+        expected = warning != null
+                ? new Testresult.Java.SuccessWithWarnings(Lists.immutable.of("LazyvalMapper.java"), Lists.immutable.of(warning))
+                : new Testresult.Java.Success("LazyvalMapper.java")
+        message = warning != null
+                ? "succeeds with warning '$warning'"
+                : "succeeds"
     }
 
     void "Warning is issued when package is not configured in any way"(){
@@ -87,9 +92,19 @@ class ApIT extends Specification {
         result == new Testresult.Java.SuccessWithWarnings(Lists.immutable.of("LazyvalMapper.java"), Lists.immutable.of(expectedWarning))
     }
 
+    // OptionalInt breaks contract
+//    void "External types generate when configured in LazyvalConfiguration" (){
+//        given:
+//        def scenario = Scenario.Java.of("scenarios/ConfigWithExternal.java").withDependencies(dependencyMapstruct)
+//        when:
+//        def result = testkitJava.run(projectDir, scenario)
+//        then:
+//        result == new Testresult.Java.Success("LazyvalMapper.java")
+//    }
+
     void "Error is issued when multiple LazyvalConfigurations are present" (){
         given:
-        def scenario = Scenario.Java.of("test/package-info.java", "scenarios/failing/package-info.java")
+        def scenario = Scenario.Java.of("scenarios/package-info.java", "scenarios/failing/package-info.java")
         expect:
         testkitJava.run(projectDir, scenario) == new Testresult.Java.Failure("Lazyval: Only one @LazyvalConfiguration is allowed per compilation unit.")
     }
@@ -98,7 +113,7 @@ class ApIT extends Specification {
         given:
         def scenario = Scenario.Java.of("scenarios/failing/LocalTypeAsExternal.java", "scenarios/failing/LocalTypeAsExternalReferenz.java")
         expect:
-        testkitJava.run(projectDir, scenario) == new Testresult.Java.Failure("Lazyval: Type 'test.LocalTypeAsExternalReferenz' listed in @LazyvalConfiguration.externalTypes belongs to the current compilation unit. Annotate it with @LazyValue directly.")
+        testkitJava.run(projectDir, scenario) == new Testresult.Java.Failure("Lazyval: Type 'scenarios.failing.LocalTypeAsExternalReferenz' listed in @LazyvalConfiguration.externalTypes belongs to the current compilation unit. Annotate it with @LazyValue directly.")
     }
 
 }

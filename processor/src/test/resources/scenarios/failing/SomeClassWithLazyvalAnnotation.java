@@ -1,4 +1,4 @@
-package test;
+package scenarios.failing;
 
 import com.qualityminds.lazyval.LazyvalConfiguration;
 

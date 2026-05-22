@@ -1,4 +1,4 @@
 @LazyvalConfiguration(externalTypes = {})
-package test.failing;
+package scenarios;
 
 import com.qualityminds.lazyval.LazyvalConfiguration;
