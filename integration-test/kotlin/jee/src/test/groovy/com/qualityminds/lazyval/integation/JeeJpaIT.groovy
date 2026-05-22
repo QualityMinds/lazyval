@@ -3,8 +3,11 @@ package com.qualityminds.lazyval.integation
 import com.qualityminds.lazyval.integration.TestMapper
 import com.qualityminds.lazyval.integration.application.StartupBean
 import com.qualityminds.lazyval.integration.client.ApiClient
+import com.qualityminds.lazyval.integration.client.ApiException
+import com.qualityminds.lazyval.integration.client.JSON
 import com.qualityminds.lazyval.integration.client.api.OrderJpaApi
 import com.qualityminds.lazyval.integration.client.model.CreateOrder
+import com.qualityminds.lazyval.integration.client.model.ValidationProblem
 import com.qualityminds.lazyval.integration.domain.EMail
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
@@ -22,6 +25,7 @@ class JeeJpaIT extends AbstractLibertyIT {
     def setup() {
         def client = new ApiClient()
         client.updateBaseUri("http://${liberty.host}:${liberty.getMappedPort(PORT)}")
+        client.setRequestInterceptor { it.header('Accept-Language', 'en') }
         orderApi = new OrderJpaApi(client)
     }
 
@@ -64,5 +68,40 @@ class JeeJpaIT extends AbstractLibertyIT {
 
         then:
         foundOrders == [StartupBean.DefaultOrderB]
+    }
+
+    def "should handle invalid input"() {
+        given:
+        def createOrderDto = new CreateOrder()
+                .isbn('bogus')
+                .quantity(-1)
+                .email('invalid')
+        def jsonMapper = new JSON().getMapper()
+
+        when:
+        orderApi.createOrderJpa(createOrderDto)
+
+        then:
+        def ex = thrown(ApiException)
+        ex.code == 400
+
+        and: 'problem-json is present'
+        ValidationProblem validationProblem = jsonMapper.readValue(ex.responseBody, ValidationProblem)
+        validationProblem.status == 400
+        and: 'ibsn is reported'
+        with(validationProblem.violations.find { it.field == "createOrder.isbn" }) {
+            message == /must match "^[\d\-]{10,17}$"/
+            invalidValue == "bogus"
+        }
+        and: 'quantity is reported'
+        with(validationProblem.violations.find { it.field == "createOrder.quantity" }) {
+            message == "must be greater than or equal to 1"
+            invalidValue == -1
+        }
+        and: 'email is reported'
+        with(validationProblem.violations.find { it.field == "createOrder.email" }) {
+            invalidValue == "invalid"
+            message == /must match "^[^\s@]+@[^\s@]+$"/
+        }
     }
 }

@@ -3,8 +3,10 @@ package com.qualityminds.lazyval.integration.boundary.rest
 import com.qualityminds.lazyval.integration.boundary.rest.api.OrderJpaApi
 import com.qualityminds.lazyval.integration.boundary.rest.model.CreateOrder
 import com.qualityminds.lazyval.integration.boundary.rest.model.Order
+import com.qualityminds.lazyval.integration.domain.EMail
 import com.qualityminds.lazyval.integration.domain.OrderRepository
 import com.qualityminds.lazyval.integration.shared.Isbn
+import com.qualityminds.lazyval.integration.shared.Quantity
 import jakarta.enterprise.context.RequestScoped
 import jakarta.inject.Inject
 import jakarta.inject.Named
@@ -24,7 +26,9 @@ class OrderJpaResource @Inject constructor(
     @Transactional
     override fun createOrderJpa(createOrder: CreateOrder): Order {
         val newOrder = com.qualityminds.lazyval.integration.domain.Order.create(
-            createOrder.isbn, createOrder.quantity, createOrder.email
+            Isbn.parse(createOrder.isbn),
+            Quantity(createOrder.quantity),
+            EMail(createOrder.email),
         )
         repository.save(newOrder)
         return mapper.toDto(newOrder)
