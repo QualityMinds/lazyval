@@ -23,6 +23,7 @@ import java.util.stream.Stream;
  */
 public class ToolchainSetup {
 
+    private static final Dependency kotlinStdlib = new Dependency("org.jetbrains.kotlin", "kotlin-stdlib", KotlinVersion.CURRENT.toString());
     private final KotlinSymbolProcessing kspSetup;
     private final KotlinCompilerSetup kotlinSetup;
     private final LogCollector logCollector;
@@ -117,6 +118,9 @@ public class ToolchainSetup {
             LogCollector logCollector) {
         try {
             var additionalClasspath = new ArrayList<>(CoreModuleDependency.RESOLVED_FILE.toSet());
+            // Real Kotlin projects always have kotlin-stdlib on KSP's classpath; without it,
+            // stdlib types (incl. @kotlin.jvm.Transient) resolve as <error>.
+            kotlinStdlib.resolve().forEach(additionalClasspath::add);
             scenarioDescriptor.dependencies().stream().map(Dependency::resolve).forEach(x -> additionalClasspath.addAll(x.toSet()));
 
             var processorProvidersSearch = ServiceLoader.load(

@@ -174,12 +174,15 @@ internal class LazyvalKspEnvironment(
             valid = false
         }
 
-        // Find properties or their corresponding accessor methods
-        val publicProperties = classDeclaration.getAllProperties().toList()
+        // Find properties or their corresponding accessor methods.
+        // Static and @Transient properties are excluded — only the storage payload counts.
+        val publicProperties = classDeclaration.getAllProperties()
+            .filter { !it.isStatic() && !it.isTransient() }
+            .toList()
         val propertyAccessorPairs = findPropertyAccessorPairs(classDeclaration)
 
         if (propertyAccessorPairs.size > 1 || publicProperties.size > 1) {
-            error(classDeclaration, "Not a simple ValueType. Lazyval only supports classes with one property.")
+            error(classDeclaration, "Not a simple ValueType. Lazyval only supports classes with one non-transient property.")
             valid = false
         } else if (propertyAccessorPairs.isEmpty() && publicProperties.isEmpty()) {
             error(classDeclaration, "No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property.")
@@ -225,6 +228,7 @@ internal class LazyvalKspEnvironment(
         val properties = classDeclaration.getAllProperties()
             .filter { property ->
                 !property.isStatic() &&
+                        !property.isTransient() &&
                         property.getter != null &&
                         property.hasBackingField
             }
@@ -296,5 +300,13 @@ internal class LazyvalKspEnvironment(
 
     private fun KSPropertyDeclaration.isPrivate(): Boolean {
         return Modifier.PRIVATE in modifiers
+    }
+
+    private fun KSPropertyDeclaration.isTransient(): Boolean {
+        return annotations.any { annotation ->
+            if (annotation.shortName.asString() != "Transient") return@any false
+            val fqn = annotation.annotationType.resolve().declaration.qualifiedName?.asString()
+            fqn == "kotlin.jvm.Transient" || fqn == "java.beans.Transient"
+        }
     }
 }
