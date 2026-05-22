@@ -1,8 +1,8 @@
 package com.qualityminds.lazyval.integration.application;
 
-import com.qualityminds.lazyval.integration.domain.EMail;
 import com.qualityminds.lazyval.integration.domain.Order;
 import com.qualityminds.lazyval.integration.domain.OrderRepository;
+import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.shared.Isbn;
 import com.qualityminds.lazyval.integration.shared.Quantity;
 import io.quarkus.runtime.StartupEvent;

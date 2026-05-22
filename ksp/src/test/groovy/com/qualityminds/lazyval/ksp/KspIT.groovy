@@ -99,4 +99,18 @@ class KspIT extends Specification {
         def expectedWarning = "Lazyval: Neither configuration for 'lazyval.generators.basePackage' nor 'lazyval.mapstruct.package' is set. Falling back to package of first element: 'scenarios.kotlin'"
         result == new Testresult.Kotlin.SuccessWithWarnings(Lists.immutable.of("LazyvalMapper.java"), Lists.immutable.of(expectedWarning))
     }
+
+    void "Error is issued when multiple LazyvalConfigurations are present" (){
+        given:
+        def scenario = Scenario.Kotlin.of("scenarios/failing/MultiConfigs.kt")
+        expect:
+        testkitKotlin.run(projectDir, scenario) == new Testresult.Kotlin.Failure("Lazyval: Only one @LazyvalConfiguration is allowed per compilation unit.")
+    }
+
+    void "Error is issued when LazyvalConfiguration marks an local type of the current compilation unit as external" (){
+        given:
+        def scenario = Scenario.Kotlin.of("scenarios/failing/LocalTypeAsExternal.kt", "scenarios/failing/LocalTypeAsExternalReferenz.kt")
+        expect:
+        testkitKotlin.run(projectDir, scenario) == new Testresult.Kotlin.Failure("Lazyval: Type 'test.LocalTypeAsExternalReferenz' listed in @LazyvalConfiguration.externalTypes belongs to the current compilation unit. Annotate it with @LazyValue directly.")
+    }
 }

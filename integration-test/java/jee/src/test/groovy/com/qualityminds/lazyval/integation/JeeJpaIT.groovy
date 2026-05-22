@@ -8,7 +8,7 @@ import com.qualityminds.lazyval.integration.client.JSON
 import com.qualityminds.lazyval.integration.client.api.OrderJpaApi
 import com.qualityminds.lazyval.integration.client.model.CreateOrder
 import com.qualityminds.lazyval.integration.client.model.ValidationProblem
-import com.qualityminds.lazyval.integration.domain.EMail
+import com.qualityminds.lazyval.integration.shared.EMail
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import org.mapstruct.factory.Mappers

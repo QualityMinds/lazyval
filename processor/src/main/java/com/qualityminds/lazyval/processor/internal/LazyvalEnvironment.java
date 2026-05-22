@@ -1,19 +1,19 @@
 package com.qualityminds.lazyval.processor.internal;
 
+import com.qualityminds.lazyval.LazyvalConfiguration;
 import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 import org.jspecify.annotations.Nullable;
 
 import javax.annotation.processing.ProcessingEnvironment;
+import javax.annotation.processing.RoundEnvironment;
 import javax.lang.model.element.*;
 import javax.lang.model.type.MirroredTypeException;
+import javax.lang.model.type.MirroredTypesException;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.tools.Diagnostic;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -21,7 +21,6 @@ class LazyvalEnvironment {
 
     static final String DISABLED_GENERATORS = "lazyval.generators.disable";
     static final String BASE_PACKAGE = "lazyval.generators.basePackage";
-    static final String CONFIGURED_VALUES = "lazyval.values";
     private final ProcessingEnvironment processingEnvironment;
 
     private static final String NO_GENERATION_WARNING = "None of the required classes are available on the classpath! Lazyval will not generate any sources.";
@@ -108,18 +107,68 @@ class LazyvalEnvironment {
         return processingEnvironment.getElementUtils().getTypeElement(fqn) != null;
     }
 
-    public List<TypeElement> getConfiguredValues(){
-        return Arrays.stream(processingEnvironment.getOptions()
-                .getOrDefault(LazyvalEnvironment.CONFIGURED_VALUES, "")
-                .split(",")).map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .map(fqn -> {
-                    var type = processingEnvironment.getElementUtils().getTypeElement(fqn);
-                    if(type == null){
-                        error(String.format("Configured value '%s' could not be resolved.", fqn));
-                    }
-                    return type;
-                }).toList();
+    /**
+     * Reads {@code @LazyvalConfiguration#externalTypes()} from the current round's
+     * {@code package-info.java}.
+     * <ul>
+     *   <li>Returns an empty list when no holder is present.</li>
+     *   <li>Reports a compile error and returns an empty list when more than one
+     *       holder is present.</li>
+     *   <li>Skips and reports a compile error for any listed type that belongs to
+     *       the current compilation unit (such types must use {@link com.qualityminds.lazyval.LazyValue}).</li>
+     * </ul>
+     */
+    public List<TypeElement> getConfiguredValues(RoundEnvironment roundEnv) {
+        var configAnnotation = processingEnvironment.getElementUtils()
+                .getTypeElement(LazyvalConfiguration.class.getCanonicalName());
+        if (configAnnotation == null) {
+            return List.of();
+        }
+
+        var holders = roundEnv.getElementsAnnotatedWith(configAnnotation);
+        if (holders.isEmpty()) {
+            return List.of();
+        }
+        if (holders.size() > 1) {
+            holders.stream().skip(1).forEach(extra ->
+                    error(extra, "Only one @LazyvalConfiguration is allowed per compilation unit."));
+            return List.of();
+        }
+
+        var holder = holders.iterator().next();
+        var config = holder.getAnnotation(LazyvalConfiguration.class);
+        if (config == null) {
+            return List.of();
+        }
+
+        List<? extends TypeMirror> mirrors;
+        try {
+            config.externalTypes();
+            return List.of(); // unreachable — class literals always throw
+        } catch (MirroredTypesException e) {
+            mirrors = e.getTypeMirrors();
+        }
+
+        Set<TypeElement> localTypes = roundEnv.getRootElements().stream()
+                .filter(e -> e instanceof TypeElement)
+                .map(e -> (TypeElement) e)
+                .collect(Collectors.toCollection(HashSet::new));
+
+        List<TypeElement> result = new ArrayList<>(mirrors.size());
+        for (TypeMirror mirror : mirrors) {
+            var typeElement = (TypeElement) processingEnvironment.getTypeUtils().asElement(mirror);
+            if (typeElement == null) {
+                continue;
+            }
+            if (localTypes.contains(typeElement)) {
+                error(holder, String.format(
+                        "Type '%s' listed in @LazyvalConfiguration.externalTypes belongs to the current compilation unit. Annotate it with @LazyValue directly.",
+                        typeElement.getQualifiedName()));
+                continue;
+            }
+            result.add(typeElement);
+        }
+        return result;
     }
 
     public List<String> getDisabledGenerators(){

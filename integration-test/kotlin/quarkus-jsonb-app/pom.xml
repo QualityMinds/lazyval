@@ -85,9 +85,6 @@
                         <lazyval.generators.basePackage>
                             com.qualityminds.lazyval.integration
                         </lazyval.generators.basePackage>
-                        <lazyval.values>
-                            com.qualityminds.lazyval.integration.shared.Quantity,com.qualityminds.lazyval.integration.shared.Isbn
-                        </lazyval.values>
                     </apOptions>
                 </configuration>
             </plugin>

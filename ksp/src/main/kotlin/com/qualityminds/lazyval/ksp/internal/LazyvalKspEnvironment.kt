@@ -6,6 +6,7 @@ import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.*
+import com.qualityminds.lazyval.LazyvalConfiguration
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.qualityminds.lazyval.ksp.spi.WrappedProperty
@@ -19,7 +20,6 @@ internal class LazyvalKspEnvironment(
     companion object {
         const val DISABLED_GENERATORS: String = "lazyval.generators.disable"
         const val BASE_PACKAGE: String = "lazyval.generators.basePackage"
-        const val CONFIGURED_VALUES: String = "lazyval.values"
         private const val NO_GENERATION_WARNING = "None of the required classes are available on the classpath! Lazyval will not generate any sources."
         private const val NOT_FINAL_CLASS_WARNING = "Value Types should not be extendable, hence the class should be final."
         private const val NOT_FINAL_VALUE_WARNING = "Value Types should be immutable, hence the wrapped property should be final (val)."
@@ -94,19 +94,55 @@ internal class LazyvalKspEnvironment(
         .filter { s: String? -> !s!!.isEmpty() }
         .toList()
 
-    fun configuredValues(): List<KSClassDeclaration> = environment.options
-            .getOrDefault(CONFIGURED_VALUES, "")
-            .split(",".toRegex())
-            .dropLastWhile { it.isEmpty() }
-            .map { obj: String? -> obj!!.trim { it <= ' ' } }
-            .filter { s: String? -> !s!!.isEmpty() }
-            .mapNotNull { fqn ->
-                val type = resolver.getClassDeclarationByName(resolver.getKSNameFromString(fqn))
-                if (type == null) {
-                    error(String.format("Configured value '%s' could not be resolved.", fqn))
-                }
-                type
+    /**
+     * Reads [LazyvalConfiguration.externalTypes] from the current round's `package-info.java`.
+     *
+     * - Returns an empty list when no holder is present.
+     * - Reports a compile error and returns an empty list when more than one holder is present.
+     * - Skips and reports a compile error for any listed type that belongs to the current
+     *   compilation unit (such types must use [com.qualityminds.lazyval.LazyValue]).
+     */
+    fun configuredValues(): List<KSClassDeclaration> {
+        val annotationFqn = LazyvalConfiguration::class.qualifiedName ?: return emptyList()
+        val holders = resolver.getSymbolsWithAnnotation(annotationFqn).toList()
+        if (holders.isEmpty()) {
+            return emptyList()
+        }
+        if (holders.size > 1) {
+            holders.drop(1).forEach { extra ->
+                error(extra, "Only one @LazyvalConfiguration is allowed per compilation unit.")
             }
+            return emptyList()
+        }
+
+        val holder = holders.first()
+        val annotation = holder.annotations.firstOrNull {
+            it.annotationType.resolve().declaration.qualifiedName?.asString() == annotationFqn
+        } ?: return emptyList()
+
+        @Suppress("UNCHECKED_CAST")
+        val externalTypes = annotation.arguments
+            .firstOrNull { it.name?.asString() == "externalTypes" }
+            ?.value as? List<KSType>
+            ?: return emptyList()
+
+        val localFqns = resolver.getAllFiles()
+            .flatMap { it.declarations }
+            .filterIsInstance<KSClassDeclaration>()
+            .mapNotNull { it.qualifiedName?.asString() }
+            .toSet()
+
+        return externalTypes.mapNotNull { ksType ->
+            val decl = ksType.declaration as? KSClassDeclaration ?: return@mapNotNull null
+            val fqn = decl.qualifiedName?.asString()
+            if (fqn != null && fqn in localFqns) {
+                error(holder, "Type '$fqn' listed in @LazyvalConfiguration.externalTypes belongs to the current compilation unit. Annotate it with @LazyValue directly.")
+                null
+            } else {
+                decl
+            }
+        }
+    }
 
 
     fun validateElement(classDeclaration: KSClassDeclaration): ValidatedKspGeneratorElement? {

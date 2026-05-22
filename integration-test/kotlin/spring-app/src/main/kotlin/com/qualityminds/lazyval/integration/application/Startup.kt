@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.integration.application
 
 import com.qualityminds.lazyval.integration.domain.OrderRepository
+import com.qualityminds.lazyval.integration.shared.EMail
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import org.springframework.beans.factory.annotation.Qualifier
@@ -20,13 +21,13 @@ class Startup(
             com.qualityminds.lazyval.integration.domain.Order.create(
                 Isbn.parse("3-86680-192-0"),
                 Quantity(1),
-                com.qualityminds.lazyval.integration.domain.EMail("a@b.de")
+                EMail("a@b.de")
             )
         val DefaultOrderB: com.qualityminds.lazyval.integration.domain.Order =
             com.qualityminds.lazyval.integration.domain.Order.create(
                 Isbn.parse("978-3-86680-192-9"),
                 Quantity(1),
-                com.qualityminds.lazyval.integration.domain.EMail("x@y.de")
+                EMail("x@y.de")
             )
     }
 

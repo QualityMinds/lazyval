@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.processor.internal;
 
 import com.qualityminds.lazyval.LazyValue;
+import com.qualityminds.lazyval.LazyvalConfiguration;
 import com.qualityminds.lazyval.collections.NonEmptySet;
 import com.qualityminds.lazyval.processor.internal.codegen.jackson.Jackson2Generator;
 import com.qualityminds.lazyval.processor.internal.codegen.jackson.Jackson3Generator;
@@ -26,10 +27,13 @@ import java.util.stream.Stream;
 /**
  * A JSR 269 annotation Processor which delegates domain-primitives to code generators provided via SPI.
  * <p>
- * A domain-primitive is a class annotated with {@link LazyValue} or configured
- * via the processor option {@code lazyval.values}
+ * A domain-primitive is a class annotated with {@link LazyValue}, or an external type listed in
+ * {@link LazyvalConfiguration#externalTypes()} on the module's {@code package-info.java}.
  */
-@SupportedAnnotationTypes("com.qualityminds.lazyval.LazyValue")
+@SupportedAnnotationTypes({
+        "com.qualityminds.lazyval.LazyValue",
+        "com.qualityminds.lazyval.LazyvalConfiguration"
+})
 public class LazyvalProcessor extends AbstractProcessor {
 
     private static final List<? extends Generator> allProviderGenerators;
@@ -83,7 +87,6 @@ public class LazyvalProcessor extends AbstractProcessor {
                 .collect(Collectors.toCollection(HashSet::new));
         combinedOptions.addAll(Set.of(
                 LazyvalEnvironment.DISABLED_GENERATORS,
-                LazyvalEnvironment.CONFIGURED_VALUES,
                 LazyvalEnvironment.BASE_PACKAGE
         ));
         return combinedOptions;
@@ -91,35 +94,37 @@ public class LazyvalProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-        for(TypeElement annotation : annotations){
-            Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
-            var configuredElements = lazyvalEnvironment.getConfiguredValues();
+        var lazyValueType = processingEnv.getElementUtils()
+                .getTypeElement(LazyValue.class.getCanonicalName());
+        Set<? extends Element> annotatedElements = lazyValueType != null
+                ? roundEnv.getElementsAnnotatedWith(lazyValueType)
+                : Set.of();
+        var configuredElements = lazyvalEnvironment.getConfiguredValues(roundEnv);
 
-            Set<ValidatedGeneratorElement> validatedElements = Stream.concat(annotatedElements.stream(), configuredElements.stream())
-                    .map(element -> lazyvalEnvironment.validateElement((TypeElement) element))
-                    .flatMap(Optional::stream)
-                    .collect(Collectors.toUnmodifiableSet());
-            if(validatedElements.isEmpty()){
-                return false;
-            }
-
-            List<Element> orignatingElements = validatedElements.stream().map(ValidatedGeneratorElement::element).collect(Collectors.toList());
-
-            List<InternalResult> results = getActiveGenerators()
-                    .flatMap(generator -> callGenerator(generator, validatedElements, orignatingElements))
-                    .toList();
-
-            // Write Java files immediately
-            results.stream()
-                    .filter(r -> r instanceof InternalResult.Java)
-                    .map(r -> (InternalResult.Java) r)
-                    .forEach(this::writeJavaFile);
-
-            writeServiceLoaderFiles(results.stream()
-                    .filter(r -> r instanceof InternalResult.ServiceLoader)
-                    .map(r -> (InternalResult.ServiceLoader) r)
-                    .toList());
+        Set<ValidatedGeneratorElement> validatedElements = Stream.concat(annotatedElements.stream(), configuredElements.stream())
+                .map(element -> lazyvalEnvironment.validateElement((TypeElement) element))
+                .flatMap(Optional::stream)
+                .collect(Collectors.toUnmodifiableSet());
+        if (validatedElements.isEmpty()) {
+            return false;
         }
+
+        List<Element> orignatingElements = validatedElements.stream().map(ValidatedGeneratorElement::element).collect(Collectors.toList());
+
+        List<InternalResult> results = getActiveGenerators()
+                .flatMap(generator -> callGenerator(generator, validatedElements, orignatingElements))
+                .toList();
+
+        // Write Java files immediately
+        results.stream()
+                .filter(r -> r instanceof InternalResult.Java)
+                .map(r -> (InternalResult.Java) r)
+                .forEach(this::writeJavaFile);
+
+        writeServiceLoaderFiles(results.stream()
+                .filter(r -> r instanceof InternalResult.ServiceLoader)
+                .map(r -> (InternalResult.ServiceLoader) r)
+                .toList());
         return false;
     }
 

@@ -1,6 +1,6 @@
 package com.qualityminds.lazyval.integration.boundary.persistence.jpa
 
-import com.qualityminds.lazyval.integration.domain.EMail
+import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.domain.OrderDate
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity

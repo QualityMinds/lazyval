@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.integration.domain;
 
+import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.shared.Isbn;
 import com.qualityminds.lazyval.integration.shared.Quantity;
 

@@ -3,7 +3,7 @@ package com.qualityminds.lazyval.integration.boundary.persistence.cassandra
 import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.cql.PreparedStatement
 import com.datastax.oss.driver.api.core.cql.Row
-import com.qualityminds.lazyval.integration.domain.EMail
+import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.domain.Order
 import com.qualityminds.lazyval.integration.domain.OrderDate
 import com.qualityminds.lazyval.integration.domain.OrderRepository

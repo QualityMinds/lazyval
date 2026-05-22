@@ -142,7 +142,6 @@
                         <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
                         <arg>-Alazyval.generators.disable=jackson-3</arg><!-- disabled as Jackson 3 only on test path -->
                         <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
-                        <arg>-Alazyval.values=com.qualityminds.lazyval.integration.shared.Quantity,com.qualityminds.lazyval.integration.shared.Isbn</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -193,7 +192,7 @@
                                 <importMapping>Isbn=com.qualityminds.lazyval.integration.shared.Isbn</importMapping>
                                 <importMapping>Quantity=com.qualityminds.lazyval.integration.shared.Quantity</importMapping>
                                 <!-- From quarkus-app domain -->
-                                <importMapping>EMail=com.qualityminds.lazyval.integration.domain.EMail</importMapping>
+                                <importMapping>EMail=com.qualityminds.lazyval.integration.shared.EMail</importMapping>
                                 <importMapping>OrderDate=com.qualityminds.lazyval.integration.domain.OrderDate</importMapping>
                             </importMappings>
                         </configuration>
