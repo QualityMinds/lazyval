@@ -129,8 +129,6 @@
                     </transformers>
                     <artifactSet>
                         <excludes>
-                            <!-- user must manage core module -->
-                            <exclude>com.qualityminds.lazyval:lazyval</exclude>
                             <!-- compile-time annotations aren't needed -->
                             <exclude>org.jspecify:jspecify</exclude>
                             <exclude>org.jetbrains:annotations</exclude>
