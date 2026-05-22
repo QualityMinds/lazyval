@@ -3,7 +3,7 @@ package com.qualityminds.lazyval.integration
 import com.qualityminds.lazyval.integration.application.Startup
 import com.qualityminds.lazyval.integration.client.ApiClient
 import com.qualityminds.lazyval.integration.client.ApiException
-import com.qualityminds.lazyval.integration.client.api.OrderCassandraApi
+import com.qualityminds.lazyval.integration.client.api.OrderJpaApi
 import com.qualityminds.lazyval.integration.client.model.CreateOrder
 import com.qualityminds.lazyval.integration.client.model.ValidationProblem
 import com.qualityminds.lazyval.integration.domain.EMail
@@ -17,7 +17,7 @@ import tools.jackson.databind.ObjectMapper
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Stepwise
-class SpringCassandraIT extends AbstractIT {
+class SpringJpaIT extends AbstractIT {
 
     @LocalServerPort
     int port
@@ -27,18 +27,18 @@ class SpringCassandraIT extends AbstractIT {
     @Autowired
     ObjectMapper jsonMapper
 
-    OrderCassandraApi orderApi
+    OrderJpaApi orderApi
 
     def setup() {
         def client = new ApiClient()
         client.updateBaseUri("http://localhost:$port")
         client.setRequestInterceptor { it.header('Accept-Language', 'en') }
-        orderApi = new OrderCassandraApi(client)
+        orderApi = new OrderJpaApi(client)
     }
 
     def "should return all orders"() {
         when:
-        def orders = orderApi.getAllOrdersCassandra()
+        def orders = orderApi.getAllOrdersJpa()
 
         then:
         mapper.toDomainOrder(orders) == [Startup.DefaultOrderA, Startup.DefaultOrderB]
@@ -52,7 +52,7 @@ class SpringCassandraIT extends AbstractIT {
                 .email('test@post.de')
 
         when:
-        def createdOrder = mapper.toDomainOrder(orderApi.createOrderCassandra(createOrderDto))
+        def createdOrder = mapper.toDomainOrder(orderApi.createOrderJpa(createOrderDto))
 
         then:
         createdOrder.isbn == Isbn.parse(createOrderDto.getIsbn())
@@ -69,7 +69,7 @@ class SpringCassandraIT extends AbstractIT {
                 .email('invalid')
 
         when:
-        orderApi.createOrderCassandra(createOrderDto)
+        orderApi.createOrderJpa(createOrderDto)
 
         then:
         def ex = thrown(ApiException)
@@ -97,7 +97,7 @@ class SpringCassandraIT extends AbstractIT {
 
     def "should find order by id"() {
         when:
-        def foundOrder = mapper.toDomainOrder(orderApi.getOrderByIdCassandra(Startup.DefaultOrderB.id))
+        def foundOrder = mapper.toDomainOrder(orderApi.getOrderByIdJpa(Startup.DefaultOrderB.id))
 
         then:
         foundOrder == Startup.DefaultOrderB
@@ -105,7 +105,7 @@ class SpringCassandraIT extends AbstractIT {
 
     def "should find orders by isbn"() {
         when:
-        def foundOrder = mapper.toDomainOrder(orderApi.findOrdersByIsbnCassandra(Startup.DefaultOrderB.isbn.value))
+        def foundOrder = mapper.toDomainOrder(orderApi.findOrdersByIsbnJpa(Startup.DefaultOrderB.isbn().value()))
 
         then:
         foundOrder == [Startup.DefaultOrderB]

@@ -3,8 +3,10 @@ package com.qualityminds.lazyval.integration.boundary.rest;
 import com.qualityminds.lazyval.integration.boundary.rest.api.OrderCassandraApi;
 import com.qualityminds.lazyval.integration.boundary.rest.model.CreateOrder;
 import com.qualityminds.lazyval.integration.boundary.rest.model.Order;
+import com.qualityminds.lazyval.integration.domain.EMail;
 import com.qualityminds.lazyval.integration.domain.OrderRepository;
 import com.qualityminds.lazyval.integration.shared.Isbn;
+import com.qualityminds.lazyval.integration.shared.Quantity;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
@@ -30,7 +32,10 @@ public class OrderCassandraResource implements OrderCassandraApi {
 
     @Override
     public Order createOrderCassandra(CreateOrder createOrder) {
-        var newOrder = com.qualityminds.lazyval.integration.domain.Order.create(createOrder.getIsbn(), createOrder.getQuantity(), createOrder.getEmail());
+        var newOrder = com.qualityminds.lazyval.integration.domain.Order.create(
+                Isbn.parse(createOrder.getIsbn()),
+                new Quantity(createOrder.getQuantity()),
+                new EMail(createOrder.getEmail()));
         repository.save(newOrder);
         return mapper.toDto(newOrder);
     }

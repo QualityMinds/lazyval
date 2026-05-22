@@ -1,6 +1,6 @@
 package com.qualityminds.lazyval.integration.boundary.rest
 
-import com.qualityminds.lazyval.integration.boundary.rest.api.OrderCassandraApi
+import com.qualityminds.lazyval.integration.boundary.rest.api.OrderJpaApi
 import com.qualityminds.lazyval.integration.boundary.rest.model.CreateOrder
 import com.qualityminds.lazyval.integration.boundary.rest.model.Order
 import com.qualityminds.lazyval.integration.domain.EMail
@@ -14,14 +14,14 @@ import org.springframework.web.bind.annotation.*
 import java.util.*
 
 @RestController
-@RequestMapping("/order/cassandra", produces = [MediaType.APPLICATION_JSON_VALUE])
-class CassandraOrderController(
+@RequestMapping("/order/jpa", produces = [MediaType.APPLICATION_JSON_VALUE])
+class JpaOrderController(
     private val mapper: RestMapper,
-    @Qualifier("cassandra") private val repository: OrderRepository
-) : OrderCassandraApi {
+    @Qualifier("jpa") private val repository: OrderRepository
+) : OrderJpaApi {
 
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
-    override fun createOrderCassandra(@RequestBody createOrder: CreateOrder): ResponseEntity<Order> {
+    override fun createOrderJpa(@RequestBody createOrder: CreateOrder): ResponseEntity<Order> {
         val newOrder = com.qualityminds.lazyval.integration.domain.Order.create(
             Isbn.parse(createOrder.isbn),
             Quantity(createOrder.quantity),
@@ -32,17 +32,17 @@ class CassandraOrderController(
     }
 
     @GetMapping("/isbn/{isbn}")
-    override fun findOrdersByIsbnCassandra(@PathVariable isbn: String): ResponseEntity<List<Order>> {
+    override fun findOrdersByIsbnJpa(@PathVariable isbn: String): ResponseEntity<List<Order>> {
         return ResponseEntity.ok(mapper.toDto(repository.findByIsbn(Isbn.parse(isbn))))
     }
 
     @GetMapping
-    override fun getAllOrdersCassandra(): ResponseEntity<List<Order>> {
+    override fun getAllOrdersJpa(): ResponseEntity<List<Order>> {
         return ResponseEntity.ok(mapper.toDto(repository.findAll()))
     }
 
     @GetMapping("/{id}")
-    override fun getOrderByIdCassandra(@PathVariable id: UUID): ResponseEntity<Order> {
+    override fun getOrderByIdJpa(@PathVariable id: UUID): ResponseEntity<Order> {
         return ResponseEntity.ok(mapper.toDto(repository.getById(id)))
     }
 }
