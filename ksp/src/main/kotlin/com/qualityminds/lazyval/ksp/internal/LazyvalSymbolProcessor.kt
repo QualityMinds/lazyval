@@ -61,6 +61,7 @@ class LazyvalSymbolProcessor(
     }
 
     private lateinit var lazyvalEnvironment: LazyvalKspEnvironment
+    private lateinit var elementValidator: LazyvalKspElementValidator
     // Additional state tracking is needed as KSP will run another round when files are created,
     // and in case classpath-elements are available, those will be processed again.
     // The processor should only be run once.
@@ -70,6 +71,7 @@ class LazyvalSymbolProcessor(
     override fun process(resolver: Resolver): List<KSAnnotated> {
         try {
             lazyvalEnvironment = LazyvalKspEnvironment(environment, resolver)
+            elementValidator = LazyvalKspElementValidator(lazyvalEnvironment)
         } catch (_: IllegalArgumentException) {
             return emptyList()
         }
@@ -80,7 +82,7 @@ class LazyvalSymbolProcessor(
         val validatedElements: List<ValidatedElement> = (annotatedSymbols + configuredElements)
             .filterIsInstance<KSClassDeclaration>()
             .mapNotNull { classDecl ->
-                lazyvalEnvironment.validateElement(classDecl)?.let { validated ->
+                elementValidator.validate(classDecl)?.let { validated ->
                     if(classDecl.containingFile != null){
                         ValidatedElement.ValidatedSourceElement(validated, classDecl.containingFile!!)
                     }else {

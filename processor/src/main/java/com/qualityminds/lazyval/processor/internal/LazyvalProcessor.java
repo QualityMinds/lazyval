@@ -68,11 +68,13 @@ public class LazyvalProcessor extends AbstractProcessor {
 
     private boolean classpathWarningAlreadyIssued = false;
     private LazyvalEnvironment lazyvalEnvironment;
+    private LazyvalElementValidator elementValidator;
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
         super.init(processingEnv);
         lazyvalEnvironment = new LazyvalEnvironment(processingEnv);
+        elementValidator = new LazyvalElementValidator(lazyvalEnvironment.typeUtils(), lazyvalEnvironment);
     }
 
     @Override
@@ -102,7 +104,7 @@ public class LazyvalProcessor extends AbstractProcessor {
         var configuredElements = lazyvalEnvironment.getConfiguredValues(roundEnv);
 
         Set<ValidatedGeneratorElement> validatedElements = Stream.concat(annotatedElements.stream(), configuredElements.stream())
-                .map(element -> lazyvalEnvironment.validateElement((TypeElement) element))
+                .map(element -> elementValidator.validate((TypeElement) element))
                 .flatMap(Optional::stream)
                 .collect(Collectors.toUnmodifiableSet());
         if (validatedElements.isEmpty()) {
