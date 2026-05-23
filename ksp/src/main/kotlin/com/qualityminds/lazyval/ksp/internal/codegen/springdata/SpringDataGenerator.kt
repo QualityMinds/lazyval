@@ -1,4 +1,4 @@
-package com.qualityminds.lazyval.ksp.internal.codegen.cassandra
+package com.qualityminds.lazyval.ksp.internal.codegen.springdata
 
 import com.qualityminds.lazyval.collections.NonEmptySet
 import com.qualityminds.lazyval.ksp.spi.Generator
@@ -10,11 +10,11 @@ import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import java.util.stream.Stream
 
-class CassandraSpringDataGenerator : Generator {
+class SpringDataGenerator : Generator {
 
     companion object {
-        private const val GENERATOR_ID = "cassandra-spring-data"
-        private const val OPTION_GENERATED_PACKAGE = "lazyval.cassandra_spring_data.package"
+        private const val GENERATOR_ID = "spring-data"
+        private const val OPTION_GENERATED_PACKAGE = "lazyval.spring_data.package"
 
         private val READING_CONVERTER = ClassName("org.springframework.data.convert", "ReadingConverter")
         private val WRITING_CONVERTER = ClassName("org.springframework.data.convert", "WritingConverter")
@@ -29,7 +29,7 @@ class CassandraSpringDataGenerator : Generator {
     override fun generatorId(): String = GENERATOR_ID
 
     override fun requiredClasspath(): Collection<String> =
-        listOf("org.springframework.data.cassandra.core.convert.CassandraCustomConversions")
+        listOf("org.springframework.data.convert.ReadingConverter")
 
     override fun supportedOptions(): Set<String> = setOf(OPTION_GENERATED_PACKAGE)
 
@@ -67,14 +67,16 @@ class CassandraSpringDataGenerator : Generator {
         }
 
         if (converterClassNames.isNotEmpty()) {
-            val configSpec = buildConfiguration(converterClassNames, context)
-            val configFile = FileSpec.builder(converterPackage, configSpec.name!!)
-                .addType(configSpec)
-                .build()
-            results += GeneratorResult.Kotlin(
-                GeneratorResult.Metadata(configFile.packageName, configFile.name),
-                configFile.toString()
-            )
+            if (context.isOnClasspath("org.springframework.data.cassandra.core.convert.CassandraCustomConversions")) {
+                val configSpec = buildCassandraConfiguration(converterClassNames, context)
+                val configFile = FileSpec.builder(converterPackage, configSpec.name!!)
+                    .addType(configSpec)
+                    .build()
+                results += GeneratorResult.Kotlin(
+                    GeneratorResult.Metadata(configFile.packageName, configFile.name),
+                    configFile.toString()
+                )
+            }
         }
 
         return results.stream()
@@ -83,18 +85,20 @@ class CassandraSpringDataGenerator : Generator {
     private fun buildReadConverter(element: ValidatedKspGeneratorElement): TypeSpec {
         val elementClassName = element.element.toClassName()
         val wrappedTypeName = element.wrappedProperty.type.toTypeName()
+        val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
+        val returnType = elementClassName.copy(nullable = factoryReturnsNullable)
 
         return TypeSpec.classBuilder("${element.typeName}ReadConverter")
             .addAnnotation(READING_CONVERTER)
             .addSuperinterface(
-                CONVERTER.parameterizedBy(wrappedTypeName.copy(nullable = false), elementClassName)
+                CONVERTER.parameterizedBy(wrappedTypeName.copy(nullable = false), returnType)
             )
             .addFunction(
                 FunSpec.builder("convert")
                     .addModifiers(KModifier.OVERRIDE)
                     .addParameter("source", wrappedTypeName.copy(nullable = false))
-                    .returns(elementClassName)
-                    .addStatement("return ${element.objectCreation("source")}${nullAssert(element)}")
+                    .returns(returnType)
+                    .addStatement("return ${element.objectCreation("source")}")
                     .build()
             )
             .build()
@@ -120,12 +124,7 @@ class CassandraSpringDataGenerator : Generator {
             .build()
     }
 
-    private fun nullAssert(element: ValidatedKspGeneratorElement): String {
-        val returnType = element.factoryMethod?.returnType?.resolve() ?: return ""
-        return if (returnType.isMarkedNullable) "!!" else ""
-    }
-
-    private fun buildConfiguration(converterClassNames: List<String>, context: Generator.Context): TypeSpec {
+    private fun buildCassandraConfiguration(converterClassNames: List<String>, context: Generator.Context): TypeSpec {
         val hasConditionalOnMissingBean = context.isOnClasspath(
             "org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean"
         )

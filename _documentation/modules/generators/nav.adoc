@@ -3,5 +3,6 @@
 * xref:jsonb.adoc[JSON-B]
 * xref:jpa.adoc[JPA]
 * xref:cassandra.adoc[Cassandra]
+* xref:spring-data.adoc[Spring Data]
 * xref:beanvalidation.adoc[Bean Validation]
 * xref:mapstruct.adoc[Mapstruct]

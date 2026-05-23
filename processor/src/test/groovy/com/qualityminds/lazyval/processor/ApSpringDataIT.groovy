@@ -9,8 +9,8 @@ import spock.lang.*
 
 import java.nio.file.Path
 
-@Title("Generator Integration - Cassandra Spring Data")
-class ApCassandraSpringIT extends Specification {
+@Title("Generator Integration - Spring Data")
+class ApSpringDataIT extends Specification {
 
     public static final Dependency dependencySpringDataCassandra = new Dependency("org.springframework.data", "spring-data-cassandra", "4.4.6")
     public static final Dependency dependencySpringDataCommons = new Dependency("org.springframework.data", "spring-data-commons", "3.4.6")
@@ -25,7 +25,7 @@ class ApCassandraSpringIT extends Specification {
     def testkitJava = Testkit.java()
 
     @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
-    void "Cassandra Spring Data with all Scenarios"(){
+    void "Spring Data with all Scenarios"(){
         given:
         scenario.withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
 
@@ -60,7 +60,7 @@ class ApCassandraSpringIT extends Specification {
         given:
         def scenario = Scenario.Java.quantity().withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         and: 'generator-package is overridden'
-        scenario.withOption("lazyval.cassandra_spring_data.package", "test.custom")
+        scenario.withOption("lazyval.spring_data.package", "test.custom")
 
         when:
         def result = testkitJava.run(projectDir, scenario)
@@ -84,5 +84,17 @@ class ApCassandraSpringIT extends Specification {
 
         then:
         result == new Testresult.Java.Success("BirthdayReadConverter.java", "BirthdayWriteConverter.java", "LazyvalCassandraSpringDataConfiguration.java")
+    }
+
+    void "Only read/write converters generated when no CustomConversions is on classpath"(){
+        given:
+        def scenario = Scenario.Java.quantity()
+                .withDependencies(dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then: 'converters are generated but no configuration class'
+        result == new Testresult.Java.Success("QuantityReadConverter.java", "QuantityWriteConverter.java")
     }
 }
