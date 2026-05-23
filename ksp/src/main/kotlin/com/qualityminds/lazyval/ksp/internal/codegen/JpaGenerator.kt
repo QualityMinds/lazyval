@@ -32,7 +32,7 @@ class JpaGenerator : Generator {
     ): Stream<GeneratorResult> {
         // end::docu[]
 
-        val packageName = context.generatorPackage(OPTION_GENERATED_PACKAGE, "boundary.persistence")
+        val packageName = context.generatorPackage(OPTION_GENERATED_PACKAGE, "boundary.persistence.jpa")
 
         return validatedElements.stream()
             .map { buildAttributeConverter(it) }

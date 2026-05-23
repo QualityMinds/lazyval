@@ -37,6 +37,18 @@ class KspJpaIT extends Specification {
         expected = new Testresult.Kotlin.Success(generatedJpaMapper)
     }
 
+    void "JPA generated at correct default location when no override is given"(){
+        given:
+        def scenario = Scenario.Kotlin.quantity()
+                .withDependencies(dependencyJakartaPersistence)
+
+        when:
+        testkitKotlin.run(projectDir, scenario)
+
+        then: 'file is generated at correct location using base-package with generator-default'
+        projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/jpa/QuantityAttributeConverter.kt").toFile().exists()
+    }
+
 
     void "Package override by Generator works as expected"(){
         given:
