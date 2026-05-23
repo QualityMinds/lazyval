@@ -4,7 +4,6 @@ import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
-import org.eclipse.collections.api.factory.Lists
 import spock.lang.*
 
 import java.nio.file.Path
@@ -24,7 +23,7 @@ class KspSpringDataIT extends Specification {
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
-    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
+    @Unroll("#scenario.name() compiles and generates LazyvalSpringDataConfiguration.kt")
     void "Spring Data with all Scenarios"(){
         given:
         scenario.withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
@@ -33,13 +32,10 @@ class KspSpringDataIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == expected
+        result == new Testresult.Kotlin.Success("LazyvalSpringDataConfiguration.kt")
 
         where:
         scenario << Scenario.Kotlin.all()
-        readConverter = scenario.name().replace(".kt", "ReadConverter.kt")
-        writeConverter = scenario.name().replace(".kt", "WriteConverter.kt")
-        expected = new Testresult.Kotlin.Success(readConverter, writeConverter, "LazyvalCassandraSpringDataConfiguration.kt")
     }
 
     void "Converters generated at correct default location when no override is given"(){
@@ -50,10 +46,8 @@ class KspSpringDataIT extends Specification {
         when:
         testkitKotlin.run(projectDir, scenario)
 
-        then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/cassandra/QuantityReadConverter.kt").toFile().exists()
-        projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/cassandra/QuantityWriteConverter.kt").toFile().exists()
-        projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/cassandra/LazyvalCassandraSpringDataConfiguration.kt").toFile().exists()
+        then: 'single configuration file is generated at correct location using base-package with generator-default'
+        projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/cassandra/LazyvalSpringDataConfiguration.kt").toFile().exists()
     }
 
     void "Package override by generator works as expected"(){
@@ -66,15 +60,13 @@ class KspSpringDataIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Kotlin.Success(Lists.immutable.of("QuantityReadConverter.kt", "QuantityWriteConverter.kt", "LazyvalCassandraSpringDataConfiguration.kt"))
+        result == new Testresult.Kotlin.Success("LazyvalSpringDataConfiguration.kt")
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/ksp/kotlin/test/custom/QuantityReadConverter.kt").toFile().exists()
-        projectDir.resolve("build/generated/ksp/kotlin/test/custom/QuantityWriteConverter.kt").toFile().exists()
-        projectDir.resolve("build/generated/ksp/kotlin/test/custom/LazyvalCassandraSpringDataConfiguration.kt").toFile().exists()
+        projectDir.resolve("build/generated/ksp/kotlin/test/custom/LazyvalSpringDataConfiguration.kt").toFile().exists()
     }
 
-    void "Only read/write converters generated when no CustomConversions is on classpath"(){
+    void "Nothing generated when no CustomConversions is on classpath"(){
         given:
         def scenario = Scenario.Kotlin.quantity()
                 .withDependencies(dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
@@ -82,7 +74,7 @@ class KspSpringDataIT extends Specification {
         when:
         def result = testkitKotlin.run(projectDir, scenario)
 
-        then: 'converters are generated but no configuration class'
-        result == new Testresult.Kotlin.Success("QuantityReadConverter.kt", "QuantityWriteConverter.kt")
+        then: 'no file is generated without a store-specific CustomConversions on the classpath'
+        result == new Testresult.Kotlin.NothingGenerated()
     }
 }

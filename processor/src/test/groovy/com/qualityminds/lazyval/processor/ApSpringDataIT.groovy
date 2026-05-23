@@ -4,7 +4,6 @@ import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
-import org.eclipse.collections.api.factory.Lists
 import spock.lang.*
 
 import java.nio.file.Path
@@ -24,7 +23,7 @@ class ApSpringDataIT extends Specification {
     @Shared
     def testkitJava = Testkit.java()
 
-    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
+    @Unroll("#scenario.name() compiles and generates LazyvalSpringDataConfiguration.java")
     void "Spring Data with all Scenarios"(){
         given:
         scenario.withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
@@ -33,13 +32,10 @@ class ApSpringDataIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == expected
+        result == new Testresult.Java.Success("LazyvalSpringDataConfiguration.java")
 
         where:
         scenario << Scenario.Java.all()
-        readConverter = scenario.name().replace(".java", "ReadConverter.java")
-        writeConverter = scenario.name().replace(".java", "WriteConverter.java")
-        expected = new Testresult.Java.Success(readConverter, writeConverter, "LazyvalCassandraSpringDataConfiguration.java")
     }
 
     void "Converters generated at correct default location when no override is given"(){
@@ -50,10 +46,8 @@ class ApSpringDataIT extends Specification {
         when:
         testkitJava.run(projectDir, scenario)
 
-        then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/test/boundary/persistence/cassandra/QuantityReadConverter.java").toFile().exists()
-        projectDir.resolve("build/generated/test/boundary/persistence/cassandra/QuantityWriteConverter.java").toFile().exists()
-        projectDir.resolve("build/generated/test/boundary/persistence/cassandra/LazyvalCassandraSpringDataConfiguration.java").toFile().exists()
+        then: 'single configuration file is generated at correct location using base-package with generator-default'
+        projectDir.resolve("build/generated/test/boundary/persistence/cassandra/LazyvalSpringDataConfiguration.java").toFile().exists()
     }
 
     void "Package override by generator works as expected"(){
@@ -66,12 +60,10 @@ class ApSpringDataIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Java.Success(Lists.immutable.of("QuantityReadConverter.java", "QuantityWriteConverter.java", "LazyvalCassandraSpringDataConfiguration.java"))
+        result == new Testresult.Java.Success("LazyvalSpringDataConfiguration.java")
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/test/custom/QuantityReadConverter.java").toFile().exists()
-        projectDir.resolve("build/generated/test/custom/QuantityWriteConverter.java").toFile().exists()
-        projectDir.resolve("build/generated/test/custom/LazyvalCassandraSpringDataConfiguration.java").toFile().exists()
+        projectDir.resolve("build/generated/test/custom/LazyvalSpringDataConfiguration.java").toFile().exists()
     }
 
     void "Birthday wrapping LocalDate generates valid converters"(){
@@ -83,10 +75,10 @@ class ApSpringDataIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("BirthdayReadConverter.java", "BirthdayWriteConverter.java", "LazyvalCassandraSpringDataConfiguration.java")
+        result == new Testresult.Java.Success("LazyvalSpringDataConfiguration.java")
     }
 
-    void "Only read/write converters generated when no CustomConversions is on classpath"(){
+    void "Nothing generated when no CustomConversions is on classpath"(){
         given:
         def scenario = Scenario.Java.quantity()
                 .withDependencies(dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
@@ -94,7 +86,7 @@ class ApSpringDataIT extends Specification {
         when:
         def result = testkitJava.run(projectDir, scenario)
 
-        then: 'converters are generated but no configuration class'
-        result == new Testresult.Java.Success("QuantityReadConverter.java", "QuantityWriteConverter.java")
+        then: 'no file is generated without a store-specific CustomConversions on the classpath'
+        result == new Testresult.Java.NothingGenerated()
     }
 }

@@ -48,40 +48,24 @@ public class SpringDataGenerator implements Generator {
 
     @Override
     public Stream<GeneratorResult> generate(NonEmptySet<ValidatedGeneratorElement> elements, Context context) {
+        if (!context.isOnClasspath("org.springframework.data.cassandra.core.convert.CassandraCustomConversions")) {
+            return Stream.empty();
+        }
+
         final String converterPackage = context.generatorPackage(OPTION_GENERATED_PACKAGE, "boundary.persistence.cassandra");
 
-        List<GeneratorResult> results = new ArrayList<>();
-        List<String> converterClassNames = new ArrayList<>();
-
+        List<TypeSpec> converterSpecs = new ArrayList<>();
         for (ValidatedGeneratorElement element : elements) {
-            TypeSpec readConverter = buildReadConverter(element);
-            TypeSpec writeConverter = buildWriteConverter(element);
-
-            JavaFile readFile = JavaFile.builder(converterPackage, readConverter).build();
-            JavaFile writeFile = JavaFile.builder(converterPackage, writeConverter).build();
-
-            results.add(new GeneratorResult.Java(
-                    new GeneratorResult.Metadata(readFile.packageName(), readFile.typeSpec().name()),
-                    readFile.toString()));
-            results.add(new GeneratorResult.Java(
-                    new GeneratorResult.Metadata(writeFile.packageName(), writeFile.typeSpec().name()),
-                    writeFile.toString()));
-
-            converterClassNames.add(readConverter.name());
-            converterClassNames.add(writeConverter.name());
+            converterSpecs.add(buildReadConverter(element));
+            converterSpecs.add(buildWriteConverter(element));
         }
 
-        if (!converterClassNames.isEmpty()) {
-            if (context.isOnClasspath("org.springframework.data.cassandra.core.convert.CassandraCustomConversions")) {
-                TypeSpec configSpec = buildCassandraConfiguration(converterClassNames, context);
-                JavaFile configFile = JavaFile.builder(converterPackage, configSpec).build();
-                results.add(new GeneratorResult.Java(
-                        new GeneratorResult.Metadata(configFile.packageName(), configFile.typeSpec().name()),
-                        configFile.toString()));
-            }
-        }
+        TypeSpec configSpec = buildSpringDataConfiguration(converterSpecs, context);
+        JavaFile configFile = JavaFile.builder(converterPackage, configSpec).build();
 
-        return results.stream();
+        return Stream.of(new GeneratorResult.Java(
+                new GeneratorResult.Metadata(configFile.packageName(), configFile.typeSpec().name()),
+                configFile.toString()));
     }
 
     private static TypeSpec buildReadConverter(ValidatedGeneratorElement element) {
@@ -105,7 +89,7 @@ public class SpringDataGenerator implements Generator {
                 .build();
 
         return TypeSpec.classBuilder(element.typeName() + "ReadConverter")
-                .addModifiers(Modifier.PUBLIC)
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
                 .addAnnotation(READING_CONVERTER)
                 .addSuperinterface(ParameterizedTypeName.get(CONVERTER, wrappedTypeName, elementTypeName))
                 .addMethod(convertMethod)
@@ -133,14 +117,14 @@ public class SpringDataGenerator implements Generator {
                 .build();
 
         return TypeSpec.classBuilder(element.typeName() + "WriteConverter")
-                .addModifiers(Modifier.PUBLIC)
+                .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
                 .addAnnotation(WRITING_CONVERTER)
                 .addSuperinterface(ParameterizedTypeName.get(CONVERTER, elementTypeName, wrappedTypeName))
                 .addMethod(convertMethod)
                 .build();
     }
 
-    private static TypeSpec buildCassandraConfiguration(List<String> converterClassNames, Context context) {
+    private static TypeSpec buildSpringDataConfiguration(List<TypeSpec> converterSpecs, Context context) {
         boolean hasConditionalOnMissingBean = context.isOnClasspath(
                 "org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean");
 
@@ -159,9 +143,9 @@ public class SpringDataGenerator implements Generator {
         }
 
         StringBuilder listInit = new StringBuilder("$T<$T> converters = $T.of(\n");
-        for (int i = 0; i < converterClassNames.size(); i++) {
-            listInit.append("    new ").append(converterClassNames.get(i)).append("()");
-            if (i < converterClassNames.size() - 1) {
+        for (int i = 0; i < converterSpecs.size(); i++) {
+            listInit.append("    new ").append(converterSpecs.get(i).name()).append("()");
+            if (i < converterSpecs.size() - 1) {
                 listInit.append(",");
             }
             listInit.append("\n");
@@ -170,11 +154,22 @@ public class SpringDataGenerator implements Generator {
         beanMethod.addStatement(listInit.toString(), listClass, converterWildcard, listClass);
         beanMethod.addStatement("return new $T(converters)", CASSANDRA_CUSTOM_CONVERSIONS);
 
-        TypeSpec.Builder configBuilder = TypeSpec.classBuilder("LazyvalCassandraSpringDataConfiguration")
+        TypeSpec.Builder configBuilder = TypeSpec.classBuilder("LazyvalSpringDataConfiguration")
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(CONFIGURATION);
+                .addAnnotation(CONFIGURATION)
+                .addJavadoc("""
+                        Generated Spring Data converter configuration.
+                        <p>
+                        Registers all read/write converters for types annotated with {@code @Lazyval}
+                        with the appropriate Spring Data store-specific conversion service.
+                        <p>
+                        Generated by the Lazyval annotation processor. Do not modify.
+                        """);
 
         configBuilder.addMethod(beanMethod.build());
+        for (TypeSpec converterSpec : converterSpecs) {
+            configBuilder.addType(converterSpec);
+        }
 
         return configBuilder.build();
     }

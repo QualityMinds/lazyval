@@ -1,8 +1,8 @@
 .Generators
-* xref:jackson.adoc[Jackson (2/3)]
-* xref:jsonb.adoc[JSON-B]
-* xref:jpa.adoc[JPA]
-* xref:cassandra.adoc[Cassandra]
-* xref:spring-data.adoc[Spring Data]
 * xref:beanvalidation.adoc[Bean Validation]
+* xref:cassandra.adoc[Cassandra]
+* xref:jackson.adoc[Jackson (2/3)]
+* xref:jpa.adoc[JPA]
+* xref:jsonb.adoc[JSON-B]
 * xref:mapstruct.adoc[Mapstruct]
+* xref:spring-data.adoc[Spring Data]
