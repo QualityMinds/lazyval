@@ -3,6 +3,7 @@ package com.qualityminds.lazyval.integration.application;
 import com.qualityminds.lazyval.integration.domain.Order;
 import com.qualityminds.lazyval.integration.domain.OrderDate;
 import com.qualityminds.lazyval.integration.domain.OrderRepository;
+import com.qualityminds.lazyval.integration.shared.CouponCode;
 import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.shared.Isbn;
 import com.qualityminds.lazyval.integration.shared.Quantity;
@@ -30,13 +31,15 @@ public class StartupBean {
             Isbn.parse("3-86680-192-0"),
             new Quantity(1),
             new EMail("a@b.de"),
-            OrderDate.now());
+            OrderDate.now(),
+            null);
     public static final Order DefaultOrderB = new Order(
             UUID.fromString("f6f6f6f6-a7a7-b8b8-c9c9-d0d0d0d0d0d0"),
             Isbn.parse("978-3-86680-192-9"),
             new Quantity(1),
             new EMail("x@y.de"),
-            OrderDate.now());
+            OrderDate.now(),
+            CouponCode.ofNullable("FRESH12"));
 
     // Field injection — @Singleton EJB also requires a public no-arg constructor, and field
     // injection sidesteps having to maintain a redundant no-arg ctor alongside an @Inject one.

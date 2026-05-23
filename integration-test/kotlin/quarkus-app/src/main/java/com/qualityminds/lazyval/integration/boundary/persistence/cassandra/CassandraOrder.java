@@ -5,6 +5,7 @@ import com.datastax.oss.driver.api.mapper.annotations.Entity;
 import com.datastax.oss.driver.api.mapper.annotations.PartitionKey;
 import com.datastax.oss.driver.api.mapper.annotations.PropertyStrategy;
 import com.qualityminds.lazyval.integration.domain.OrderDate;
+import com.qualityminds.lazyval.integration.shared.CouponCode;
 import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.shared.Isbn;
 import com.qualityminds.lazyval.integration.shared.Quantity;
@@ -22,15 +23,18 @@ public class CassandraOrder {
     private EMail email;
     @CqlName("orderdate")
     private OrderDate orderDate;
+    @CqlName("couponcode")
+    private CouponCode couponCode;
 
     protected CassandraOrder() {}
 
-    public CassandraOrder(UUID id, Isbn isbn, Quantity quantity, EMail email) {
+    public CassandraOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, CouponCode couponCode) {
         this.id = id;
         this.isbn = isbn;
         this.quantity = quantity;
         this.email = email;
         this.orderDate = OrderDate.now();
+        this.couponCode = couponCode;
     }
 
     public UUID getId() { return id; }
@@ -47,4 +51,12 @@ public class CassandraOrder {
 
     public OrderDate getOrderDate() { return orderDate; }
     public void setOrderDate(OrderDate orderDate) { this.orderDate = orderDate; }
+
+    public CouponCode getCouponCode() {
+        return couponCode;
+    }
+
+    public void setCouponCode(CouponCode couponCode) {
+        this.couponCode = couponCode;
+    }
 }

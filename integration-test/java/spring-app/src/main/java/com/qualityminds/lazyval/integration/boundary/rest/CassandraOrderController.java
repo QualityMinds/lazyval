@@ -4,6 +4,7 @@ import com.qualityminds.lazyval.integration.boundary.rest.api.OrderCassandraApi;
 import com.qualityminds.lazyval.integration.boundary.rest.model.CreateOrder;
 import com.qualityminds.lazyval.integration.boundary.rest.model.Order;
 import com.qualityminds.lazyval.integration.domain.OrderRepository;
+import com.qualityminds.lazyval.integration.shared.CouponCode;
 import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.shared.Isbn;
 import com.qualityminds.lazyval.integration.shared.Quantity;
@@ -35,7 +36,8 @@ public class CassandraOrderController implements OrderCassandraApi {
                 com.qualityminds.lazyval.integration.domain.Order.create(
                         Isbn.parse(createOrder.getIsbn()),
                         new Quantity(createOrder.getQuantity()),
-                        new EMail(createOrder.getEmail())
+                        new EMail(createOrder.getEmail()),
+                        CouponCode.ofNullable(createOrder.getCouponCode())
                 );
         repository.save(newOrder);
         return ResponseEntity.ok(mapper.toDto(newOrder));

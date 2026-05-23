@@ -2,6 +2,7 @@ package com.qualityminds.lazyval.integration.boundary.persistence.jpa
 
 import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.domain.OrderDate
+import com.qualityminds.lazyval.integration.shared.CouponCode
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import jakarta.persistence.Entity
@@ -24,4 +25,5 @@ class JpaOrder constructor(
     var quantity: Quantity = quantity
     var email: EMail = email
     var orderDate: OrderDate = OrderDate(LocalDate.now())
+    var couponCode: CouponCode? = null
 }

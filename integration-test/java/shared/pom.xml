@@ -12,4 +12,11 @@
     <artifactId>integration-test-java-shared</artifactId>
     <name>Integration Test Java Shared</name>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+            <version>${version.jspecify}</version>
+        </dependency>
+    </dependencies>
 </project>

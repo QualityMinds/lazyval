@@ -1,9 +1,11 @@
 package com.qualityminds.lazyval.integration.boundary.persistence.cassandra;
 
 import com.qualityminds.lazyval.integration.domain.OrderDate;
+import com.qualityminds.lazyval.integration.shared.CouponCode;
 import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.shared.Isbn;
 import com.qualityminds.lazyval.integration.shared.Quantity;
+import org.jspecify.annotations.Nullable;
 import org.springframework.data.cassandra.core.mapping.Column;
 import org.springframework.data.cassandra.core.mapping.PrimaryKey;
 import org.springframework.data.cassandra.core.mapping.Table;
@@ -20,6 +22,8 @@ public class CassandraOrder {
     private EMail email;
     @Column("orderdate")
     private OrderDate orderDate;
+    @Nullable
+    private CouponCode couponCode;
 
     protected CassandraOrder() {
     }
@@ -70,5 +74,14 @@ public class CassandraOrder {
 
     public void setOrderDate(OrderDate orderDate) {
         this.orderDate = orderDate;
+    }
+
+    @Nullable
+    public CouponCode getCouponCode() {
+        return couponCode;
+    }
+
+    public void setCouponCode(@Nullable CouponCode couponCode) {
+        this.couponCode = couponCode;
     }
 }

@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.integration.boundary.persistence.jpa;
 
 import com.qualityminds.lazyval.integration.domain.OrderDate;
+import com.qualityminds.lazyval.integration.shared.CouponCode;
 import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.shared.Isbn;
 import com.qualityminds.lazyval.integration.shared.Quantity;
@@ -20,15 +21,17 @@ public class JpaOrder {
     public Quantity quantity;
     public EMail email;
     public OrderDate orderDate;
+    public CouponCode couponCode;
 
     protected JpaOrder() {
     }
 
-    public JpaOrder(UUID id, Isbn isbn, Quantity quantity, EMail email) {
+    public JpaOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, CouponCode couponCode) {
         this.id = id;
         this.isbn = isbn;
         this.quantity = quantity;
         this.email = email;
         this.orderDate = OrderDate.now();
+        this.couponCode = couponCode;
     }
 }

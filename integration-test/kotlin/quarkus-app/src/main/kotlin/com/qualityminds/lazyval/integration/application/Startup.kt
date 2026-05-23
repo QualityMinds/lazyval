@@ -3,6 +3,7 @@ package com.qualityminds.lazyval.integration.application
 import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.domain.Order
 import com.qualityminds.lazyval.integration.domain.OrderRepository
+import com.qualityminds.lazyval.integration.shared.CouponCode
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import io.quarkus.runtime.StartupEvent
@@ -42,7 +43,8 @@ class Startup @Inject constructor(
         val DefaultOrderB: Order = Order.create(
             Isbn.parse("978-3-86680-192-9"),
             Quantity(1),
-            EMail("x@y.de")
+            EMail("x@y.de"),
+            CouponCode.ofNullable("FRESH12")
         )
     }
 }
