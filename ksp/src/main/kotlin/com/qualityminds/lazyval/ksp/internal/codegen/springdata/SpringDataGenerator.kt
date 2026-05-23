@@ -37,49 +37,29 @@ class SpringDataGenerator : Generator {
         validatedElements: NonEmptySet<ValidatedKspGeneratorElement>,
         context: Generator.Context
     ): Stream<GeneratorResult> {
+        if (!context.isOnClasspath("org.springframework.data.cassandra.core.convert.CassandraCustomConversions")) {
+            return Stream.empty()
+        }
+
         val converterPackage = context.generatorPackage(OPTION_GENERATED_PACKAGE, "boundary.persistence.cassandra")
 
-        val results = mutableListOf<GeneratorResult>()
-        val converterClassNames = mutableListOf<String>()
-
+        val converterSpecs = mutableListOf<TypeSpec>()
         for (element in validatedElements) {
-            val readConverter = buildReadConverter(element)
-            val writeConverter = buildWriteConverter(element)
-
-            val readFile = FileSpec.builder(converterPackage, readConverter.name!!)
-                .addType(readConverter)
-                .build()
-            val writeFile = FileSpec.builder(converterPackage, writeConverter.name!!)
-                .addType(writeConverter)
-                .build()
-
-            results += GeneratorResult.Kotlin(
-                GeneratorResult.Metadata(readFile.packageName, readFile.name),
-                readFile.toString()
-            )
-            results += GeneratorResult.Kotlin(
-                GeneratorResult.Metadata(writeFile.packageName, writeFile.name),
-                writeFile.toString()
-            )
-
-            converterClassNames += readConverter.name!!
-            converterClassNames += writeConverter.name!!
+            converterSpecs += buildReadConverter(element)
+            converterSpecs += buildWriteConverter(element)
         }
 
-        if (converterClassNames.isNotEmpty()) {
-            if (context.isOnClasspath("org.springframework.data.cassandra.core.convert.CassandraCustomConversions")) {
-                val configSpec = buildCassandraConfiguration(converterClassNames, context)
-                val configFile = FileSpec.builder(converterPackage, configSpec.name!!)
-                    .addType(configSpec)
-                    .build()
-                results += GeneratorResult.Kotlin(
-                    GeneratorResult.Metadata(configFile.packageName, configFile.name),
-                    configFile.toString()
-                )
-            }
-        }
+        val configSpec = buildSpringDataConfiguration(converterSpecs, context)
 
-        return results.stream()
+        val file = FileSpec.builder(converterPackage, "LazyvalSpringDataConfiguration")
+            .addType(configSpec)
+            .apply { converterSpecs.forEach { addType(it) } }
+            .build()
+
+        return Stream.of(GeneratorResult.Kotlin(
+            GeneratorResult.Metadata(file.packageName, file.name),
+            file.toString()
+        ))
     }
 
     private fun buildReadConverter(element: ValidatedKspGeneratorElement): TypeSpec {
@@ -89,6 +69,7 @@ class SpringDataGenerator : Generator {
         val returnType = elementClassName.copy(nullable = factoryReturnsNullable)
 
         return TypeSpec.classBuilder("${element.typeName}ReadConverter")
+            .addModifiers(KModifier.PRIVATE)
             .addAnnotation(READING_CONVERTER)
             .addSuperinterface(
                 CONVERTER.parameterizedBy(wrappedTypeName.copy(nullable = false), returnType)
@@ -109,6 +90,7 @@ class SpringDataGenerator : Generator {
         val wrappedTypeName = element.wrappedProperty.type.toTypeName()
 
         return TypeSpec.classBuilder("${element.typeName}WriteConverter")
+            .addModifiers(KModifier.PRIVATE)
             .addAnnotation(WRITING_CONVERTER)
             .addSuperinterface(
                 CONVERTER.parameterizedBy(elementClassName, wrappedTypeName.copy(nullable = false))
@@ -124,7 +106,7 @@ class SpringDataGenerator : Generator {
             .build()
     }
 
-    private fun buildCassandraConfiguration(converterClassNames: List<String>, context: Generator.Context): TypeSpec {
+    private fun buildSpringDataConfiguration(converterSpecs: List<TypeSpec>, context: Generator.Context): TypeSpec {
         val hasConditionalOnMissingBean = context.isOnClasspath(
             "org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean"
         )
@@ -141,13 +123,21 @@ class SpringDataGenerator : Generator {
             }
             .addStatement(
                 "val converters = listOf(\n%L\n)",
-                converterClassNames.joinToString(",\n") { "    ${it}()" }
+                converterSpecs.joinToString(",\n") { "    ${it.name}()" }
             )
             .addStatement("return %T(converters)", CASSANDRA_CUSTOM_CONVERSIONS)
             .build()
 
-        return TypeSpec.classBuilder("LazyvalCassandraSpringDataConfiguration")
+        return TypeSpec.classBuilder("LazyvalSpringDataConfiguration")
             .addAnnotation(CONFIGURATION)
+            .addKdoc("""
+                Generated Spring Data converter configuration.
+
+                Registers all read/write converters for types annotated with `@Lazyval`
+                with the appropriate Spring Data store-specific conversion service.
+
+                Generated by the Lazyval annotation processor. Do not modify.
+            """.trimIndent())
             .addFunction(beanMethod)
             .build()
     }

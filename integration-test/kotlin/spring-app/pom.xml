@@ -150,6 +150,9 @@
                         <lazyval.generators.basePackage>
                             com.qualityminds.lazyval.integration
                         </lazyval.generators.basePackage>
+                        <lazyval.generators.disable>
+                            cassandra,jackson-2
+                        </lazyval.generators.disable>
                     </apOptions>
                 </configuration>
             </plugin>

@@ -185,6 +185,7 @@
                         <arg>-Amapstruct.defaultComponentModel=spring</arg>
                         <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
                         <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
+                        <arg>-Alazyval.generators.disable=cassandra,jackson-2</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
