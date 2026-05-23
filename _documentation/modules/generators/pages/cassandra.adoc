@@ -4,8 +4,8 @@ Since domain-primitives are complex objects, Cassandra cannot natively map them 
 This generator creates DataStax `MappingCodec` implementations that transparently convert between your
 domain-primitives and their underlying CQL types when reading from or writing to Cassandra.
 
-When Spring Data Cassandra is detected on the classpath, a dedicated set of Spring `Converter` classes and
-an auto-configuration are generated instead (see <<Spring Data>> below).
+NOTE: For Spring Data Cassandra projects, see xref:spring-data.adoc[Spring Data] — a separate generator
+produces `@ReadingConverter`/`@WritingConverter` classes and a `CassandraCustomConversions` bean.
 
 == Config Options
 
@@ -19,10 +19,6 @@ Overrides `lazyval.generators.basePackage`.
 |_lazyval.cassandra.quarkus.register_
 |Controls whether the Quarkus codec registrar is generated when Quarkus is detected.
 Defaults to `true`. Set to `false` to disable automatic registration.
-
-|_lazyval.cassandra_spring_data.package_
-|Specifies the package where the Spring Data converter classes are generated to.
-Overrides `lazyval.generators.basePackage`.
 
 |===
 
@@ -201,99 +197,3 @@ public class LazyvalCassandraCodecRegistrar {
 ----
 
 No manual registration is needed — the codecs are available as soon as the Cassandra session is injected.
-
-=== Spring Data
-
-When Spring Data Cassandra (`CassandraCustomConversions`) is detected on the classpath, a separate set of
-Spring `Converter` classes is generated instead of (or in addition to) the raw codecs. For each
-domain-primitive a `@ReadingConverter` and a `@WritingConverter` are created, together with a
-`@Configuration` class that bundles them into a `CassandraCustomConversions` bean.
-
-[tabs]
-====
-Java::
-+
-[source,java]
-----
-@ReadingConverter
-public class IsbnReadConverter implements Converter<String, Isbn> {
-    @Override
-    public Isbn convert(String source) {
-        return Isbn.parse(source);
-    }
-}
-
-@WritingConverter
-public class IsbnWriteConverter implements Converter<Isbn, String> {
-    @Override
-    public String convert(Isbn source) {
-        return source.value();
-    }
-}
-----
-
-Kotlin::
-+
-[source,kotlin]
-----
-@ReadingConverter
-public class IsbnReadConverter : Converter<String, Isbn> {
-  override fun convert(source: String): Isbn = Isbn.parse(source)
-}
-
-@WritingConverter
-public class IsbnWriteConverter : Converter<Isbn, String> {
-  override fun convert(source: Isbn): String = source.value
-}
-----
-====
-
-The generated `@Configuration` class registers all converters as a `CassandraCustomConversions` bean.
-When Spring Boot is on the classpath, the bean is annotated with `@ConditionalOnMissingBean` so that
-it can be overridden by a custom configuration if needed.
-
-[tabs]
-====
-Java::
-+
-[source,java]
-----
-@Configuration
-public class LazyvalCassandraSpringDataConfiguration {
-    @Bean
-    @ConditionalOnMissingBean
-    public CassandraCustomConversions cassandraCustomConversions() {
-        List<Converter<?, ?>> converters = List.of(
-            new IsbnReadConverter(),
-            new IsbnWriteConverter(),
-            new QuantityReadConverter(),
-            new QuantityWriteConverter()
-        );
-        return new CassandraCustomConversions(converters);
-    }
-}
-----
-
-Kotlin::
-+
-[source,kotlin]
-----
-@Configuration
-public class LazyvalCassandraSpringDataConfiguration {
-  @Bean
-  @ConditionalOnMissingBean
-  public fun cassandraCustomConversions(): CassandraCustomConversions {
-    val converters = listOf(
-            IsbnReadConverter(),
-            IsbnWriteConverter(),
-            QuantityReadConverter(),
-            QuantityWriteConverter()
-        )
-    return CassandraCustomConversions(converters)
-  }
-}
-----
-====
-
-Spring Boot auto-configuration will automatically pick up the `CassandraCustomConversions` bean — no
-additional setup is required.

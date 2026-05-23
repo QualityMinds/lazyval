@@ -9,8 +9,8 @@ import spock.lang.*
 
 import java.nio.file.Path
 
-@Title("Generator Integration - Cassandra Spring Data")
-class KspCassandraSpringIT extends Specification {
+@Title("Generator Integration - Spring Data")
+class KspSpringDataIT extends Specification {
 
     public static final Dependency dependencySpringDataCassandra = new Dependency("org.springframework.data", "spring-data-cassandra", "4.4.6")
     public static final Dependency dependencySpringDataCommons = new Dependency("org.springframework.data", "spring-data-commons", "3.4.6")
@@ -25,7 +25,7 @@ class KspCassandraSpringIT extends Specification {
     def testkitKotlin = Testkit.kotlin()
 
     @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
-    void "Cassandra Spring Data with all Scenarios"(){
+    void "Spring Data with all Scenarios"(){
         given:
         scenario.withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
 
@@ -60,7 +60,7 @@ class KspCassandraSpringIT extends Specification {
         given:
         def scenario = Scenario.Kotlin.quantity().withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         and: 'generator-package is overridden'
-        scenario.withOption("lazyval.cassandra_spring_data.package", "test.custom")
+        scenario.withOption("lazyval.spring_data.package", "test.custom")
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -72,5 +72,17 @@ class KspCassandraSpringIT extends Specification {
         projectDir.resolve("build/generated/ksp/kotlin/test/custom/QuantityReadConverter.kt").toFile().exists()
         projectDir.resolve("build/generated/ksp/kotlin/test/custom/QuantityWriteConverter.kt").toFile().exists()
         projectDir.resolve("build/generated/ksp/kotlin/test/custom/LazyvalCassandraSpringDataConfiguration.kt").toFile().exists()
+    }
+
+    void "Only read/write converters generated when no CustomConversions is on classpath"(){
+        given:
+        def scenario = Scenario.Kotlin.quantity()
+                .withDependencies(dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then: 'converters are generated but no configuration class'
+        result == new Testresult.Kotlin.Success("QuantityReadConverter.kt", "QuantityWriteConverter.kt")
     }
 }

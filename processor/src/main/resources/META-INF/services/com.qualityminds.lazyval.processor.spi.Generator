@@ -3,6 +3,6 @@ com.qualityminds.lazyval.processor.internal.codegen.JpaGenerator
 com.qualityminds.lazyval.processor.internal.codegen.jackson.Jackson2Generator
 com.qualityminds.lazyval.processor.internal.codegen.jackson.Jackson3Generator
 com.qualityminds.lazyval.processor.internal.codegen.cassandra.CassandraCodecGenerator
-com.qualityminds.lazyval.processor.internal.codegen.cassandra.CassandraSpringDataGenerator
+com.qualityminds.lazyval.processor.internal.codegen.springdata.SpringDataGenerator
 com.qualityminds.lazyval.processor.internal.codegen.beanvalidation.BeanValidationGenerator
 com.qualityminds.lazyval.processor.internal.codegen.JsonbGenerator

@@ -1,4 +1,4 @@
-package com.qualityminds.lazyval.processor.internal.codegen.cassandra;
+package com.qualityminds.lazyval.processor.internal.codegen.springdata;
 
 import com.palantir.javapoet.*;
 import com.qualityminds.lazyval.collections.NonEmptySet;
@@ -15,10 +15,10 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 // must only be public for ServiceLoader, but it is not part of the API
-public class CassandraSpringDataGenerator implements Generator {
+public class SpringDataGenerator implements Generator {
 
-    private static final String GENERATOR_ID = "cassandra-spring-data";
-    private static final String OPTION_GENERATED_PACKAGE = "lazyval.cassandra_spring_data.package";
+    private static final String GENERATOR_ID = "spring-data";
+    private static final String OPTION_GENERATED_PACKAGE = "lazyval.spring_data.package";
 
     private static final ClassName READING_CONVERTER = ClassName.get("org.springframework.data.convert", "ReadingConverter");
     private static final ClassName WRITING_CONVERTER = ClassName.get("org.springframework.data.convert", "WritingConverter");
@@ -38,7 +38,7 @@ public class CassandraSpringDataGenerator implements Generator {
 
     @Override
     public Collection<String> requiredClasspath() {
-        return List.of("org.springframework.data.cassandra.core.convert.CassandraCustomConversions");
+        return List.of("org.springframework.data.convert.ReadingConverter");
     }
 
     @Override
@@ -72,11 +72,13 @@ public class CassandraSpringDataGenerator implements Generator {
         }
 
         if (!converterClassNames.isEmpty()) {
-            TypeSpec configSpec = buildConfiguration(converterClassNames, context);
-            JavaFile configFile = JavaFile.builder(converterPackage, configSpec).build();
-            results.add(new GeneratorResult.Java(
-                    new GeneratorResult.Metadata(configFile.packageName(), configFile.typeSpec().name()),
-                    configFile.toString()));
+            if (context.isOnClasspath("org.springframework.data.cassandra.core.convert.CassandraCustomConversions")) {
+                TypeSpec configSpec = buildCassandraConfiguration(converterClassNames, context);
+                JavaFile configFile = JavaFile.builder(converterPackage, configSpec).build();
+                results.add(new GeneratorResult.Java(
+                        new GeneratorResult.Metadata(configFile.packageName(), configFile.typeSpec().name()),
+                        configFile.toString()));
+            }
         }
 
         return results.stream();
@@ -138,7 +140,7 @@ public class CassandraSpringDataGenerator implements Generator {
                 .build();
     }
 
-    private static TypeSpec buildConfiguration(List<String> converterClassNames, Context context) {
+    private static TypeSpec buildCassandraConfiguration(List<String> converterClassNames, Context context) {
         boolean hasConditionalOnMissingBean = context.isOnClasspath(
                 "org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean");
 
