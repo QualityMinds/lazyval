@@ -261,6 +261,11 @@ components:
           description: Customer email address
           examples:
             - "customer@example.com"
+        couponCode:
+          type: string
+          description: Optional coupon or discount code applied to the order
+          examples:
+            - "SUMMER25"
 
     Order:
       type: object
@@ -298,6 +303,12 @@ components:
           description: Date the order was placed (never in the future)
           examples:
             - "2026-05-17"
+        couponCode:
+          type: string
+          format: couponcode
+          description: Optional coupon or discount code applied to the order
+          examples:
+            - "SUMMER25"
 
     # RFC 9457 (obsoletes RFC 7807) "Problem Details for HTTP APIs"
     Problem:

@@ -3,6 +3,7 @@ package com.qualityminds.lazyval.integration.boundary.rest
 import com.qualityminds.lazyval.integration.boundary.rest.api.OrderCassandraApi
 import com.qualityminds.lazyval.integration.boundary.rest.model.CreateOrder
 import com.qualityminds.lazyval.integration.boundary.rest.model.Order
+import com.qualityminds.lazyval.integration.shared.CouponCode
 import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.domain.OrderRepository
 import com.qualityminds.lazyval.integration.shared.Isbn
@@ -26,6 +27,7 @@ class CassandraOrderController(
             Isbn.parse(createOrder.isbn),
             Quantity(createOrder.quantity),
             EMail(createOrder.email),
+            CouponCode.ofNullable(createOrder.couponCode),
         )
         repository.save(newOrder)
         return ResponseEntity.ok(mapper.toDto(newOrder))

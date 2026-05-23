@@ -86,6 +86,7 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-jdk14</artifactId> <!-- JUL binding -->
             <version>${version.slf4j}</version>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- Test -->
@@ -110,6 +111,12 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-cassandra</artifactId>
             <version>${version.it.testcontainers}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${version.slf4j}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -160,6 +167,7 @@
                                 <typeMapping>string+email=EMail</typeMapping>
                                 <typeMapping>string+date=OrderDate</typeMapping>
                                 <typeMapping>integer+quantity=Quantity</typeMapping>
+                                <typeMapping>string+couponcode=CouponCode</typeMapping>
                             </typeMappings>
 
                             <!-- Import mappings: fully qualified class names -->
@@ -167,8 +175,9 @@
                                 <!-- From shared module -->
                                 <importMapping>Isbn=com.qualityminds.lazyval.integration.shared.Isbn</importMapping>
                                 <importMapping>Quantity=com.qualityminds.lazyval.integration.shared.Quantity</importMapping>
-                                <!-- From quarkus-app domain -->
                                 <importMapping>EMail=com.qualityminds.lazyval.integration.shared.EMail</importMapping>
+                                <importMapping>CouponCode=com.qualityminds.lazyval.integration.shared.CouponCode</importMapping>
+                                <!-- From app domain -->
                                 <importMapping>OrderDate=com.qualityminds.lazyval.integration.domain.OrderDate</importMapping>
                             </importMappings>
                         </configuration>
@@ -199,7 +208,14 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <!-- force slf4j-simple over jul -->
+                    <systemPropertyVariables>
+                        <slf4j.provider>org.slf4j.simple.SimpleServiceProvider</slf4j.provider>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>

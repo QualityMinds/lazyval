@@ -4,6 +4,7 @@ import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.domain.Order
 import com.qualityminds.lazyval.integration.domain.OrderDate
 import com.qualityminds.lazyval.integration.domain.OrderRepository
+import com.qualityminds.lazyval.integration.shared.CouponCode
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import jakarta.annotation.PostConstruct
@@ -57,7 +58,8 @@ class StartupBean @Inject constructor(
             Isbn.parse("978-3-86680-192-9"),
             Quantity(1),
             EMail("x@y.de"),
-            OrderDate.now()
+            OrderDate.now(),
+            CouponCode.ofNullable("FRESH12")
         )
     }
 }

@@ -9,5 +9,6 @@ import jakarta.json.bind.annotation.JsonbProperty
 data class Demo @JsonbCreator constructor(
     @param:JsonbProperty("isbn") val isbn: Isbn,
     @param:JsonbProperty("quantity") val quantity: Quantity,
-    @param:JsonbProperty("email") val email: EMail
+    @param:JsonbProperty("email") val email: EMail,
+    @param:JsonbProperty("couponCode") val couponCode: String? = null
 )

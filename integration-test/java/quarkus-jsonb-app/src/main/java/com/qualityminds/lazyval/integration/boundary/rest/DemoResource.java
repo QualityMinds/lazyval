@@ -16,7 +16,9 @@ public class DemoResource {
         return new Demo(
                 Isbn.parse("3-86680-192-0"),
                 new Quantity(2),
-                new EMail("a@b.de"));
+                new EMail("a@b.de"),
+                null
+        );
     }
 
     @POST

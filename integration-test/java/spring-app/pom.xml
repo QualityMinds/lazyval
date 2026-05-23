@@ -146,15 +146,16 @@
                                 <typeMapping>string+email=EMail</typeMapping>
                                 <typeMapping>string+date=OrderDate</typeMapping>
                                 <typeMapping>integer+quantity=Quantity</typeMapping>
+                                <typeMapping>string+couponcode=CouponCode</typeMapping>
                             </typeMappings>
-
                             <!-- Import mappings: fully qualified class names -->
                             <importMappings>
                                 <!-- From shared module -->
                                 <importMapping>Isbn=com.qualityminds.lazyval.integration.shared.Isbn</importMapping>
                                 <importMapping>Quantity=com.qualityminds.lazyval.integration.shared.Quantity</importMapping>
-                                <!-- From domain -->
                                 <importMapping>EMail=com.qualityminds.lazyval.integration.shared.EMail</importMapping>
+                                <importMapping>CouponCode=com.qualityminds.lazyval.integration.shared.CouponCode</importMapping>
+                                <!-- From app domain -->
                                 <importMapping>OrderDate=com.qualityminds.lazyval.integration.domain.OrderDate</importMapping>
                             </importMappings>
                         </configuration>

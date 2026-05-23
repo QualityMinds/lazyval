@@ -59,6 +59,7 @@ class SpringCassandraIT extends AbstractIT {
         createdOrder.quantity == new Quantity(createOrderDto.getQuantity())
         createdOrder.email == new EMail(createOrderDto.getEmail())
         createdOrder.id != null
+        createdOrder.couponCode == null
     }
 
     def "should handle invalid input"() {

@@ -7,8 +7,10 @@ import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.domain.Order
 import com.qualityminds.lazyval.integration.domain.OrderDate
 import com.qualityminds.lazyval.integration.domain.OrderRepository
+import com.qualityminds.lazyval.integration.shared.CouponCode
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
+import jakarta.annotation.PostConstruct
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.inject.Named
@@ -21,14 +23,20 @@ class CassandraOrderRepository @Inject constructor(
     private val mapper: CassandraMapper
 ) : OrderRepository {
 
-    private val insertStmt: PreparedStatement = session.prepare(
-        "INSERT INTO orders (id, isbn, quantity, email, orderdate) VALUES (?, ?, ?, ?, ?)"
-    )
-    private val selectAllStmt: PreparedStatement = session.prepare("SELECT * FROM orders")
-    private val selectByIdStmt: PreparedStatement = session.prepare("SELECT * FROM orders WHERE id = ?")
-    private val selectByIsbnStmt: PreparedStatement = session.prepare(
-        "SELECT * FROM orders WHERE isbn = ? ALLOW FILTERING"
-    )
+    private lateinit var insertStmt: PreparedStatement
+    private lateinit var selectAllStmt: PreparedStatement
+    private lateinit var selectByIdStmt: PreparedStatement
+    private lateinit var selectByIsbnStmt: PreparedStatement
+
+    @PostConstruct
+    fun init() {
+        insertStmt = session.prepare(
+            "INSERT INTO orders (id, isbn, quantity, email, orderdate, couponcode) VALUES (?, ?, ?, ?, ?, ?)"
+        )
+        selectAllStmt = session.prepare("SELECT * FROM orders")
+        selectByIdStmt = session.prepare("SELECT * FROM orders WHERE id = ?")
+        selectByIsbnStmt = session.prepare("SELECT * FROM orders WHERE isbn = ? ALLOW FILTERING")
+    }
 
     override fun save(order: Order) {
         val co = mapper.toDB(order)
@@ -38,6 +46,7 @@ class CassandraOrderRepository @Inject constructor(
             .set("quantity", co.quantity, Quantity::class.java)
             .set("email", co.email, EMail::class.java)
             .set("orderdate", co.orderDate, OrderDate::class.java)
+            .set("couponcode", co.couponCode, CouponCode::class.java)
             .build()
         session.execute(statement)
     }
@@ -68,6 +77,7 @@ class CassandraOrderRepository @Inject constructor(
         isbn = row.get("isbn", Isbn::class.java)!!,
         quantity = row.get("quantity", Quantity::class.java)!!,
         email = row.get("email", EMail::class.java)!!,
-        orderDate = row.get("orderdate", OrderDate::class.java)!!
+        orderDate = row.get("orderdate", OrderDate::class.java)!!,
+        couponCode = row.get("couponcode", CouponCode::class.java)
     )
 }
