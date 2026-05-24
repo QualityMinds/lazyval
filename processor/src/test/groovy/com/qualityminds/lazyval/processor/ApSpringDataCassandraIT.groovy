@@ -80,7 +80,7 @@ class ApSpringDataCassandraIT extends Specification {
         def scenario = Scenario.Java.quantity()
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         and: 'generator-package is overridden'
-        scenario.withOption("lazyval.spring_data.package", "test.custom")
+        scenario.withOption("lazyval.springdata.package", "test.custom")
 
         when:
         def result = testkitJava.run(projectDir, scenario)
@@ -108,7 +108,7 @@ class ApSpringDataCassandraIT extends Specification {
         given:
         def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/ValidConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "scenarios.converters.ValidConverter")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.ValidConverter")
 
         when:
         def result = testkitJava.run(projectDir, scenario)
@@ -119,7 +119,7 @@ class ApSpringDataCassandraIT extends Specification {
         and: 'generated file contains the user converter and the marker comment'
         def generated = projectDir.resolve("build/generated/test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
         generated.contains("new scenarios.converters.ValidConverter()")
-        generated.contains("// user-supplied via lazyval.spring_data.cassandra.converters:")
+        generated.contains("// user-supplied via lazyval.springdata.cassandra.converters:")
     }
 
     void "multiple valid user converters are all appended in declared order"() {
@@ -128,7 +128,7 @@ class ApSpringDataCassandraIT extends Specification {
                 "scenarios/converters/ValidConverter.java",
                 "scenarios/converters/AnotherValidConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters",
+        scenario.withOption("lazyval.springdata.cassandra.converters",
                 "scenarios.converters.ValidConverter,scenarios.converters.AnotherValidConverter")
 
         when:
@@ -151,7 +151,7 @@ class ApSpringDataCassandraIT extends Specification {
                 "scenarios/converters/ValidConverter.java",
                 "scenarios/converters/AnotherValidConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters",
+        scenario.withOption("lazyval.springdata.cassandra.converters",
                 " scenarios.converters.ValidConverter , , scenarios.converters.AnotherValidConverter ")
 
         when:
@@ -170,7 +170,7 @@ class ApSpringDataCassandraIT extends Specification {
         given:
         def scenario = Scenario.Java.quantity()
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "com.example.Missing")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "com.example.Missing")
 
         when:
         def result = testkitJava.run(projectDir, scenario)
@@ -179,7 +179,7 @@ class ApSpringDataCassandraIT extends Specification {
         result instanceof Testresult.Java.Failure
         def failure = result as Testresult.Java.Failure
         failure.errors().any {
-            it.contains("lazyval.spring_data.cassandra.converters") && it.contains("com.example.Missing") && it.contains("not found on compile classpath")
+            it.contains("lazyval.springdata.cassandra.converters") && it.contains("com.example.Missing") && it.contains("not found on compile classpath")
         }
     }
 
@@ -187,7 +187,7 @@ class ApSpringDataCassandraIT extends Specification {
         given:
         def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NotAConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "scenarios.converters.NotAConverter")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NotAConverter")
 
         when:
         def result = testkitJava.run(projectDir, scenario)
@@ -204,7 +204,7 @@ class ApSpringDataCassandraIT extends Specification {
         given: 'config is generated at default location, converter lives in scenarios.converters'
         def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NonPublicConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "scenarios.converters.NonPublicConverter")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NonPublicConverter")
 
         when:
         def result = testkitJava.run(projectDir, scenario)
@@ -221,8 +221,8 @@ class ApSpringDataCassandraIT extends Specification {
         given: 'configuration class is generated into the converter package'
         def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NonPublicConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.package", "scenarios.converters")
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "scenarios.converters.NonPublicConverter")
+        scenario.withOption("lazyval.springdata.package", "scenarios.converters")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NonPublicConverter")
 
         when:
         def result = testkitJava.run(projectDir, scenario)
@@ -239,7 +239,7 @@ class ApSpringDataCassandraIT extends Specification {
         given: 'NonAccessibleConverter.Inner is a private static nested class — unreachable from anywhere'
         def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NonAccessibleConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "scenarios.converters.NonAccessibleConverter.Inner")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NonAccessibleConverter.Inner")
 
         when:
         def result = testkitJava.run(projectDir, scenario)
@@ -256,7 +256,7 @@ class ApSpringDataCassandraIT extends Specification {
         given:
         def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/UnannotatedConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "scenarios.converters.UnannotatedConverter")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.UnannotatedConverter")
 
         when:
         def result = testkitJava.run(projectDir, scenario)
@@ -273,7 +273,7 @@ class ApSpringDataCassandraIT extends Specification {
         given:
         def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NoNoArgConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "scenarios.converters.NoNoArgConverter")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NoNoArgConverter")
 
         when:
         def result = testkitJava.run(projectDir, scenario)
@@ -292,7 +292,7 @@ class ApSpringDataCassandraIT extends Specification {
                 "scenarios/converters/NotAConverter.java",
                 "scenarios/converters/NoNoArgConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters",
+        scenario.withOption("lazyval.springdata.cassandra.converters",
                 "scenarios.converters.NotAConverter,scenarios.converters.NoNoArgConverter")
 
         when:
@@ -316,7 +316,7 @@ class ApSpringDataCassandraIT extends Specification {
         given: 'only MongoDB is on the classpath but Cassandra option is set'
         def scenario = Scenario.Java.quantity()
                 .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "com.example.Whatever")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "com.example.Whatever")
 
         when:
         def result = testkitJava.run(projectDir, scenario)
@@ -328,7 +328,7 @@ class ApSpringDataCassandraIT extends Specification {
 
         and:
         success.warnings().any {
-            it.contains("lazyval.spring_data.cassandra.converters") && it.contains("Cassandra") && it.contains("ignored")
+            it.contains("lazyval.springdata.cassandra.converters") && it.contains("Cassandra") && it.contains("ignored")
         }
 
         and: 'no cassandra bean method is generated'

@@ -43,9 +43,9 @@ class SpringDataGenerator : Generator {
 
     companion object {
         private const val GENERATOR_ID = "spring-data"
-        private const val OPTION_GENERATED_PACKAGE = "lazyval.spring_data.package"
-        private const val OPTION_CASSANDRA_CONVERTERS = "lazyval.spring_data.cassandra.converters"
-        private const val OPTION_MONGO_CONVERTERS = "lazyval.spring_data.mongo.converters"
+        private const val OPTION_GENERATED_PACKAGE = "lazyval.springdata.package"
+        private const val OPTION_CASSANDRA_CONVERTERS = "lazyval.springdata.cassandra.converters"
+        private const val OPTION_MONGO_CONVERTERS = "lazyval.springdata.mongo.converters"
 
         private const val CASSANDRA_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.cassandra.core.convert.CassandraCustomConversions"
         private const val MONGO_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.mongodb.core.convert.MongoCustomConversions"

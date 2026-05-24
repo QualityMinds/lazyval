@@ -8,12 +8,7 @@ import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -39,9 +34,9 @@ import java.util.stream.Stream;
 public class SpringDataGenerator implements Generator {
 
     private static final String GENERATOR_ID = "spring-data";
-    private static final String OPTION_GENERATED_PACKAGE = "lazyval.spring_data.package";
-    private static final String OPTION_CASSANDRA_CONVERTERS = "lazyval.spring_data.cassandra.converters";
-    private static final String OPTION_MONGO_CONVERTERS = "lazyval.spring_data.mongo.converters";
+    private static final String OPTION_GENERATED_PACKAGE = "lazyval.springdata.package";
+    private static final String OPTION_CASSANDRA_CONVERTERS = "lazyval.springdata.cassandra.converters";
+    private static final String OPTION_MONGO_CONVERTERS = "lazyval.springdata.mongo.converters";
 
     private static final String CASSANDRA_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.cassandra.core.convert.CassandraCustomConversions";
     private static final String MONGO_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.mongodb.core.convert.MongoCustomConversions";

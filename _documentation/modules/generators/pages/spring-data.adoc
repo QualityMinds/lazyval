@@ -17,15 +17,15 @@ class contains one bean method per store:
 |===
 |Property |Description
 
-|_lazyval.spring_data.package_
+|_lazyval.springdata.package_
 |Specifies the package where the configuration class is generated.
 Overrides `lazyval.generators.basePackage`.
 
-|_lazyval.spring_data.cassandra.converters_
+|_lazyval.springdata.cassandra.converters_
 |Comma-separated list of fully qualified `Converter` class names appended to the
 `CassandraCustomConversions` registration. See <<user-supplied-converters>>.
 
-|_lazyval.spring_data.mongo.converters_
+|_lazyval.springdata.mongo.converters_
 |Comma-separated list of fully qualified `Converter` class names appended to the
 `MongoCustomConversions` registration. See <<user-supplied-converters>>.
 
@@ -252,7 +252,7 @@ Maven (Java APT)::
 +
 [source,xml]
 ----
-<compilerArg>-Alazyval.spring_data.mongo.converters=com.example.DateToOrderDateConverter,com.example.OrderDateToDateConverter</compilerArg>
+<compilerArg>-Alazyval.springdata.mongo.converters=com.example.DateToOrderDateConverter,com.example.OrderDateToDateConverter</compilerArg>
 ----
 
 Maven (KSP)::
@@ -260,9 +260,9 @@ Maven (KSP)::
 [source,xml]
 ----
 <apOptions>
-    <lazyval.spring_data.mongo.converters>
+    <lazyval.springdata.mongo.converters>
         com.example.DateToOrderDateConverter,com.example.OrderDateToDateConverter
-    </lazyval.spring_data.mongo.converters>
+    </lazyval.springdata.mongo.converters>
 </apOptions>
 ----
 ====
