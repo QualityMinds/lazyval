@@ -5,6 +5,7 @@ import com.qualityminds.lazyval.collections.NonEmptySet;
 import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.Nullable;
 
+import javax.lang.model.element.Element;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -77,6 +78,43 @@ public interface Generator {
          * @param defaultLayer             when the base-package is configured, this is the default layer where the generator places the output (when null, the base-package is used)
          */
         String generatorPackage(String overridePackageOptionKey, @Nullable String defaultLayer);
+
+        /**
+         * Prints an info message during the current generation process.
+         * @param generator the generator instance issuing the message
+         * @param message   the message to be logged
+         */
+        void logInfo(Generator generator, String message);
+
+        /**
+         * Prints a warning message during the current generation process.
+         * @param generator the generator instance issuing the message
+         * @param message   the message to be logged
+         */
+        void logWarning(Generator generator, String message);
+
+        /**
+         * Prints a warning message during the current generation process.
+         * @param generator the generator instance issuing the message
+         * @param element   the element associated with the message
+         * @param message   the message to be logged
+         */
+        void logWarning(Generator generator, Element element, String message);
+
+        /**
+         * Prints an error message during the current generation process.
+         * @param generator the generator instance issuing the message
+         * @param message   the message to be logged
+         */
+        void logError(Generator generator, String message);
+
+        /**
+         * Prints an error message during the current generation process.
+         * @param generator the generator instance issuing the message
+         * @param element   the element associated with the message
+         * @param message   the message to be logged
+         */
+        void logError(Generator generator, Element element, String message);
     }
     // end::context[]
 }

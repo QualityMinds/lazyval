@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.ksp.spi
 
 import com.google.devtools.ksp.symbol.KSFile
+import com.google.devtools.ksp.symbol.KSNode
 import com.qualityminds.lazyval.collections.NonEmptySet
 import org.jetbrains.annotations.ApiStatus
 import java.util.stream.Stream
@@ -119,6 +120,51 @@ interface Generator {
          * @param defaultLayer             when the base-package is configured, this is the default layer where the generator places the output (when null, the base-package is used)
          */
         fun generatorPackage(overridePackageOptionKey: String, defaultLayer: String?): String
+
+        /**
+         * Prints an info message during the current generation process.
+         * @param generator the generator instance issuing the message
+         * @param message   the message to be logged
+         */
+        fun logInfo(generator: Generator, message: String)
+
+        /**
+         * Prints a warning message during the current generation process.
+         * @param generator the generator instance issuing the message
+         * @param message   the message to be logged
+         */
+        fun logWarning(generator: Generator, message: String)
+
+        /**
+         * Prints a warning message during the current generation process.
+         * @param generator the generator instance issuing the message
+         * @param element   the element associated with the message
+         * @param message   the message to be logged
+         */
+        fun logWarning(
+            generator: Generator,
+            element: KSNode,
+            message: String
+        )
+
+        /**
+         * Prints an error message during the current generation process.
+         * @param generator the generator instance issuing the message
+         * @param message   the message to be logged
+         */
+        fun logError(generator: Generator, message: String)
+
+        /**
+         * Prints an error message during the current generation process.
+         * @param generator the generator instance issuing the message
+         * @param element   the element associated with the message
+         * @param message   the message to be logged
+         */
+        fun logError(
+            generator: Generator,
+            element: KSNode,
+            message: String
+        )
     }
     // end::context[]
 }

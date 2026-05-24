@@ -67,6 +67,34 @@ internal class LazyvalKspEnvironment(
                         return fallbackPackage
                     }
             }
+
+            override fun logInfo(generator: Generator, message: String) {
+                info(" [${generator.generatorId()}] $message")
+            }
+
+            override fun logWarning(generator: Generator, message: String) {
+                warn(" [${generator.generatorId()}] $message")
+            }
+
+            override fun logWarning(
+                generator: Generator,
+                element: KSNode,
+                message: String
+            ) {
+                warn(element, " [${generator.generatorId()}] $message")
+            }
+
+            override fun logError(generator: Generator, message: String) {
+                error(" [${generator.generatorId()}] $message")
+            }
+
+            override fun logError(
+                generator: Generator,
+                element: KSNode,
+                message: String
+            ) {
+                error(element, " [${generator.generatorId()}] $message")
+            }
         }
     }
 
