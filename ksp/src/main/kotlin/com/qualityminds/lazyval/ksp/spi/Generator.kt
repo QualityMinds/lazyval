@@ -200,6 +200,7 @@ interface Generator {
             fun hasAccessibleNoArgConstructor(packageName: String): Boolean
 
             /**
+             * Checks whether the class is assignable to the given supertype or interface by erasure.
              * @param supertypeFqn fully qualified name of the supertype or interface to test against
              * @return `true` if the inspected class is assignable to [supertypeFqn] by erasure;
              *         `false` when either type is not resolvable.
@@ -207,6 +208,7 @@ interface Generator {
             fun isAssignableTo(supertypeFqn: String): Boolean
 
             /**
+             * Checks whether the class declaration carries the given annotation directly.
              * @param annotationFqn fully qualified name of the annotation to look up
              * @return `true` if the class declaration carries the given annotation directly.
              */

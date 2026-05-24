@@ -150,6 +150,7 @@ public interface Generator {
             boolean hasAccessibleNoArgConstructor(String packageName);
 
             /**
+             * Checks whether the class is assignable to the given supertype or interface by erasure.
              * @param supertypeFqn fully qualified name of the supertype or interface to test against
              * @return true if the inspected class is assignable to {@code supertypeFqn} by erasure;
              * false when either type is not resolvable.
@@ -157,6 +158,7 @@ public interface Generator {
             boolean isAssignableTo(String supertypeFqn);
 
             /**
+             * Checks whether the class declaration carries the given annotation directly.
              * @param annotationFqn fully qualified name of the annotation to look up
              * @return true if the class declaration carries the given annotation directly.
              */
