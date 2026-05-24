@@ -1,36 +1,26 @@
-package com.qualityminds.lazyval.integration.boundary.persistence.cassandra;
+package com.qualityminds.lazyval.integration.boundary.persistence.mongodb;
 
-import com.datastax.oss.driver.api.mapper.annotations.CqlName;
-import com.datastax.oss.driver.api.mapper.annotations.Entity;
-import com.datastax.oss.driver.api.mapper.annotations.PartitionKey;
-import com.datastax.oss.driver.api.mapper.annotations.PropertyStrategy;
 import com.qualityminds.lazyval.integration.domain.OrderDate;
 import com.qualityminds.lazyval.integration.shared.CouponCode;
 import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.shared.Isbn;
 import com.qualityminds.lazyval.integration.shared.Quantity;
 import org.jspecify.annotations.Nullable;
+import org.springframework.data.mongodb.core.mapping.MongoId;
 
 import java.util.UUID;
 
-@Entity
-@CqlName( "orders")
-@PropertyStrategy(mutable = true)
-public class CassandraOrder {
-    @PartitionKey
+public class MongoOrder {
+    @MongoId
     private UUID id;
     private Isbn isbn;
     private Quantity quantity;
     private EMail email;
-    @CqlName("orderdate")
     private OrderDate orderDate;
-    @CqlName("couponcode")
     @Nullable
     private CouponCode couponCode;
 
-    protected CassandraOrder() {}
-
-    public CassandraOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, OrderDate orderDate, @Nullable CouponCode couponCode) {
+    public MongoOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, OrderDate orderDate, @Nullable CouponCode couponCode) {
         this.id = id;
         this.isbn = isbn;
         this.quantity = quantity;

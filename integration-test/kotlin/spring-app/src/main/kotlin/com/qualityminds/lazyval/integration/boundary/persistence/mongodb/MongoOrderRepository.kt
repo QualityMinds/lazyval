@@ -1,4 +1,4 @@
-package com.qualityminds.lazyval.integration.boundary.persistence.cassandra;
+package com.qualityminds.lazyval.integration.boundary.persistence.mongodb
 
 import com.qualityminds.lazyval.integration.domain.Order
 import com.qualityminds.lazyval.integration.domain.OrderRepository
@@ -8,10 +8,10 @@ import org.springframework.stereotype.Repository
 import java.util.*
 
 @Repository
-@Qualifier("cassandra")
-class CassandraOrderRepository(
-    private val springDataRepository: SpringDataCassandraRepository,
-    private val mapper: CassandraMapper
+@Qualifier("mongo")
+class MongoOrderRepository(
+    private val springDataRepository: SpringDataMongoRepository,
+    private val mapper: MongoMapper
 ) : OrderRepository {
 
     override fun save(order: Order) {
@@ -20,7 +20,6 @@ class CassandraOrderRepository(
 
     override fun findAll(): List<Order> {
         return mapper.toDomain(springDataRepository.findAll()).sortedBy { it?.isbn?.value }
-
     }
 
     override fun getById(id: UUID): Order? {

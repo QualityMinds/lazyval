@@ -28,11 +28,14 @@ public class Startup {
 
     private final OrderRepository jpaRepository;
     private final OrderRepository cassandraRepository;
+    private final OrderRepository mongoRepository;
 
     public Startup(@Qualifier("jpa") OrderRepository jpaRepository,
-                   @Qualifier("cassandra") OrderRepository cassandraRepository) {
+                   @Qualifier("cassandra") OrderRepository cassandraRepository,
+                   @Qualifier("mongo") OrderRepository mongoRepository) {
         this.jpaRepository = jpaRepository;
         this.cassandraRepository = cassandraRepository;
+        this.mongoRepository = mongoRepository;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -45,6 +48,10 @@ public class Startup {
         if (cassandraRepository.findAll().isEmpty()) {
             cassandraRepository.save(DefaultOrderA);
             cassandraRepository.save(DefaultOrderB);
+        }
+        if (mongoRepository.findAll().isEmpty()) {
+            mongoRepository.save(DefaultOrderA);
+            mongoRepository.save(DefaultOrderB);
         }
     }
 }

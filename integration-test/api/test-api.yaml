@@ -155,12 +155,12 @@ paths:
                 items:
                   $ref: '#/components/schemas/Order'
 
-  # ──────────────────── Mapstruct ────────────────────
-  /order/mapstruct:
+  # ──────────────────── Mongo-DB ────────────────────
+  /order/mongo:
     get:
-      tags: [order-mapstruct]
-      summary: Get all orders (Mapstruct)
-      operationId: getAllOrdersMapstruct
+      tags: [order-mongo]
+      summary: Get all orders (Mongo)
+      operationId: getAllOrdersMongo
       responses:
         '200':
           description: List of all orders
@@ -171,9 +171,9 @@ paths:
                 items:
                   $ref: '#/components/schemas/Order'
     post:
-      tags: [order-mapstruct]
-      summary: Create a new order (Mapstruct)
-      operationId: createOrderMapstruct
+      tags: [order-mongo]
+      summary: Create a new order (Mongo)
+      operationId: createOrderMongo
       requestBody:
         required: true
         content:
@@ -190,9 +190,9 @@ paths:
 
   /order/mapstruct/{id}:
     get:
-      tags: [ order-mapstruct ]
-      summary: Get a single order by ID (Mapstruct)
-      operationId: getOrderByIdMapstruct
+      tags: [ order-mongo ]
+      summary: Get a single order by ID (Mongo)
+      operationId: getOrderByIdMongo
       parameters:
         - $ref: '#/components/parameters/OrderId'
       responses:
