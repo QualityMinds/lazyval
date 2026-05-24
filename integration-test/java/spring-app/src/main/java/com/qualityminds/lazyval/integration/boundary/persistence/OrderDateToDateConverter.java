@@ -1,4 +1,4 @@
-package com.qualityminds.lazyval.integration.boundary.persistence.mongodb;
+package com.qualityminds.lazyval.integration.boundary.persistence;
 
 import com.qualityminds.lazyval.integration.domain.OrderDate;
 import org.springframework.core.convert.converter.Converter;
@@ -8,9 +8,9 @@ import java.time.ZoneOffset;
 import java.util.Date;
 
 @WritingConverter
-public class OrderDateToDateConverter implements Converter<OrderDate, Date> {
+class OrderDateToDateConverter implements Converter<OrderDate, Date> {
 
-    public OrderDateToDateConverter() {
+    OrderDateToDateConverter() {
     }
 
     @Override
