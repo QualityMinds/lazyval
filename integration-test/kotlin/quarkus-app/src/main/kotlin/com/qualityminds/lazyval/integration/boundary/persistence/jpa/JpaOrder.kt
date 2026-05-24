@@ -1,14 +1,14 @@
 package com.qualityminds.lazyval.integration.boundary.persistence.jpa
 
-import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.domain.OrderDate
 import com.qualityminds.lazyval.integration.shared.CouponCode
+import com.qualityminds.lazyval.integration.shared.EMail
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
-import java.util.UUID
+import java.util.*
 
 @Entity
 @Table(name = "orders")
@@ -18,6 +18,6 @@ class JpaOrder(
     var isbn: Isbn,
     var quantity: Quantity,
     var email: EMail,
-    var orderDate: OrderDate = OrderDate.now(),
+    var orderDate: OrderDate,
     var couponCode: CouponCode? = null
 )

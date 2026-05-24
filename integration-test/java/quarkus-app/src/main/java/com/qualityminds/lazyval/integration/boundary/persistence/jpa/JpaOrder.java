@@ -23,12 +23,12 @@ public class JpaOrder {
     public OrderDate orderDate;
     public CouponCode couponCode;
 
-    public JpaOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, @Nullable CouponCode couponCode) {
+    public JpaOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, OrderDate orderDate, @Nullable CouponCode couponCode) {
         this.id = id;
         this.isbn = isbn;
         this.quantity = quantity;
         this.email = email;
-        this.orderDate = OrderDate.now();
+        this.orderDate = orderDate;
         this.couponCode = couponCode;
     }
 

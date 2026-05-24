@@ -28,12 +28,12 @@ public class CassandraOrder {
 
     protected CassandraOrder() {}
 
-    public CassandraOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, CouponCode couponCode) {
+    public CassandraOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, OrderDate orderDate, CouponCode couponCode) {
         this.id = id;
         this.isbn = isbn;
         this.quantity = quantity;
         this.email = email;
-        this.orderDate = OrderDate.now();
+        this.orderDate = orderDate;
         this.couponCode = couponCode;
     }
 
