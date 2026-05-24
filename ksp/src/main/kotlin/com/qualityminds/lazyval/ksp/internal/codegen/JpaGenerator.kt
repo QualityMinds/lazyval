@@ -10,6 +10,20 @@ import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import java.util.stream.Stream
 
+/**
+ * Generates a JPA `AttributeConverter` for each domain-primitive.
+ *
+ * ## Null invariants
+ *
+ * Both `convertToDatabaseColumn` and `convertToEntityAttribute` use safe-call operators
+ * (`?.`) to propagate `null` transparently: a `null` column value maps to a `null` entity
+ * attribute, and a `null` entity attribute maps to a `null` column value.
+ *
+ * The generated converter always accepts and returns nullable types (`DomainType?` /
+ * `InnerType?`) because JPA may pass `null` for optional columns regardless of whether the
+ * domain type's factory method can return `null`. No distinction is made between nullable
+ * and non-nullable factories; null is simply passed through in both directions.
+ */
 // tag::docu[]
 class JpaGenerator : Generator {
 

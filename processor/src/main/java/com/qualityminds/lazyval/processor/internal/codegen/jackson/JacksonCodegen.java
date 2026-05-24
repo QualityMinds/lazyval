@@ -10,6 +10,19 @@ import java.util.List;
 /**
  * Shared code-generation logic for Jackson serializer/deserializer modules.
  * Parameterized by {@link JacksonVersion} to handle Jackson 2 vs 3 differences.
+ *
+ * <h3>Null invariants</h3>
+ * <b>Serializer:</b> Jackson never calls {@code serialize} for a {@code null} value; null is
+ * intercepted upstream at the property-binding level. The generated {@code serialize(DomainType)}
+ * method therefore always receives a non-null argument and does not need to guard against null.
+ * <p>
+ * <b>Deserializer:</b> Jackson never calls {@code deserialize} for a JSON {@code null} token;
+ * null tokens are resolved upstream before the deserializer is invoked. The factory method is
+ * therefore always called with a non-null raw value.
+ * Java's type system provides no compile-time guarantee: if the factory returns {@code null}
+ * for a non-null input (e.g. a blank-string guard), Jackson sets {@code null} on the target
+ * field silently without throwing. If the target field is a non-nullable type, a
+ * {@code NullPointerException} will be thrown at access time, not during deserialization.
  */
 final class JacksonCodegen {
 

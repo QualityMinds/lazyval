@@ -13,6 +13,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
+/**
+ * Generates a JPA {@code AttributeConverter} for each domain-primitive.
+ *
+ * <h3>Null invariants</h3>
+ * Both {@code convertToDatabaseColumn} and {@code convertToEntityAttribute} guard against
+ * {@code null} explicitly: a {@code null} column value maps to a {@code null} entity attribute,
+ * and a {@code null} entity attribute maps to a {@code null} column value.
+ * Java's type system does not enforce nullability; both directions are therefore transparent to
+ * {@code null} at runtime, regardless of whether the factory method can return {@code null}.
+ */
 // must only be public for ServiceLoader, but it is not part of the API
 // tag::docu[]
 public class JpaGenerator implements Generator {

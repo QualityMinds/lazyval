@@ -6,6 +6,20 @@ import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import java.util.stream.Stream
 
+/**
+ * Generates a `ConstraintValidator` for each constraint annotation supported by the wrapped
+ * type (string patterns, numeric ranges, temporal constraints).
+ *
+ * ## Null invariants
+ *
+ * Following the Bean Validation specification, `isValid(value: DomainType?, context)` always
+ * accepts a nullable `value`: `null` is considered valid and immediately returns `true`, leaving
+ * enforcement of non-nullability to a separate `@NotNull` constraint on the field.
+ *
+ * The second type parameter of `ConstraintValidator<A, T>` is expressed as non-nullable (`T`,
+ * not `T?`). The nullable `isValid` parameter is a fixed part of the Bean Validation contract,
+ * independent of whether the domain type's factory method can return `null`.
+ */
 class BeanValidationGenerator : Generator {
 
     companion object {

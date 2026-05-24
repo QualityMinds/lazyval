@@ -10,6 +10,26 @@ import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import java.util.stream.Stream
 
+/**
+ * Generates a DataStax `MappingCodec` for each domain-primitive, grouped into a
+ * `LazyvalCassandraCodecs` utility object.
+ *
+ * ## Null invariants
+ *
+ * The DataStax driver decodes a CQL `NULL` column to `null` and passes it directly to
+ * `innerToOuter`. Both methods are therefore always nullable in parameter and return type:
+ * - `innerToOuter(value: InnerType?): DomainType?` — a null column returns `null`; a non-null
+ *   column whose factory returns `null` (e.g. a nullable factory with a blank-string guard)
+ *   also returns `null`. Both cases are handled uniformly by `value?.let { factory(it) }`.
+ * - `outerToInner(value: DomainType?): InnerType?` — always nullable for symmetry and to
+ *   accommodate a nullable property at the call site.
+ *
+ * The `MappingCodec<InnerType, DomainType?>` type parameter is always `DomainType?` (nullable)
+ * to match the nullable return of `innerToOuter`. The constructor uses
+ * `object : GenericType<DomainType?>() {}` instead of `GenericType.of(DomainType::class.java)`
+ * to satisfy the Kotlin type constraint; at the JVM level both carry the same erased
+ * `DomainType` class and are indistinguishable by the DataStax codec registry.
+ */
 class CassandraCodecGenerator : Generator {
 
     companion object {
@@ -23,9 +43,11 @@ class CassandraCodecGenerator : Generator {
         private val TYPE_CODEC = ClassName("com.datastax.oss.driver.api.core.type.codec", "TypeCodec")
 
         /**
-         * Maps Kotlin/Java type qualified names to their corresponding [TypeCodecs] constant names.
+         * Maps Kotlin/Java type qualified names to their corresponding
+         * `com.datastax.oss.driver.api.core.type.codec.TypeCodecs` constant names.
          *
-         * This mapping is necessary because the generated [MappingCodec] subclasses require a
+         * This mapping is necessary because the generated
+         * `com.datastax.oss.driver.api.core.type.codec.MappingCodec` subclasses require a
          * compile-time reference to a specific `TypeCodecs` constant (e.g., `TypeCodecs.TEXT`)
          * in their constructor call. Since the DataStax driver uses CQL type names for its constants
          * rather than Java type names, and there is no `TypeCodecs.forJavaType(Class)` lookup method,
