@@ -1,8 +1,10 @@
 package com.qualityminds.lazyval.integration
 
+import org.slf4j.LoggerFactory
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.cassandra.CassandraContainer
+import org.testcontainers.containers.output.Slf4jLogConsumer
 import org.testcontainers.mongodb.MongoDBContainer
 import spock.lang.Specification
 
@@ -10,7 +12,8 @@ abstract class AbstractIT extends Specification {
 
     static CassandraContainer cassandraContainer = new CassandraContainer("cassandra")
             .withInitScript("init.cql")
-    static MongoDBContainer mongoDbContainer = new MongoDBContainer("mongo:4.0.10")
+    static MongoDBContainer mongoDbContainer = new MongoDBContainer("mongo:7")
+            .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("mongo")))
 
     static {
         // needs to happen here because otherwise Cassandra is not started.

@@ -54,11 +54,19 @@ xref:multi-module.adoc[Multi-Module Support]
 
 == Supported Generators
 
+* xref:generators:beanvalidation.adoc[Bean Validation]
+* xref:generators:cassandra.adoc[Cassandra]
 * xref:generators:jackson.adoc[Jackson 2 & 3]
 * xref:generators:jpa.adoc[JPA AttributeConverters]
+* xref:generators:jsonb.adoc[JSON-B]
 * xref:generators:mapstruct.adoc[MapStruct]
+* xref:generators:spring-data.adoc[Spring Data] (Cassandra & MongoDB)
 
-Future plans include Spring Converters, JSON-B, Cassandra, MongoDB, Avro.
+See xref:generators:index.adoc[Generators Overview] for how to plug in user-supplied converters
+where the framework requires application-specific decisions (e.g. timezone for `LocalDate ↔ Date`
+on MongoDB).
+
+Future plans include Elasticsearch, Couchbase, and Avro.
 
 NOTE: For custom generators, see xref:spi:index.adoc[Lazyval's SPI].
 

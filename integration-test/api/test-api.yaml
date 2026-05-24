@@ -188,7 +188,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Order'
 
-  /order/mapstruct/{id}:
+  /order/mongo/{id}:
     get:
       tags: [ order-mongo ]
       summary: Get a single order by ID (Mongo)
@@ -204,6 +204,23 @@ paths:
                 $ref: '#/components/schemas/Order'
         '404':
           description: Order not found
+
+  /order/mongo/isbn/{isbn}:
+    get:
+      tags: [ order-mongo ]
+      summary: Find orders by ISBN (Mongo)
+      operationId: findOrdersByIsbnMongo
+      parameters:
+        - $ref: '#/components/parameters/Isbn'
+      responses:
+        '200':
+          description: List of orders matching the ISBN
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
 
 components:
   parameters:
