@@ -1,0 +1,49 @@
+= Generators
+
+Each Lazyval generator targets one integration concern — persistence, serialization, mapping, validation —
+and emits the boilerplate that would otherwise need to be hand-written for every domain-primitive.
+
+[cols="1,3"]
+|===
+|Generator |Purpose
+
+|xref:beanvalidation.adoc[Bean Validation]
+|`ConstraintValidator` implementations so standard Jakarta validators (`@Pattern`, `@Min`, `@Past`, …) work
+directly on domain-primitive fields.
+
+|xref:cassandra.adoc[Cassandra]
+|DataStax `MappingCodec` implementations for the native Java driver. For Spring Data Cassandra projects,
+prefer xref:spring-data.adoc[Spring Data] instead.
+
+|xref:jackson.adoc[Jackson 2 & 3]
+|A `Module` (Jackson 2) or `JacksonModule` (Jackson 3) registering serializers and deserializers via the
+ServiceLoader.
+
+|xref:jpa.adoc[JPA]
+|One `AttributeConverter` per domain-primitive, picked up automatically by your persistence provider.
+
+|xref:jsonb.adoc[JSON-B]
+|`JsonbAdapter` implementations bundled into a `LazyvalJsonbAdapters` class with a ready-to-use `JsonbConfig`.
+
+|xref:mapstruct.adoc[MapStruct]
+|A `LazyvalMapper` interface usable as a shared configuration in other mappers.
+
+|xref:spring-data.adoc[Spring Data]
+|A `@Configuration` class that registers store-specific `CustomConversions` for Cassandra and MongoDB.
+
+|===
+
+== Extending generated configurations
+
+Some integrations cannot pick a universally-correct mapping from a domain-primitive's wrapped type to its
+storage representation. The MongoDB driver, for instance, reads any date as `java.util.Date` — bridging
+`LocalDate ↔ Date` requires choosing a `ZoneId`, and no default fits every application (UTC and system
+zone produce different stored values; a date written in one zone and read in another can shift by ±1 day).
+
+Where that applies, Lazyval emits the obvious mapping by default and exposes a processor option through
+which users register their own `Converter` classes. The FQNs are validated at compile time and appended to
+the relevant generated registration list.
+
+Currently only the xref:spring-data.adoc[Spring Data] generator exposes this extension point —
+see xref:spring-data.adoc#user-supplied-converters[User-supplied Converters] for the wiring and a worked
+`OrderDate ↔ Date` example.

@@ -7,7 +7,11 @@ import org.jspecify.annotations.Nullable;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
+import javax.lang.model.element.AnnotationMirror;
 import javax.lang.model.element.Element;
+import javax.lang.model.element.ElementKind;
+import javax.lang.model.element.ExecutableElement;
+import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.MirroredTypesException;
 import javax.lang.model.type.TypeMirror;
@@ -76,6 +80,18 @@ class LazyvalEnvironment {
             @Override
             public Optional<String> getSetting(String key) {
                 return Optional.ofNullable(processingEnvironment.getOptions().get(key));
+            }
+
+            @Override
+            public Optional<ClassInspection> inspectClass(String fqcn) {
+                if (fqcn == null || fqcn.isBlank()) {
+                    return Optional.empty();
+                }
+                TypeElement element = processingEnvironment.getElementUtils().getTypeElement(fqcn);
+                if (element == null) {
+                    return Optional.empty();
+                }
+                return Optional.of(new TypeElementInspection(processingEnvironment, element));
             }
 
             @Override
@@ -220,5 +236,52 @@ class LazyvalEnvironment {
         }
     }
 
+    private record TypeElementInspection(ProcessingEnvironment env, TypeElement element) implements Generator.Context.ClassInspection {
 
+        @Override
+        public boolean isAccessibleFrom(String packageName) {
+            return hasMatchingVisibility(element.getModifiers(), packageName);
+        }
+
+        @Override
+        public boolean hasAccessibleNoArgConstructor(String packageName) {
+            for (Element enclosed : element.getEnclosedElements()) {
+                if (enclosed.getKind() != ElementKind.CONSTRUCTOR) continue;
+                ExecutableElement ctor = (ExecutableElement) enclosed;
+                if (!ctor.getParameters().isEmpty()) continue;
+                if (hasMatchingVisibility(ctor.getModifiers(), packageName)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
+        public boolean isAssignableTo(String supertypeFqn) {
+            TypeElement supertype = env.getElementUtils().getTypeElement(supertypeFqn);
+            if (supertype == null) {
+                return false;
+            }
+            Types types = env.getTypeUtils();
+            return types.isAssignable(types.erasure(element.asType()), types.erasure(supertype.asType()));
+        }
+
+        @Override
+        public boolean hasAnnotation(String annotationFqn) {
+            for (AnnotationMirror mirror : element.getAnnotationMirrors()) {
+                TypeElement annoElement = (TypeElement) mirror.getAnnotationType().asElement();
+                if (annoElement.getQualifiedName().contentEquals(annotationFqn)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private boolean hasMatchingVisibility(Set<Modifier> modifiers, String packageName) {
+            if (modifiers.contains(Modifier.PUBLIC)) return true;
+            if (modifiers.contains(Modifier.PRIVATE) || modifiers.contains(Modifier.PROTECTED)) return false;
+            String classPkg = env.getElementUtils().getPackageOf(element).getQualifiedName().toString();
+            return classPkg.equals(packageName);
+        }
+    }
 }

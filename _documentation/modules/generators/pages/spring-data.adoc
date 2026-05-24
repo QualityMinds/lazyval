@@ -6,11 +6,11 @@ domain-primitives as private nested types, and registers them with the detected 
 It activates whenever `spring-data-commons` is on the classpath, which is always the case when any Spring
 Data store module is present.
 
-The `CustomConversions` registration is store-specific:
+The `CustomConversions` registration is store-specific. When both stores are present, the generated
+class contains one bean method per store:
 
 * `CassandraCustomConversions` — when `spring-data-cassandra` is on the classpath
-
-NOTE: MongoDB and Elasticsearch support are planned for a future release.
+* `MongoCustomConversions` — when `spring-data-mongodb` is on the classpath
 
 == Config Options
 
@@ -20,6 +20,14 @@ NOTE: MongoDB and Elasticsearch support are planned for a future release.
 |_lazyval.spring_data.package_
 |Specifies the package where the configuration class is generated.
 Overrides `lazyval.generators.basePackage`.
+
+|_lazyval.spring_data.cassandra.converters_
+|Comma-separated list of fully qualified `Converter` class names appended to the
+`CassandraCustomConversions` registration. See <<user-supplied-converters>>.
+
+|_lazyval.spring_data.mongo.converters_
+|Comma-separated list of fully qualified `Converter` class names appended to the
+`MongoCustomConversions` registration. See <<user-supplied-converters>>.
 
 |===
 
@@ -56,6 +64,18 @@ public class LazyvalSpringDataConfiguration {
             new QuantityWriteConverter()
         );
         return new CassandraCustomConversions(converters);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public MongoCustomConversions mongoCustomConversions() {
+        List<Converter<?, ?>> converters = List.of(
+            new IsbnReadConverter(),
+            new IsbnWriteConverter(),
+            new QuantityReadConverter(),
+            new QuantityWriteConverter()
+        );
+        return new MongoCustomConversions(converters);
     }
 
     @ReadingConverter
@@ -104,6 +124,18 @@ class LazyvalSpringDataConfiguration {
         )
         return CassandraCustomConversions(converters)
     }
+
+    @Bean
+    @ConditionalOnMissingBean
+    fun mongoCustomConversions(): MongoCustomConversions {
+        val converters = listOf(
+            IsbnReadConverter(),
+            IsbnWriteConverter(),
+            QuantityReadConverter(),
+            QuantityWriteConverter()
+        )
+        return MongoCustomConversions(converters)
+    }
 }
 
 // file-private — not visible outside this file
@@ -121,13 +153,123 @@ private class IsbnWriteConverter : Converter<Isbn, String> {
 ----
 ====
 
-When Spring Boot is present, the `CustomConversions` bean is annotated with `@ConditionalOnMissingBean`
+When Spring Boot is present, each `CustomConversions` bean is annotated with `@ConditionalOnMissingBean`
 so that it can be replaced by a custom configuration when needed.
 Spring Boot auto-configuration will otherwise pick it up automatically — no additional setup is required.
 
-NOTE: The configuration class is only generated when a supported store module (e.g. `spring-data-cassandra`)
-is on the classpath.
+NOTE: The configuration class is only generated when a supported store module (`spring-data-cassandra`
+or `spring-data-mongodb`) is on the classpath.
 Having only `spring-data-commons` present is not sufficient.
+
+[[user-supplied-converters]]
+== User-supplied Converters
+
+The generator emits `Converter<WrappedType, DomainType>` pairs. For an `OrderDate` wrapping
+`java.time.LocalDate` this means `Converter<LocalDate, OrderDate>` and `Converter<OrderDate, LocalDate>` —
+correct for Cassandra (CQL has a native `date` type), but insufficient for MongoDB: BSON has no
+`LocalDate` and the driver round-trips dates through `java.util.Date`. Spring Data MongoDB does not chain
+converters during property population, so without a direct `Date ↔ OrderDate` pair the read path fails
+with `ConverterNotFoundException`. Bridging `LocalDate ↔ Date` requires a `ZoneId` — an application
+decision the generator cannot make on the user's behalf.
+
+The two options below accept a comma-separated list of `Converter` FQNs and append them to the relevant
+generated registration. Each FQN is validated at compile time:
+
+* the class must exist
+* implement `org.springframework.core.convert.converter.Converter`
+* be accessible from the package where `LazyvalSpringDataConfiguration` is written
+* declare a no-arg constructor with at least the same visibility
+* be annotated with either `@ReadingConverter` or `@WritingConverter`.
+
+The build fails with one error per offending FQN. The annotation is required rather than inferred from
+generics — Spring Data's reflection-based fallback is not guaranteed under AOT compilation, and the
+explicit annotation removes that ambiguity.
+
+Accessibility covers more than `public`:
+
+* Java: package-private is fine when the converter lives in the same package as the generated
+  configuration.
+* Kotlin: `internal` is fine when the converter is declared in the current compilation module;
+  `JAVA_PACKAGE` follows the Java same-package rule.
+
+This lets users co-locate converters with the generated configuration and keep them out of the
+module's public API.
+
+=== Worked example: `OrderDate ↔ Date` for MongoDB
+
+Supply the converter pair with an explicit zone choice:
+
+[tabs]
+====
+Java::
++
+[source,java]
+----
+@ReadingConverter
+public class DateToOrderDateConverter implements Converter<Date, OrderDate> {
+    public DateToOrderDateConverter() {}
+
+    @Override
+    public OrderDate convert(Date source) {
+        return new OrderDate(source.toInstant().atZone(ZoneOffset.UTC).toLocalDate());
+    }
+}
+
+@WritingConverter
+public class OrderDateToDateConverter implements Converter<OrderDate, Date> {
+    public OrderDateToDateConverter() {}
+
+    @Override
+    public Date convert(OrderDate source) {
+        return Date.from(source.value().atStartOfDay(ZoneOffset.UTC).toInstant());
+    }
+}
+----
+
+Kotlin::
++
+[source,kotlin]
+----
+@ReadingConverter
+class DateToOrderDateConverter : Converter<Date, OrderDate> {
+    override fun convert(source: Date): OrderDate =
+        OrderDate(source.toInstant().atZone(ZoneOffset.UTC).toLocalDate())
+}
+
+@WritingConverter
+class OrderDateToDateConverter : Converter<OrderDate, Date> {
+    override fun convert(source: OrderDate): Date =
+        Date.from(source.value.atStartOfDay(ZoneOffset.UTC).toInstant())
+}
+----
+====
+
+Register via the processor option:
+
+[tabs]
+====
+Maven (Java APT)::
++
+[source,xml]
+----
+<compilerArg>-Alazyval.spring_data.mongo.converters=com.example.DateToOrderDateConverter,com.example.OrderDateToDateConverter</compilerArg>
+----
+
+Maven (KSP)::
++
+[source,xml]
+----
+<apOptions>
+    <lazyval.spring_data.mongo.converters>
+        com.example.DateToOrderDateConverter,com.example.OrderDateToDateConverter
+    </lazyval.spring_data.mongo.converters>
+</apOptions>
+----
+====
+
+User entries are appended after the generated ones in `mongoCustomConversions()`. `CustomConversions`
+applies last-wins semantics to `(source, target)` pairs, so a user converter whose generics overlap a
+generated one replaces it.
 
 == Nullable Factory Methods (Kotlin)
 

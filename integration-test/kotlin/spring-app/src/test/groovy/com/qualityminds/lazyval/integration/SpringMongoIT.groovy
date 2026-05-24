@@ -106,7 +106,7 @@ class SpringMongoIT extends AbstractIT {
 
     def "should find orders by isbn"() {
         when:
-        def foundOrder = mapper.toDomainOrder(orderApi.findOrdersByIsbnMongo(Startup.DefaultOrderB.isbn().value()))
+        def foundOrder = mapper.toDomainOrder(orderApi.findOrdersByIsbnMongo(Startup.DefaultOrderB.isbn.value))
 
         then:
         foundOrder == [Startup.DefaultOrderB]

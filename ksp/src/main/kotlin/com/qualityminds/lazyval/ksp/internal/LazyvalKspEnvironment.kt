@@ -1,11 +1,16 @@
 package com.qualityminds.lazyval.ksp.internal
 
+import com.google.devtools.ksp.getConstructors
+import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.KSDeclaration
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.symbol.KSType
+import com.google.devtools.ksp.symbol.Origin
+import com.google.devtools.ksp.symbol.Visibility
 import com.qualityminds.lazyval.LazyvalConfiguration
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
@@ -56,6 +61,15 @@ internal class LazyvalKspEnvironment(
 
             override fun getSetting(key: String): String? {
                 return environment.options[key]
+            }
+
+            override fun inspectClass(fqcn: String): Generator.Context.ClassInspection? {
+                if (fqcn.isBlank()) {
+                    return null
+                }
+                val declaration = resolver.getClassDeclarationByName(resolver.getKSNameFromString(fqcn))
+                    ?: return null
+                return KspClassInspection(declaration)
             }
 
             override fun generatorPackage(overridePackageOptionKey: String, defaultLayer: String?): String {
@@ -166,6 +180,49 @@ internal class LazyvalKspEnvironment(
             }
         }
     }
+}
 
+private class KspClassInspection(private val declaration: KSClassDeclaration) : Generator.Context.ClassInspection {
 
+    override fun isAccessibleFrom(packageName: String): Boolean =
+        isAccessible(declaration, declaration.getVisibility(), packageName)
+
+    override fun hasAccessibleNoArgConstructor(packageName: String): Boolean =
+        declaration.getConstructors().any { ctor ->
+            ctor.parameters.isEmpty() && isAccessible(declaration, ctor.getVisibility(), packageName)
+        }
+
+    override fun isAssignableTo(supertypeFqn: String): Boolean {
+        val visited = HashSet<String>()
+        val queue: ArrayDeque<KSClassDeclaration> = ArrayDeque()
+        queue += declaration
+        while (queue.isNotEmpty()) {
+            val current = queue.removeFirst()
+            val fqn = current.qualifiedName?.asString() ?: continue
+            if (!visited.add(fqn)) continue
+            if (fqn == supertypeFqn) return true
+            for (parent in current.superTypes) {
+                val parentDecl = parent.resolve().declaration as? KSClassDeclaration ?: continue
+                queue += parentDecl
+            }
+        }
+        return false
+    }
+
+    override fun hasAnnotation(annotationFqn: String): Boolean {
+        return declaration.annotations.any { anno ->
+            anno.annotationType.resolve().declaration.qualifiedName?.asString() == annotationFqn
+        }
+    }
+
+    private fun isAccessible(decl: KSDeclaration, visibility: Visibility, packageName: String): Boolean =
+        when (visibility) {
+            Visibility.PUBLIC -> true
+            Visibility.INTERNAL -> isFromCurrentModule(decl)
+            Visibility.JAVA_PACKAGE -> declaration.packageName.asString() == packageName
+            else -> false
+        }
+
+    private fun isFromCurrentModule(decl: KSDeclaration): Boolean =
+        decl.origin == Origin.KOTLIN || decl.origin == Origin.JAVA
 }

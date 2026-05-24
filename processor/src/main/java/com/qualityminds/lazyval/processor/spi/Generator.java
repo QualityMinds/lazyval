@@ -71,6 +71,15 @@ public interface Generator {
         Optional<String> getSetting(String key);
 
         /**
+         * Inspects a class on the compile classpath for SPI validation purposes
+         * (e.g. verifying that a user-supplied class name refers to a valid implementation
+         * of a required interface).
+         * @param fqcn fully qualified class name to inspect
+         * @return structural information about the class, or empty if no such class is on the classpath.
+         */
+        Optional<ClassInspection> inspectClass(String fqcn);
+
+        /**
          * If the user configured the generator-package override, it will be used.
          * In case no override is configured, the global base-package configuration is checked and combined with the generator default layer.
          * If nothing is configured, the package of the first domain-primitive is used as a last resort.
@@ -115,6 +124,44 @@ public interface Generator {
          * @param message   the message to be logged
          */
         void logError(Generator generator, Element element, String message);
+
+        /**
+         * Structural information about a class on the compile classpath.
+         */
+        interface ClassInspection {
+
+            /**
+             * Tests whether the class declaration is accessible from code generated at the given package
+             * within the current compilation unit. The class is accessible when it is {@code public}, or
+             * when it is package-private (Java) or {@code internal} (Kotlin, same module) and located in
+             * the given package.
+             * @param packageName the package where the calling code is generated
+             * @return true if the class can be referenced from {@code packageName}.
+             */
+            boolean isAccessibleFrom(String packageName);
+
+            /**
+             * Tests whether the class declares a no-argument constructor that can be invoked from code
+             * generated at the given package within the current compilation unit. Visibility rules match
+             * {@link #isAccessibleFrom(String)}.
+             * @param packageName the package where the calling code is generated
+             * @return true if a callable no-arg constructor exists.
+             */
+            boolean hasAccessibleNoArgConstructor(String packageName);
+
+            /**
+             * @param supertypeFqn fully qualified name of the supertype or interface to test against
+             * @return true if the inspected class is assignable to {@code supertypeFqn} by erasure;
+             * false when either type is not resolvable.
+             */
+            boolean isAssignableTo(String supertypeFqn);
+
+            /**
+             * @param annotationFqn fully qualified name of the annotation to look up
+             * @return true if the class declaration carries the given annotation directly.
+             */
+            boolean hasAnnotation(String annotationFqn);
+        }
     }
     // end::context[]
 }
