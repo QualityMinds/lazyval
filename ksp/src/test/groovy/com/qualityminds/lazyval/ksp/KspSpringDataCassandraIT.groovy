@@ -68,7 +68,7 @@ class KspSpringDataCassandraIT extends Specification {
         def scenario = Scenario.Kotlin.quantity()
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         and: 'generator-package is overridden'
-        scenario.withOption("lazyval.spring_data.package", "test.custom")
+        scenario.withOption("lazyval.springdata.package", "test.custom")
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -84,7 +84,7 @@ class KspSpringDataCassandraIT extends Specification {
         given:
         def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/converters/ValidConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "scenarios.converters.ValidConverter")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.ValidConverter")
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -95,7 +95,7 @@ class KspSpringDataCassandraIT extends Specification {
         and:
         def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
         generated.contains("scenarios.converters.ValidConverter()")
-        generated.contains("// user-supplied via lazyval.spring_data.cassandra.converters:")
+        generated.contains("// user-supplied via lazyval.springdata.cassandra.converters:")
     }
 
     void "multiple valid user converters are all appended in declared order"() {
@@ -104,7 +104,7 @@ class KspSpringDataCassandraIT extends Specification {
                 "scenarios/converters/ValidConverter.kt",
                 "scenarios/converters/AnotherValidConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters",
+        scenario.withOption("lazyval.springdata.cassandra.converters",
                 "scenarios.converters.ValidConverter,scenarios.converters.AnotherValidConverter")
 
         when:
@@ -127,7 +127,7 @@ class KspSpringDataCassandraIT extends Specification {
                 "scenarios/converters/ValidConverter.kt",
                 "scenarios/converters/AnotherValidConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters",
+        scenario.withOption("lazyval.springdata.cassandra.converters",
                 " scenarios.converters.ValidConverter , , scenarios.converters.AnotherValidConverter ")
 
         when:
@@ -146,7 +146,7 @@ class KspSpringDataCassandraIT extends Specification {
         given:
         def scenario = Scenario.Kotlin.quantity()
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "com.example.Missing")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "com.example.Missing")
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -155,7 +155,7 @@ class KspSpringDataCassandraIT extends Specification {
         result instanceof Testresult.Kotlin.Failure
         def failure = result as Testresult.Kotlin.Failure
         failure.errors().any {
-            it.contains("lazyval.spring_data.cassandra.converters") && it.contains("com.example.Missing") && it.contains("not found on compile classpath")
+            it.contains("lazyval.springdata.cassandra.converters") && it.contains("com.example.Missing") && it.contains("not found on compile classpath")
         }
     }
 
@@ -163,7 +163,7 @@ class KspSpringDataCassandraIT extends Specification {
         given:
         def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/converters/NotAConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "scenarios.converters.NotAConverter")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NotAConverter")
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -180,7 +180,7 @@ class KspSpringDataCassandraIT extends Specification {
         given: 'NonPublicConverter is declared `internal` and lives in the same KSP-processed module'
         def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/converters/NonPublicConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "scenarios.converters.NonPublicConverter")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NonPublicConverter")
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -197,7 +197,7 @@ class KspSpringDataCassandraIT extends Specification {
         given: 'NonAccessibleConverter is a top-level `private` (file-scoped) class'
         def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/converters/NonAccessibleConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "scenarios.converters.NonAccessibleConverter")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NonAccessibleConverter")
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -214,7 +214,7 @@ class KspSpringDataCassandraIT extends Specification {
         given:
         def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/converters/UnannotatedConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "scenarios.converters.UnannotatedConverter")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.UnannotatedConverter")
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -231,7 +231,7 @@ class KspSpringDataCassandraIT extends Specification {
         given:
         def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/converters/NoNoArgConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "scenarios.converters.NoNoArgConverter")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NoNoArgConverter")
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -250,7 +250,7 @@ class KspSpringDataCassandraIT extends Specification {
                 "scenarios/converters/NotAConverter.kt",
                 "scenarios/converters/NoNoArgConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters",
+        scenario.withOption("lazyval.springdata.cassandra.converters",
                 "scenarios.converters.NotAConverter,scenarios.converters.NoNoArgConverter")
 
         when:
@@ -274,7 +274,7 @@ class KspSpringDataCassandraIT extends Specification {
         given: 'only MongoDB is on the classpath but Cassandra option is set'
         def scenario = Scenario.Kotlin.quantity()
                 .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.spring_data.cassandra.converters", "com.example.Whatever")
+        scenario.withOption("lazyval.springdata.cassandra.converters", "com.example.Whatever")
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -286,7 +286,7 @@ class KspSpringDataCassandraIT extends Specification {
 
         and:
         success.warnings().any {
-            it.contains("lazyval.spring_data.cassandra.converters") && it.contains("Cassandra") && it.contains("ignored")
+            it.contains("lazyval.springdata.cassandra.converters") && it.contains("Cassandra") && it.contains("ignored")
         }
 
         and: 'no cassandra bean method is generated'

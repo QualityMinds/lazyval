@@ -66,8 +66,6 @@ See xref:generators:index.adoc[Generators Overview] for how to plug in user-supp
 where the framework requires application-specific decisions (e.g. timezone for `LocalDate ↔ Date`
 on MongoDB).
 
-Future plans include Elasticsearch, Couchbase, and Avro.
-
 NOTE: For custom generators, see xref:spi:index.adoc[Lazyval's SPI].
 
 == Global Configuration Options
