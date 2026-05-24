@@ -123,35 +123,32 @@ class CassandraCodecGenerator : Generator {
 
         val codecClassName = "${element.typeName}Codec"
 
+        val nullableElementClassName = elementClassName.copy(nullable = true)
+
         return TypeSpec.classBuilder(codecClassName)
             .superclass(
-                MAPPING_CODEC.parameterizedBy(wrappedTypeName.copy(nullable = false), elementClassName)
+                MAPPING_CODEC.parameterizedBy(wrappedTypeName.copy(nullable = false), nullableElementClassName)
             )
             .addSuperclassConstructorParameter(
-                CodeBlock.of("%T.%L, %T.of(%T::class.java)", TYPE_CODECS, typeCodecConstant, GENERIC_TYPE, elementClassName)
+                CodeBlock.of("%T.%L, object : %T() {}", TYPE_CODECS, typeCodecConstant, GENERIC_TYPE.parameterizedBy(nullableElementClassName))
             )
             .addFunction(
                 FunSpec.builder("innerToOuter")
                     .addModifiers(KModifier.OVERRIDE)
                     .addParameter("value", wrappedTypeName.copy(nullable = true))
-                    .returns(elementClassName.copy(nullable = true))
-                    .addStatement("return value?.let { ${element.objectCreation("it")}${nullAssert(element)} }")
+                    .returns(nullableElementClassName)
+                    .addStatement("return value?.let { ${element.objectCreation("it")} }")
                     .build()
             )
             .addFunction(
                 FunSpec.builder("outerToInner")
                     .addModifiers(KModifier.OVERRIDE)
-                    .addParameter("value", elementClassName.copy(nullable = true))
+                    .addParameter("value", nullableElementClassName)
                     .returns(wrappedTypeName.copy(nullable = true))
                     .addStatement("return value?.${element.kotlinAccessor}")
                     .build()
             )
             .build()
-    }
-
-    private fun nullAssert(element: ValidatedKspGeneratorElement): String {
-        val returnType = element.factoryMethod?.returnType?.resolve() ?: return ""
-        return if (returnType.isMarkedNullable) "!!" else ""
     }
 
     private fun buildCodecsUtility(codecSpecs: List<TypeSpec>): TypeSpec {
