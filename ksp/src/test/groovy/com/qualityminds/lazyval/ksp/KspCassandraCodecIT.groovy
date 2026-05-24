@@ -9,7 +9,7 @@ import spock.lang.*
 
 import java.nio.file.Path
 
-@Title("Generator Integration - Cassandra Codec")
+@Title("KSP Generator Integration - Cassandra Codec")
 class KspCassandraCodecIT extends Specification {
 
     public static final Dependency dependencyDriverCore = new Dependency("com.datastax.oss", "java-driver-core", "4.17.0")
