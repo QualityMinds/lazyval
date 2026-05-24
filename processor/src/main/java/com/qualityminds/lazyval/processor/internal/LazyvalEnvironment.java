@@ -93,6 +93,31 @@ class LazyvalEnvironment {
                                 return fallbackPackage;
                             }));
             }
+
+            @Override
+            public void logInfo(Generator generator, String message) {
+                info(" [%s] %s".formatted(generator.generatorId(), message));
+            }
+
+            @Override
+            public void logWarning(Generator generator, String message) {
+                warn(" [%s] %s".formatted(generator.generatorId(), message));
+            }
+
+            @Override
+            public void logWarning(Generator generator, Element element, String message) {
+                warn(element, " [%s] %s".formatted(generator.generatorId(), message));
+            }
+
+            @Override
+            public void logError(Generator generator, String message) {
+                error(" [%s] %s".formatted(generator.generatorId(), message));
+            }
+
+            @Override
+            public void logError(Generator generator, Element element, String message) {
+                error(element, " [%s] %s".formatted(generator.generatorId(), message));
+            }
         };
     }
 
