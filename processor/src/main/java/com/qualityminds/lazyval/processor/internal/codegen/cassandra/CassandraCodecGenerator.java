@@ -11,6 +11,18 @@ import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.stream.Stream;
 
+/**
+ * Generates a DataStax {@code MappingCodec} for each domain-primitive, grouped into a
+ * {@code LazyvalCassandraCodecs} utility class.
+ *
+ * <h3>Null invariants</h3>
+ * The DataStax driver decodes a CQL {@code NULL} column to {@code null} and passes it
+ * directly to {@code innerToOuter}. Both {@code innerToOuter} and {@code outerToInner}
+ * guard against {@code null} explicitly and propagate it as-is without invoking the factory.
+ * Java's type system does not enforce nullability on the generated methods; the
+ * {@code GenericType} constructor argument always carries the non-nullable Java class,
+ * regardless of whether the factory method can return {@code null}.
+ */
 // must only be public for ServiceLoader, but it is not part of the API
 public class CassandraCodecGenerator implements Generator {
 
@@ -86,9 +98,6 @@ public class CassandraCodecGenerator implements Generator {
 
         for (ValidatedGeneratorElement element : elements) {
             String typeCodecConstant = resolveTypeCodecConstant(element);
-            if (typeCodecConstant == null) {
-                continue;
-            }
             codecSpecs.add(buildMappingCodec(element, typeCodecConstant));
         }
 
@@ -105,7 +114,7 @@ public class CassandraCodecGenerator implements Generator {
                     .orElse(true);
 
             if (isQuarkus && quarkusRegister) {
-                List<String> codecClassNames = codecSpecs.stream().map(s -> s.name()).toList();
+                List<String> codecClassNames = codecSpecs.stream().map(TypeSpec::name).toList();
                 TypeSpec registrarSpec = buildQuarkusRegistrar(codecClassNames);
                 JavaFile registrarFile = JavaFile.builder(codecPackage, registrarSpec).build();
                 results.add(new GeneratorResult.Java(
@@ -173,19 +182,21 @@ public class CassandraCodecGenerator implements Generator {
     }
 
     private static TypeSpec buildCodecsUtility(List<TypeSpec> codecSpecs) {
-        List<String> codecClassNames = codecSpecs.stream().map(s -> s.name()).toList();
+        List<String> codecClassNames = codecSpecs.stream().map(TypeSpec::name).toList();
 
         MethodSpec.Builder allMethod = MethodSpec.methodBuilder("all")
-                .addJavadoc("Returns an array of all generated {@link $T}s for lazyval wrapper types.\n"
-                        + "<p>\n"
-                        + "Use this method to register all codecs at once, e.g.:\n"
-                        + "<pre>{@code\n"
-                        + "CqlSession session = CqlSession.builder()\n"
-                        + "    .addTypeCodecs(LazyvalCassandraCodecs.all())\n"
-                        + "    .build();\n"
-                        + "}</pre>\n"
-                        + "\n"
-                        + "@return an array containing one codec instance per generated wrapper type\n",
+                .addJavadoc("""
+                                Returns an array of all generated {@link $T}s for lazyval wrapper types.
+                                <p>
+                                Use this method to register all codecs at once, e.g.:
+                                <pre>{@code
+                                CqlSession session = CqlSession.builder()
+                                    .addTypeCodecs(LazyvalCassandraCodecs.all())
+                                    .build();
+                                }</pre>
+                                
+                                @return an array containing one codec instance per generated wrapper type
+                                """,
                         TYPE_CODEC)
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .returns(ArrayTypeName.of(ParameterizedTypeName.get(TYPE_CODEC, WildcardTypeName.subtypeOf(Object.class))));
@@ -215,7 +226,6 @@ public class CassandraCodecGenerator implements Generator {
 
     private static TypeSpec buildQuarkusRegistrar(List<String> codecClassNames) {
         ClassName quarkusCqlSession = ClassName.get("com.datastax.oss.quarkus.runtime.api.session", "QuarkusCqlSession");
-        ClassName quarkusCqlSessionBuilder = ClassName.get("com.datastax.oss.quarkus.runtime.internal.session", "QuarkusCqlSessionBuilder");
         ClassName cassandraClientConfig = ClassName.get("com.datastax.oss.quarkus.runtime.api.config", "CassandraClientConfig");
         ClassName cassandraClientProducer = ClassName.get("com.datastax.oss.quarkus.runtime.internal.quarkus", "CassandraClientProducer");
         ClassName completionStage = ClassName.get("java.util.concurrent", "CompletionStage");
@@ -252,15 +262,19 @@ public class CassandraCodecGenerator implements Generator {
                                 .build())
                 .addStatement("$T stage = delegate.produceQuarkusCqlSessionStage(config, mainEventLoop)", sessionStageType)
                 .addCode(
-                        "return stage.thenApply(session -> {\n" +
-                                "    $T registry = ($T) session.getContext().getCodecRegistry();\n",
+                        """
+                                return stage.thenApply(session -> {
+                                    $T registry = ($T) session.getContext().getCodecRegistry();
+                                """,
                         ClassName.get("com.datastax.oss.driver.api.core.type.codec.registry", "MutableCodecRegistry"),
                         ClassName.get("com.datastax.oss.driver.api.core.type.codec.registry", "MutableCodecRegistry"))
                 .addCode(codecClassNames.stream()
                         .map(name -> "    registry.register(new LazyvalCassandraCodecs." + name + "());\n")
                         .reduce("", String::concat))
-                .addCode("    return session;\n" +
-                        "});\n")
+                .addCode("""
+                            return session;
+                        });
+                        """)
                 .build();
 
         MethodSpec constructor = MethodSpec.constructorBuilder()

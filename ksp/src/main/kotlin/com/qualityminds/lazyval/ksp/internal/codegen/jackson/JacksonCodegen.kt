@@ -9,6 +9,26 @@ import com.squareup.kotlinpoet.ksp.toTypeName
 /**
  * Shared code-generation logic for Jackson serializer/deserializer modules.
  * Parameterized by [JacksonVersion] to handle Jackson 2 vs 3 differences.
+ *
+ * ## Null invariants
+ *
+ * **Serializer:** Jackson never calls `serialize` for a `null` value; null is intercepted
+ * upstream at the property-binding level. The generated `serialize(value: DomainType)` method
+ * therefore always receives a non-null argument and does not need to guard against null.
+ *
+ * **Deserializer:** Jackson never calls `deserialize` for a JSON `null` token; null tokens
+ * are resolved upstream before the deserializer is invoked. The factory method is therefore
+ * always called with a non-null raw value.
+ *
+ * The generated `StdDeserializer` type parameter and `deserialize` return type reflect the
+ * factory method's declared nullability:
+ * - **Non-nullable factory** → `StdDeserializer<DomainType>`, `deserialize(): DomainType`
+ * - **Nullable factory** → `StdDeserializer<DomainType?>`, `deserialize(): DomainType?`
+ *
+ * Jackson does **not** throw when a deserializer returns `null` for a non-null JSON value.
+ * The `null` is set on the target field silently. If the target field is a non-nullable Kotlin
+ * property, a `NullPointerException` will be thrown at first access, not during deserialization.
+ * Any property holding a type with a nullable factory **must** be declared as `DomainType?`.
  */
 internal class JacksonCodegen(private val version: JacksonVersion) {
 

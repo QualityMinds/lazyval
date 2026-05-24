@@ -10,6 +10,35 @@ import com.squareup.kotlinpoet.ksp.toClassName
 import com.squareup.kotlinpoet.ksp.toTypeName
 import java.util.stream.Stream
 
+/**
+ * Generates Spring Data `Converter` read/write pairs for each domain-primitive and a single
+ * `LazyvalSpringDataConfiguration` file that registers them with the store's
+ * `CustomConversions` bean.
+ *
+ * ## Null invariants
+ *
+ * Spring Data's `Converter` contract guarantees a **non-null** `source` argument for both read
+ * and write converters; null column values are resolved by Spring Data before the converter is
+ * invoked and never reach `convert`.
+ *
+ * ### Read converters
+ *
+ * The `Converter` type parameter and `convert` return type reflect the factory method's
+ * declared nullability:
+ * - **Non-nullable factory** → `Converter<InnerType, DomainType>`, returns `DomainType`
+ * - **Nullable factory** → `Converter<InnerType, DomainType?>`, returns `DomainType?`
+ *
+ * When a nullable factory returns `null` for a non-null DB value (e.g. a blank-string guard),
+ * Spring Data propagates `null` to the target property. The target property **must** be
+ * declared as a nullable Kotlin property (`val x: DomainType?`); otherwise a
+ * `NullPointerException` will be thrown at first access.
+ *
+ * ### Write converters
+ *
+ * The wrapped type inside a domain-primitive is always non-nullable (lazyval rejects nullable
+ * wrapped properties at compile time). Write converters therefore always return a non-null
+ * value: `Converter<DomainType, InnerType>`.
+ */
 class SpringDataGenerator : Generator {
 
     companion object {

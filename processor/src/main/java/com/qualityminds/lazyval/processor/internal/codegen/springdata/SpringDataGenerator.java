@@ -14,6 +14,25 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
+/**
+ * Generates Spring Data {@code Converter} read/write pairs for each domain-primitive and
+ * bundles them into a {@code LazyvalSpringDataConfiguration} class that registers them with
+ * the store's {@code CustomConversions} bean.
+ *
+ * <h3>Null invariants</h3>
+ * Spring Data's {@code Converter} contract guarantees a non-null {@code source} argument for
+ * both read and write converters; null column values are resolved by Spring Data before the
+ * converter is invoked and never reach {@code convert}.
+ * <p>
+ * <b>Read converters:</b> if the factory method returns {@code null} for a non-null DB value
+ * (e.g. a blank-string guard), Spring Data propagates {@code null} to the target property
+ * silently. Java's type system provides no compile-time guarantee for this; callers must ensure
+ * the target field accepts {@code null}.
+ * <p>
+ * <b>Write converters:</b> the wrapped type inside a domain-primitive is always non-nullable
+ * (lazyval rejects nullable wrapped properties at compile time), so write converters always
+ * return a non-null value.
+ */
 // must only be public for ServiceLoader, but it is not part of the API
 public class SpringDataGenerator implements Generator {
 
