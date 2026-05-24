@@ -60,6 +60,9 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
         val wrappedType = element.wrappedProperty
         val deserializerName = "${element.typeName}Deserializer"
 
+        val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
+        val returnType = elementClassName.copy(nullable = factoryReturnsNullable)
+
         val wrappedTypeName = wrappedType.type.declaration.simpleName.asString()
 
         val deserializeBody: FunSpec.Builder.() -> Unit = if (wrappedType.isPrimitive()) {
@@ -92,13 +95,13 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
 
         val deserializeMethod = FunSpec.builder("deserialize")
             .addModifiers(KModifier.OVERRIDE)
-            .returns(elementClassName.copy(nullable = true))
+            .returns(returnType)
             .addParameter("p", version.jsonParser())
             .addParameter("ctx", version.deserializationContext())
             .apply(deserializeBody)
 
         return TypeSpec.classBuilder(deserializerName)
-            .superclass(version.stdDeserializer().parameterizedBy(elementClassName))
+            .superclass(version.stdDeserializer().parameterizedBy(returnType))
             .addSuperclassConstructorParameter(CodeBlock.of("%T::class.java", elementClassName))
             .addFunction(deserializeMethod.build())
             .build()
