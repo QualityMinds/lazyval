@@ -9,7 +9,7 @@ import spock.lang.*
 
 import java.nio.file.Path
 
-@Title("Generator Integration - Jackson")
+@Title("KSP Generator Integration - Jackson")
 class KspJacksonIT extends Specification {
 
     public static final Dependency dependencyJackson_2_Core = new Dependency("com.fasterxml.jackson.core", "jackson-core", "2.21.2")

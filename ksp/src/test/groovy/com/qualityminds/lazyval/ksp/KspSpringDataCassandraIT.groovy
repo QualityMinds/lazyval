@@ -8,7 +8,7 @@ import spock.lang.*
 
 import java.nio.file.Path
 
-@Title("Generator Integration - Spring Data Cassandra (KSP)")
+@Title("KSP Generator Integration - Spring Data Cassandra")
 class KspSpringDataCassandraIT extends Specification {
 
     public static final Dependency dependencySpringDataCassandra = new Dependency("org.springframework.data", "spring-data-cassandra", "4.4.6")

@@ -9,7 +9,7 @@ import spock.lang.*
 
 import java.nio.file.Path
 
-@Title("Generator Integration - Mapstruct")
+@Title("KSP Generator Integration - Mapstruct")
 class KspMapstructIT extends Specification {
 
     public static final Dependency dependencyMapstruct = new Dependency("org.mapstruct", "mapstruct", "1.6.3")

@@ -6,13 +6,11 @@ import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import org.eclipse.collections.api.factory.Lists
-import spock.lang.Shared
-import spock.lang.Specification
-import spock.lang.TempDir
-import spock.lang.Unroll
+import spock.lang.*
 
 import java.nio.file.Path
 
+@Title("Kotlin Symbol Processor")
 class KspIT extends Specification {
 
     public static final String GENERATED_MAPSTRUCT_MAPPER_NAME = "LazyvalMapper.java"

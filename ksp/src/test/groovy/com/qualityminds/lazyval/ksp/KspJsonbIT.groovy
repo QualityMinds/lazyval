@@ -9,7 +9,7 @@ import spock.lang.*
 
 import java.nio.file.Path
 
-@Title("Generator Integration - JSON-B")
+@Title("KSP Generator Integration - JSON-B")
 class KspJsonbIT extends Specification {
 
     public static final Dependency dependencyJsonbApi = new Dependency("jakarta.json.bind", "jakarta.json.bind-api", "3.0.1")

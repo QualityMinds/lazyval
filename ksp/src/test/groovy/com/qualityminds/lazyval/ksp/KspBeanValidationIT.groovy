@@ -9,7 +9,7 @@ import spock.lang.*
 
 import java.nio.file.Path
 
-@Title("Generator Integration - BeanValidation")
+@Title("KSP Generator Integration - BeanValidation")
 class KspBeanValidationIT extends Specification {
 
     public static final Dependency dependencyBeanValidation = new Dependency("jakarta.validation", "jakarta.validation-api", "3.1.0")

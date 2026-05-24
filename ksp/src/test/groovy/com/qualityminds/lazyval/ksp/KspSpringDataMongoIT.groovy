@@ -8,7 +8,7 @@ import spock.lang.*
 
 import java.nio.file.Path
 
-@Title("Generator Integration - Spring Data MongoDB (KSP)")
+@Title("KSP Generator Integration - Spring Data MongoDB")
 class KspSpringDataMongoIT extends Specification {
 
     public static final Dependency dependencySpringDataMongo = new Dependency("org.springframework.data", "spring-data-mongodb", "4.4.6")

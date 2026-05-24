@@ -9,7 +9,7 @@ import spock.lang.*
 
 import java.nio.file.Path
 
-@Title("Generator Integration - JPA")
+@Title("KSP Generator Integration - JPA")
 class KspJpaIT extends Specification {
 
     public static final Dependency dependencyJakartaPersistence = new Dependency("jakarta.persistence", "jakarta.persistence-api", "3.2.0")
