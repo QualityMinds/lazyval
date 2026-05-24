@@ -164,7 +164,7 @@
                             cassandra,jackson-2
                         </lazyval.generators.disable>
                         <lazyval.springdata.mongo.converters>
-                            com.qualityminds.lazyval.integration.boundary.persistence.mongodb.DateToOrderDateConverter,com.qualityminds.lazyval.integration.boundary.persistence.mongodb.OrderDateToDateConverter
+                            com.qualityminds.lazyval.integration.boundary.persistence.DateToOrderDateConverter,com.qualityminds.lazyval.integration.boundary.persistence.OrderDateToDateConverter
                         </lazyval.springdata.mongo.converters>
                     </apOptions>
                 </configuration>

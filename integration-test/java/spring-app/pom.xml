@@ -196,7 +196,7 @@
                         <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
                         <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
                         <arg>-Alazyval.generators.disable=cassandra,jackson-2</arg>
-                        <arg>-Alazyval.springdata.mongo.converters=com.qualityminds.lazyval.integration.boundary.persistence.mongodb.DateToOrderDateConverter,com.qualityminds.lazyval.integration.boundary.persistence.mongodb.OrderDateToDateConverter</arg>
+                        <arg>-Alazyval.springdata.mongo.converters=com.qualityminds.lazyval.integration.boundary.persistence.DateToOrderDateConverter,com.qualityminds.lazyval.integration.boundary.persistence.OrderDateToDateConverter</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
