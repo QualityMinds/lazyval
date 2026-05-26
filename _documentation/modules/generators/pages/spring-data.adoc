@@ -23,11 +23,13 @@ Overrides `lazyval.generators.basePackage`.
 
 |_lazyval.springdata.cassandra.converters_
 |Comma-separated list of fully qualified `Converter` class names appended to the
-`CassandraCustomConversions` registration. See <<user-supplied-converters>>.
+`CassandraCustomConversions` registration. Only needed when the defaults don't fit —
+see <<user-supplied-converters>>.
 
 |_lazyval.springdata.mongo.converters_
 |Comma-separated list of fully qualified `Converter` class names appended to the
-`MongoCustomConversions` registration. See <<user-supplied-converters>>.
+`MongoCustomConversions` registration. Only needed when the defaults don't fit —
+see <<user-supplied-converters>>.
 
 |===
 
@@ -161,116 +163,6 @@ NOTE: The configuration class is only generated when a supported store module (`
 or `spring-data-mongodb`) is on the classpath.
 Having only `spring-data-commons` present is not sufficient.
 
-[[user-supplied-converters]]
-== User-supplied Converters
-
-The generator emits `Converter<WrappedType, DomainType>` pairs. For an `OrderDate` wrapping
-`java.time.LocalDate` this means `Converter<LocalDate, OrderDate>` and `Converter<OrderDate, LocalDate>` —
-correct for Cassandra (CQL has a native `date` type), but insufficient for MongoDB: BSON has no
-`LocalDate` and the driver round-trips dates through `java.util.Date`. Spring Data MongoDB does not chain
-converters during property population, so without a direct `Date ↔ OrderDate` pair the read path fails
-with `ConverterNotFoundException`. Bridging `LocalDate ↔ Date` requires a `ZoneId` — an application
-decision the generator cannot make on the user's behalf.
-
-The two options below accept a comma-separated list of `Converter` FQNs and append them to the relevant
-generated registration. Each FQN is validated at compile time:
-
-* the class must exist
-* implement `org.springframework.core.convert.converter.Converter`
-* be accessible from the package where `LazyvalSpringDataConfiguration` is written
-* declare a no-arg constructor with at least the same visibility
-* be annotated with either `@ReadingConverter` or `@WritingConverter`.
-
-The build fails with one error per offending FQN. The annotation is required rather than inferred from
-generics — Spring Data's reflection-based fallback is not guaranteed under AOT compilation, and the
-explicit annotation removes that ambiguity.
-
-Accessibility covers more than `public`:
-
-* Java: package-private is fine when the converter lives in the same package as the generated
-  configuration.
-* Kotlin: `internal` is fine when the converter is declared in the current compilation module;
-  `JAVA_PACKAGE` follows the Java same-package rule.
-
-This lets users co-locate converters with the generated configuration and keep them out of the
-module's public API.
-
-=== Worked example: `OrderDate ↔ Date` for MongoDB
-
-Supply the converter pair with an explicit zone choice:
-
-[tabs]
-====
-Java::
-+
-[source,java]
-----
-@ReadingConverter
-public class DateToOrderDateConverter implements Converter<Date, OrderDate> {
-    public DateToOrderDateConverter() {}
-
-    @Override
-    public OrderDate convert(Date source) {
-        return new OrderDate(source.toInstant().atZone(ZoneOffset.UTC).toLocalDate());
-    }
-}
-
-@WritingConverter
-public class OrderDateToDateConverter implements Converter<OrderDate, Date> {
-    public OrderDateToDateConverter() {}
-
-    @Override
-    public Date convert(OrderDate source) {
-        return Date.from(source.value().atStartOfDay(ZoneOffset.UTC).toInstant());
-    }
-}
-----
-
-Kotlin::
-+
-[source,kotlin]
-----
-@ReadingConverter
-class DateToOrderDateConverter : Converter<Date, OrderDate> {
-    override fun convert(source: Date): OrderDate =
-        OrderDate(source.toInstant().atZone(ZoneOffset.UTC).toLocalDate())
-}
-
-@WritingConverter
-class OrderDateToDateConverter : Converter<OrderDate, Date> {
-    override fun convert(source: OrderDate): Date =
-        Date.from(source.value.atStartOfDay(ZoneOffset.UTC).toInstant())
-}
-----
-====
-
-Register via the processor option:
-
-[tabs]
-====
-Maven (Java APT)::
-+
-[source,xml]
-----
-<compilerArg>-Alazyval.springdata.mongo.converters=com.example.DateToOrderDateConverter,com.example.OrderDateToDateConverter</compilerArg>
-----
-
-Maven (KSP)::
-+
-[source,xml]
-----
-<apOptions>
-    <lazyval.springdata.mongo.converters>
-        com.example.DateToOrderDateConverter,com.example.OrderDateToDateConverter
-    </lazyval.springdata.mongo.converters>
-</apOptions>
-----
-====
-
-User entries are appended after the generated ones in `mongoCustomConversions()`. `CustomConversions`
-applies last-wins semantics to `(source, target)` pairs, so a user converter whose generics overlap a
-generated one replaces it.
-
 == Nullable Factory Methods (Kotlin)
 
 When a factory method in a Kotlin domain-primitive has a nullable return type, the generated
@@ -353,3 +245,148 @@ which relocates Jackson 2 to an internal package and therefore does not expose i
     <artifactId>java-driver-core-shaded</artifactId>
 </dependency>
 ----
+
+[[user-supplied-converters]]
+[appendix]
+== When the defaults aren't enough
+
+For most primitives the generated `Converter<WrappedType, DomainType>` pair is
+all you need:
+
+* **Cassandra**: CQL has native types for `String`, the numeric primitives,
+  `LocalDate`, `LocalTime`, `Instant`, `UUID`, `BigDecimal`, `InetAddress`, and
+  `ByteBuffer`. The generated pair matches them directly.
+* **MongoDB**: works the same way for `String`, numeric primitives, `UUID`,
+  `BigDecimal`, `byte[]`, and any other type Spring Data MongoDB recognises as
+  a simple type.
+
+[NOTE]
+====
+**The date-on-Mongo gotcha.** Spring Data MongoDB's `MappingMongoConverter`
+materialises BSON datetime as `java.util.Date` in memory before user
+converters are invoked — it doesn't chain converters. So for a domain-primitive
+wrapping `java.time.LocalDate` the generated `Converter<LocalDate, OrderDate>`
+is never called on the read path; the read fails with
+`ConverterNotFoundException` because Spring Data only has a `Date` in hand.
+Bridging `LocalDate ↔ Date` requires a `ZoneId` — an application decision the
+generator cannot make on the user's behalf.
+
+The native xref:mongodb.adoc[MongoDB] generator avoids this problem entirely:
+its codecs run below Spring Data's converter layer and compose with the
+driver's `Jsr310CodecProvider` directly, so no `Date` bridge is needed.
+====
+
+Supply user converters via `lazyval.springdata.{cassandra,mongo}.converters`
+when:
+
+* **a domain-primitive wraps `LocalDate` and the target store is MongoDB** —
+  per the note above; this is the common case.
+* **the wrapped type isn't a Spring Data simple type** — e.g. wrapping
+  `java.net.URI`, `java.util.Locale`, or a third-party value type. Without a
+  converter, Spring Data falls back to nested document mapping or fails
+  outright.
+* **the default mapping needs to be overridden** — e.g. storing a numeric
+  value as a string for legacy schema compatibility.
+
+=== Worked example: `OrderDate ↔ Date` for MongoDB
+
+Supply the converter pair with an explicit zone choice:
+
+[tabs]
+====
+Java::
++
+[source,java]
+----
+@ReadingConverter
+public class DateToOrderDateConverter implements Converter<Date, OrderDate> {
+    public DateToOrderDateConverter() {}
+
+    @Override
+    public OrderDate convert(Date source) {
+        return new OrderDate(source.toInstant().atZone(ZoneOffset.UTC).toLocalDate());
+    }
+}
+
+@WritingConverter
+public class OrderDateToDateConverter implements Converter<OrderDate, Date> {
+    public OrderDateToDateConverter() {}
+
+    @Override
+    public Date convert(OrderDate source) {
+        return Date.from(source.value().atStartOfDay(ZoneOffset.UTC).toInstant());
+    }
+}
+----
+
+Kotlin::
++
+[source,kotlin]
+----
+@ReadingConverter
+class DateToOrderDateConverter : Converter<Date, OrderDate> {
+    override fun convert(source: Date): OrderDate =
+        OrderDate(source.toInstant().atZone(ZoneOffset.UTC).toLocalDate())
+}
+
+@WritingConverter
+class OrderDateToDateConverter : Converter<OrderDate, Date> {
+    override fun convert(source: OrderDate): Date =
+        Date.from(source.value.atStartOfDay(ZoneOffset.UTC).toInstant())
+}
+----
+====
+
+Register via:
+
+[tabs]
+====
+Maven (Java APT)::
++
+[source,xml]
+----
+<compilerArg>-Alazyval.springdata.mongo.converters=com.example.DateToOrderDateConverter,com.example.OrderDateToDateConverter</compilerArg>
+----
+
+Maven (KSP)::
++
+[source,xml]
+----
+<apOptions>
+    <lazyval.springdata.mongo.converters>
+        com.example.DateToOrderDateConverter,com.example.OrderDateToDateConverter
+    </lazyval.springdata.mongo.converters>
+</apOptions>
+----
+====
+
+=== Validation rules
+
+Each FQN passed to `lazyval.springdata.{cassandra,mongo}.converters` is checked
+at compile time:
+
+* the class must exist
+* implement `org.springframework.core.convert.converter.Converter`
+* be accessible from the package where `LazyvalSpringDataConfiguration` is written
+* declare a no-arg constructor with at least the same visibility
+* be annotated with either `@ReadingConverter` or `@WritingConverter`.
+
+The build fails with one error per offending FQN. The annotation is required
+rather than inferred from generics — Spring Data's reflection-based fallback is
+not guaranteed under AOT compilation, and the explicit annotation removes that
+ambiguity.
+
+Accessibility covers more than `public`. In Java, package-private is fine when
+the converter lives in the same package as the generated configuration. In
+Kotlin, `internal` is fine when the converter is declared in the current
+compilation module; Java package-private follows the same-package rule. This
+lets users co-locate converters with the generated configuration and keep them
+out of the module's public API.
+
+=== Override semantics — last-wins
+
+User entries are appended after the generated ones in the relevant
+`CustomConversions` bean method. `CustomConversions` itself applies last-wins
+semantics to `(source, target)` pairs, so a user converter whose generics
+overlap a generated one replaces it. This matches the last-wins semantics used
+by the xref:mongodb.adoc#custom-codecs[native MongoDB codecs] hook.

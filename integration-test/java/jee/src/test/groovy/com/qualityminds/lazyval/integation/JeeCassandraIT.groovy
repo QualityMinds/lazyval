@@ -8,13 +8,15 @@ import com.qualityminds.lazyval.integration.client.JSON
 import com.qualityminds.lazyval.integration.client.api.OrderCassandraApi
 import com.qualityminds.lazyval.integration.client.model.CreateOrder
 import com.qualityminds.lazyval.integration.client.model.ValidationProblem
-import com.qualityminds.lazyval.integration.shared.EMail;
+import com.qualityminds.lazyval.integration.shared.EMail
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import org.mapstruct.factory.Mappers
 import org.testcontainers.spock.Testcontainers
 import spock.lang.Stepwise
+import spock.lang.Title
 
+@Title("Java - JakartaEE Cassandra")
 @Testcontainers
 @Stepwise
 class JeeCassandraIT extends AbstractLibertyIT {

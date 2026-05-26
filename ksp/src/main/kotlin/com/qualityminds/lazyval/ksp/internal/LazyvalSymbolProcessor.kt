@@ -150,6 +150,11 @@ class LazyvalSymbolProcessor(
                 lazyvalEnvironment.info("Both 'cassandra' and 'cassandra-spring-data' generators are active. " +
                     "You can disable one via 'lazyval.generators.disable'.")
             }
+            if (activeIds.contains("mongodb") && activeIds.contains("spring-data")
+                && lazyvalEnvironment.isClassAvailable("org.springframework.data.mongodb.core.convert.MongoCustomConversions")) {
+                lazyvalEnvironment.info("Both 'mongodb' and 'spring-data' generators are active with spring-data-mongodb on the classpath. " +
+                    "You can disable one via 'lazyval.generators.disable' if only one integration is needed.")
+            }
             if (activeIds.contains(Jackson3Generator.GENERATOR_ID) && activeIds.contains(Jackson2Generator.GENERATOR_ID)) {
                 lazyvalEnvironment.warn("Both 'jackson-2' and 'jackson-3' generators are active (probably due to transitive dependencies). " +
                         "This might be intentional, then ignore this warning. " +

@@ -16,7 +16,8 @@ import jakarta.transaction.Transactional
 @ApplicationScoped
 class Startup @Inject constructor(
     @Identifier("jpa") private val jpaRepository: OrderRepository,
-    @Identifier("cassandra") private val cassandraRepository: OrderRepository
+    @Identifier("cassandra") private val cassandraRepository: OrderRepository,
+    @Identifier("mongo") private val mongoRepository: OrderRepository
 ) {
 
     @Transactional
@@ -28,6 +29,10 @@ class Startup @Inject constructor(
         if (cassandraRepository.findAll().isEmpty()) {
             cassandraRepository.save(DefaultOrderA)
             cassandraRepository.save(DefaultOrderB)
+        }
+        if (mongoRepository.findAll().isEmpty()) {
+            mongoRepository.save(DefaultOrderA)
+            mongoRepository.save(DefaultOrderB)
         }
     }
 

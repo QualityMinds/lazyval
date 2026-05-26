@@ -1,0 +1,404 @@
+= MongoDB
+
+Since domain-primitives are complex objects, the MongoDB Java driver cannot natively map them to BSON
+values. This generator creates native driver `Codec` implementations bundled into a `LazyvalMongoCodecs`
+class that implements `CodecProvider`. Each codec resolves the wrapped-type codec from the supplied
+`CodecRegistry` and delegates `encode`/`decode` to it — so anything the registry knows how to handle
+(String, primitive wrappers, JSR-310 date/time types, UUID, BigDecimal, byte[], …) works out of the box.
+
+NOTE: For Spring Data MongoDB projects, see xref:spring-data.adoc[Spring Data] — a separate generator
+produces `@ReadingConverter`/`@WritingConverter` classes and a `MongoCustomConversions` bean.
+
+== Config Options
+
+|===
+|Property |Description
+
+|_lazyval.mongodb.package_
+|Specifies the package where the `LazyvalMongoCodecs` class is generated to.
+Overrides `lazyval.generators.basePackage`.
+
+|_lazyval.mongodb.codecs_
+|Comma-separated list of fully qualified `Codec` class names appended to the generated provider.
+Only needed when the defaults don't fit — see <<custom-codecs>>.
+
+|_lazyval.mongodb.quarkus.register_
+|Controls whether the Quarkus codec registrar is generated when Quarkus is detected.
+Defaults to `true`. Set to `false` to disable automatic registration.
+
+|===
+
+== Generated Files — Codecs
+
+A single `LazyvalMongoCodecs` class is generated that contains one `Codec` inner class per
+domain-primitive. The outer class implements `CodecProvider` so it can be added directly to any
+`CodecRegistry`. A convenience `asRegistry()` method composes the default Mongo registry with the
+generated provider for one-line setup (only emitted when `mongodb-driver-core` is on the classpath).
+
+[tabs]
+====
+Java::
++
+[source,java]
+----
+public final class LazyvalMongoCodecs implements CodecProvider {
+  private final Codec<?>[] userCodecs;
+
+  public LazyvalMongoCodecs() {
+    this.userCodecs = new Codec<?>[0];
+  }
+
+  @Override
+  @SuppressWarnings("unchecked")
+  public <T> Codec<T> get(Class<T> clazz, CodecRegistry registry) {
+    if (clazz == OrderDate.class) {
+      return (Codec<T>) new OrderDateCodec(registry.get(LocalDate.class));
+    }
+    if (clazz == Quantity.class) {
+      return (Codec<T>) new QuantityCodec(registry.get(Integer.class));
+    }
+    if (clazz == Isbn.class) {
+      return (Codec<T>) new IsbnCodec(registry.get(String.class));
+    }
+    return null;
+  }
+
+  public static CodecRegistry asRegistry() {
+    return CodecRegistries.fromRegistries(
+        MongoClientSettings.getDefaultCodecRegistry(),
+        CodecRegistries.fromProviders(new LazyvalMongoCodecs()));
+  }
+
+  static class OrderDateCodec implements Codec<OrderDate> {
+    private final Codec<LocalDate> innerCodec;
+
+    public OrderDateCodec(Codec<LocalDate> innerCodec) {
+      this.innerCodec = innerCodec;
+    }
+
+    @Override
+    public void encode(BsonWriter writer, OrderDate value, EncoderContext encoderContext) {
+      if (value == null) {
+        writer.writeNull();
+        return;
+      }
+      innerCodec.encode(writer, value.date(), encoderContext);
+    }
+
+    @Override
+    public OrderDate decode(BsonReader reader, DecoderContext decoderContext) {
+      if (reader.getCurrentBsonType() == BsonType.NULL) {
+        reader.readNull();
+        return null;
+      }
+      return new OrderDate(innerCodec.decode(reader, decoderContext));
+    }
+
+    @Override
+    public Class<OrderDate> getEncoderClass() {
+      return OrderDate.class;
+    }
+  }
+
+  // ... one codec per domain-primitive
+}
+----
+
+Kotlin::
++
+[source,kotlin]
+----
+public class LazyvalMongoCodecs : CodecProvider {
+  private val userCodecs: Array<Codec<*>> = arrayOf()
+
+  @Suppress("UNCHECKED_CAST")
+  override fun <T : Any?> get(clazz: Class<T>, registry: CodecRegistry): Codec<T>? {
+    if (clazz == OrderDate::class.java) {
+      return OrderDateCodec(registry.get(LocalDate::class.javaObjectType)) as Codec<T>
+    }
+    if (clazz == Quantity::class.java) {
+      return QuantityCodec(registry.get(Int::class.javaObjectType)) as Codec<T>
+    }
+    if (clazz == Isbn::class.java) {
+      return IsbnCodec(registry.get(String::class.javaObjectType)) as Codec<T>
+    }
+    return null
+  }
+
+  public companion object {
+    public fun asRegistry(): CodecRegistry =
+      CodecRegistries.fromRegistries(
+        MongoClientSettings.getDefaultCodecRegistry(),
+        CodecRegistries.fromProviders(LazyvalMongoCodecs())
+      )
+  }
+
+  internal class OrderDateCodec(private val innerCodec: Codec<LocalDate>) : Codec<OrderDate> {
+    override fun encode(writer: BsonWriter, value: OrderDate, encoderContext: EncoderContext) {
+      innerCodec.encode(writer, value.value, encoderContext)
+    }
+
+    override fun decode(reader: BsonReader, decoderContext: DecoderContext): OrderDate =
+      OrderDate(innerCodec.decode(reader, decoderContext))
+
+    override fun getEncoderClass(): Class<OrderDate> = OrderDate::class.java
+  }
+
+  // ... one codec per domain-primitive
+}
+----
+====
+
+NOTE: The Kotlin generator omits the defensive `value == null` / `currentBsonType == NULL`
+guards present in the Java version because Mongo's POJO codec resolves null fields at the
+document level before invoking field codecs — and Kotlin's non-nullable parameter and return
+types make those guards either unreachable or impossible to express. When a domain-primitive
+has a nullable factory method (Kotlin only, e.g. `fun ofNullable(...): T?`), the generated codec
+is parameterised over `Codec<T?>` instead and re-introduces the null guards on encode.
+
+To manually register the codecs with a `MongoClient`:
+
+[source,java]
+----
+MongoClientSettings settings = MongoClientSettings.builder()
+    .codecRegistry(LazyvalMongoCodecs.asRegistry())
+    .build();
+MongoClient client = MongoClients.create(settings);
+----
+
+Or compose with an existing registry:
+
+[source,java]
+----
+CodecRegistry registry = CodecRegistries.fromRegistries(
+        LazyvalMongoCodecs.asRegistry(),
+        CodecRegistries.fromProviders(PojoCodecProvider.builder()
+                // in a plain mongo project you might use .automatic(true)
+                // instead we scan the mongo boundary package
+                .register(MongoOrder.class.getPackageName())
+                .build())
+);
+----
+
+The generator does not maintain a fixed Java-to-BSON type map. Whatever the supplied `CodecRegistry`
+can encode for the wrapped type works automatically — including the JSR-310 types provided by the
+default `Jsr310CodecProvider`, configured `UuidRepresentation`, and any user-registered codec.
+
+== Framework Integration
+
+=== Quarkus
+
+When the `quarkus-mongodb-client` extension is detected on the classpath (via
+`io.quarkus.mongodb.MongoClientName`), an additional `LazyvalMongoCodecRegistrar`
+`@ApplicationScoped` `CodecProvider` bean is generated. The Quarkus MongoDB extension auto-discovers
+`CodecProvider` beans and chains them into the default registry — no further wiring is needed.
+
+WARNING: when using quarkus-mongodb-panache there is currently an https://github.com/quarkusio/quarkus/issues/54526[issue]
+when using shorthand shorthand queries like `MongoOrder.list("isbn", isbn)` which currently bypasses the codec-registry.
+As a workaround use Filters from the MongoDB drivers `MongoOrder.list(Filters.eq("isbn", isbn))`
+
+[tabs]
+====
+Java::
++
+[source,java]
+----
+@ApplicationScoped
+@Unremovable
+public class LazyvalMongoCodecRegistrar implements CodecProvider {
+  private final LazyvalMongoCodecs delegate;
+
+  public LazyvalMongoCodecRegistrar() {
+    this.delegate = new LazyvalMongoCodecs();
+  }
+
+  @Override
+  public <T> Codec<T> get(Class<T> clazz, CodecRegistry registry) {
+    return delegate.get(clazz, registry);
+  }
+}
+----
+
+Kotlin::
++
+[source,kotlin]
+----
+@ApplicationScoped
+@Unremovable
+public class LazyvalMongoCodecRegistrar : CodecProvider {
+  private val delegate: LazyvalMongoCodecs = LazyvalMongoCodecs()
+
+  override fun <T : Any?> get(clazz: Class<T>, registry: CodecRegistry): Codec<T>? =
+    delegate.get(clazz, registry)
+}
+----
+====
+
+This can be disabled by setting `lazyval.mongodb.quarkus.register=false`.
+
+== Notes
+
+=== Recommendation: pick one of `mongodb` and Spring Data
+
+Spring Data MongoDB transitively pulls in `mongodb-driver-core`, which activates the `mongodb`
+generator on top of the xref:spring-data.adoc[Spring Data] generator. Both register conversions for
+the same primitives — and Spring Data's conversion runs before the BSON codec, so the generated
+Mongo codecs are dead code on the Spring Data path.
+
+Lazyval emits an info message in that situation. Decide which integration you want and disable the
+other one explicitly:
+
+[tabs]
+====
+Maven (Java APT)::
++
+[source,xml]
+----
+<compilerArg>-Alazyval.generators.disable=mongodb</compilerArg>
+----
+or
+[source,xml]
+----
+<compilerArg>-Alazyval.generators.disable=spring-data</compilerArg>
+----
+
+Maven (KSP)::
++
+[source,xml]
+----
+<apOptions>
+    <lazyval.generators.disable>mongodb</lazyval.generators.disable>
+</apOptions>
+----
+or
+[source,xml]
+----
+<apOptions>
+    <lazyval.generators.disable>spring-data</lazyval.generators.disable>
+</apOptions>
+----
+====
+
+[[custom-codecs]]
+[appendix]
+== When the defaults aren't enough
+
+The default Mongo codec registry covers `String`, all primitive wrappers, `UUID`,
+`BigDecimal`, `byte[]`, `Pattern`, and the JSR-310 types — `LocalDate`,
+`LocalDateTime`, `LocalTime`, `Instant`. Generated codecs compose with that
+registry end-to-end, so a domain-primitive wrapping any of these works out of
+the box. No `Date` bridge is required.
+
+[NOTE]
+====
+This is the meaningful difference from xref:spring-data.adoc[Spring Data MongoDB].
+Spring Data's `MappingMongoConverter` materialises BSON datetime as
+`java.util.Date` in memory before user converters run, so the read path needs a
+`Converter<Date, OrderDate>`. The native driver's POJO codec talks to the
+`CodecRegistry` directly, so a `LocalDate`-aware codec handles the field
+without the intermediate `Date` step.
+====
+
+Plug in a custom codec via `lazyval.mongodb.codecs` only when:
+
+* **the wrapped type isn't in the default registry** — e.g. wrapping
+  `java.net.URI`, `java.util.Locale`, or a third-party value type.
+  `registry.get(WrappedType.class)` throws `CodecConfigurationException` at
+  runtime if nothing is registered for it.
+* **a different BSON representation is needed** — e.g. storing `LocalDate` as
+  an ISO-8601 string instead of `BsonDateTime`, to make shell queries
+  human-readable and avoid the implicit UTC-midnight reinterpretation of the
+  default `LocalDateCodec`.
+
+=== Example: store `LocalDate` as an ISO string
+
+[tabs]
+====
+Java::
++
+[source,java]
+----
+public class IsoStringOrderDateCodec implements Codec<OrderDate> {
+    public IsoStringOrderDateCodec() {}
+
+    @Override
+    public void encode(BsonWriter writer, OrderDate value, EncoderContext ctx) {
+        writer.writeString(value.value().toString());
+    }
+
+    @Override
+    public OrderDate decode(BsonReader reader, DecoderContext ctx) {
+        return new OrderDate(LocalDate.parse(reader.readString()));
+    }
+
+    @Override
+    public Class<OrderDate> getEncoderClass() {
+        return OrderDate.class;
+    }
+}
+----
+
+Kotlin::
++
+[source,kotlin]
+----
+class IsoStringOrderDateCodec : Codec<OrderDate> {
+    override fun encode(writer: BsonWriter, value: OrderDate, ctx: EncoderContext) {
+        writer.writeString(value.value.toString())
+    }
+
+    override fun decode(reader: BsonReader, ctx: DecoderContext): OrderDate =
+        OrderDate(LocalDate.parse(reader.readString()))
+
+    override fun getEncoderClass(): Class<OrderDate> = OrderDate::class.java
+}
+----
+====
+
+Register via:
+
+[tabs]
+====
+Maven (Java APT)::
++
+[source,xml]
+----
+<compilerArg>-Alazyval.mongodb.codecs=com.example.IsoStringOrderDateCodec</compilerArg>
+----
+
+Maven (KSP)::
++
+[source,xml]
+----
+<apOptions>
+    <lazyval.mongodb.codecs>com.example.IsoStringOrderDateCodec</lazyval.mongodb.codecs>
+</apOptions>
+----
+====
+
+=== Validation rules
+
+Each FQN passed to `lazyval.mongodb.codecs` is checked at compile time:
+
+* the class must exist
+* implement `org.bson.codecs.Codec`
+* be accessible from the package where `LazyvalMongoCodecs` is written
+* declare a no-arg constructor with at least the same visibility.
+
+The build fails with one error per offending FQN.
+
+Accessibility covers more than `public`. In Java, package-private is fine when
+the codec lives in the same package as the generated configuration. In Kotlin,
+`internal` is fine when the codec is declared in the current compilation
+module; Java package-private follows the same-package rule. This lets users
+co-locate codecs with the generated configuration and keep them out of the
+module's public API.
+
+=== Override semantics — last-wins
+
+User codecs are consulted first in `LazyvalMongoCodecs.get(clazz, registry)`.
+A user codec whose `getEncoderClass()` matches the requested class supersedes
+the generated one; an `INFO`-level message via `System.Logger` names the user
+codec and the generated codec it replaces. This matches the last-wins
+semantics used by the
+xref:spring-data.adoc#user-supplied-converters[Spring Data converters] hook.
