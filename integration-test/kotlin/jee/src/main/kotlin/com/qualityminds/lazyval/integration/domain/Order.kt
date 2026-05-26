@@ -16,7 +16,7 @@ data class Order(
 ) {
     companion object {
         @JvmStatic
-        fun create(isbn: Isbn, quantity: Quantity, email: EMail): Order =
-            Order(UUID.randomUUID(), isbn, quantity, email, OrderDate.now())
+        fun create(isbn: Isbn, quantity: Quantity, email: EMail, couponCode: CouponCode?): Order =
+            Order(UUID.randomUUID(), isbn, quantity, email, OrderDate.now(), couponCode)
     }
 }

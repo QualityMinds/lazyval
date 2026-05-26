@@ -6,15 +6,17 @@ import com.qualityminds.lazyval.integration.client.ApiException
 import com.qualityminds.lazyval.integration.client.api.OrderJpaApi
 import com.qualityminds.lazyval.integration.client.model.CreateOrder
 import com.qualityminds.lazyval.integration.client.model.ValidationProblem
-import com.qualityminds.lazyval.integration.shared.EMail;
+import com.qualityminds.lazyval.integration.shared.EMail
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import spock.lang.Stepwise
+import spock.lang.Title
 import tools.jackson.databind.ObjectMapper
 
+@Title("Java - Spring-Data JPA")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Stepwise
 class SpringJpaIT extends AbstractIT {

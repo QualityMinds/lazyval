@@ -9,7 +9,7 @@ import com.qualityminds.lazyval.integration.client.JSON
 import com.qualityminds.lazyval.integration.client.api.OrderJpaApi
 import com.qualityminds.lazyval.integration.client.model.CreateOrder
 import com.qualityminds.lazyval.integration.client.model.ValidationProblem
-import com.qualityminds.lazyval.integration.shared.EMail;
+import com.qualityminds.lazyval.integration.shared.EMail
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import io.quarkus.test.common.QuarkusTestResource
@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows
  * When this test completes, the generated classes properly mapped the types to and from the DB as well
  * as converted them to
  */
+@DisplayName("Java - Quarkus JPA")
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation)
 @QuarkusTestResource(value = CassandraTestResource.class)
@@ -48,6 +49,7 @@ class QuarkusJpaIT {
 
     @Order(1)
     @Test
+    @DisplayName("should return all orders")
     void testAllOrders(){
         def orders = orderApi.getAllOrdersJpa()
 
@@ -56,6 +58,7 @@ class QuarkusJpaIT {
 
     @Order(2)
     @Test
+    @DisplayName("should add order")
     void addOrder(){
         def createOrderDto = new CreateOrder()
                 .isbn('978-3-16-148410-0')
@@ -72,6 +75,7 @@ class QuarkusJpaIT {
 
     @Order(3)
     @Test
+    @DisplayName("should find order by id")
     void findById(){
         def foundOrder = mapper.toDomainOrder(orderApi.getOrderByIdJpa(Startup.DefaultOrderB.id()))
 
@@ -80,6 +84,7 @@ class QuarkusJpaIT {
 
     @Order(4)
     @Test
+    @DisplayName("should find orders by isbn")
     void findByIsbn(){
         def foundOrder = mapper.toDomainOrder(orderApi.findOrdersByIsbnJpa(Startup.DefaultOrderB.isbn().value()))
 
@@ -88,6 +93,7 @@ class QuarkusJpaIT {
 
     @Order(5)
     @Test
+    @DisplayName("should handle invalid input")
     void invalidInput() {
         def createOrderDto = new CreateOrder()
                 .isbn('bogus')

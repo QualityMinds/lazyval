@@ -9,7 +9,7 @@ import com.qualityminds.lazyval.integration.client.JSON
 import com.qualityminds.lazyval.integration.client.api.OrderCassandraApi
 import com.qualityminds.lazyval.integration.client.model.CreateOrder
 import com.qualityminds.lazyval.integration.client.model.ValidationProblem
-import com.qualityminds.lazyval.integration.shared.EMail;
+import com.qualityminds.lazyval.integration.shared.EMail
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import io.quarkus.test.common.QuarkusTestResource
@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows
  * When this test completes, the generated classes properly mapped the types to and from the DB as well
  * as converted them to
  */
+@DisplayName("Java - Quarkus Cassandra")
 @QuarkusTest
 @TestMethodOrder(MethodOrderer.OrderAnnotation)
 @QuarkusTestResource(value = CassandraTestResource.class)
@@ -46,6 +47,7 @@ class QuarkusCassandraIT {
 
     @Order(1)
     @Test
+    @DisplayName("should return all orders")
     void testAllOrders(){
         def orders = orderApi.getAllOrdersCassandra()
 
@@ -54,6 +56,7 @@ class QuarkusCassandraIT {
 
     @Order(2)
     @Test
+    @DisplayName("should add order")
     void addOrder(){
         def createOrderDto = new CreateOrder()
                 .isbn('978-3-16-148410-0')
@@ -71,6 +74,7 @@ class QuarkusCassandraIT {
 
     @Order(3)
     @Test
+    @DisplayName("should find order by id")
     void findById(){
         def foundOrder = mapper.toDomainOrder(orderApi.getOrderByIdCassandra(Startup.DefaultOrderB.id()))
 
@@ -79,6 +83,7 @@ class QuarkusCassandraIT {
 
     @Order(4)
     @Test
+    @DisplayName("should find orders by isbn")
     void findByIsbn(){
         def foundOrder = mapper.toDomainOrder(orderApi.findOrdersByIsbnCassandra(Startup.DefaultOrderB.isbn().value()))
 
@@ -87,6 +92,7 @@ class QuarkusCassandraIT {
 
     @Order(5)
     @Test
+    @DisplayName("should handle invalid input")
     void invalidInput() {
         def createOrderDto = new CreateOrder()
                 .isbn('bogus')

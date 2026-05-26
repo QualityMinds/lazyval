@@ -51,6 +51,10 @@ public class StartupBean {
     @Named("cassandra")
     OrderRepository cassandraRepository;
 
+    @Inject
+    @Named("mongo")
+    OrderRepository mongoRepository;
+
     @Transactional
     @PostConstruct
     void init() {
@@ -64,6 +68,11 @@ public class StartupBean {
             cassandraRepository.save(DefaultOrderA);
             cassandraRepository.save(DefaultOrderB);
             logger.info("Initialized Cassandra database with demo entities");
+        }
+        if(mongoRepository.findAll().isEmpty()) {
+            mongoRepository.save(DefaultOrderA);
+            mongoRepository.save(DefaultOrderB);
+            logger.info("Initialized Mongo database with demo entities");
         }
     }
 }
