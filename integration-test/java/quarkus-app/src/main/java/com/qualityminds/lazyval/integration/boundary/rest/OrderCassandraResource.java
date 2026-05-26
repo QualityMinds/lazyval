@@ -54,5 +54,4 @@ public class OrderCassandraResource implements OrderCassandraApi {
     public Order getOrderByIdCassandra(UUID id) {
         return mapper.toDto(repository.getById(id));
     }
-
 }

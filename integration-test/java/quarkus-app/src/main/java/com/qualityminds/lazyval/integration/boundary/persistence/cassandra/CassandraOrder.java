@@ -11,6 +11,7 @@ import com.qualityminds.lazyval.integration.shared.Isbn;
 import com.qualityminds.lazyval.integration.shared.Quantity;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -85,5 +86,17 @@ public class CassandraOrder {
 
     public void setCouponCode(@Nullable CouponCode couponCode) {
         this.couponCode = couponCode;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        CassandraOrder that = (CassandraOrder) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
     }
 }

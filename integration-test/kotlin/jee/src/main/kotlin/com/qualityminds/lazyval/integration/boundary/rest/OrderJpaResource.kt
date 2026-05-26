@@ -3,8 +3,9 @@ package com.qualityminds.lazyval.integration.boundary.rest
 import com.qualityminds.lazyval.integration.boundary.rest.api.OrderJpaApi
 import com.qualityminds.lazyval.integration.boundary.rest.model.CreateOrder
 import com.qualityminds.lazyval.integration.boundary.rest.model.Order
-import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.domain.OrderRepository
+import com.qualityminds.lazyval.integration.shared.CouponCode
+import com.qualityminds.lazyval.integration.shared.EMail
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import jakarta.enterprise.context.RequestScoped
@@ -12,7 +13,7 @@ import jakarta.inject.Inject
 import jakarta.inject.Named
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.Path
-import java.util.UUID
+import java.util.*
 
 // @Path is declared on OrderJpaApi (the openapi-generated interface), but Liberty's JAX-RS
 // implementation only treats classes annotated directly with @Path as root resources.
@@ -29,6 +30,7 @@ class OrderJpaResource @Inject constructor(
             Isbn.parse(createOrder.isbn),
             Quantity(createOrder.quantity),
             EMail(createOrder.email),
+            CouponCode.ofNullable(createOrder.couponCode)
         )
         repository.save(newOrder)
         return mapper.toDto(newOrder)

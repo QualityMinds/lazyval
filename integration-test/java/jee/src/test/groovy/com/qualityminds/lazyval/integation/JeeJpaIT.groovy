@@ -14,7 +14,9 @@ import com.qualityminds.lazyval.integration.shared.Quantity
 import org.mapstruct.factory.Mappers
 import org.testcontainers.spock.Testcontainers
 import spock.lang.Stepwise
+import spock.lang.Title
 
+@Title("Java - JakartaEE JPA")
 @Testcontainers
 @Stepwise
 class JeeJpaIT extends AbstractLibertyIT {

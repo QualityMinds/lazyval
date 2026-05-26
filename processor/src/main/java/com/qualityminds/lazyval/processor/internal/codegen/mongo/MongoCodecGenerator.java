@@ -1,0 +1,398 @@
+package com.qualityminds.lazyval.processor.internal.codegen.mongo;
+
+import com.palantir.javapoet.*;
+import com.qualityminds.lazyval.collections.NonEmptySet;
+import com.qualityminds.lazyval.processor.spi.Generator;
+import com.qualityminds.lazyval.processor.spi.GeneratorResult;
+import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
+
+import javax.lang.model.element.Modifier;
+import javax.lang.model.type.TypeMirror;
+import java.util.*;
+import java.util.stream.Stream;
+
+/**
+ * Generates a native MongoDB driver {@code Codec} for each domain-primitive, grouped into a
+ * {@code LazyvalMongoCodecs} class that implements {@link
+ * org.bson.codecs.configuration.CodecProvider CodecProvider}. The provider resolves each
+ * primitive's inner-type codec from the supplied {@code CodecRegistry} on demand and
+ * delegates {@code encode}/{@code decode} to it, which transparently picks up whatever
+ * representation the registry has configured for the wrapped type (e.g. UUID representation,
+ * date/time codecs).
+ *
+ * <h3>Null invariants</h3>
+ * BSON {@code Codec.encode} writes {@code writeNull()} when called with a {@code null} value
+ * and {@code decode} returns {@code null} when the reader is positioned on a BSON null. The
+ * POJO codec layer in the MongoDB driver typically handles null at the field level itself
+ * and does not invoke our codec for null fields, so the guards inside {@code encode} and
+ * {@code decode} are defensive safety nets for direct codec use.
+ *
+ * <h3>Quarkus integration</h3>
+ * When the {@code quarkus-mongodb-client} extension is detected on the classpath, a
+ * {@code LazyvalMongoCodecRegistrar} {@code @ApplicationScoped} {@code CodecProvider} bean
+ * is also generated. Quarkus auto-discovers {@code CodecProvider} CDI beans and chains them
+ * into the default Mongo registry — no further wiring is needed.
+ */
+// must only be public for ServiceLoader, but it is not part of the API
+public class MongoCodecGenerator implements Generator {
+
+    private static final String GENERATOR_ID = "mongodb";
+    private static final String OPTION_GENERATED_PACKAGE = "lazyval.mongodb.package";
+    private static final String OPTION_USER_CODECS = "lazyval.mongodb.codecs";
+    private static final String OPTION_QUARKUS_REGISTER = "lazyval.mongodb.quarkus.register";
+
+    private static final String CODEC_FQN = "org.bson.codecs.Codec";
+    private static final String MONGO_CLIENT_SETTINGS_FQN = "com.mongodb.MongoClientSettings";
+    private static final String QUARKUS_MONGO_MARKER = "io.quarkus.mongodb.MongoClientName";
+
+    private static final ClassName CODEC = ClassName.get("org.bson.codecs", "Codec");
+    private static final ClassName BSON_READER = ClassName.get("org.bson", "BsonReader");
+    private static final ClassName BSON_WRITER = ClassName.get("org.bson", "BsonWriter");
+    private static final ClassName BSON_TYPE = ClassName.get("org.bson", "BsonType");
+    private static final ClassName ENCODER_CONTEXT = ClassName.get("org.bson.codecs", "EncoderContext");
+    private static final ClassName DECODER_CONTEXT = ClassName.get("org.bson.codecs", "DecoderContext");
+    private static final ClassName CODEC_REGISTRY = ClassName.get("org.bson.codecs.configuration", "CodecRegistry");
+    private static final ClassName CODEC_REGISTRIES = ClassName.get("org.bson.codecs.configuration", "CodecRegistries");
+    private static final ClassName CODEC_PROVIDER = ClassName.get("org.bson.codecs.configuration", "CodecProvider");
+    private static final ClassName MONGO_CLIENT_SETTINGS = ClassName.get("com.mongodb", "MongoClientSettings");
+    private static final ClassName SYSTEM = ClassName.get("java.lang", "System");
+    private static final ClassName SYSTEM_LOGGER = ClassName.get("java.lang", "System", "Logger");
+    private static final ClassName SYSTEM_LOGGER_LEVEL = ClassName.get("java.lang", "System", "Logger", "Level");
+    private static final ClassName JAVA_LANG_CLASS = ClassName.get("java.lang", "Class");
+
+    private static final AnnotationSpec OVERRIDE_ANNOTATION = AnnotationSpec.builder(
+            ClassName.get("java.lang", "Override")).build();
+    private static final AnnotationSpec SUPPRESS_UNCHECKED = AnnotationSpec.builder(SuppressWarnings.class)
+            .addMember("value", "$S", "unchecked")
+            .build();
+
+    private static final String CODECS_CLASS_NAME = "LazyvalMongoCodecs";
+    private static final String REGISTRAR_CLASS_NAME = "LazyvalMongoCodecRegistrar";
+
+    @Override
+    public String generatorId() {
+        return GENERATOR_ID;
+    }
+
+    @Override
+    public Collection<String> requiredClasspath() {
+        return List.of(CODEC_FQN);
+    }
+
+    @Override
+    public Set<String> supportedOptions() {
+        return Set.of(OPTION_GENERATED_PACKAGE, OPTION_USER_CODECS, OPTION_QUARKUS_REGISTER);
+    }
+
+    @Override
+    public Stream<GeneratorResult> generate(NonEmptySet<ValidatedGeneratorElement> elements, Context context) {
+        final String codecPackage = context.generatorPackage(OPTION_GENERATED_PACKAGE, "boundary.persistence.mongodb");
+
+        List<String> userCodecFqns = validateUserCodecs(context, codecPackage);
+
+        List<ValidatedGeneratorElement> orderedElements = new ArrayList<>();
+        List<TypeSpec> codecSpecs = new ArrayList<>();
+        for (ValidatedGeneratorElement element : elements) {
+            orderedElements.add(element);
+            codecSpecs.add(buildCodec(element));
+        }
+
+        List<GeneratorResult> results = new ArrayList<>();
+        if (codecSpecs.isEmpty()) {
+            return results.stream();
+        }
+
+        boolean hasMongoDriverCore = context.isOnClasspath(MONGO_CLIENT_SETTINGS_FQN);
+        TypeSpec utilitySpec = buildCodecsUtility(orderedElements, codecSpecs, userCodecFqns, hasMongoDriverCore);
+        JavaFile utilityFile = JavaFile.builder(codecPackage, utilitySpec).build();
+        results.add(new GeneratorResult.Java(
+                new GeneratorResult.Metadata(utilityFile.packageName(), utilityFile.typeSpec().name()),
+                utilityFile.toString()));
+
+        boolean isQuarkus = context.isOnClasspath(QUARKUS_MONGO_MARKER);
+        boolean quarkusRegister = context.getSetting(OPTION_QUARKUS_REGISTER)
+                .map(v -> !"false".equalsIgnoreCase(v))
+                .orElse(true);
+
+        if (isQuarkus && quarkusRegister) {
+            TypeSpec registrarSpec = buildQuarkusRegistrar(codecPackage);
+            JavaFile registrarFile = JavaFile.builder(codecPackage, registrarSpec).build();
+            results.add(new GeneratorResult.Java(
+                    new GeneratorResult.Metadata(registrarFile.packageName(), registrarFile.typeSpec().name()),
+                    registrarFile.toString()));
+        }
+        return results.stream();
+    }
+
+    private List<String> validateUserCodecs(Context context, String codecPackage) {
+        String raw = context.getSetting(OPTION_USER_CODECS).orElse("");
+        if (raw.isBlank()) {
+            return List.of();
+        }
+        List<String> fqns = Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+
+        List<String> valid = new ArrayList<>(fqns.size());
+        for (String fqn : fqns) {
+            Optional<Context.ClassInspection> inspection = context.inspectClass(fqn);
+            if (inspection.isEmpty()) {
+                context.logError(this, OPTION_USER_CODECS + ": class '" + fqn + "' not found on compile classpath");
+                continue;
+            }
+            Context.ClassInspection info = inspection.get();
+            boolean ok = true;
+            if (!info.isAssignableTo(CODEC_FQN)) {
+                context.logError(this, OPTION_USER_CODECS + ": class '" + fqn + "' does not implement " + CODEC_FQN);
+                ok = false;
+            }
+            if (!info.isAccessibleFrom(codecPackage)) {
+                context.logError(this, OPTION_USER_CODECS + ": class '" + fqn + "' is not accessible from the generated codecs at package '" + codecPackage + "'");
+                ok = false;
+            }
+            if (!info.hasAccessibleNoArgConstructor(codecPackage)) {
+                context.logError(this, OPTION_USER_CODECS + ": class '" + fqn + "' must declare a no-arg constructor accessible from the generated codecs at package '" + codecPackage + "'");
+                ok = false;
+            }
+            if (ok) {
+                valid.add(fqn);
+            }
+        }
+        return valid;
+    }
+
+    private static TypeSpec buildCodec(ValidatedGeneratorElement element) {
+        TypeMirror type = element.element().asType();
+        var wrappedType = element.wrappedType();
+
+        TypeName wrappedTypeName;
+        if (wrappedType.isPrimitive()) {
+            wrappedTypeName = TypeName.get(wrappedType.typeMirror()).box();
+        } else {
+            wrappedTypeName = TypeName.get(wrappedType.typeMirror());
+        }
+        TypeName elementTypeName = TypeName.get(type);
+
+        String codecClassName = element.typeName() + "Codec";
+        TypeName innerCodecTypeName = ParameterizedTypeName.get(CODEC, wrappedTypeName);
+
+        FieldSpec innerCodecField = FieldSpec.builder(innerCodecTypeName, "innerCodec", Modifier.PRIVATE, Modifier.FINAL)
+                .build();
+
+        MethodSpec constructor = MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(ParameterSpec.builder(innerCodecTypeName, "innerCodec").build())
+                .addStatement("this.innerCodec = innerCodec")
+                .build();
+
+        MethodSpec encode = MethodSpec.methodBuilder("encode")
+                .addAnnotation(OVERRIDE_ANNOTATION)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(TypeName.VOID)
+                .addParameter(BSON_WRITER, "writer")
+                .addParameter(elementTypeName, "value")
+                .addParameter(ENCODER_CONTEXT, "encoderContext")
+                .beginControlFlow("if (value == null)")
+                .addStatement("writer.writeNull()")
+                .addStatement("return")
+                .endControlFlow()
+                .addStatement("innerCodec.encode(writer, value.$L, encoderContext)", element.accessor())
+                .build();
+
+        MethodSpec decode = MethodSpec.methodBuilder("decode")
+                .addAnnotation(OVERRIDE_ANNOTATION)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(elementTypeName)
+                .addParameter(BSON_READER, "reader")
+                .addParameter(DECODER_CONTEXT, "decoderContext")
+                .beginControlFlow("if (reader.getCurrentBsonType() == $T.NULL)", BSON_TYPE)
+                .addStatement("reader.readNull()")
+                .addStatement("return null")
+                .endControlFlow()
+                .addStatement("return $L", element.objectCreation("innerCodec.decode(reader, decoderContext)"))
+                .build();
+
+        MethodSpec getEncoderClass = MethodSpec.methodBuilder("getEncoderClass")
+                .addAnnotation(OVERRIDE_ANNOTATION)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(ParameterizedTypeName.get(JAVA_LANG_CLASS, elementTypeName))
+                .addStatement("return $T.class", elementTypeName)
+                .build();
+
+        return TypeSpec.classBuilder(codecClassName)
+                .addSuperinterface(ParameterizedTypeName.get(CODEC, elementTypeName))
+                .addField(innerCodecField)
+                .addMethod(constructor)
+                .addMethod(encode)
+                .addMethod(decode)
+                .addMethod(getEncoderClass)
+                .build();
+    }
+
+    private static TypeSpec buildCodecsUtility(List<ValidatedGeneratorElement> elements,
+                                               List<TypeSpec> codecSpecs,
+                                               List<String> userCodecFqns,
+                                               boolean hasMongoDriverCore) {
+        TypeName codecWildcard = ParameterizedTypeName.get(CODEC, WildcardTypeName.subtypeOf(Object.class));
+        ArrayTypeName codecArray = ArrayTypeName.of(codecWildcard);
+
+        FieldSpec userCodecsField = FieldSpec.builder(codecArray, "userCodecs", Modifier.PRIVATE, Modifier.FINAL).build();
+
+        MethodSpec constructor = buildConstructor(elements, userCodecFqns, codecArray);
+
+        MethodSpec getMethod = buildGetMethod(elements, !userCodecFqns.isEmpty());
+
+        var builder = TypeSpec.classBuilder(CODECS_CLASS_NAME)
+                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
+                .addSuperinterface(CODEC_PROVIDER)
+                .addField(userCodecsField)
+                .addMethod(constructor)
+                .addMethod(getMethod);
+
+        if (hasMongoDriverCore) {
+            MethodSpec asRegistry = MethodSpec.methodBuilder("asRegistry")
+                    .addJavadoc("""
+                                    Convenience method returning a {@link $T} that combines the default Mongo
+                                    registry with this provider. Use it for one-line setup outside of CDI:
+                                    <pre>{@code
+                                    MongoClientSettings settings = MongoClientSettings.builder()
+                                        .codecRegistry(LazyvalMongoCodecs.asRegistry())
+                                        .build();
+                                    }</pre>
+
+                                    @return a {@code CodecRegistry} with the default registry and the generated codecs
+                                    """,
+                            CODEC_REGISTRY)
+                    .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
+                    .returns(CODEC_REGISTRY)
+                    .addStatement("return $T.fromRegistries($T.getDefaultCodecRegistry(), $T.fromProviders(new $L()))",
+                            CODEC_REGISTRIES, MONGO_CLIENT_SETTINGS, CODEC_REGISTRIES, CODECS_CLASS_NAME)
+                    .build();
+            builder.addMethod(asRegistry);
+        }
+
+        codecSpecs.forEach(spec -> builder.addType(spec.toBuilder().addModifiers(Modifier.STATIC).build()));
+
+        return builder.build();
+    }
+
+    private static MethodSpec buildConstructor(List<ValidatedGeneratorElement> elements,
+                                               List<String> userCodecFqns,
+                                               ArrayTypeName codecArray) {
+        MethodSpec.Builder ctor = MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PUBLIC);
+
+        if (userCodecFqns.isEmpty()) {
+            ctor.addStatement("this.userCodecs = new $T<?>[0]", CODEC);
+            return ctor.build();
+        }
+
+        StringBuilder arrayInit = new StringBuilder("this.userCodecs = new $T<?>[] {\n");
+        for (int i = 0; i < userCodecFqns.size(); i++) {
+            arrayInit.append("    new ").append(userCodecFqns.get(i)).append("()");
+            if (i < userCodecFqns.size() - 1) {
+                arrayInit.append(",");
+            }
+            arrayInit.append("\n");
+        }
+        arrayInit.append("}");
+        ctor.addStatement(arrayInit.toString(), CODEC);
+
+        StringBuilder generatedSetInit = new StringBuilder("$T<$T<?>> generatedTypes = $T.of(\n");
+        for (int i = 0; i < elements.size(); i++) {
+            generatedSetInit.append("    ").append(elements.get(i).typeName()).append(".class");
+            if (i < elements.size() - 1) {
+                generatedSetInit.append(",");
+            }
+            generatedSetInit.append("\n");
+        }
+        generatedSetInit.append(")");
+        ClassName setClass = ClassName.get("java.util", "Set");
+        ctor.addStatement(generatedSetInit.toString(), setClass, JAVA_LANG_CLASS, setClass);
+
+        ctor.addStatement("$T logger = $T.getLogger($L.class.getName())", SYSTEM_LOGGER, SYSTEM, CODECS_CLASS_NAME);
+        ctor.beginControlFlow("for ($T<?> userCodec : this.userCodecs)", CODEC);
+        ctor.beginControlFlow("if (generatedTypes.contains(userCodec.getEncoderClass()))");
+        ctor.addStatement(
+                "logger.log($T.INFO, () -> \"User-supplied codec \" + userCodec.getClass().getName() "
+                        + "+ \" overrides the generated codec for \" + userCodec.getEncoderClass().getName())",
+                SYSTEM_LOGGER_LEVEL);
+        ctor.endControlFlow();
+        ctor.endControlFlow();
+
+        return ctor.build();
+    }
+
+    private static MethodSpec buildGetMethod(List<ValidatedGeneratorElement> elements, boolean hasUserCodecs) {
+        TypeVariableName t = TypeVariableName.get("T");
+
+        MethodSpec.Builder method = MethodSpec.methodBuilder("get")
+                .addAnnotation(OVERRIDE_ANNOTATION)
+                .addAnnotation(SUPPRESS_UNCHECKED)
+                .addModifiers(Modifier.PUBLIC)
+                .addTypeVariable(t)
+                .returns(ParameterizedTypeName.get(CODEC, t))
+                .addParameter(ParameterizedTypeName.get(JAVA_LANG_CLASS, t), "clazz")
+                .addParameter(CODEC_REGISTRY, "registry");
+
+        if (hasUserCodecs) {
+            method.addComment("user codecs override generated ones (last-wins)")
+                    .beginControlFlow("for ($T<?> userCodec : userCodecs)", CODEC)
+                    .beginControlFlow("if (userCodec.getEncoderClass().equals(clazz))")
+                    .addStatement("return ($T<T>) userCodec", CODEC)
+                    .endControlFlow()
+                    .endControlFlow();
+        }
+
+        for (ValidatedGeneratorElement element : elements) {
+            TypeName elementTypeName = TypeName.get(element.element().asType());
+            var wrappedType = element.wrappedType();
+            TypeName wrappedTypeName = wrappedType.isPrimitive()
+                    ? TypeName.get(wrappedType.typeMirror()).box()
+                    : TypeName.get(wrappedType.typeMirror());
+            String codecClassName = element.typeName() + "Codec";
+
+            method.beginControlFlow("if (clazz == $T.class)", elementTypeName)
+                    .addStatement("return ($T<T>) new $L(registry.get($T.class))", CODEC, codecClassName, wrappedTypeName)
+                    .endControlFlow();
+        }
+
+        method.addStatement("return null");
+        return method.build();
+    }
+
+    private static TypeSpec buildQuarkusRegistrar(String codecPackage) {
+        ClassName applicationScoped = ClassName.get("jakarta.enterprise.context", "ApplicationScoped");
+        ClassName unremovable = ClassName.get("io.quarkus.arc", "Unremovable");
+        ClassName codecsClass = ClassName.get(codecPackage, CODECS_CLASS_NAME);
+        TypeVariableName t = TypeVariableName.get("T");
+
+        FieldSpec delegateField = FieldSpec.builder(codecsClass, "delegate", Modifier.PRIVATE, Modifier.FINAL).build();
+
+        MethodSpec constructor = MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PUBLIC)
+                .addStatement("this.delegate = new $T()", codecsClass)
+                .build();
+
+        MethodSpec getMethod = MethodSpec.methodBuilder("get")
+                .addAnnotation(OVERRIDE_ANNOTATION)
+                .addModifiers(Modifier.PUBLIC)
+                .addTypeVariable(t)
+                .returns(ParameterizedTypeName.get(CODEC, t))
+                .addParameter(ParameterizedTypeName.get(JAVA_LANG_CLASS, t), "clazz")
+                .addParameter(CODEC_REGISTRY, "registry")
+                .addStatement("return delegate.get(clazz, registry)")
+                .build();
+
+        return TypeSpec.classBuilder(REGISTRAR_CLASS_NAME)
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(applicationScoped)
+                .addAnnotation(unremovable)
+                .addSuperinterface(CODEC_PROVIDER)
+                .addField(delegateField)
+                .addMethod(constructor)
+                .addMethod(getMethod)
+                .build();
+    }
+}

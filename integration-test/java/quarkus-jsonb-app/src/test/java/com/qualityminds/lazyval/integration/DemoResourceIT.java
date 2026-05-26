@@ -5,6 +5,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.StringReader;
@@ -23,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Asserts JSON shape directly with JSON-P so the test does not depend on the same
  * adapters it is verifying.
  */
+@DisplayName("Java - Quarkus JSON-B")
 @QuarkusTest
 class DemoResourceIT {
 

@@ -1,0 +1,88 @@
+= Lazyval Integration Test Scenarios
+
+The following scenarios are tested for Java with the annotation processor and Kotlin with KSP2.
+
+|===
+|Scenario |Tested Modules |Remarks
+
+|JakartaEE
+a|
+* Mapstruct
+* JPA
+* BeanValidation
+* JSONB
+* Cassandra
+* MongoDB
+
+|Cassandra & MongoDB codecs require custom registration in application
+
+|Quarkus
+a|
+* Mapstruct
+* JPA
+* BeanValidation
+* Jackson 2
+* Cassandra
+* MongoDB
+|Jackson,Cassandra & MongoDB tested for Quarkus-specific registration
+
+|Quarkus-JSONB
+|JSON-B
+|Simplified scenario only to see if the Quarkus-JSONB integration works
+
+|Spring
+a|
+* Mapstruct
+* JPA
+* BeanValidation
+* Jackson 3
+* SpringData
+| SpringData covers Cassandra & MongoDB
+|===
+
+== Implementation Details
+
+=== Splits domain and persistence model
+
+All scenarios split the domain-model from the underlying persistence model. Though this is a valid architectural design
+for more freedom when modeling the domain, it is unnecessary when using Lazyval. Instead, Lazyval gives you a bit more
+freedom already by providing the necessary integration so you can use, for instance, a record instead of a JPA Embeddable
+for value types within a JPA entity.
+The scenarios do the split so that multiple database technologies can be tested in the same way.
+
+=== Uses domain-primitives in Openapi DTOs
+Furthermore, the scenarios go to the extreme where the DTOs also use the domain-primitives (but only for output DTOs)
+to test the serialization capabilities (keeping the value semantics). This is achieved by using the `typeMapping`
+feature from Openapitools where the wire-format is still a primitive but the generator is instructed to use domain-primitive instead.
+
+.Openapi property with a custom format
+[source,yaml]
+----
+isbn:
+      type: string
+      format: isbn <1>
+      pattern: '^[\d\-]{10,17}$'
+      description: ISBN-10 or ISBN-13 (with or without hyphens)
+      examples:
+        - "978-3-16-148410-0"
+----
+1. a custom format string
+
+.Maven Openapitools typeMapping
+[source,xml]
+----
+<typeMappings>
+    <typeMapping>string+isbn=Isbn</typeMapping> <!--1-->
+    ...
+</typeMappings>
+
+<importMappings>
+    <importMapping>Isbn=com.qualityminds.lazyval.integration.shared.Isbn</importMapping> <!--2-->
+    ...
+</importMappings>
+----
+1. Maps primitive + format to a type
+2. Defines the import to be used for that type
+
+The generated client in `api-client` doest do this mapping and instead uses scalar values which makes sure that this
+approach doesn't break consumers and also verifies the correct Jackson/JSONB serdes.

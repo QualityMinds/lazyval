@@ -28,6 +28,10 @@ ServiceLoader.
 |xref:mapstruct.adoc[MapStruct]
 |A `LazyvalMapper` interface usable as a shared configuration in other mappers.
 
+|xref:mongodb.adoc[MongoDB]
+|Native MongoDB driver `Codec` implementations bundled into a `LazyvalMongoCodecs` `CodecProvider`.
+For Spring Data MongoDB projects, prefer xref:spring-data.adoc[Spring Data] instead.
+
 |xref:spring-data.adoc[Spring Data]
 |A `@Configuration` class that registers store-specific `CustomConversions` for Cassandra and MongoDB.
 
@@ -35,15 +39,23 @@ ServiceLoader.
 
 == Extending generated configurations
 
-Some integrations cannot pick a universally-correct mapping from a domain-primitive's wrapped type to its
-storage representation. The MongoDB driver, for instance, reads any date as `java.util.Date` — bridging
-`LocalDate ↔ Date` requires choosing a `ZoneId`, and no default fits every application (UTC and system
-zone produce different stored values; a date written in one zone and read in another can shift by ±1 day).
+Some wrapped types or storage representations don't fit the generators' default
+mappings. The two store-oriented generators expose a compile-time hook for
+plugging in user-supplied classes — FQNs are validated by the processor and
+appended to the relevant generated registration list:
 
-Where that applies, Lazyval emits the obvious mapping by default and exposes a processor option through
-which users register their own `Converter` classes. The FQNs are validated at compile time and appended to
-the relevant generated registration list.
+* xref:spring-data.adoc#user-supplied-converters[Spring Data] — `Converter`
+  pairs appended to `CustomConversions`. Most commonly needed for
+  date-wrapping primitives on MongoDB, where Spring Data's
+  `MappingMongoConverter` materialises BSON datetime as `java.util.Date`
+  before user converters run, so a `Converter<Date, OrderDate>` (with an
+  explicit `ZoneId`) is required to bridge the read path.
+* xref:mongodb.adoc#custom-codecs[MongoDB] (native driver) — `Codec`
+  implementations added to `LazyvalMongoCodecs`. Less often needed: codec
+  composition runs end-to-end through the driver's `CodecRegistry`, so
+  JSR-310 types and the rest of the default registry work out of the box.
+  Reserve for wrapped types the registry doesn't know or representations
+  that differ from the driver default.
 
-Currently only the xref:spring-data.adoc[Spring Data] generator exposes this extension point —
-see xref:spring-data.adoc#user-supplied-converters[User-supplied Converters] for the wiring and a worked
-`OrderDate ↔ Date` example.
+Each generator page covers the full mechanism, validation rules, and worked
+examples in an appendix.

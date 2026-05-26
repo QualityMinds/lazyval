@@ -20,7 +20,8 @@ import java.util.UUID
 @Startup
 class StartupBean @Inject constructor(
     @Named("jpa") private val jpaRepository: OrderRepository,
-    @Named("cassandra") private val cassandraRepository: OrderRepository
+    @Named("cassandra") private val cassandraRepository: OrderRepository,
+    @Named("mongo") private val mongoRepository: OrderRepository
 ) {
 
     @Transactional
@@ -35,6 +36,11 @@ class StartupBean @Inject constructor(
             cassandraRepository.save(DefaultOrderA)
             cassandraRepository.save(DefaultOrderB)
             logger.info("Initialized Cassandra database with demo entities")
+        }
+        if (mongoRepository.findAll().isEmpty()) {
+            mongoRepository.save(DefaultOrderA)
+            mongoRepository.save(DefaultOrderB)
+            logger.info("Initialized Mongo database with demo entities")
         }
     }
 

@@ -13,8 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import spock.lang.Stepwise
+import spock.lang.Title
 import tools.jackson.databind.ObjectMapper
 
+@Title("Kotlin - Spring-Data MongoDB")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Stepwise
 class SpringMongoIT extends AbstractIT {
