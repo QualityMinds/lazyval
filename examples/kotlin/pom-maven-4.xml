@@ -20,7 +20,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <version.kotlin>2.3.0</version.kotlin>
         <version.mapstruct>1.6.3</version.mapstruct>
-        <version.lazyval>0.2.2</version.lazyval>
+        <version.lazyval>0.3.0</version.lazyval>
         <version.jackson>2.21.2</version.jackson>
     </properties>
 
