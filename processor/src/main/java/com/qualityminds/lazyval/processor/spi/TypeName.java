@@ -41,6 +41,10 @@ public record TypeName(String simpleName){
         return simpleName;
     }
 
+    /**
+     * Checks if this type-name represents a boxed primitive type (like {@code Integer} for {@code int}).
+     * @return true if this is a boxed primitive type
+     */
     public boolean isBoxedPrimitive() {
         return this.equals(TypeName.BOOLEAN_BOXED)
                 || this.equals(TypeName.BYTE_BOXED)
@@ -56,6 +60,7 @@ public record TypeName(String simpleName){
      * Returns a boxed type if this is a primitive type (like {@code Integer} for {@code int}) or
      * {@code void}. Returns this type if boxing doesn't apply.
      *
+     * @return a boxed type-name if this is a primitive type
      * @throws UnsupportedOperationException if this type isn't eligible for boxing.
      */
     public TypeName box() {
@@ -86,6 +91,7 @@ public record TypeName(String simpleName){
      * Returns an unboxed type if this is a boxed primitive type (like {@code int} for {@code
      * Integer}) or {@code Void}. Returns this type if it is already unboxed.
      *
+     * @return an unboxed type-name if this is a boxed primitive type
      * @throws UnsupportedOperationException if this type isn't eligible for unboxing.
      */
     public TypeName unbox() {

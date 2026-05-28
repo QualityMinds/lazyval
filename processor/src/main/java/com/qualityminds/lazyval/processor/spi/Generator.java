@@ -11,7 +11,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
-
+/**
+ * SPI for lazyval generators.
+ * <p>
+ * Implementations be registered via ServiceLoader in {@code META-INF/services/com.qualityminds.lazyval.processor.spi.Generator}.
+ */
 // tag::generator[]
 @ApiStatus.Experimental
 public interface Generator {
@@ -85,6 +89,7 @@ public interface Generator {
          * If nothing is configured, the package of the first domain-primitive is used as a last resort.
          * @param overridePackageOptionKey the option-key that overrides the full package for a particular generator
          * @param defaultLayer             when the base-package is configured, this is the default layer where the generator places the output (when null, the base-package is used)
+         * @return the package name where this generator should place the generated files.
          */
         String generatorPackage(String overridePackageOptionKey, @Nullable String defaultLayer);
 
