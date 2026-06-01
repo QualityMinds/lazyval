@@ -18,33 +18,55 @@ import java.util.stream.Stream;
 import static org.eclipse.collections.impl.collector.Collectors2.toImmutableList;
 
 /**
- * The entrypoint to the Testkit. It provides a typed and fluent API to configure a testcase which either runs
- * Lazyvals Java annotation processor or the Kotlin KSP2 processor.
- * <p>
- * The testkit expects a folder and a {@link Scenario}.<br>
- * The folder is used to set up a complete toolchain and is cleaned before execution. In general testframeworks
- * provide a way to inject a temp-directory unique for each test which is what should be used.
+ * Entry point to the Testkit.
  *
- * @param <S> scenario type used by either Java or Kotlin testkit
- * @param <R> result type used by either Java or Kotlin testkit
+ * <p>The Testkit provides a typed, fluent API for configuring and running a test case
+ * that executes either the Lazyvals Java annotation processor or the Kotlin KSP2
+ * processor.</p>
+ *
+ * <p>Each test run requires a project directory and a {@link Scenario}. The project
+ * directory is used to create a complete, temporary compiler project for the selected
+ * toolchain. It is cleaned before execution and may be modified freely during the
+ * test run.</p>
+ *
+ * <p>In typical usage, the project directory should be provided by the surrounding
+ * test framework as a temporary directory that is unique to the current test.</p>
+ *
+ * <h2>File system requirements</h2>
+ *
+ * <p>The supplied project directory must support conversion to {@link java.io.File}
+ * via {@link Path#toFile()}. In-memory or virtual file systems such as Jimfs or
+ * MemoryFileSystem are therefore not supported. This limitation comes from the
+ * underlying compiler toolchain, including {@code javac}, {@code kotlinc}, and KSP2,
+ * which use {@code java.io.File} and standard file-system access internally.</p>
+ *
+ * @param <S> scenario type used by either the Java or Kotlin Testkit
+ * @param <R> result type used by either the Java or Kotlin Testkit
  */
 public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
 
     private Testkit(){}
 
     /**
-     * Runs the concrete Scenario on the given project directory.
-     * @param projectDir the project directory used to compile the scenario.
-     * @param scenario the scenario to run.
+     * Runs the given scenario in the supplied project directory.
+     *
+     * @param projectDir the project directory used to compile the scenario; must satisfy
+     *                   the file system requirements described in {@link Testkit}
+     * @param scenario the scenario to run
      * @return the test result
      */
     public abstract R run(Path projectDir, S scenario);
 
     /**
-     * Builds and runs the given scenario factory on the given project directory.
-     * Convenience method, not having to call build() on the scenario factory.
-     * @param projectDir the project directory used to compile the scenario.
-     * @param scenarioFactory the scenario to run.
+     * Builds the given scenario factory and runs the resulting scenario in the supplied
+     * project directory.
+     *
+     * <p>This is a convenience method for callers that do not need to call
+     * {@code build()} explicitly.</p>
+     *
+     * @param projectDir the project directory used to compile the scenario; must satisfy
+     *                   the file system requirements described in {@link Testkit}
+     * @param scenarioFactory the scenario factory to build and run
      * @return the test result
      */
     public R run(Path projectDir, ScenarioFactory<S> scenarioFactory){
