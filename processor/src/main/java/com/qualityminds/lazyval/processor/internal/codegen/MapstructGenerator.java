@@ -64,14 +64,14 @@ final public class MapstructGenerator implements Generator {
         parameterName = "value";
         final MethodSpec map;
         if(wrappedType.isPrimitive()){
-            map = MethodSpec.methodBuilder(String.format("map%s", validElement.typeName()))
+            map = MethodSpec.methodBuilder(String.format("map%s", validElement.typeName().name()))
                     .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                     .returns(TypeName.get(type))
                     .addParameter(TypeName.get(wrappedType.typeMirror()), parameterName)
                     .addStatement("return $L", validElement.objectCreation(parameterName))
                     .build();
         } else {
-            map = MethodSpec.methodBuilder(String.format("map%s", validElement.typeName()))
+            map = MethodSpec.methodBuilder(String.format("map%s", validElement.typeName().name()))
                     .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                     .returns(TypeName.get(type))
                     .addParameter(TypeName.get(wrappedType.typeMirror()), parameterName)
@@ -91,14 +91,14 @@ final public class MapstructGenerator implements Generator {
         final MethodSpec mapToWrappedType;
         var parameterName = "type";
         if(wrappedType.isPrimitive()) {
-            mapToWrappedType = MethodSpec.methodBuilder(String.format("map%sTo%s", validElement.typeName(), wrappedType.typeNameUpper()))
+            mapToWrappedType = MethodSpec.methodBuilder(String.format("map%sTo%s", validElement.typeName().name(), wrappedType.typeNameUpper()))
                     .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                     .returns(TypeName.get(wrappedType.typeMirror()))
                     .addParameter(TypeName.get(type), parameterName)
                     .addStatement(String.format("return %s.%s", parameterName, validElement.accessor()))
                     .build();
         } else {
-            mapToWrappedType = MethodSpec.methodBuilder(String.format("map%sTo%s", validElement.typeName(), wrappedType.typeName()))
+            mapToWrappedType = MethodSpec.methodBuilder(String.format("map%sTo%s", validElement.typeName().name(), wrappedType.typeName()))
                     .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                     .returns(TypeName.get(wrappedType.typeMirror()))
                     .addParameter(TypeName.get(type), parameterName)

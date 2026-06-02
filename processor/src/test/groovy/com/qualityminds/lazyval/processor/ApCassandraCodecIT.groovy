@@ -66,15 +66,15 @@ class ApCassandraCodecIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Java.Success(Lists.immutable.of("LazyvalCassandraCodecs.java"))
+        result == new Testresult.Java.Success("LazyvalCassandraCodecs.java")
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/test/custom/LazyvalCassandraCodecs.java").toFile().exists()
     }
 
-    void "Birthday wrapping LocalDate generates a valid codec"(){
+    void "OrderDate wrapping LocalDate generates a valid codec"(){
         given:
-        def scenario = Scenario.Java.birthday()
+        def scenario = Scenario.Java.orderDate()
                 .withDependencies(dependencyDriverCore)
 
         when:
@@ -86,7 +86,7 @@ class ApCassandraCodecIT extends Specification {
 
     void "Quarkus Registration generated when Cassandra-Quarkus-Extension is available"(){
         given:
-        def scenario = Scenario.Java.birthday()
+        def scenario = Scenario.Java.orderDate()
                 .withDependencies(
                         dependencyDriverCore, dependencyCassandraQuarkusExtension,
                         // compile dependencies

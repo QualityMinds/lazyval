@@ -1,6 +1,6 @@
 package com.qualityminds.lazyval.processor
 
-import com.qualityminds.lazyval.processor.spi.Generator
+
 import com.qualityminds.lazyval.processor.spi.TypeName
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -112,5 +112,18 @@ class SpiSpec extends Specification {
 
         then:
         thrown(UnsupportedOperationException)
+    }
+
+    void "TypeName '#name' maps to filename '#expectedFileName' removing '.'"(){
+        given:
+        def typeName = new TypeName(name)
+
+        expect:
+        typeName.name() == expectedFileName
+
+        where:
+        name                        || expectedFileName
+        "SomeType"                  || "SomeType"
+        "EnclosingType.InnerType"   || "EnclosingTypeInnerType"
     }
 }

@@ -174,7 +174,7 @@ public class MongoCodecGenerator implements Generator {
         }
         TypeName elementTypeName = TypeName.get(type);
 
-        String codecClassName = element.typeName() + "Codec";
+        String codecClassName = element.typeName().name() + "Codec";
         TypeName innerCodecTypeName = ParameterizedTypeName.get(CODEC, wrappedTypeName);
 
         FieldSpec innerCodecField = FieldSpec.builder(innerCodecTypeName, "innerCodec", Modifier.PRIVATE, Modifier.FINAL)
@@ -351,7 +351,7 @@ public class MongoCodecGenerator implements Generator {
             TypeName wrappedTypeName = wrappedType.isPrimitive()
                     ? TypeName.get(wrappedType.typeMirror()).box()
                     : TypeName.get(wrappedType.typeMirror());
-            String codecClassName = element.typeName() + "Codec";
+            String codecClassName = element.typeName().name() + "Codec";
 
             method.beginControlFlow("if (clazz == $T.class)", elementTypeName)
                     .addStatement("return ($T<T>) new $L(registry.get($T.class))", CODEC, codecClassName, wrappedTypeName)

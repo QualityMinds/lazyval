@@ -62,15 +62,15 @@ class ApMongoCodecIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Java.Success(Lists.immutable.of("LazyvalMongoCodecs.java"))
+        result == new Testresult.Java.Success("LazyvalMongoCodecs.java")
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/test/custom/LazyvalMongoCodecs.java").toFile().exists()
     }
 
-    void "Birthday wrapping LocalDate generates a valid codec"() {
+    void "OrderDate wrapping LocalDate generates a valid codec"() {
         given:
-        def scenario = Scenario.Java.birthday().withDependencies(dependencyBson)
+        def scenario = Scenario.Java.orderDate().withDependencies(dependencyBson)
 
         when:
         def result = testkitJava.run(projectDir, scenario)
@@ -81,7 +81,7 @@ class ApMongoCodecIT extends Specification {
 
     void "Quarkus Registrar generated when quarkus-mongodb-client is available"() {
         given:
-        def scenario = Scenario.Java.birthday()
+        def scenario = Scenario.Java.quantity()
                 .withDependencies(
                         dependencyBson,
                         dependencyMongoDriverCore,
@@ -99,7 +99,7 @@ class ApMongoCodecIT extends Specification {
 
     void "Quarkus Registrar can be disabled via option"() {
         given:
-        def scenario = Scenario.Java.birthday()
+        def scenario = Scenario.Java.quantity()
                 .withDependencies(
                         dependencyBson,
                         dependencyMongoDriverCore,

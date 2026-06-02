@@ -34,7 +34,7 @@ class ApJpaIT extends Specification {
 
         where:
         scenario << Scenario.Java.all()
-        generatedJpaMapper = scenario.name().replace(".java", "AttributeConverter.java")
+        generatedJpaMapper = scenario.name() == "Ids.java" ? "IdsProductIdAttributeConverter.java" : scenario.name().replace(".java", "AttributeConverter.java")
         expected = new Testresult.Java.Success(generatedJpaMapper)
     }
 
@@ -60,7 +60,7 @@ class ApJpaIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Java.Success(Lists.immutable.of("QuantityAttributeConverter.java"))
+        result == new Testresult.Java.Success("QuantityAttributeConverter.java")
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/test/custom/QuantityAttributeConverter.java").toFile().exists()

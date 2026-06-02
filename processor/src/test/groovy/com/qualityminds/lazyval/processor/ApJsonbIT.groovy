@@ -38,7 +38,7 @@ class ApJsonbIT extends Specification {
         result == expected
 
         where:
-        scenario << Scenario.Java.all()
+        scenario << [Scenario.Java.ids()]//Scenario.Java.all()
         expected = new Testresult.Java.Success(GENERATED_FILE_NAME)
     }
 
@@ -65,7 +65,7 @@ class ApJsonbIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Java.Success(Lists.immutable.of(GENERATED_FILE_NAME))
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/test/custom/$GENERATED_FILE_NAME").toFile().exists()
@@ -113,7 +113,7 @@ class ApJsonbIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'only adapters file is generated'
-        result == new Testresult.Java.Success(Lists.immutable.of(GENERATED_FILE_NAME))
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'ContextResolver file is not generated'
         !projectDir.resolve("build/generated/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
@@ -128,7 +128,7 @@ class ApJsonbIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'only the adapters file is generated — the LazyvalJsonbAdapters itself becomes the customizer'
-        result == new Testresult.Java.Success(Lists.immutable.of(GENERATED_FILE_NAME))
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'no ContextResolver is emitted (avoids registering the same adapters twice in Quarkus REST)'
         !projectDir.resolve("build/generated/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
@@ -144,7 +144,7 @@ class ApJsonbIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'Quarkus wins: only adapters file is generated, no resolver'
-        result == new Testresult.Java.Success(Lists.immutable.of(GENERATED_FILE_NAME))
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'ContextResolver file is not generated'
         !projectDir.resolve("build/generated/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()

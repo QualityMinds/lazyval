@@ -69,7 +69,7 @@ public class JpaGenerator implements Generator {
             wrappedTypeName = TypeName.get(wrappedType.typeMirror());
         }
 
-        return TypeSpec.classBuilder(validElement.typeName() + "AttributeConverter")
+        return TypeSpec.classBuilder(validElement.typeName().name() + "AttributeConverter")
                 .addAnnotation(AnnotationSpec.builder(ClassName.get("jakarta.persistence", "Converter"))
                         .addMember("autoApply", "$L", "true")
                         .build())

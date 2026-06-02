@@ -14,6 +14,7 @@ import java.nio.file.Path
 class ApIT extends Specification {
 
     public static final Dependency dependencyMapstruct = new Dependency("org.mapstruct", "mapstruct", "1.6.3")
+    public static final Dependency dependencyJakartaPersistence = new Dependency("jakarta.persistence", "jakarta.persistence-api", "3.2.0")
 
     @TempDir()
     Path projectDir
@@ -90,16 +91,6 @@ class ApIT extends Specification {
         result == new Testresult.Java.SuccessWithWarnings(Lists.immutable.of("LazyvalMapper.java"), Lists.immutable.of(expectedWarning))
     }
 
-    // OptionalInt breaks contract
-//    void "External types generate when configured in LazyvalConfiguration" (){
-//        given:
-//        def scenario = Scenario.Java.of("scenarios/ConfigWithExternal.java").withDependencies(dependencyMapstruct)
-//        when:
-//        def result = testkitJava.run(projectDir, scenario)
-//        then:
-//        result == new Testresult.Java.Success("LazyvalMapper.java")
-//    }
-
     void "Error is issued when multiple LazyvalConfigurations are present" (){
         given:
         def scenario = Scenario.Java.of("scenarios/package-info.java", "scenarios/failing/package-info.java")
@@ -113,5 +104,4 @@ class ApIT extends Specification {
         expect:
         testkitJava.run(projectDir, scenario) == new Testresult.Java.Failure("Lazyval: Type 'scenarios.failing.LocalTypeAsExternalReferenz' listed in @LazyvalConfiguration.externalTypes belongs to the current compilation unit. Annotate it with @LazyValue directly.")
     }
-
 }

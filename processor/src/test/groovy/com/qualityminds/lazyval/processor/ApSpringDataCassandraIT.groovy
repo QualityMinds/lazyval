@@ -92,9 +92,9 @@ class ApSpringDataCassandraIT extends Specification {
         projectDir.resolve("build/generated/test/custom/LazyvalSpringDataConfiguration.java").toFile().exists()
     }
 
-    void "Birthday wrapping LocalDate generates valid converters"() {
+    void "OrderDate wrapping LocalDate generates valid converters"() {
         given:
-        def scenario = Scenario.Java.birthday()
+        def scenario = Scenario.Java.orderDate()
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
 
         when:

@@ -178,7 +178,7 @@ public class SpringDataGenerator implements Generator {
                 .addStatement("return $L", element.objectCreation("source"))
                 .build();
 
-        return TypeSpec.classBuilder(element.typeName() + "ReadConverter")
+        return TypeSpec.classBuilder(element.typeName().name() + "ReadConverter")
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
                 .addAnnotation(READING_CONVERTER)
                 .addSuperinterface(ParameterizedTypeName.get(CONVERTER, wrappedTypeName, elementTypeName))
@@ -206,7 +206,7 @@ public class SpringDataGenerator implements Generator {
                 .addStatement("return source.$L", element.accessor())
                 .build();
 
-        return TypeSpec.classBuilder(element.typeName() + "WriteConverter")
+        return TypeSpec.classBuilder(element.typeName().name() + "WriteConverter")
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
                 .addAnnotation(WRITING_CONVERTER)
                 .addSuperinterface(ParameterizedTypeName.get(CONVERTER, elementTypeName, wrappedTypeName))

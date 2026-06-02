@@ -144,7 +144,7 @@ public class CassandraCodecGenerator implements Generator {
         }
         TypeName elementTypeName = TypeName.get(type);
 
-        String codecClassName = element.typeName() + "Codec";
+        String codecClassName = element.typeName().name() + "Codec";
 
         MethodSpec constructor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
