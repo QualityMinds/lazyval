@@ -2,7 +2,9 @@ package com.qualityminds.lazyval.processor.spi;
 
 import org.jspecify.annotations.NullUnmarked;
 
+import javax.lang.model.element.Element;
 import javax.lang.model.element.Name;
+import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.PrimitiveType;
 import javax.lang.model.util.SimpleTypeVisitor14;
@@ -31,10 +33,23 @@ public record TypeName(String simpleName){
     public static final TypeName DOUBLE = new TypeName("double");
     public static final TypeName DOUBLE_BOXED = new TypeName("Double");
 
+    /**
+     * Converts an element's name to a TypeName.
+     * @param name the name of the {@link Element}.
+     */
     TypeName(Name name) {
         this(name.toString());
     }
 
+    /**
+     * Use this to create a save name for a class or method. This is important when inner-types are encountered: the
+     * class/method and filename must not contain dots.
+     * In the case of inner-types, the enclosing type(s) are concatenated to make sure they are unique.
+     * @return the simple name of this type, without dots from nested types.
+     */
+    public String name(){
+        return simpleName.replaceAll("\\.", "");
+    }
 
     @Override
     public String toString() {
@@ -138,6 +153,14 @@ class TypeNameVisitor extends SimpleTypeVisitor14<TypeName, Void> {
     @NullUnmarked
     @Override
     public TypeName visitDeclared(DeclaredType t, Void unused) {
-        return new TypeName(t.asElement().getSimpleName());
+        return new TypeName(getSimpleNameEnclosed(t.asElement(), t.asElement().getSimpleName().toString()));
+    }
+
+    private static String getSimpleNameEnclosed(Element e, String remainder){
+        var enclosing = e.getEnclosingElement();
+        if(enclosing instanceof TypeElement){
+            return getSimpleNameEnclosed(enclosing, enclosing.getSimpleName() + "." + remainder);
+        }
+        return remainder;
     }
 }

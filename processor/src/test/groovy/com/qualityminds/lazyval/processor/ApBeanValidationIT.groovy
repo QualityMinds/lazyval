@@ -20,16 +20,21 @@ class ApBeanValidationIT extends Specification {
     @Shared
     def testkitJava = Testkit.java()
 
-    void "String type generates PatternValidator"(){
+    @Unroll("#scenario.name() compiles and generated #expectedFiles")
+    void "String type generates Pattern- and EMail-Validator"(){
         given:
-        def scenario = Scenario.Java.isbn()
-                .withDependencies(dependencyBeanValidation)
+        scenario.withDependencies(dependencyBeanValidation)
 
         when:
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("IsbnEmailValidator.java", "IsbnPatternValidator.java")
+        result == new Testresult.Java.Success(expectedFiles)
+
+        where:
+        scenario                || expectedFiles
+        Scenario.Java.isbn()    || ["IsbnEmailValidator.java", "IsbnPatternValidator.java"]
+        Scenario.Java.ids()     || ["IdsProductIdEmailValidator.java", "IdsProductIdPatternValidator.java"]
     }
 
     void "Numeric type generates Min and Max Validators"(){
@@ -46,7 +51,7 @@ class ApBeanValidationIT extends Specification {
 
     void "LocalDate type generates temporal validators"(){
         given:
-        def scenario = Scenario.Java.birthday()
+        def scenario = Scenario.Java.orderDate()
                 .withDependencies(dependencyBeanValidation)
 
         when:
@@ -54,10 +59,10 @@ class ApBeanValidationIT extends Specification {
 
         then:
         result == new Testresult.Java.Success(
-                "BirthdayFutureOrPresentValidator.java",
-                "BirthdayFutureValidator.java",
-                "BirthdayPastOrPresentValidator.java",
-                "BirthdayPastValidator.java")
+                "OrderDateFutureOrPresentValidator.java",
+                "OrderDateFutureValidator.java",
+                "OrderDatePastOrPresentValidator.java",
+                "OrderDatePastValidator.java")
     }
 
     void "Generated at correct default location when no override is given"(){
@@ -83,42 +88,9 @@ class ApBeanValidationIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Java.Success(Lists.immutable.of("IsbnEmailValidator.java", "IsbnPatternValidator.java"))
+        result == new Testresult.Java.Success("IsbnEmailValidator.java", "IsbnPatternValidator.java")
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/test/custom/IsbnPatternValidator.java").toFile().exists()
-    }
-
-    @Unroll("#scenario.name() compiles with BeanValidation")
-    void "BeanValidation with all Scenarios"(){
-        given:
-        scenario.withDependencies(dependencyBeanValidation)
-
-        when:
-        def result = testkitJava.run(projectDir, scenario)
-
-        then:
-        result == expected
-
-        where:
-        scenario << Scenario.Java.all()
-        expected = expectedResultFor(scenario)
-    }
-
-    private static Testresult.Java expectedResultFor(def scenario) {
-        def name = scenario.name()
-        if (name == "Birthday.java") {
-            return new Testresult.Java.Success(
-                    "BirthdayFutureOrPresentValidator.java",
-                    "BirthdayFutureValidator.java",
-                    "BirthdayPastOrPresentValidator.java",
-                    "BirthdayPastValidator.java")
-        } else if (name == "Quantity.java") {
-            return new Testresult.Java.Success("QuantityMaxValidator.java", "QuantityMinValidator.java")
-        } else {
-            // String-wrapped types: Isbn, ProductId, SocialSecurityNumber
-            def typeName = name.replace(".java", "")
-            return new Testresult.Java.Success("${typeName}EmailValidator.java", "${typeName}PatternValidator.java")
-        }
     }
 }

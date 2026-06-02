@@ -79,7 +79,7 @@ public class JsonbGenerator implements Generator {
     private static TypeSpec generateAdapter(ValidatedGeneratorElement element) {
         var elementType = TypeName.get(element.element().asType());
         var wrappedType = element.wrappedType();
-        var adapterName = element.typeName() + "Adapter";
+        var adapterName = element.typeName().name() + "Adapter";
 
         // For JsonbAdapter<Original, Adapted>, Adapted must be a reference type
         TypeName adaptedType;

@@ -28,7 +28,7 @@ class StringValidatorBuilder {
 
     private static Stream<GeneratorResult> buildPatternValidator(ValidatedGeneratorElement element, String packageName) {
         TypeMirror lazyvalType = element.element().asType();
-        String className = element.typeName() + "PatternValidator";
+        String className = element.typeName().name() + "PatternValidator";
 
         ClassName patternAnnotation = ClassName.get("jakarta.validation.constraints", "Pattern");
 
@@ -47,7 +47,7 @@ class StringValidatorBuilder {
 
     private static Stream<GeneratorResult> buildEmailValidator(ValidatedGeneratorElement element, String packageName) {
         TypeMirror lazyvalType = element.element().asType();
-        String className = element.typeName() + "EmailValidator";
+        String className = element.typeName().name() + "EmailValidator";
 
         ClassName emailAnnotation = ClassName.get("jakarta.validation.constraints", "Email");
 

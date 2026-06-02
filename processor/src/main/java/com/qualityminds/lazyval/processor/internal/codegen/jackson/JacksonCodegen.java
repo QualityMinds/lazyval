@@ -38,7 +38,7 @@ final class JacksonCodegen {
     TypeSpec generateSerializer(ValidatedGeneratorElement element) {
         var elementType = TypeName.get(element.element().asType());
         var wrappedType = element.wrappedType();
-        var serializerName = element.typeName() + "Serializer";
+        var serializerName = element.typeName().name() + "Serializer";
 
         var serializeMethod = MethodSpec.methodBuilder("serialize")
                 .addAnnotation(OVERRIDE_ANNOTATION)
@@ -84,7 +84,7 @@ final class JacksonCodegen {
     TypeSpec generateDeserializer(ValidatedGeneratorElement element) {
         var elementType = TypeName.get(element.element().asType());
         var wrappedType = element.wrappedType();
-        var deserializerName = element.typeName() + "Deserializer";
+        var deserializerName = element.typeName().name() + "Deserializer";
 
         var deserializeMethod = MethodSpec.methodBuilder("deserialize")
                 .addAnnotation(OVERRIDE_ANNOTATION)

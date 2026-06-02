@@ -4,6 +4,7 @@ import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.list.ImmutableList;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -27,6 +28,14 @@ public sealed interface Testresult {
             public Success {
                 Objects.requireNonNull(generatedFiles);
                 generatedFiles = generatedFiles.toSortedList().toImmutable();
+            }
+
+            /**
+             * Convenience constructor for better interop with Groovy list literals
+             * @param generatedFiles list of expected generated files
+             */
+            public Success(List<String> generatedFiles) {
+                this(Lists.immutable.ofAll(generatedFiles));
             }
 
             @SuppressWarnings("doclint:accessibility,missing")

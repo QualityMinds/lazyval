@@ -36,7 +36,7 @@ class TemporalValidatorBuilder {
 
     private static Stream<GeneratorResult> buildValidator(ValidatedGeneratorElement element, String packageName, String annotationName) {
         TypeMirror lazyvalType = element.element().asType();
-        String className = element.typeName() + annotationName + "Validator";
+        String className = element.typeName().name() + annotationName + "Validator";
 
         ClassName temporalAnnotation = ClassName.get("jakarta.validation.constraints", annotationName);
 

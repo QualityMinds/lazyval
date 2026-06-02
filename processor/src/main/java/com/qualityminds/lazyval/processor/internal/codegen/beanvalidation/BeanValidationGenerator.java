@@ -53,7 +53,7 @@ public class BeanValidationGenerator implements Generator {
     }
 
     private Stream<GeneratorResult> generateValidators(ValidatedGeneratorElement element, String packageName) {
-        String wrappedTypeName = element.wrappedType().typeName().simpleName();
+        String wrappedTypeName = element.wrappedType().typeName().name();
 
         if (StringValidatorBuilder.supports(wrappedTypeName)) {
             return StringValidatorBuilder.build(element, packageName);

@@ -46,7 +46,7 @@ class ApMapstructIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Java.Success(Lists.immutable.of(GENERATED_FILE_NAME))
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/test/custom/$GENERATED_FILE_NAME").toFile().exists()

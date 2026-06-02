@@ -32,7 +32,7 @@ class NumericValidatorBuilder {
 
     private static Stream<GeneratorResult> buildMinValidator(ValidatedGeneratorElement element, String packageName) {
         TypeMirror lazyvalType = element.element().asType();
-        String className = element.typeName() + "MinValidator";
+        String className = element.typeName().name() + "MinValidator";
 
         ClassName minAnnotation = ClassName.get("jakarta.validation.constraints", "Min");
 
@@ -74,7 +74,7 @@ class NumericValidatorBuilder {
 
     private static Stream<GeneratorResult> buildMaxValidator(ValidatedGeneratorElement element, String packageName) {
         TypeMirror lazyvalType = element.element().asType();
-        String className = element.typeName() + "MaxValidator";
+        String className = element.typeName().name() + "MaxValidator";
 
         ClassName maxAnnotation = ClassName.get("jakarta.validation.constraints", "Max");
 

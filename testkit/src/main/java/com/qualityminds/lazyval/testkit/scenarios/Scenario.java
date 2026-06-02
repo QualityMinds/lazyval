@@ -50,7 +50,7 @@ public sealed interface Scenario {
         }
 
         /**
-         * Default case for a class with an accessor.
+         * Default case for a class with an bean-convention getter accessor.
          * <pre>{@code
          * @LazyValue
          * public final class Isbn {
@@ -60,7 +60,7 @@ public sealed interface Scenario {
          *         this.value = value;
          *     }
          *
-         *     public String value() {
+         *     public String getValue() {
          *         return value;
          *     }
          *
@@ -108,80 +108,41 @@ public sealed interface Scenario {
             return Scenario.Java.of("scenarios/java/Quantity.java");
         }
         /**
-         * Edge-Case: a record defining multiple factories where only <code>of(String value)</code> is relevant for Lazyval.
+         * Edge-Case: a sealed interface defining an inner ProductId to test inner types.
+         * Furthermore, the ProductId record defines multiple factories where only <code>of(String value)</code> is relevant for Lazyval.
          * <pre>{@code
-         * import java.util.UUID;
          * import com.qualityminds.lazyval.LazyValue;
          * import util.IdGenerator;
+         * import java.util.UUID;
          *
-         * @LazyValue
-         * public record ProductId(String value) {
+         * public sealed interface Ids {
          *
-         *     public static ProductId of(String value){
-         *         if(value == null){
-         *             return null;
+         *     @LazyValue
+         *     record ProductId(String value) implements Ids {
+         *
+         *         public static ProductId of(String value){
+         *             if(value == null){
+         *                 return null;
+         *             }
+         *             return new ProductId(value);
          *         }
-         *         return new ProductId(value);
-         *     }
          *
-         *     public static ProductId createNew(IdGenerator generator){
-         *         return new ProductId(generator.generateId());
-         *     }
+         *         public static ProductId createNew(IdGenerator generator){
+         *             return new ProductId(generator.generateId());
+         *         }
          *
-         *     public static ProductId createNew(){
-         *         return new ProductId(UUID.randomUUID().toString());
+         *         public static ProductId createNew(){
+         *             return new ProductId(UUID.randomUUID().toString());
+         *         }
          *     }
          * }
          * }</pre>
          * @return new ScenarioFactory instance
          */
-        public static ScenarioFactory<Java> productId() {
-            return Scenario.Java.of("scenarios/java/ProductId.java", "util/IdGenerator.java");
+        public static ScenarioFactory<Java> ids() {
+            return Scenario.Java.of("scenarios/java/Ids.java", "util/IdGenerator.java");
         }
 
-        /**
-         * Edge-Case: a class which uses bean-convention getter as field accessor.
-         * <pre>{@code
-         * import com.qualityminds.lazyval.LazyValue;
-         *
-         * @LazyValue
-         * public final class SocialSecurityNumber {
-         *     private final String value;
-         *
-         *     private SocialSecurityNumber(String value) {
-         *         this.value = value;
-         *     }
-         *
-         *     public String getValue() {
-         *         return value;
-         *     }
-         *
-         *     public static SocialSecurityNumber parse(String value) {
-         *         if (value == null || value.isBlank()) {
-         *             throw new IllegalArgumentException("SSN cannot be blank");
-         *         }
-         *         return new SocialSecurityNumber(value);
-         *     }
-         *
-         *     @Override
-         *     public boolean equals(Object obj) {
-         *         if (this == obj) return true;
-         *         if (obj == null || getClass() != obj.getClass()) return false;
-         *         SocialSecurityNumber ssn = (SocialSecurityNumber) obj;
-         *         return value.equals(ssn.value);
-         *     }
-         *
-         *     @Override
-         *     public int hashCode() {
-         *         return value.hashCode();
-         *     }
-         * }
-         * }</pre>
-         * @return new ScenarioFactory instance
-         */
-        public static ScenarioFactory<Java> ssn() {
-            return Scenario.Java.of("scenarios/java/SocialSecurityNumber.java");
-        }
 
         /**
          * A record wrapping a non-primitive reference type (LocalDate).
@@ -190,18 +151,21 @@ public sealed interface Scenario {
          * import com.qualityminds.lazyval.LazyValue;
          *
          * @LazyValue
-         * public record Birthday(LocalDate value) {
-         *     public Birthday {
+         * public record OrderDate(LocalDate value) {
+         *     public OrderDate {
          *         if (value == null) {
-         *             throw new IllegalArgumentException("Birthday must not be null");
+         *             throw new IllegalArgumentException("OrderDate must not be null");
+         *         }
+         *         if(value.isAfter(LocalDate.now())){
+         *             throw new IllegalArgumentException("OrderDate must not be in the future");
          *         }
          *     }
          * }
          * }</pre>
          * @return new ScenarioFactory instance
          */
-        public static ScenarioFactory<Java> birthday() {
-            return Scenario.Java.of("scenarios/java/Birthday.java");
+        public static ScenarioFactory<Java> orderDate() {
+            return Scenario.Java.of("scenarios/java/OrderDate.java");
         }
 
 //        /**
@@ -218,7 +182,7 @@ public sealed interface Scenario {
          * @return immutable list of all predefined scenarios
          */
         public static List<ScenarioFactory<Java>> all() {
-            return List.of(isbn(), quantity(), productId(), ssn(), birthday());
+            return List.of(isbn(), quantity(), ids(), orderDate());
         }
     }
 
@@ -305,31 +269,34 @@ public sealed interface Scenario {
             return Scenario.Kotlin.of("scenarios/kotlin/NullableQuantity.kt");
         }
         /**
-         * Edge-Case: a class defining multiple factories where only <code>of(value: String)</code> is relevant for Lazyval.
+         * Edge-Case: a sealed interface defining an inner ProductId to test inner types.
+         * Furthermore, the ProductId record defines multiple factories where only <code>of(String value)</code> is relevant for Lazyval.
          * <pre>{@code
          * import com.qualityminds.lazyval.LazyValue
          * import java.util.UUID
          * import util.IdGenerator
          *
-         * @LazyValue
-         * class ProductId private constructor(val value: String) {
-         *     companion object {
-         *         @JvmStatic
-         *         fun of(value: String): ProductId {
-         *             require(value.isNotBlank()) { "ProductId cannot be blank" }
-         *             return ProductId(value)
-         *         }
+         * sealed interface Ids {
+         *  @LazyValue
+         *  class ProductId private constructor(val value: String) : Ids {
+         *         companion object {
+         *             @JvmStatic
+         *             fun of(value: String): ProductId {
+         *              require(value.isNotBlank()) { "ProductId cannot be blank" }
+         *                 return ProductId(value)
+         *          }
          *
-         *         @JvmStatic
-         *         fun createNew(): ProductId {
-         *             return ProductId(UUID.randomUUID().toString())
-         *         }
+         *          @JvmStatic
+         *             fun createNew(): ProductId {
+         *              return ProductId(UUID.randomUUID().toString())
+         *          }
          *
-         *         @JvmStatic
-         *         fun createNew(generator: IdGenerator): ProductId {
-         *             return ProductId(generator.generateId())
-         *         }
-         *     }
+         *          @JvmStatic
+         *          fun createNew(generator: IdGenerator): ProductId {
+         *              return ProductId(generator.generateId())
+         *          }
+         *      }
+         *  }
          * }
          * }</pre>
          * @return new ScenarioFactory instance
