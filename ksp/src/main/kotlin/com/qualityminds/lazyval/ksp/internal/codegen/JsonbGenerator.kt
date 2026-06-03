@@ -74,7 +74,7 @@ class JsonbGenerator : Generator {
     private fun generateAdapter(element: ValidatedKspGeneratorElement): NamedAdapter {
         val elementClassName = element.element.toClassName()
         val wrappedType = element.wrappedProperty
-        val adapterName = "${element.typeName}Adapter"
+        val adapterName = "${element.typeName.name}Adapter"
         val wrappedTypeName = wrappedType.type.toTypeName()
 
         val factoryMethod = element.factoryMethod

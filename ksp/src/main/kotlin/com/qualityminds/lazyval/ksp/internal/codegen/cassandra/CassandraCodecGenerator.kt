@@ -143,7 +143,7 @@ class CassandraCodecGenerator : Generator {
         val elementClassName = element.element.toClassName()
         val wrappedTypeName = element.wrappedProperty.type.toTypeName()
 
-        val codecClassName = "${element.typeName}Codec"
+        val codecClassName = "${element.typeName.name}Codec"
 
         val nullableElementClassName = elementClassName.copy(nullable = true)
 

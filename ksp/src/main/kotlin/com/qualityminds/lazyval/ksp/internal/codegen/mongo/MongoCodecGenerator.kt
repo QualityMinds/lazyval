@@ -168,7 +168,7 @@ class MongoCodecGenerator : Generator {
         val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
         val outerType = elementClassName.copy(nullable = factoryReturnsNullable)
 
-        val codecClassName = "${element.typeName}Codec"
+        val codecClassName = "${element.typeName.name}Codec"
         val innerCodecTypeName = CODEC.parameterizedBy(wrappedTypeName)
 
         val constructor = FunSpec.constructorBuilder()
@@ -367,7 +367,7 @@ class MongoCodecGenerator : Generator {
         for (element in elements) {
             val elementClassName = element.element.toClassName()
             val wrappedTypeName = element.wrappedProperty.type.toTypeName().copy(nullable = false)
-            val codecClassName = "${element.typeName}Codec"
+            val codecClassName = "${element.typeName.name}Codec"
 
             builder.addCode(
                 """

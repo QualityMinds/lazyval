@@ -64,7 +64,7 @@ class KspJacksonIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Kotlin.Success(Lists.immutable.of(GENERATED_FILE_NAME_2))
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME_2)
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/ksp/kotlin/test/custom/$GENERATED_FILE_NAME_2").toFile().exists()
@@ -109,7 +109,7 @@ class KspJacksonIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Kotlin.Success(Lists.immutable.of(GENERATED_FILE_NAME_3))
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME_3)
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/ksp/kotlin/test/custom/$GENERATED_FILE_NAME_3").toFile().exists()

@@ -176,7 +176,7 @@ class SpringDataGenerator : Generator {
         val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
         val returnType = elementClassName.copy(nullable = factoryReturnsNullable)
 
-        return TypeSpec.classBuilder("${element.typeName}ReadConverter")
+        return TypeSpec.classBuilder("${element.typeName.name}ReadConverter")
             .addModifiers(KModifier.PRIVATE)
             .addAnnotation(READING_CONVERTER)
             .addSuperinterface(
@@ -197,7 +197,7 @@ class SpringDataGenerator : Generator {
         val elementClassName = element.element.toClassName()
         val wrappedTypeName = element.wrappedProperty.type.toTypeName()
 
-        return TypeSpec.classBuilder("${element.typeName}WriteConverter")
+        return TypeSpec.classBuilder("${element.typeName.name}WriteConverter")
             .addModifiers(KModifier.PRIVATE)
             .addAnnotation(WRITING_CONVERTER)
             .addSuperinterface(

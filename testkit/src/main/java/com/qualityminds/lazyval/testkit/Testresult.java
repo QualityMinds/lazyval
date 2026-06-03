@@ -111,6 +111,14 @@ public sealed interface Testresult {
                 generatedFiles = generatedFiles.toSortedList().toImmutable();
             }
 
+            /**
+             * Convenience constructor for better interop with Groovy list literals
+             * @param generatedFiles list of expected generated files
+             */
+            public Success(List<String> generatedFiles) {
+                this(Lists.immutable.ofAll(generatedFiles));
+            }
+
             @SuppressWarnings("doclint:accessibility,missing")
             public Success(String... generatedFiles) {
                 this(Lists.immutable.ofAll(Arrays.asList(generatedFiles)));

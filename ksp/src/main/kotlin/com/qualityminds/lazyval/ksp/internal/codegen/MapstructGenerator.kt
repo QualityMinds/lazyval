@@ -54,14 +54,14 @@ class MapstructGenerator : Generator {
     }
 
     private fun createJavaMapToWrappedTypeMethod(element: ValidatedKspGeneratorElement): MethodSpec {
-        val className = element.element.simpleName.asString()
+        val className = element.typeName.name
         val lazyvalTypeClassName = ClassName.get(
             element.element.packageName.asString(),
             element.element.simpleName.asString()
         )
         val wrappedTypeName = getJavaTypeName(element.wrappedProperty.type)
 
-        val methodBuilder = MethodSpec.methodBuilder("map${className}ToWrappedType")
+        val methodBuilder = MethodSpec.methodBuilder("map${className}To${wrappedTypeName.asMethodName()}")
             .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
             .returns(wrappedTypeName)
             .addParameter(lazyvalTypeClassName, "type")
@@ -96,7 +96,7 @@ class MapstructGenerator : Generator {
             "new ${lazyvalTypeClassName.simpleName()}(value)"
         }
 
-        val methodBuilder = MethodSpec.methodBuilder("map$className")
+        val methodBuilder = MethodSpec.methodBuilder("map${wrappedTypeName.asMethodName()}To$className")
             .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
             .returns(lazyvalTypeClassName)
             .addParameter(wrappedTypeName, "value")
@@ -132,4 +132,9 @@ class MapstructGenerator : Generator {
             }
         }
     }
+}
+
+private fun TypeName.asMethodName(): String = when (this) {
+    is ClassName -> simpleName()
+    else -> toString()
 }

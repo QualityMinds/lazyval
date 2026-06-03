@@ -20,16 +20,21 @@ class KspBeanValidationIT extends Specification {
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
-    void "String type generates PatternValidator"(){
+    @Unroll("#scenario.name() compiles and generated #expectedFiles")
+    void "String type generates Pattern- and EMail-Validator"(){
         given:
-        def scenario = Scenario.Kotlin.isbn()
-                .withDependencies(dependencyBeanValidation)
+        scenario.withDependencies(dependencyBeanValidation)
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("IsbnEmailValidator.kt", "IsbnPatternValidator.kt")
+        result == new Testresult.Kotlin.Success(expectedFiles)
+
+        where:
+        scenario                || expectedFiles
+        Scenario.Kotlin.isbn()  || ["IsbnEmailValidator.kt", "IsbnPatternValidator.kt"]
+        Scenario.Kotlin.ids()   || ["IdsProductIdEmailValidator.kt", "IdsProductIdPatternValidator.kt"]
     }
 
     void "Numeric type generates Min and Max Validators"(){
@@ -46,7 +51,7 @@ class KspBeanValidationIT extends Specification {
 
     void "LocalDate type generates temporal validators"(){
         given:
-        def scenario = Scenario.Kotlin.birthday()
+        def scenario = Scenario.Kotlin.orderDate()
                 .withDependencies(dependencyBeanValidation)
 
         when:
@@ -54,10 +59,10 @@ class KspBeanValidationIT extends Specification {
 
         then:
         result == new Testresult.Kotlin.Success(
-                "BirthdayFutureOrPresentValidator.kt",
-                "BirthdayFutureValidator.kt",
-                "BirthdayPastOrPresentValidator.kt",
-                "BirthdayPastValidator.kt")
+                "OrderDateFutureOrPresentValidator.kt",
+                "OrderDateFutureValidator.kt",
+                "OrderDatePastOrPresentValidator.kt",
+                "OrderDatePastValidator.kt")
     }
 
     void "Generated at correct default location when no override is given"(){
@@ -83,43 +88,10 @@ class KspBeanValidationIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Kotlin.Success(Lists.immutable.of("IsbnEmailValidator.kt", "IsbnPatternValidator.kt"))
+        result == new Testresult.Kotlin.Success(["IsbnEmailValidator.kt", "IsbnPatternValidator.kt"])
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/ksp/kotlin/test/custom/IsbnPatternValidator.kt").toFile().exists()
     }
 
-    @Unroll("#scenario.name() compiles with BeanValidation")
-    void "BeanValidation with all Scenarios"(){
-        given:
-        scenario.withDependencies(dependencyBeanValidation)
-
-        when:
-        def result = testkitKotlin.run(projectDir, scenario)
-
-        then:
-        result == expected
-
-        where:
-        scenario << Scenario.Kotlin.all()
-        expected = expectedResultFor(scenario)
-    }
-
-    private static Testresult.Kotlin expectedResultFor(def scenario) {
-        def name = scenario.name()
-        if (name == "Birthday.kt") {
-            return new Testresult.Kotlin.Success(
-                    "BirthdayFutureOrPresentValidator.kt",
-                    "BirthdayFutureValidator.kt",
-                    "BirthdayPastOrPresentValidator.kt",
-                    "BirthdayPastValidator.kt")
-        } else if (name == "Quantity.kt" || name == "NullableQuantity.kt") {
-            def typeName = name.replace(".kt", "")
-            return new Testresult.Kotlin.Success("${typeName}MaxValidator.kt", "${typeName}MinValidator.kt")
-        } else {
-            // String-wrapped types: Isbn, ProductId
-            def typeName = name.replace(".kt", "")
-            return new Testresult.Kotlin.Success("${typeName}EmailValidator.kt", "${typeName}PatternValidator.kt")
-        }
-    }
 }

@@ -66,7 +66,7 @@ class KspCassandraCodecIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Kotlin.Success(Lists.immutable.of("LazyvalCassandraCodecs.kt"))
+        result == new Testresult.Kotlin.Success(["LazyvalCassandraCodecs.kt"])
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/ksp/kotlin/test/custom/LazyvalCassandraCodecs.kt").toFile().exists()
@@ -74,7 +74,7 @@ class KspCassandraCodecIT extends Specification {
 
     void "Quarkus Registration generated when Cassandra-Quarkus-Extension is available"(){
         given:
-        def scenario = Scenario.Kotlin.birthday()
+        def scenario = Scenario.Kotlin.orderDate()
                 .withDependencies(
                         dependencyDriverCore, dependencyCassandraQuarkusExtension,
                         // compile dependencies

@@ -62,15 +62,15 @@ class KspMongoCodecIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Kotlin.Success(Lists.immutable.of("LazyvalMongoCodecs.kt"))
+        result == new Testresult.Kotlin.Success(["LazyvalMongoCodecs.kt"])
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/ksp/kotlin/test/custom/LazyvalMongoCodecs.kt").toFile().exists()
     }
 
-    void "Birthday wrapping LocalDate generates a valid codec"() {
+    void "OrderDate wrapping LocalDate generates a valid codec"() {
         given:
-        def scenario = Scenario.Kotlin.birthday().withDependencies(dependencyBson)
+        def scenario = Scenario.Kotlin.orderDate().withDependencies(dependencyBson)
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -81,7 +81,7 @@ class KspMongoCodecIT extends Specification {
 
     void "Quarkus Registrar generated when quarkus-mongodb-client is available"() {
         given:
-        def scenario = Scenario.Kotlin.birthday()
+        def scenario = Scenario.Kotlin.orderDate()
                 .withDependencies(
                         dependencyBson,
                         dependencyMongoDriverCore,
@@ -99,7 +99,7 @@ class KspMongoCodecIT extends Specification {
 
     void "Quarkus Registrar can be disabled via option"() {
         given:
-        def scenario = Scenario.Kotlin.birthday()
+        def scenario = Scenario.Kotlin.orderDate()
                 .withDependencies(
                         dependencyBson,
                         dependencyMongoDriverCore,

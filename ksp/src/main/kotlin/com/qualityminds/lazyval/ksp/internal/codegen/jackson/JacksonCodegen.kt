@@ -35,7 +35,7 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
     fun generateSerializer(element: ValidatedKspGeneratorElement): TypeSpec {
         val elementClassName = element.element.toClassName()
         val wrappedType = element.wrappedProperty
-        val serializerName = "${element.typeName}Serializer"
+        val serializerName = "${element.typeName.name}Serializer"
 
         val wrappedTypeName = wrappedType.type.declaration.simpleName.asString()
         val serializeBody: FunSpec.Builder.() -> Unit = if (wrappedType.isPrimitive()) {
@@ -78,7 +78,7 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
     fun generateDeserializer(element: ValidatedKspGeneratorElement): TypeSpec {
         val elementClassName = element.element.toClassName()
         val wrappedType = element.wrappedProperty
-        val deserializerName = "${element.typeName}Deserializer"
+        val deserializerName = "${element.typeName.name}Deserializer"
 
         val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
         val returnType = elementClassName.copy(nullable = factoryReturnsNullable)

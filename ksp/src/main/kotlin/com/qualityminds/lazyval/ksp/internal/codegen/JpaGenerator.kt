@@ -64,7 +64,7 @@ class JpaGenerator : Generator {
         // KotlinPoet specific type-name
         val wrappedTypeName = wrappedType.type.toTypeName()
 
-        val converterClassName = "${validatedElement.typeName}AttributeConverter"
+        val converterClassName = "${validatedElement.typeName.name}AttributeConverter"
 
         val convertToDatabaseColumn = buildConvertToDatabaseColumn(lazyvalTypeName, wrappedTypeName, validatedElement)
         val convertToEntityAttribute = buildConvertToEntityAttribute(lazyvalTypeName, wrappedTypeName, validatedElement)
