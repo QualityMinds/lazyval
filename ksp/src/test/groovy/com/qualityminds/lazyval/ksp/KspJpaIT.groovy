@@ -33,7 +33,7 @@ class KspJpaIT extends Specification {
 
         where:
         scenario << Scenario.Kotlin.all()
-        generatedJpaMapper = scenario.name().replace(".kt", "AttributeConverter.kt")
+        generatedJpaMapper = scenario.name() == "Ids.kt" ? "IdsProductIdAttributeConverter.kt" : scenario.name().replace(".kt", "AttributeConverter.kt")
         expected = new Testresult.Kotlin.Success(generatedJpaMapper)
     }
 
@@ -60,7 +60,7 @@ class KspJpaIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Kotlin.Success(Lists.immutable.of("QuantityAttributeConverter.kt"))
+        result == new Testresult.Kotlin.Success("QuantityAttributeConverter.kt")
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/ksp/kotlin/test/custom/QuantityAttributeConverter.kt").toFile().exists()

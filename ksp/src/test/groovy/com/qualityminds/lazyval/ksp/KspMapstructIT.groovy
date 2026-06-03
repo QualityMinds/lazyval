@@ -64,7 +64,7 @@ class KspMapstructIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Kotlin.Success(Lists.immutable.of(GENERATED_FILE_NAME))
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/ksp/java/test/custom/$GENERATED_FILE_NAME").toFile().exists()

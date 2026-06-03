@@ -12,9 +12,9 @@ data class ValidatedKspGeneratorElement(
     private val accessorMethod: KSFunctionDeclaration?
 ){
     /**
-     * The simple name of the annotated type.
+     * A type name
      */
-    val typeName: String = element.simpleName.asString()
+    val typeName: TypeName = TypeName.from(element)
     /**
      * For Kotlin sources, this will yield the type accessor (being it a property or a function)
      */
@@ -63,6 +63,38 @@ data class ValidatedKspGeneratorElement(
             "${typeName}.${factoryMethod.simpleName.asString()}(${parameterName})"
         } else {
             "${typeName}(${parameterName})"
+        }
+    }
+}
+
+/**
+ * Inspired by Javapoet's 'TypeName', provides a simple way to represent a type name which might be nested.
+ */
+data class TypeName(val value: String){
+
+    /**
+     * Use this to create a save name for a class or method. This is important when inner-types are encountered: the
+     * class/method and filename must not contain dots.
+     * In the case of inner-types, the enclosing type(s) are concatenated to make sure they are unique.
+     * @return the simple name of this type, without dots from nested types.
+     */
+    val name: String = value.replace(".", "")
+
+    override fun toString(): String {
+        return value
+    }
+
+    companion object {
+        private fun getSimpleNameEnclosed(e: KSClassDeclaration, remainder: String): String {
+            val enclosing = e.parentDeclaration
+            if(enclosing is KSClassDeclaration){
+                return getSimpleNameEnclosed(enclosing, "${enclosing.simpleName.asString()}.${remainder}")
+            }
+            return remainder
+        }
+
+        fun from(e: KSClassDeclaration): TypeName {
+            return TypeName(getSimpleNameEnclosed(e, e.simpleName.asString()))
         }
     }
 }

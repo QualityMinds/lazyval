@@ -24,7 +24,7 @@ internal object StringValidatorBuilder {
 
     private fun buildPatternValidator(element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
         val lazyvalTypeName = element.element.toClassName()
-        val className = "${element.typeName}PatternValidator"
+        val className = "${element.typeName.name}PatternValidator"
         val patternAnnotation = ClassName("jakarta.validation.constraints", "Pattern")
 
         val typeSpec = TypeSpec.classBuilder(className)
@@ -45,7 +45,7 @@ internal object StringValidatorBuilder {
 
     private fun buildEmailValidator(element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
         val lazyvalTypeName = element.element.toClassName()
-        val className = "${element.typeName}EmailValidator"
+        val className = "${element.typeName.name}EmailValidator"
         val emailAnnotation = ClassName("jakarta.validation.constraints", "Email")
 
         val typeSpec = TypeSpec.classBuilder(className)

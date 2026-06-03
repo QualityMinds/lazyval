@@ -113,7 +113,7 @@ class KspJsonbIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then: 'only adapters file is generated'
-        result == new Testresult.Kotlin.Success(Lists.immutable.of(GENERATED_FILE_NAME))
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'ContextResolver file is not generated'
         !projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
@@ -128,7 +128,7 @@ class KspJsonbIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then: 'only the adapters file is generated — the LazyvalJsonbAdapters itself becomes the customizer'
-        result == new Testresult.Kotlin.Success(Lists.immutable.of(GENERATED_FILE_NAME))
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'no ContextResolver is emitted (avoids registering the same adapters twice in Quarkus REST)'
         !projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
@@ -144,7 +144,7 @@ class KspJsonbIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then: 'Quarkus wins: only adapters file is generated, no resolver'
-        result == new Testresult.Kotlin.Success(Lists.immutable.of(GENERATED_FILE_NAME))
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'ContextResolver file is not generated'
         !projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()

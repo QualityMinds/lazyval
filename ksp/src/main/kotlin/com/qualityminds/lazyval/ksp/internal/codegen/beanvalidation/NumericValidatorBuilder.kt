@@ -28,7 +28,7 @@ internal object NumericValidatorBuilder {
 
     private fun buildMinValidator(element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
         val lazyvalTypeName = element.element.toClassName()
-        val className = "${element.typeName}MinValidator"
+        val className = "${element.typeName.name}MinValidator"
         val minAnnotation = ClassName("jakarta.validation.constraints", "Min")
 
         val typeSpec = TypeSpec.classBuilder(className)
@@ -70,7 +70,7 @@ internal object NumericValidatorBuilder {
 
     private fun buildMaxValidator(element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
         val lazyvalTypeName = element.element.toClassName()
-        val className = "${element.typeName}MaxValidator"
+        val className = "${element.typeName.name}MaxValidator"
         val maxAnnotation = ClassName("jakarta.validation.constraints", "Max")
 
         val typeSpec = TypeSpec.classBuilder(className)

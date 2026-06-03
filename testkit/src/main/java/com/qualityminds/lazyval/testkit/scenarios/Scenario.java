@@ -301,24 +301,24 @@ public sealed interface Scenario {
          * }</pre>
          * @return new ScenarioFactory instance
          */
-        public static ScenarioFactory<Kotlin> productId() {
-            return Scenario.Kotlin.of("scenarios/kotlin/ProductId.kt", "util/IdGenerator.java");
+        public static ScenarioFactory<Kotlin> ids() {
+            return Scenario.Kotlin.of("scenarios/kotlin/Ids.kt", "util/IdGenerator.java");
         }
 
         /**
          * A data class wrapping a non-primitive reference type (LocalDate).
          * <pre>{@code
          * @LazyValue
-         * data class Birthday(val date: LocalDate) {
+         * data class OrderDate(val date: LocalDate) {
          *     init {
-         *         require(date != null) { "Birthday date cannot be null" }
+         *         require(date != null) { "OrderDate date cannot be null" }
          *     }
          * }
          * }</pre>
          * @return new ScenarioFactory instance
          */
-        public static ScenarioFactory<Kotlin> birthday() {
-            return Scenario.Kotlin.of("scenarios/kotlin/Birthday.kt");
+        public static ScenarioFactory<Kotlin> orderDate() {
+            return Scenario.Kotlin.of("scenarios/kotlin/OrderDate.kt");
         }
 
         /**
@@ -326,7 +326,7 @@ public sealed interface Scenario {
          * @return immutable list of all predefined scenarios
          */
         public static List<ScenarioFactory<Kotlin>> all() {
-            return List.of(isbn(), quantity(), nullableQuantity(), productId(), birthday());
+            return List.of(isbn(), quantity(), nullableQuantity(), ids(), orderDate());
         }
     }
 

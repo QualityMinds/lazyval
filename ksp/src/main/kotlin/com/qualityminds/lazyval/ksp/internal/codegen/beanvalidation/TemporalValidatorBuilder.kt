@@ -32,7 +32,7 @@ internal object TemporalValidatorBuilder {
 
     private fun buildValidator(element: ValidatedKspGeneratorElement, packageName: String, annotationName: String): Stream<GeneratorResult> {
         val lazyvalTypeName = element.element.toClassName()
-        val className = "${element.typeName}${annotationName}Validator"
+        val className = "${element.typeName.name}${annotationName}Validator"
         val temporalAnnotation = ClassName("jakarta.validation.constraints", annotationName)
 
         val typeSpec = TypeSpec.classBuilder(className)
