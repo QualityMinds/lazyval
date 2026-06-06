@@ -9,3 +9,11 @@ updates:
       - "integration-test/**"
     schedule:
       interval: "quarterly"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "quarterly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
