@@ -72,7 +72,7 @@
         <version.plugin.openapi-generator>7.22.0</version.plugin.openapi-generator>
         <version.plugin.liberty>3.11.5</version.plugin.liberty>
         <!-- integration testing -->
-        <version.it.quarkus>3.34.5</version.it.quarkus>
+        <version.it.quarkus>3.36.1</version.it.quarkus>
         <version.it.spring-boot>4.0.5</version.it.spring-boot>
         <version.it.testcontainers>2.0.5</version.it.testcontainers>
         <version.it.mapstruct>1.6.3</version.it.mapstruct>
