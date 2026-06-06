@@ -175,30 +175,39 @@
 
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <proc>full</proc>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>com.qualityminds.lazyval</groupId>
-                            <artifactId>lazyval-processor</artifactId>
-                            <version>${project.version}</version>
-                        </path>
-                        <path>
-                            <groupId>org.mapstruct</groupId>
-                            <artifactId>mapstruct-processor</artifactId>
-                            <version>${version.it.mapstruct}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                    <compilerArgs>
-                        <arg>-parameters</arg>
-                        <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
-                        <arg>-Amapstruct.defaultComponentModel=spring</arg>
-                        <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
-                        <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
-                        <arg>-Alazyval.generators.disable=cassandra,jackson-2</arg>
-                        <arg>-Alazyval.springdata.mongo.converters=com.qualityminds.lazyval.integration.boundary.persistence.DateToOrderDateConverter,com.qualityminds.lazyval.integration.boundary.persistence.OrderDateToDateConverter</arg>
-                    </compilerArgs>
-                </configuration>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <proc>full</proc>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>com.qualityminds.lazyval</groupId>
+                                    <artifactId>lazyval-processor</artifactId>
+                                    <version>${project.version}</version>
+                                </path>
+                                <path>
+                                    <groupId>org.mapstruct</groupId>
+                                    <artifactId>mapstruct-processor</artifactId>
+                                    <version>${version.it.mapstruct}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                            <compilerArgs>
+                                <arg>-parameters</arg>
+                                <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
+                                <arg>-Amapstruct.defaultComponentModel=spring</arg>
+                                <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
+                                <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
+                                <arg>-Alazyval.generators.disable=cassandra,jackson-2</arg>
+                                <arg>-Alazyval.springdata.mongo.converters=com.qualityminds.lazyval.integration.boundary.persistence.DateToOrderDateConverter,com.qualityminds.lazyval.integration.boundary.persistence.OrderDateToDateConverter</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>

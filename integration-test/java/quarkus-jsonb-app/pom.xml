@@ -71,22 +71,31 @@
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <proc>full</proc>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>com.qualityminds.lazyval</groupId>
-                            <artifactId>lazyval-processor</artifactId>
-                            <version>${project.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                    <compilerArgs>
-                        <arg>-parameters</arg>
-                        <!-- disabled, only jsonb is needed for this sample -->
-                        <arg>-Alazyval.generators.disable=jackson-2,jackson-3,jpa,cassandra,beanvalidation,mapstruct</arg>
-                        <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
-                    </compilerArgs>
-                </configuration>
+                <executions>
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>compile</phase>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <configuration>
+                            <proc>full</proc>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>com.qualityminds.lazyval</groupId>
+                                    <artifactId>lazyval-processor</artifactId>
+                                    <version>${project.version}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                            <compilerArgs>
+                                <arg>-parameters</arg>
+                                <!-- disabled, only jsonb is needed for this sample -->
+                                <arg>-Alazyval.generators.disable=jackson-2,jackson-3,jpa,cassandra,beanvalidation,mapstruct</arg>
+                                <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
+                            </compilerArgs>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
