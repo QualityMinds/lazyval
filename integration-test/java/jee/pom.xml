@@ -230,32 +230,35 @@
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <proc>full</proc>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>com.qualityminds.lazyval</groupId>
+                            <artifactId>lazyval-processor</artifactId>
+                            <version>${project.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${version.it.mapstruct}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                        <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
+                        <arg>-Amapstruct.defaultComponentModel=cdi</arg>
+                        <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
+                    </compilerArgs>
+                </configuration>
                 <executions>
                     <execution>
                         <id>default-compile</id>
-                        <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <proc>full</proc>
-                            <annotationProcessorPaths>
-                                <path>
-                                    <groupId>com.qualityminds.lazyval</groupId>
-                                    <artifactId>lazyval-processor</artifactId>
-                                    <version>${project.version}</version>
-                                </path>
-                                <path>
-                                    <groupId>org.mapstruct</groupId>
-                                    <artifactId>mapstruct-processor</artifactId>
-                                    <version>${version.it.mapstruct}</version>
-                                </path>
-                            </annotationProcessorPaths>
-                            <compilerArgs>
-                                <arg>-parameters</arg>
-                                <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
-                                <arg>-Amapstruct.defaultComponentModel=cdi</arg>
-                                <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
+                            <compilerArgs combine.children="append">
                                 <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
                             </compilerArgs>
                         </configuration>

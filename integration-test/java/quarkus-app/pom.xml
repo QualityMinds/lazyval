@@ -126,37 +126,40 @@
             </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <proc>full</proc>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>com.qualityminds.lazyval</groupId>
+                            <artifactId>lazyval-processor</artifactId>
+                            <version>${project.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${version.it.mapstruct}</version>
+                        </path>
+                        <path>
+                            <groupId>com.datastax.oss.quarkus</groupId>
+                            <artifactId>cassandra-quarkus-mapper-processor</artifactId>
+                            <version>${version.it.cassandra.quarkus}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <compilerArgs>
+                        <arg>-parameters</arg>
+                        <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
+                        <arg>-Amapstruct.defaultComponentModel=jakarta</arg>
+                        <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
+                    </compilerArgs>
+                </configuration>
                 <executions>
                     <execution>
                         <id>default-compile</id>
-                        <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <proc>full</proc>
-                            <annotationProcessorPaths>
-                                <path>
-                                    <groupId>com.qualityminds.lazyval</groupId>
-                                    <artifactId>lazyval-processor</artifactId>
-                                    <version>${project.version}</version>
-                                </path>
-                                <path>
-                                    <groupId>org.mapstruct</groupId>
-                                    <artifactId>mapstruct-processor</artifactId>
-                                    <version>${version.it.mapstruct}</version>
-                                </path>
-                                <path>
-                                    <groupId>com.datastax.oss.quarkus</groupId>
-                                    <artifactId>cassandra-quarkus-mapper-processor</artifactId>
-                                    <version>${version.it.cassandra.quarkus}</version>
-                                </path>
-                            </annotationProcessorPaths>
-                            <compilerArgs>
-                                <arg>-parameters</arg>
-                                <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
-                                <arg>-Amapstruct.defaultComponentModel=jakarta</arg>
-                                <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
+                            <compilerArgs combine.children="append">
                                 <arg>-Alazyval.generators.disable=jackson-3</arg><!-- disabled as Jackson 3 only on test path -->
                                 <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
                             </compilerArgs>
