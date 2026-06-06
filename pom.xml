@@ -47,7 +47,7 @@
         <version.kotlin>2.3.20</version.kotlin>
         <version.kotlinpoet>2.3.0</version.kotlinpoet>
         <version.ksp>2.3.6</version.ksp>
-        <version.slf4j>2.0.17</version.slf4j>
+        <version.slf4j>2.0.18</version.slf4j>
         <version.spock>2.4-groovy-5.0</version.spock>
         <!-- plugins -->
         <version.plugin.antrun>3.2.0</version.plugin.antrun>
