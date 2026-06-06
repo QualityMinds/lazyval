@@ -24,7 +24,7 @@ jobs:
       lazyval-version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
@@ -34,7 +34,7 @@ jobs:
       - name: Build and Install to Local Repository
         run: ./mvnw -Pstatic-analysis '-P!with-integration-tests' --no-snapshot-updates --no-transfer-progress --batch-mode install --file pom.xml
       - name: Upload Lazyval Artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/com/qualityminds/lazyval
@@ -73,7 +73,7 @@ jobs:
           - kotlin/spring-app
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
@@ -81,7 +81,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: maven
       - name: Download Lazyval Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/com/qualityminds/lazyval
@@ -95,7 +95,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
@@ -103,7 +103,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'maven'
       - name: Download Lazyval Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/com/qualityminds/lazyval
@@ -128,7 +128,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
@@ -136,7 +136,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'maven'
       - name: Download Lazyval Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/com/qualityminds/lazyval
@@ -161,7 +161,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
@@ -169,7 +169,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'gradle'
       - name: Download Lazyval Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/com/qualityminds/lazyval
@@ -191,15 +191,15 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
-      - uses: coursier/cache-action@v7
+      - uses: coursier/cache-action@v8
       - name: Download Lazyval Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/com/qualityminds/lazyval
@@ -226,7 +226,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
@@ -234,7 +234,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'maven'
       - name: Download Lazyval Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/com/qualityminds/lazyval
@@ -260,7 +260,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
@@ -268,7 +268,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'maven'
       - name: Download Lazyval Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/com/qualityminds/lazyval
@@ -293,7 +293,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
@@ -301,7 +301,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: 'gradle'
       - name: Download Lazyval Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/com/qualityminds/lazyval
@@ -323,15 +323,15 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
-      - uses: coursier/cache-action@v7
+      - uses: coursier/cache-action@v8
       - name: Download Lazyval Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/com/qualityminds/lazyval
@@ -358,14 +358,14 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
       - name: Download Lazyval Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/com/qualityminds/lazyval
@@ -383,14 +383,14 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Set up JDK ${{ env.JAVA_VERSION_EXAMPLES }}
         uses: actions/setup-java@v5
         with:
           java-version: ${{ env.JAVA_VERSION_EXAMPLES }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
       - name: Download Lazyval Artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           name: maven-repo-lazyval
           path: ~/.m2/repository/com/qualityminds/lazyval
