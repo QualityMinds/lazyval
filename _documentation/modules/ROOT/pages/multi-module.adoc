@@ -13,6 +13,9 @@ Add the `@LazyvalConfiguration` annotation to your module and list the external 
 Listed types behave as if they had been annotated with `@LazyValue` themselves, even though they live in another
 module on the classpath.
 
+NOTE: a dedicated annotation is needed instead of a processor option, because in case no annotation is present
+in the current compilation-unit, when all types come from a shared module, the processor would not be triggered at all.
+
 [tabs]
 ====
 Java::
@@ -60,12 +63,12 @@ A module that has no `@LazyValue`-annotated types of its own can still drive gen
 │   └── com.acme.shared.AcmeId
 ├── service-a/
 │   ├── com.acme.a.Foo
-│   └── com.acme.a.package-info       // @LazyvalConfiguration(externalTypes = {EMail, AcmeId})
+│   └── com.acme.a.package-info       // @LazyvalConfiguration(externalTypes = {EMail.class, AcmeId.class})
 └── service-b/
     ├── com.acme.b.Bar
-    └── com.acme.b.package-info       // @LazyvalConfiguration(externalTypes = {EMail, AcmeId})
+    └── com.acme.b.package-info       // @LazyvalConfiguration(externalTypes = {AcmeId.class})
 ----
 
-Here `shared` only defines domain-primitives without any dependency to Lazyval at all, while `service-a` and
-`service-b` are properly configured with the processor and each carry their own `@LazyvalConfiguration` declaring
-which shared types to process.
+Here `shared` only defines domain-primitives without any dependency to Lazyval at all (the shared types need no
+`@LazyValue` annotation at all), while `service-a` and `service-b` are properly configured with the processor
+and each carries its own `@LazyvalConfiguration` declaring which shared types to process.
