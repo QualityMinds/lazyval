@@ -17,12 +17,12 @@ often needed when modeling _"Domain Primitives"_, which are simple, domain-speci
 === Features
 
 * Codegenerators
-** Mapstruct mapper
-** JPA AttributeConverters
-** Jackson 2 & 3
-** JSON-B
-** Bean-Validation Validator
+** Bean-Validation Validator (useful for legacy/migration projects where after-the-fact validation is still needed)
 ** Cassandra
+** Jackson 2 & 3 (scalar serde)
+** JPA AttributeConverters
+** JSON-B (scalar serde)
+** Mapstruct mapper
 ** MongoDB
 ** Spring-Data (Cassandra & Mongo)
 * Smart

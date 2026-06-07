@@ -1,5 +1,11 @@
 = Bean Validation
 
+NOTE: From a modeling perspective, external bean-val annotations provide less accurate semantics as it
+means the object is created with a state that might be invalid. Nevertheless, in some cases it is necessary
+to have these validators. A primary use-case is legacy or migration projects, where domain-primitives cannot
+(yet) enforce their invariants during construction and after-the-fact validation is still needed. Another
+use-case is when OpenAPI generators map directly to the domain-types and add validation annotations.
+
 Jakarta Bean Validation works by associating `ConstraintValidator` implementations with constraint annotations
 and their target types. Since domain-primitives introduce new types, validators like `@Email` or `@Min` do
 not work with them out of the box.
@@ -8,12 +14,7 @@ This generator creates `ConstraintValidator` implementations for every domain-pr
 Jakarta Bean Validation constraint annotations can be applied directly on domain-primitive fields.
 The generated validators are registered via the `META-INF/services/jakarta.validation.ConstraintValidator`
 service-loader mechanism and are therefore discovered automatically by any compliant Bean Validation provider
-(Hibernate Validator, etc.).
-
-NOTE: From a modeling perspective, external bean-val annotations provide less accurate semantics as it
-means the object is created with a state that might be invalid. Nevertheless, in some cases it is necessary
-to have these validators, like when OpenAPI generators map directly to the domain-types and the generator adds
-validation annotations.
+(like Hibernate Validator).
 
 == Config Options
 
@@ -82,140 +83,6 @@ generated validator follows the same pattern:
 
 Additionally a `META-INF/services/jakarta.validation.ConstraintValidator` service-loader file is
 generated that lists all validator classes, so they are automatically discovered at runtime.
-
-=== String example
-
-Given a `String`-based domain-primitive `Isbn`:
-
-[tabs]
-====
-Java::
-+
-[source,java]
-----
-public class IsbnPatternValidator implements ConstraintValidator<Pattern, Isbn> {
-  private String regex;
-
-  @Override
-  public void initialize(Pattern constraintAnnotation) {
-    this.regex = constraintAnnotation.regexp();
-  }
-
-  @Override
-  public boolean isValid(Isbn value, ConstraintValidatorContext context) {
-    if (value == null) {
-      return true;
-    }
-    return value.value().matches(regex);
-  }
-}
-----
-
-Kotlin::
-+
-[source,kotlin]
-----
-public class IsbnPatternValidator : ConstraintValidator<Pattern, Isbn> {
-  private var regex: String = ""
-
-  override fun initialize(constraintAnnotation: Pattern) {
-    this.regex = constraintAnnotation.regexp
-  }
-
-  override fun isValid(value: Isbn?, context: ConstraintValidatorContext): Boolean {
-    if (value == null) {
-      return true
-    }
-    return value.value.matches(Regex(regex))
-  }
-}
-----
-====
-
-=== Numeric example
-
-Given an `int`-based domain-primitive `Quantity`:
-
-[tabs]
-====
-Java::
-+
-[source,java]
-----
-public class QuantityMinValidator implements ConstraintValidator<Min, Quantity> {
-  private long min;
-
-  @Override
-  public void initialize(Min constraintAnnotation) {
-    this.min = constraintAnnotation.value();
-  }
-
-  @Override
-  public boolean isValid(Quantity value, ConstraintValidatorContext context) {
-    if (value == null) {
-      return true;
-    }
-    return value.value() >= min;
-  }
-}
-----
-
-Kotlin::
-+
-[source,kotlin]
-----
-public class QuantityMinValidator : ConstraintValidator<Min, Quantity> {
-  private var min: Long = 0
-
-  override fun initialize(constraintAnnotation: Min) {
-    this.min = constraintAnnotation.value
-  }
-
-  override fun isValid(value: Quantity?, context: ConstraintValidatorContext): Boolean {
-    if (value == null) {
-      return true
-    }
-    return value.value >= min
-  }
-}
-----
-====
-
-=== Temporal example
-
-Given a `LocalDate`-based domain-primitive `OrderDate`:
-
-[tabs]
-====
-Java::
-+
-[source,java]
-----
-public class OrderDatePastValidator implements ConstraintValidator<Past, OrderDate> {
-  @Override
-  public boolean isValid(OrderDate value, ConstraintValidatorContext context) {
-    if (value == null) {
-      return true;
-    }
-    return value.date().isBefore(java.time.LocalDate.now());
-  }
-}
-----
-
-Kotlin::
-+
-[source,kotlin]
-----
-public class OrderDatePastValidator : ConstraintValidator<Past, OrderDate> {
-  override fun isValid(value: OrderDate?, context: ConstraintValidatorContext): Boolean {
-    if (value == null) {
-      return true
-    }
-    return value.value.isBefore(java.time.LocalDate.now())
-  }
-}
-----
-====
 
 == Usage
 
