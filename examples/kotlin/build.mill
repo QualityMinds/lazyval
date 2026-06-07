@@ -14,7 +14,7 @@ object `package` extends KotlinMavenModule with KspModule {
   override def kotlinVersion = "2.3.0"
   override def kspVersion = "2.3.4"
   override def kspJvmTarget = "17"
-  override def kspModuleMode = KspModuleMode.Ksp2 // could be ommited, as it is the default
+  override def kspModuleMode = KspModuleMode.Ksp2 // could be omitted, as it is the default
 
   // tag::docu[]
   // tag::excluded[]

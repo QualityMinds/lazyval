@@ -21,7 +21,7 @@ class MavenResolver {
     static final String PROP_RESOLVER_REPO = "lazyval.testkit.maven-repo";
     static final String PROP_RESOLVER_MIRROR = "lazyval.testkit.maven-mirror";
     static final String ENV_RESOLVER_MIRROR_USERNAME = "LAZYVAL_TESTKIT_MIRROR_USERNAME";
-    static final String ENV_MIRROR_PASSWORD = "LAZYVAL_TESTKIT_MIRROR_PASSWORD";
+    static final String ENV_RESOLVER_MIRROR_PASSWORD = "LAZYVAL_TESTKIT_MIRROR_PASSWORD";
 
     private static final Logger logger = LoggerFactory.getLogger(MavenResolver.class);
     private static final String userHome = System.getProperty("user.home");
@@ -91,6 +91,7 @@ class MavenResolver {
         var localFile = new File(localRepo, localPath);
 
         try {
+            //noinspection ResultOfMethodCallIgnored
             localFile.getParentFile().mkdirs();
 
             logger.debug("Downloading {}", url);
@@ -100,7 +101,7 @@ class MavenResolver {
 
             var connection = new URL(url).openConnection();
             var username = System.getenv(ENV_RESOLVER_MIRROR_USERNAME);
-            var password = System.getenv(ENV_MIRROR_PASSWORD);
+            var password = System.getenv(ENV_RESOLVER_MIRROR_PASSWORD);
             if (username != null && password != null) {
                 var credentials = java.util.Base64.getEncoder()
                         .encodeToString((username + ":" + password).getBytes(java.nio.charset.StandardCharsets.UTF_8));

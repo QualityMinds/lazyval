@@ -10,7 +10,7 @@ data class EMail(val value: String) {
     }
 
     init {
-        require(value.length <= 254) { "EMail must exceed 254 characters!" }
+        require(value.length <= 254) { "EMail must not exceed 254 characters!" }
         require(REGEX.matches(value)) { "Invalid EMail format!" }
     }
 }

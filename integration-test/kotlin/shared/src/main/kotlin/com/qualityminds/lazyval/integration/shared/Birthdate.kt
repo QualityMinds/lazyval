@@ -3,7 +3,7 @@ package com.qualityminds.lazyval.integration.shared
 import java.time.LocalDate
 import java.util.regex.Pattern
 
-class Birthdate private constructor(parsedDate: ParsedDate) : Comparable<Birthdate> {
+class Birthdate private constructor(parsedDate: ParsedDate) : Comparable<Birthdate?> {
 
     /**
      * ISO-8601 representation
@@ -18,7 +18,7 @@ class Birthdate private constructor(parsedDate: ParsedDate) : Comparable<Birthda
         else -> State.Unknown
     }
 
-    override fun compareTo(other: Birthdate): Int = value.compareTo(other.value)
+    override fun compareTo(other: Birthdate?): Int = other?.let { value.compareTo(it.value) } ?: 1
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

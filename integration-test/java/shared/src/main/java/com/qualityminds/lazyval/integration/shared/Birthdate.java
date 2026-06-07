@@ -1,5 +1,7 @@
 package com.qualityminds.lazyval.integration.shared;
 
+import org.jspecify.annotations.Nullable;
+
 import java.time.LocalDate;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -10,8 +12,8 @@ public final class Birthdate implements Comparable<Birthdate> {
     private static final Parser parser = new Parser();
 
     @Override
-    public int compareTo(Birthdate other) {
-        if(other != null){
+    public int compareTo(@Nullable Birthdate other) {
+        if(other == null){
             return 1;
         }
         return this.value.compareTo(other.value);
