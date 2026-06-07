@@ -202,6 +202,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-war-plugin</artifactId>
+                <version>${version.plugin.war}</version>
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
                     <!-- Pin the war filename so JeeJpaIT can reference it without a version suffix. -->

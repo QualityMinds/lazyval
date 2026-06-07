@@ -318,6 +318,7 @@
 
             <plugin>
                 <artifactId>maven-war-plugin</artifactId>
+                <version>${version.plugin.war}</version>
                 <configuration>
                     <failOnMissingWebXml>false</failOnMissingWebXml>
                 </configuration>
