@@ -14,7 +14,6 @@ import java.nio.file.Path
 class ApIT extends Specification {
 
     public static final Dependency dependencyMapstruct = new Dependency("org.mapstruct", "mapstruct", "1.6.3")
-    public static final Dependency dependencyJakartaPersistence = new Dependency("jakarta.persistence", "jakarta.persistence-api", "3.2.0")
 
     @TempDir()
     Path projectDir

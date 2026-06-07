@@ -4,7 +4,6 @@ import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
-import org.eclipse.collections.api.factory.Lists
 import spock.lang.*
 
 import java.nio.file.Path

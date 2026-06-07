@@ -125,9 +125,9 @@ class LazyvalSymbolProcessor(
     }
 
     private fun getActiveGenerators(): Stream<Generator> {
-        val originalContextClassLoader: ClassLoader = Thread.currentThread().contextClassLoader;
+        val originalContextClassLoader: ClassLoader = Thread.currentThread().contextClassLoader
         try {
-            Thread.currentThread().contextClassLoader = this.javaClass.classLoader;
+            Thread.currentThread().contextClassLoader = this.javaClass.classLoader
 
             if (allProviderGenerators.isEmpty()) {
                 lazyvalEnvironment.warn("No Lazyval SPI providers found on classpath.")
@@ -167,7 +167,7 @@ class LazyvalSymbolProcessor(
 
             return generators.stream()
         } finally {
-            Thread.currentThread().setContextClassLoader(originalContextClassLoader);
+            Thread.currentThread().contextClassLoader = originalContextClassLoader
         }
     }
 
