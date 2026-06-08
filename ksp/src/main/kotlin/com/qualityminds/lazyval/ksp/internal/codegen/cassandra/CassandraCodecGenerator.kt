@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.cassandra
 
 import com.qualityminds.lazyval.collections.NonEmptySet
+import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
@@ -104,7 +105,7 @@ class CassandraCodecGenerator : Generator {
         }
 
         if (codecSpecs.isNotEmpty()) {
-            val utilitySpec = buildCodecsUtility(codecSpecs)
+            val utilitySpec = buildCodecsUtility(context, codecSpecs)
             val fileSpec = FileSpec.builder(codecPackage, utilitySpec.name!!)
                 .addType(utilitySpec)
                 .build()
@@ -120,7 +121,7 @@ class CassandraCodecGenerator : Generator {
 
             if (isQuarkus && quarkusRegister) {
                 val codecClassNames = codecSpecs.map { it.name!! }
-                val registrarSpec = buildQuarkusRegistrar(codecClassNames)
+                val registrarSpec = buildQuarkusRegistrar(context, codecClassNames)
                 val registrarFile = FileSpec.builder(codecPackage, registrarSpec.name!!)
                     .addType(registrarSpec)
                     .build()
@@ -173,7 +174,7 @@ class CassandraCodecGenerator : Generator {
             .build()
     }
 
-    private fun buildCodecsUtility(codecSpecs: List<TypeSpec>): TypeSpec {
+    private fun buildCodecsUtility(context: Generator.Context, codecSpecs: List<TypeSpec>): TypeSpec {
         val codecClassNames = codecSpecs.map { it.name!! }
 
         val allFun = FunSpec.builder("all")
@@ -196,6 +197,7 @@ class CassandraCodecGenerator : Generator {
             .build()
 
         val builder = TypeSpec.objectBuilder("LazyvalCassandraCodecs")
+            .addGeneratedAnnotation(CassandraCodecGenerator::class, context)
             .addFunction(allFun)
 
         codecSpecs.forEach { spec ->
@@ -205,7 +207,7 @@ class CassandraCodecGenerator : Generator {
         return builder.build()
     }
 
-    private fun buildQuarkusRegistrar(codecClassNames: List<String>): TypeSpec {
+    private fun buildQuarkusRegistrar(context: Generator.Context, codecClassNames: List<String>): TypeSpec {
         val quarkusCqlSession = ClassName("com.datastax.oss.quarkus.runtime.api.session", "QuarkusCqlSession")
         val mutableCodecRegistry = ClassName("com.datastax.oss.driver.api.core.type.codec.registry", "MutableCodecRegistry")
         val cassandraClientConfig = ClassName("com.datastax.oss.quarkus.runtime.api.config", "CassandraClientConfig")
@@ -249,6 +251,7 @@ class CassandraCodecGenerator : Generator {
             .build()
 
         return TypeSpec.classBuilder("LazyvalCassandraCodecRegistrar")
+            .addGeneratedAnnotation(CassandraCodecGenerator::class, context)
             .addAnnotation(ClassName("jakarta.enterprise.context", "ApplicationScoped"))
             .addAnnotation(ClassName("jakarta.enterprise.inject", "Alternative"))
             .addAnnotation(

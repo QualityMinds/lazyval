@@ -7,6 +7,7 @@ import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import org.eclipse.collections.api.factory.Lists
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - Mapstruct")
@@ -21,6 +22,25 @@ class ApMapstructIT extends Specification {
     @Shared
     def testkitJava = Testkit.java()
 
+
+    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
+    void "Mapstruct with all Scenarios"(){
+        given:
+        scenario.withDependencies(dependencyMapstruct)
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then:
+        result == expected
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME")).contains("@Generated")
+
+        where:
+        scenario << Scenario.Java.all()
+        expected = new Testresult.Java.Success("LazyvalMapper.java")
+    }
 
     void "Warning is issued when package is not configured in any way"(){
         given:
@@ -51,21 +71,4 @@ class ApMapstructIT extends Specification {
         and: 'file is at correct package'
         projectDir.resolve("build/generated/test/custom/$GENERATED_FILE_NAME").toFile().exists()
     }
-
-    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
-    void "Mapstruct with all Scenarios"(){
-        given:
-        scenario.withDependencies(dependencyMapstruct)
-
-        when:
-        def result = testkitJava.run(projectDir, scenario)
-
-        then:
-        result == expected
-
-        where:
-        scenario << Scenario.Java.all()
-        expected = new Testresult.Java.Success("LazyvalMapper.java")
-    }
-
 }

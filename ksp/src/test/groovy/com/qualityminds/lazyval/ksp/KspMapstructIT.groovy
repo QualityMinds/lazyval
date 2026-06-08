@@ -7,11 +7,13 @@ import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import org.eclipse.collections.api.factory.Lists
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("KSP Generator Integration - Mapstruct")
 class KspMapstructIT extends Specification {
 
+    public static final Dependency dependencyJakartaAnnotations = new Dependency("jakarta.annotation", "jakarta.annotation-api", "3.0.0")
     public static final Dependency dependencyMapstruct = new Dependency("org.mapstruct", "mapstruct", "1.6.3")
     public static final String GENERATED_FILE_NAME = "LazyvalMapper.java"
 
@@ -24,7 +26,7 @@ class KspMapstructIT extends Specification {
     @Unroll("#scenario.name() compiles and generated '#expected.generatedFiles()'")
     void "Mapstruct with all Scenarios"(){
         given:
-        scenario.withDependencies(dependencyMapstruct)
+        scenario.withDependencies(dependencyMapstruct, dependencyJakartaAnnotations)
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -34,6 +36,9 @@ class KspMapstructIT extends Specification {
 
         and: 'file is generated at correct location using base-package with generator-default'
         projectDir.resolve("build/generated/ksp/java/test/$GENERATED_FILE_NAME").toFile().exists()
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/ksp/java/test/$GENERATED_FILE_NAME")).contains("@Generated")
 
         where:
         scenario << Scenario.Kotlin.all()
@@ -68,5 +73,19 @@ class KspMapstructIT extends Specification {
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/ksp/java/test/custom/$GENERATED_FILE_NAME").toFile().exists()
+    }
+
+    void "Does not add '@Generated' when jakarta.annotations-api not on classpath"(){
+        given:
+        def scenario = Scenario.Kotlin.quantity().withDependencies(dependencyMapstruct)
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then:
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
+
+        and: 'doesnt contain @Generated'
+        !Files.readString(projectDir.resolve("build/generated/ksp/java/test/$GENERATED_FILE_NAME")).contains("@Generated")
     }
 }

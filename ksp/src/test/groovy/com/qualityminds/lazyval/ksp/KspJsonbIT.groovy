@@ -6,11 +6,13 @@ import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("KSP Generator Integration - JSON-B")
 class KspJsonbIT extends Specification {
 
+    public static final Dependency dependencyJakartaAnnotations = new Dependency("jakarta.annotation", "jakarta.annotation-api", "3.0.0")
     public static final Dependency dependencyJsonbApi = new Dependency("jakarta.json.bind", "jakarta.json.bind-api", "3.0.1")
     public static final Dependency dependencyJaxRsApi = new Dependency("jakarta.ws.rs", "jakarta.ws.rs-api", "3.1.0")
     public static final Dependency dependencyJakartaInject = new Dependency("jakarta.inject", "jakarta.inject-api", "2.0.1")
@@ -28,7 +30,7 @@ class KspJsonbIT extends Specification {
     @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
     void "JSON-B with all Scenarios"(){
         given:
-        scenario.withDependencies(dependencyJsonbApi)
+        scenario.withDependencies(dependencyJsonbApi, dependencyJakartaAnnotations)
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -36,21 +38,15 @@ class KspJsonbIT extends Specification {
         then:
         result == expected
 
+        then: 'files are generated at correct location using base-package with generator-default'
+        projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME").toFile().exists()
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME")).contains("@Generated")
+
         where:
         scenario << Scenario.Kotlin.all()
         expected = new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
-    }
-
-    void "JSON-B generated at correct default location when no override is given"(){
-        given:
-        def scenario = Scenario.Kotlin.quantity()
-                .withDependencies(dependencyJsonbApi)
-
-        when:
-        testkitKotlin.run(projectDir, scenario)
-
-        then: 'files are generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME").toFile().exists()
     }
 
     void "JSON-B package override by generator works as expected"(){
@@ -147,5 +143,19 @@ class KspJsonbIT extends Specification {
 
         and: 'ContextResolver file is not generated'
         !projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
+    }
+
+    void "Does not add '@Generated' when jakarta.annotations-api not on classpath"(){
+        given:
+        def scenario = Scenario.Kotlin.quantity().withDependencies(dependencyJsonbApi)
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then:
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
+
+        and: 'doesnt contain @Generated'
+        !Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME")).contains("@Generated")
     }
 }

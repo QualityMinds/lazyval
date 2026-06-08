@@ -1,5 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.beanvalidation
 
+import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
+import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.squareup.kotlinpoet.*
@@ -19,19 +21,20 @@ internal object NumericValidatorBuilder {
 
     fun supports(typeName: String): Boolean = typeName in NUMERIC_TYPES
 
-    fun build(element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
+    fun build(ctx: Generator.Context, element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
         return Stream.concat(
-            buildMinValidator(element, packageName),
-            buildMaxValidator(element, packageName)
+            buildMinValidator(ctx, element, packageName),
+            buildMaxValidator(ctx, element, packageName)
         )
     }
 
-    private fun buildMinValidator(element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
+    private fun buildMinValidator(ctx: Generator.Context, element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
         val lazyvalTypeName = element.element.toClassName()
         val className = "${element.typeName.name}MinValidator"
         val minAnnotation = ClassName("jakarta.validation.constraints", "Min")
 
         val typeSpec = TypeSpec.classBuilder(className)
+            .addGeneratedAnnotation(BeanValidationGenerator::class, ctx)
             .addSuperinterface(
                 CONSTRAINT_VALIDATOR.parameterizedBy(minAnnotation, lazyvalTypeName)
             )
@@ -68,12 +71,13 @@ internal object NumericValidatorBuilder {
             .build()
     }
 
-    private fun buildMaxValidator(element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
+    private fun buildMaxValidator(ctx: Generator.Context, element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
         val lazyvalTypeName = element.element.toClassName()
         val className = "${element.typeName.name}MaxValidator"
         val maxAnnotation = ClassName("jakarta.validation.constraints", "Max")
 
         val typeSpec = TypeSpec.classBuilder(className)
+            .addGeneratedAnnotation(BeanValidationGenerator::class, ctx)
             .addSuperinterface(
                 CONSTRAINT_VALIDATOR.parameterizedBy(maxAnnotation, lazyvalTypeName)
             )

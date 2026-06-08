@@ -2,6 +2,7 @@ package com.qualityminds.lazyval.processor.internal.codegen.mongo;
 
 import com.palantir.javapoet.*;
 import com.qualityminds.lazyval.collections.NonEmptySet;
+import com.qualityminds.lazyval.processor.internal.codegen.GeneratedStamp;
 import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
@@ -244,6 +245,7 @@ public class MongoCodecGenerator implements Generator {
         MethodSpec getMethod = buildGetMethod(elements, !userCodecFqns.isEmpty());
 
         var builder = TypeSpec.classBuilder(CODECS_CLASS_NAME)
+                .addAnnotation(GeneratedStamp.forGenerator(MongoCodecGenerator.class))
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .addSuperinterface(CODEC_PROVIDER)
                 .addField(userCodecsField)
@@ -386,6 +388,7 @@ public class MongoCodecGenerator implements Generator {
                 .build();
 
         return TypeSpec.classBuilder(REGISTRAR_CLASS_NAME)
+                .addAnnotation(GeneratedStamp.forGenerator(MongoCodecGenerator.class))
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(applicationScoped)
                 .addAnnotation(unremovable)

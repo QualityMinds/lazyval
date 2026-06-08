@@ -42,7 +42,7 @@ class Jackson2Generator : Generator {
             elementTypes += element.element.toClassName()
         }
 
-        val typeSpec = codegen.generateModule(serializers, deserializers, elementTypes, isQuarkus)
+        val typeSpec = codegen.generateModule(context, serializers, deserializers, elementTypes, isQuarkus)
 
         val jacksonModulePackage = context.generatorPackage(OPTION_GENERATED_PACKAGE, null)
 

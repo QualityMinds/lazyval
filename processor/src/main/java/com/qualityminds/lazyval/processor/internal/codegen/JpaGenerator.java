@@ -30,6 +30,10 @@ public class JpaGenerator implements Generator {
     private static final String GENERATOR_ID = "jpa";
     private static final String OPTION_GENERATED_PACKAGE = "lazyval.jpa.package";
 
+    private static final AnnotationSpec CONVERTER_ANNOTATION = AnnotationSpec.builder(ClassName.get("jakarta.persistence", "Converter"))
+            .addMember("autoApply", "$L", "true")
+            .build();
+
     @Override
     public String generatorId() {
         return GENERATOR_ID;
@@ -70,9 +74,8 @@ public class JpaGenerator implements Generator {
         }
 
         return TypeSpec.classBuilder(validElement.typeName().name() + "AttributeConverter")
-                .addAnnotation(AnnotationSpec.builder(ClassName.get("jakarta.persistence", "Converter"))
-                        .addMember("autoApply", "$L", "true")
-                        .build())
+                .addAnnotation(GeneratedStamp.forGenerator(JpaGenerator.class))
+                .addAnnotation(CONVERTER_ANNOTATION)
                 .addSuperinterface(ParameterizedTypeName.get(
                         ClassName.get("jakarta.persistence", "AttributeConverter"),
                         TypeName.get(type),

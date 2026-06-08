@@ -6,6 +6,7 @@ import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - JPA")
@@ -30,6 +31,9 @@ class ApJpaIT extends Specification {
 
         then:
         result == expected
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/test/boundary/persistence/jpa/$generatedJpaMapper")).contains("@Generated")
 
         where:
         scenario << Scenario.Java.all()

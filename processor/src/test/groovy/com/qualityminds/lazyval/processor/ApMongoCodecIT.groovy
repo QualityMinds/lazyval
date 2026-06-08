@@ -6,6 +6,7 @@ import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - MongoDB Codec")
@@ -17,6 +18,8 @@ class ApMongoCodecIT extends Specification {
     public static final Dependency dependencyCdi = new Dependency("jakarta.enterprise", "jakarta.enterprise.cdi-api", "4.1.0")
     public static final Dependency dependencyInject = new Dependency("jakarta.inject", "jakarta.inject-api", "2.0.1")
     public static final Dependency dependencyQuarkusArc = new Dependency("io.quarkus.arc", "arc", "3.34.5")
+
+    private static final String GENERATED_FILE_NAME = "LazyvalMongoCodecs.java"
 
     @TempDir()
     Path projectDir
@@ -35,9 +38,12 @@ class ApMongoCodecIT extends Specification {
         then:
         result == expected
 
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/test/boundary/persistence/mongodb/$GENERATED_FILE_NAME")).contains("@Generated")
+
         where:
         scenario << Scenario.Java.all()
-        expected = new Testresult.Java.Success("LazyvalMongoCodecs.java")
+        expected = new Testresult.Java.Success(GENERATED_FILE_NAME)
     }
 
     void "Codec generated at correct default location when no override is given"() {
@@ -61,7 +67,7 @@ class ApMongoCodecIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Java.Success("LazyvalMongoCodecs.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/test/custom/LazyvalMongoCodecs.java").toFile().exists()
@@ -75,7 +81,7 @@ class ApMongoCodecIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalMongoCodecs.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
     }
 
     void "Quarkus Registrar generated when quarkus-mongodb-client is available"() {
@@ -93,7 +99,7 @@ class ApMongoCodecIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalMongoCodecs.java", "LazyvalMongoCodecRegistrar.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME, "LazyvalMongoCodecRegistrar.java")
     }
 
     void "Quarkus Registrar can be disabled via option"() {
@@ -112,7 +118,7 @@ class ApMongoCodecIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalMongoCodecs.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
     }
 
     void "single valid user codec is added to userCodecs"() {
@@ -125,7 +131,7 @@ class ApMongoCodecIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalMongoCodecs.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'generated file references the user codec'
         def generated = projectDir.resolve("build/generated/test/boundary/persistence/mongodb/LazyvalMongoCodecs.java").toFile().text
@@ -145,7 +151,7 @@ class ApMongoCodecIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalMongoCodecs.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and:
         def generated = projectDir.resolve("build/generated/test/boundary/persistence/mongodb/LazyvalMongoCodecs.java").toFile().text
@@ -168,7 +174,7 @@ class ApMongoCodecIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalMongoCodecs.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and:
         def generated = projectDir.resolve("build/generated/test/boundary/persistence/mongodb/LazyvalMongoCodecs.java").toFile().text
@@ -237,7 +243,7 @@ class ApMongoCodecIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalMongoCodecs.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and:
         def generated = projectDir.resolve("build/generated/scenarios/mongocodecs/LazyvalMongoCodecs.java").toFile().text

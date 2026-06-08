@@ -1,5 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.beanvalidation
 
+import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
+import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.squareup.kotlinpoet.*
@@ -21,21 +23,22 @@ internal object TemporalValidatorBuilder {
 
     fun supports(typeName: String): Boolean = typeName in TEMPORAL_TYPES
 
-    fun build(element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
+    fun build(ctx: Generator.Context, element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
         return Stream.of(
-            buildValidator(element, packageName, "Past"),
-            buildValidator(element, packageName, "Future"),
-            buildValidator(element, packageName, "PastOrPresent"),
-            buildValidator(element, packageName, "FutureOrPresent")
+            buildValidator(ctx, element, packageName, "Past"),
+            buildValidator(ctx, element, packageName, "Future"),
+            buildValidator(ctx, element, packageName, "PastOrPresent"),
+            buildValidator(ctx, element, packageName, "FutureOrPresent")
         ).flatMap { it }
     }
 
-    private fun buildValidator(element: ValidatedKspGeneratorElement, packageName: String, annotationName: String): Stream<GeneratorResult> {
+    private fun buildValidator(ctx: Generator.Context, element: ValidatedKspGeneratorElement, packageName: String, annotationName: String): Stream<GeneratorResult> {
         val lazyvalTypeName = element.element.toClassName()
         val className = "${element.typeName.name}${annotationName}Validator"
         val temporalAnnotation = ClassName("jakarta.validation.constraints", annotationName)
 
         val typeSpec = TypeSpec.classBuilder(className)
+            .addGeneratedAnnotation(BeanValidationGenerator::class, ctx)
             .addSuperinterface(
                 CONSTRAINT_VALIDATOR.parameterizedBy(temporalAnnotation, lazyvalTypeName)
             )

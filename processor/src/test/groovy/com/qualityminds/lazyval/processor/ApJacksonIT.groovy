@@ -7,6 +7,7 @@ import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import org.eclipse.collections.api.factory.Lists
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - Jackson")
@@ -38,6 +39,12 @@ class ApJacksonIT extends Specification {
 
         then:
         result == expected
+
+        and: 'file is generated at correct location using base-package with generator-default'
+        projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_2").toFile().exists()
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_2")).contains("@Generated")
 
         where:
         scenario << Scenario.Java.all()
@@ -89,6 +96,9 @@ class ApJacksonIT extends Specification {
 
         and: 'file is generated at correct location using base-package with generator-default'
         projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_3").toFile().exists()
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_3")).contains("@Generated")
 
         where:
         scenario << Scenario.Java.all()

@@ -3,6 +3,7 @@ package com.qualityminds.lazyval.ksp.internal.codegen
 import com.google.devtools.ksp.symbol.KSType
 import com.palantir.javapoet.*
 import com.qualityminds.lazyval.collections.NonEmptySet
+import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
@@ -30,6 +31,7 @@ class MapstructGenerator : Generator {
     ): Stream<GeneratorResult> {
         // Build Java interface using JavaPoet
         val interfaceBuilder = TypeSpec.interfaceBuilder("LazyvalMapper")
+            .addGeneratedAnnotation(MapstructGenerator::class, context)
             .addModifiers(Modifier.PUBLIC)
             .addAnnotation(
                 AnnotationSpec.builder(ClassName.get("org.mapstruct", "Mapper"))

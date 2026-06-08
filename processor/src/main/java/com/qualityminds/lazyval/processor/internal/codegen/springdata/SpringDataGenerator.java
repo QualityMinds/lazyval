@@ -2,6 +2,7 @@ package com.qualityminds.lazyval.processor.internal.codegen.springdata;
 
 import com.palantir.javapoet.*;
 import com.qualityminds.lazyval.collections.NonEmptySet;
+import com.qualityminds.lazyval.processor.internal.codegen.GeneratedStamp;
 import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
@@ -220,6 +221,7 @@ public class SpringDataGenerator implements Generator {
                                                          boolean hasConditionalOnMissingBean) {
 
         TypeSpec.Builder configBuilder = TypeSpec.classBuilder("LazyvalSpringDataConfiguration")
+                .addAnnotation(GeneratedStamp.forGenerator(SpringDataGenerator.class))
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(CONFIGURATION)
                 .addJavadoc("""

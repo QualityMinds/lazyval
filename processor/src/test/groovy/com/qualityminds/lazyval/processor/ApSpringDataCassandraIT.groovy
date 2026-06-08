@@ -6,6 +6,7 @@ import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - Spring Data Cassandra")
@@ -17,6 +18,8 @@ class ApSpringDataCassandraIT extends Specification {
     public static final Dependency dependencySpringCore = new Dependency("org.springframework", "spring-core", "6.2.7")
     public static final Dependency dependencySpringBeans = new Dependency("org.springframework", "spring-beans", "6.2.7")
     public static final Dependency dependencySpringContext = new Dependency("org.springframework", "spring-context", "6.2.7")
+
+    private static final String GENERATED_FILE_NAME = "LazyvalSpringDataConfiguration.java"
 
     @TempDir()
     Path projectDir
@@ -33,7 +36,10 @@ class ApSpringDataCassandraIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalSpringDataConfiguration.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/test/boundary/persistence/$GENERATED_FILE_NAME")).contains("@Generated")
 
         where:
         scenario << Scenario.Java.all()
@@ -86,7 +92,7 @@ class ApSpringDataCassandraIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalSpringDataConfiguration.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/test/custom/LazyvalSpringDataConfiguration.java").toFile().exists()
@@ -101,7 +107,7 @@ class ApSpringDataCassandraIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalSpringDataConfiguration.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
     }
 
     void "single valid user converter is appended to cassandraCustomConversions"() {
@@ -114,7 +120,7 @@ class ApSpringDataCassandraIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalSpringDataConfiguration.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'generated file contains the user converter and the marker comment'
         def generated = projectDir.resolve("build/generated/test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
@@ -135,7 +141,7 @@ class ApSpringDataCassandraIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalSpringDataConfiguration.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and:
         def generated = projectDir.resolve("build/generated/test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
@@ -158,7 +164,7 @@ class ApSpringDataCassandraIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalSpringDataConfiguration.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and:
         def generated = projectDir.resolve("build/generated/test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
@@ -228,7 +234,7 @@ class ApSpringDataCassandraIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalSpringDataConfiguration.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and:
         def generated = projectDir.resolve("build/generated/scenarios/converters/LazyvalSpringDataConfiguration.java").toFile().text
@@ -324,7 +330,7 @@ class ApSpringDataCassandraIT extends Specification {
         then:
         result instanceof Testresult.Java.SuccessWithWarnings
         def success = result as Testresult.Java.SuccessWithWarnings
-        success.generatedFiles().contains("LazyvalSpringDataConfiguration.java")
+        success.generatedFiles().contains(GENERATED_FILE_NAME)
 
         and:
         success.warnings().any {

@@ -40,16 +40,16 @@ class BeanValidationGenerator : Generator {
         val packageName = context.generatorPackage(OPTION_GENERATED_PACKAGE, null)
 
         return validatedElements.stream()
-            .flatMap { generateValidators(it, packageName) }
+            .flatMap { generateValidators(context, it, packageName) }
     }
 
-    private fun generateValidators(element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
+    private fun generateValidators(context: Generator.Context, element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
         val wrappedTypeName = element.wrappedProperty.type.declaration.simpleName.asString()
 
         return when {
-            StringValidatorBuilder.supports(wrappedTypeName) -> StringValidatorBuilder.build(element, packageName)
-            NumericValidatorBuilder.supports(wrappedTypeName) -> NumericValidatorBuilder.build(element, packageName)
-            TemporalValidatorBuilder.supports(wrappedTypeName) -> TemporalValidatorBuilder.build(element, packageName)
+            StringValidatorBuilder.supports(wrappedTypeName) -> StringValidatorBuilder.build(context, element, packageName)
+            NumericValidatorBuilder.supports(wrappedTypeName) -> NumericValidatorBuilder.build(context, element, packageName)
+            TemporalValidatorBuilder.supports(wrappedTypeName) -> TemporalValidatorBuilder.build(context, element, packageName)
             else -> Stream.empty()
         }
     }

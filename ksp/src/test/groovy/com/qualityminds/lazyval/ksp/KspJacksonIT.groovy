@@ -7,11 +7,13 @@ import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import org.eclipse.collections.api.factory.Lists
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("KSP Generator Integration - Jackson")
 class KspJacksonIT extends Specification {
 
+    public static final Dependency dependencyJakartaAnnotations = new Dependency("jakarta.annotation", "jakarta.annotation-api", "3.0.0")
     public static final Dependency dependencyJackson_2_Core = new Dependency("com.fasterxml.jackson.core", "jackson-core", "2.21.2")
     public static final Dependency dependencyJackson_2_Databind = new Dependency("com.fasterxml.jackson.core", "jackson-databind", "2.21.2")
     public static final Dependency dependencyJackson_3_Core = new Dependency("tools.jackson.core", "jackson-core", "3.1.0")
@@ -28,7 +30,7 @@ class KspJacksonIT extends Specification {
     @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
     void "Jackson 2.x with all Scenarios"(){
         given:
-        scenario.withDependencies(dependencyJackson_2_Databind, dependencyJackson_2_Core)
+        scenario.withDependencies(dependencyJackson_2_Databind, dependencyJackson_2_Core, dependencyJakartaAnnotations)
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -36,22 +38,17 @@ class KspJacksonIT extends Specification {
         then:
         result == expected
 
+        then: 'file is generated at correct location using base-package with generator-default'
+        projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME_2").toFile().exists()
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME_2")).contains("@Generated")
+
         where:
         scenario << Scenario.Kotlin.all()
         expected = new Testresult.Kotlin.Success(GENERATED_FILE_NAME_2)
     }
 
-    void "Jackson 2.x generated at correct default location when no override is given"(){
-        given:
-        def scenario = Scenario.Kotlin.quantity()
-                .withDependencies(dependencyJackson_2_Databind, dependencyJackson_2_Core)
-
-        when:
-        testkitKotlin.run(projectDir, scenario)
-
-        then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME_2").toFile().exists()
-    }
 
     void "Jackson 2.x package override by Generator works as expected"(){
         given:
@@ -70,10 +67,24 @@ class KspJacksonIT extends Specification {
         projectDir.resolve("build/generated/ksp/kotlin/test/custom/$GENERATED_FILE_NAME_2").toFile().exists()
     }
 
+    void "Jackson 2.x does not add '@Generated' when jakarta.annotations-api not on classpath"(){
+        given:
+        def scenario = Scenario.Kotlin.quantity().withDependencies(dependencyJackson_2_Core, dependencyJackson_2_Databind)
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then:
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME_2)
+
+        and: 'doesnt contain @Generated'
+        !Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME_2")).contains("@Generated")
+    }
+
     @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
     void "Jackson 3.x with all Scenarios"(){
         given:
-        scenario.withDependencies(dependencyJackson_3_Databind, dependencyJackson_3_Core)
+        scenario.withDependencies(dependencyJackson_3_Databind, dependencyJackson_3_Core, dependencyJakartaAnnotations)
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -81,21 +92,15 @@ class KspJacksonIT extends Specification {
         then:
         result == expected
 
+        then: 'file is generated at correct location using base-package with generator-default'
+        projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME_3").toFile().exists()
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME_3")).contains("@Generated")
+
         where:
         scenario << Scenario.Kotlin.all()
         expected = new Testresult.Kotlin.Success(GENERATED_FILE_NAME_3)
-    }
-
-    void "Jackson 3.x generated at correct default location when no override is given"(){
-        given:
-        def scenario = Scenario.Kotlin.quantity()
-                .withDependencies(dependencyJackson_3_Databind, dependencyJackson_3_Core)
-
-        when:
-        testkitKotlin.run(projectDir, scenario)
-
-        then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME_3").toFile().exists()
     }
 
     void "Jackson 3.x package override by Generator works as expected"(){
@@ -113,6 +118,20 @@ class KspJacksonIT extends Specification {
 
         and: 'file is at correct package'
         projectDir.resolve("build/generated/ksp/kotlin/test/custom/$GENERATED_FILE_NAME_3").toFile().exists()
+    }
+
+    void "Jackson 3.x does not add '@Generated' when jakarta.annotations-api not on classpath"(){
+        given:
+        def scenario = Scenario.Kotlin.quantity().withDependencies(dependencyJackson_3_Core, dependencyJackson_3_Databind)
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then:
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME_3)
+
+        and: 'doesnt contain @Generated'
+        !Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME_3")).contains("@Generated")
     }
 
     void "When Jackson 2 and 3 are active are warning is issued"(){

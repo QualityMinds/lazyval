@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.mongo
 
 import com.qualityminds.lazyval.collections.NonEmptySet
+import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
@@ -94,7 +95,7 @@ class MongoCodecGenerator : Generator {
         }
 
         val hasMongoDriverCore = context.isOnClasspath(MONGO_CLIENT_SETTINGS_FQN)
-        val utilitySpec = buildCodecsUtility(orderedElements, codecSpecs, userCodecFqns, hasMongoDriverCore)
+        val utilitySpec = buildCodecsUtility(context, orderedElements, codecSpecs, userCodecFqns, hasMongoDriverCore)
         val utilityFile = FileSpec.builder(codecPackage, utilitySpec.name!!)
             .addType(utilitySpec)
             .build()
@@ -109,7 +110,7 @@ class MongoCodecGenerator : Generator {
             ?: true
 
         if (isQuarkus && quarkusRegister) {
-            val registrarSpec = buildQuarkusRegistrar(codecPackage)
+            val registrarSpec = buildQuarkusRegistrar(context, codecPackage)
             val registrarFile = FileSpec.builder(codecPackage, registrarSpec.name!!)
                 .addType(registrarSpec)
                 .build()
@@ -244,6 +245,7 @@ class MongoCodecGenerator : Generator {
     }
 
     private fun buildCodecsUtility(
+        context: Generator.Context,
         elements: List<ValidatedKspGeneratorElement>,
         codecSpecs: List<TypeSpec>,
         userCodecFqns: List<String>,
@@ -264,6 +266,7 @@ class MongoCodecGenerator : Generator {
         val getFun = buildGetFun(elements, userCodecFqns.isNotEmpty())
 
         val builder = TypeSpec.classBuilder(CODECS_CLASS_NAME)
+            .addGeneratedAnnotation(MongoCodecGenerator::class, context)
             .addSuperinterface(CODEC_PROVIDER)
             .primaryConstructor(constructor)
             .addProperty(userCodecsProperty)
@@ -383,7 +386,7 @@ class MongoCodecGenerator : Generator {
         return builder.build()
     }
 
-    private fun buildQuarkusRegistrar(codecPackage: String): TypeSpec {
+    private fun buildQuarkusRegistrar(context: Generator.Context, codecPackage: String): TypeSpec {
         val applicationScoped = ClassName("jakarta.enterprise.context", "ApplicationScoped")
         val unremovable = ClassName("io.quarkus.arc", "Unremovable")
         val codecsClass = ClassName(codecPackage, CODECS_CLASS_NAME)
@@ -405,6 +408,7 @@ class MongoCodecGenerator : Generator {
             .build()
 
         return TypeSpec.classBuilder(REGISTRAR_CLASS_NAME)
+            .addGeneratedAnnotation(MongoCodecGenerator::class, context)
             .addAnnotation(applicationScoped)
             .addAnnotation(unremovable)
             .addSuperinterface(CODEC_PROVIDER)

@@ -6,6 +6,7 @@ import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - BeanValidation")
@@ -30,6 +31,9 @@ class ApBeanValidationIT extends Specification {
         then:
         result == new Testresult.Java.Success(expectedFiles)
 
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/test/${expectedFiles.first}")).contains("@Generated")
+
         where:
         scenario                || expectedFiles
         Scenario.Java.isbn()    || ["IsbnEmailValidator.java", "IsbnPatternValidator.java"]
@@ -46,6 +50,9 @@ class ApBeanValidationIT extends Specification {
 
         then:
         result == new Testresult.Java.Success("QuantityMaxValidator.java", "QuantityMinValidator.java")
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/test/QuantityMaxValidator.java")).contains("@Generated")
     }
 
     void "LocalDate type generates temporal validators"(){
@@ -56,24 +63,15 @@ class ApBeanValidationIT extends Specification {
         when:
         def result = testkitJava.run(projectDir, scenario)
 
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/test/OrderDateFutureOrPresentValidator.java")).contains("@Generated")
+
         then:
         result == new Testresult.Java.Success(
                 "OrderDateFutureOrPresentValidator.java",
                 "OrderDateFutureValidator.java",
                 "OrderDatePastOrPresentValidator.java",
                 "OrderDatePastValidator.java")
-    }
-
-    void "Generated at correct default location when no override is given"(){
-        given:
-        def scenario = Scenario.Java.isbn()
-                .withDependencies(dependencyBeanValidation)
-
-        when:
-        testkitJava.run(projectDir, scenario)
-
-        then: 'file is generated at correct location using base-package without layer'
-        projectDir.resolve("build/generated/test/IsbnPatternValidator.java").toFile().exists()
     }
 
     void "Package override by generator works as expected"(){

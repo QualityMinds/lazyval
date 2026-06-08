@@ -6,17 +6,21 @@ import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("KSP Generator Integration - Spring Data MongoDB")
 class KspSpringDataMongoIT extends Specification {
 
+    public static final Dependency dependencyJakartaAnnotations = new Dependency("jakarta.annotation", "jakarta.annotation-api", "3.0.0")
     public static final Dependency dependencySpringDataMongo = new Dependency("org.springframework.data", "spring-data-mongodb", "4.4.6")
     public static final Dependency dependencySpringDataCassandra = new Dependency("org.springframework.data", "spring-data-cassandra", "4.4.6")
     public static final Dependency dependencySpringDataCommons = new Dependency("org.springframework.data", "spring-data-commons", "3.4.6")
     public static final Dependency dependencySpringCore = new Dependency("org.springframework", "spring-core", "6.2.7")
     public static final Dependency dependencySpringBeans = new Dependency("org.springframework", "spring-beans", "6.2.7")
     public static final Dependency dependencySpringContext = new Dependency("org.springframework", "spring-context", "6.2.7")
+
+    private static final String GENERATED_FILE_NAME = "LazyvalSpringDataConfiguration.kt"
 
     @TempDir()
     Path projectDir
@@ -27,13 +31,22 @@ class KspSpringDataMongoIT extends Specification {
     @Unroll("#scenario.name() compiles and generates LazyvalSpringDataConfiguration.kt for MongoDB")
     void "all Scenarios compile and generate the configuration"() {
         given:
-        scenario.withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
+        scenario.withDependencies(
+                dependencySpringDataMongo,
+                dependencySpringDataCommons,
+                dependencySpringCore,
+                dependencySpringBeans,
+                dependencySpringContext,
+                dependencyJakartaAnnotations)
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("LazyvalSpringDataConfiguration.kt")
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/$GENERATED_FILE_NAME")).contains("@Generated")
 
         where:
         scenario << Scenario.Kotlin.all()
@@ -49,7 +62,7 @@ class KspSpringDataMongoIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("LazyvalSpringDataConfiguration.kt")
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
         def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
@@ -70,7 +83,7 @@ class KspSpringDataMongoIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("LazyvalSpringDataConfiguration.kt")
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
         def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
@@ -93,7 +106,7 @@ class KspSpringDataMongoIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("LazyvalSpringDataConfiguration.kt")
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
         def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
@@ -145,7 +158,7 @@ class KspSpringDataMongoIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("LazyvalSpringDataConfiguration.kt")
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
         def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
@@ -241,7 +254,7 @@ class KspSpringDataMongoIT extends Specification {
         then:
         result instanceof Testresult.Kotlin.SuccessWithWarnings
         def success = result as Testresult.Kotlin.SuccessWithWarnings
-        success.generatedFiles().contains("LazyvalSpringDataConfiguration.kt")
+        success.generatedFiles().contains(GENERATED_FILE_NAME)
 
         and:
         success.warnings().any {
@@ -266,7 +279,7 @@ class KspSpringDataMongoIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("LazyvalSpringDataConfiguration.kt")
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'cassandra method contains only ValidConverter; mongo method contains only AnotherValidConverter'
         def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
@@ -278,5 +291,24 @@ class KspSpringDataMongoIT extends Specification {
         !cassandraSection.contains("AnotherValidConverter")
         mongoSection.contains("scenarios.converters.AnotherValidConverter()")
         !mongoSection.contains("scenarios.converters.ValidConverter()")
+    }
+
+    void "Does not add '@Generated' when jakarta.annotations-api not on classpath"(){
+        given:
+        def scenario = Scenario.Kotlin.quantity().withDependencies(
+                dependencySpringDataMongo,
+                dependencySpringDataCommons,
+                dependencySpringCore,
+                dependencySpringBeans,
+                dependencySpringContext)
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then:
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
+
+        and: 'doesnt contain @Generated'
+        !Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/$GENERATED_FILE_NAME")).contains("@Generated")
     }
 }

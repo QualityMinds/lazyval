@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.springdata
 
 import com.qualityminds.lazyval.collections.NonEmptySet
+import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
@@ -225,6 +226,7 @@ class SpringDataGenerator : Generator {
         )
 
         val configBuilder = TypeSpec.classBuilder("LazyvalSpringDataConfiguration")
+            .addGeneratedAnnotation(SpringDataGenerator::class, context)
             .addAnnotation(CONFIGURATION)
             .addKdoc("""
                 Generated Spring Data converter configuration.

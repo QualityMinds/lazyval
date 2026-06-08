@@ -6,6 +6,7 @@ import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - JSON-B")
@@ -35,6 +36,9 @@ class ApJsonbIT extends Specification {
 
         then:
         result == expected
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME")).contains("@Generated")
 
         where:
         scenario << [Scenario.Java.ids()]//Scenario.Java.all()
@@ -80,6 +84,9 @@ class ApJsonbIT extends Specification {
 
         then:
         result == expected
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/test/$GENERATED_RESOLVER_FILE_NAME")).contains("@Generated")
 
         where:
         scenario << Scenario.Java.all()
