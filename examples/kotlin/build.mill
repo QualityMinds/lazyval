@@ -5,7 +5,7 @@ import mill.kotlinlib.ksp.*
 object `package` extends KotlinMavenModule with KspModule {
 
   object Version{
-    val lazyval = sys.props.getOrElse("version.lazyval", "0.3.0")
+    val lazyval = sys.props.getOrElse("version.lazyval", "0.3.1")
     val mapstruct = "1.6.3"
     val jpa = "3.2.0"
     val jackson = "3.1.0"
