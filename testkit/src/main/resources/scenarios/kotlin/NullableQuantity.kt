@@ -9,6 +9,7 @@ class NullableQuantity private constructor(val value: Int) {
     }
 
     companion object {
+        @JvmStatic
         fun ofNullable(value: Int?): NullableQuantity?{
             return value?.let{
                 NullableQuantity(value)
