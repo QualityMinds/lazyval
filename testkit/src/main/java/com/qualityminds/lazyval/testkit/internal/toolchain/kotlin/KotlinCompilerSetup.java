@@ -13,13 +13,12 @@ import org.jetbrains.kotlin.buildtools.api.jvm.JvmCompilationConfiguration;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
 @ExperimentalBuildToolsApi
-public record KotlinCompilerSetup(Path projectDir, CompilationService service,
+public record KotlinCompilerSetup(ProjectLayout layout, CompilationService service,
                                   CompilerExecutionStrategyConfiguration strategyConfig,
                                   JvmCompilationConfiguration compilationConfig, List<File> sources,
                                   List<File> compilerClasspath) {
@@ -46,8 +45,8 @@ public record KotlinCompilerSetup(Path projectDir, CompilationService service,
         try {
             // make sure to also compile the generated sources from KSP
             // because the sources are not available during setup, we have to defer this to run()
-            var kspJavaSources = findAllSourceFiles(projectDir.resolve("build/generated/ksp/java").toFile());
-            var kspKotlinSources = findAllSourceFiles(projectDir.resolve("build/generated/ksp/kotlin").toFile());
+            var kspJavaSources = findAllSourceFiles(layout.kspJavaOutput().toFile());
+            var kspKotlinSources = findAllSourceFiles(layout.kspKotlinOutput().toFile());
 
             var allSources = new ArrayList<>(sources);
             allSources.addAll(kspJavaSources);
@@ -56,7 +55,7 @@ public record KotlinCompilerSetup(Path projectDir, CompilationService service,
             // KSP resources (e.g. META-INF/services) are written to a separate directory
             // and need to be on the classpath for ServiceLoader discovery
             var classpathEntries = new ArrayList<>(compilerClasspath);
-            var kspResourceDir = projectDir.resolve("build/generated/ksp/resources").toFile();
+            var kspResourceDir = layout.kspResourceOutput().toFile();
             if (kspResourceDir.isDirectory()) {
                 classpathEntries.add(kspResourceDir);
             }
@@ -68,7 +67,7 @@ public record KotlinCompilerSetup(Path projectDir, CompilationService service,
 
             var arguments = List.of(
                     // destination directory
-                    "-d", projectDir.resolve("build/classes").toAbsolutePath().toString(),
+                    "-d", layout.classes().toAbsolutePath().toString(),
                     // classpath
                     "-classpath", classpathString,
                     // needed to resolve Java types like LocalDate
@@ -97,7 +96,7 @@ public record KotlinCompilerSetup(Path projectDir, CompilationService service,
 
     public static KotlinCompilerSetup setup(
             ClassLoader classLoader,
-            Path projectDir,
+            ProjectLayout layout,
             Scenario.Descriptor scenarioDescriptor, LogCollector logCollector) {
         try {
             ImmutableList.Builder<Dependency> builder = ImmutableList.builder();
@@ -115,8 +114,8 @@ public record KotlinCompilerSetup(Path projectDir, CompilationService service,
             var compilationConfig = service.makeJvmCompilationConfiguration();
 
             var incrementalConfig = compilationConfig.makeClasspathSnapshotBasedIncrementalCompilationConfiguration();
-            incrementalConfig.setRootProjectDir(projectDir.toFile());
-            incrementalConfig.setBuildDir(Files.createDirectories(projectDir.resolve("build")).toFile());
+            incrementalConfig.setRootProjectDir(layout.projectDir().toFile());
+            incrementalConfig.setBuildDir(Files.createDirectories(layout.buildDir()).toFile());
             incrementalConfig.usePreciseJavaTracking(true);
             compilationConfig.useLogger(new KotlinCompilerSlf4jLogger(logCollector));
 
@@ -126,7 +125,7 @@ public record KotlinCompilerSetup(Path projectDir, CompilationService service,
             ).toList();
 
             return new KotlinCompilerSetup(
-                    projectDir,
+                    layout,
                     service,
                     strategyConfig,
                     compilationConfig,

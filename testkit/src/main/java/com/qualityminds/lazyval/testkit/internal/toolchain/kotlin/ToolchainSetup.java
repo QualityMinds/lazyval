@@ -26,14 +26,18 @@ public class ToolchainSetup {
     private static final Dependency kotlinStdlib = new Dependency("org.jetbrains.kotlin", "kotlin-stdlib", KotlinVersion.CURRENT.toString());
     private final KotlinSymbolProcessing kspSetup;
     private final KotlinCompilerSetup kotlinSetup;
+    private final JavaCompilerSetup javaSetup;
     private final LogCollector logCollector;
     private final ClassLoader symbolProcessorClassloader;
+    private final ProjectLayout layout;
 
-    private ToolchainSetup(KotlinSymbolProcessing kspSetup, KotlinCompilerSetup kotlinSetup, LogCollector logCollector, ClassLoader symbolProcessorClassloader) {
+    private ToolchainSetup(KotlinSymbolProcessing kspSetup, KotlinCompilerSetup kotlinSetup, JavaCompilerSetup javaSetup, LogCollector logCollector, ClassLoader symbolProcessorClassloader, ProjectLayout layout) {
         this.kspSetup = kspSetup;
         this.kotlinSetup = kotlinSetup;
+        this.javaSetup = javaSetup;
         this.logCollector = logCollector;
         this.symbolProcessorClassloader = symbolProcessorClassloader;
+        this.layout = layout;
     }
 
     public ToolchainResult run() {
@@ -43,30 +47,35 @@ public class ToolchainSetup {
             Thread.currentThread().setContextClassLoader(symbolProcessorClassloader);
 
             var exitCode = kspSetup.execute();
-            var kotlinResult = false;
+            var kspSuccess = exitCode == KotlinSymbolProcessing.ExitCode.OK;
+            var kotlinSuccess = false;
+            var javacSuccess = false;
 
-            if (exitCode == KotlinSymbolProcessing.ExitCode.OK) {
-                kotlinResult = kotlinSetup.run();
+            if (kspSuccess) {
+                kotlinSuccess = kotlinSetup.run();
+                if (kotlinSuccess) {
+                    javacSuccess = javaSetup.run();
+                }
             }
 
-            var kspConfig = (KSPJvmConfig) kspSetup.getKspConfig();
             TreeSet<Path> generatedJavaFiles;
-            try (var stream = Files.walk(kspConfig.getJavaOutputDir().toPath())) {
+            try (var stream = Files.walk(layout.kspJavaOutput())) {
                 generatedJavaFiles = stream
                         .filter(p -> !Files.isDirectory(p))
                         .collect(Collectors.toCollection(TreeSet::new));
             }
 
             TreeSet<Path> generatedKotlinFiles;
-            try (var stream = Files.walk(kspConfig.getKotlinOutputDir().toPath())) {
+            try (var stream = Files.walk(layout.kspKotlinOutput())) {
                 generatedKotlinFiles = stream
                         .filter(p -> !Files.isDirectory(p))
                         .collect(Collectors.toCollection(TreeSet::new));
             }
 
             return new ToolchainResult(
-                    exitCode == KotlinSymbolProcessing.ExitCode.OK,
-                    kotlinResult,
+                    kspSuccess,
+                    kotlinSuccess,
+                    javacSuccess,
                     generatedJavaFiles,
                     generatedKotlinFiles,
                     logCollector.getErrors(),
@@ -83,11 +92,13 @@ public class ToolchainSetup {
             ClassLoader classLoader,
             Path projectDir,
             Scenario.Descriptor scenarioDescriptor) {
+        var layout = new ProjectLayout(projectDir);
         var symbolProcessorClassloader = createSymbolProcessorClassloader(classLoader, scenarioDescriptor);
         var logCollector = new LogCollector();
-        var kspSetup = setupKsp2(symbolProcessorClassloader, projectDir, scenarioDescriptor, logCollector);
-        var kotlinSetup = KotlinCompilerSetup.setup(classLoader, projectDir, scenarioDescriptor, logCollector);
-        return new ToolchainSetup(kspSetup, kotlinSetup, logCollector, symbolProcessorClassloader);
+        var kspSetup = setupKsp2(symbolProcessorClassloader, layout, scenarioDescriptor, logCollector);
+        var kotlinSetup = KotlinCompilerSetup.setup(classLoader, layout, scenarioDescriptor, logCollector);
+        var javaSetup = JavaCompilerSetup.setup(layout, scenarioDescriptor, logCollector);
+        return new ToolchainSetup(kspSetup, kotlinSetup, javaSetup, logCollector, symbolProcessorClassloader, layout);
     }
 
 
@@ -113,7 +124,7 @@ public class ToolchainSetup {
 
     private static KotlinSymbolProcessing setupKsp2(
             URLClassLoader symbolProcessorClassloader,
-            Path projectDir,
+            ProjectLayout layout,
             Scenario.Descriptor scenarioDescriptor,
             LogCollector logCollector) {
         try {
@@ -147,13 +158,13 @@ public class ToolchainSetup {
                     builder.setApiVersion(kotlinVersion.getMajor() + "." + kotlinVersion.getMinor());
                     builder.setModuleName("test");
                     builder.setJdkHome(Path.of(System.getProperty("java.home")).toFile());
-                    builder.setProjectBaseDir(projectDir.toFile());
-                    builder.setOutputBaseDir(Files.createDirectories(projectDir.resolve("build")).toFile());
-                    builder.setClassOutputDir(Files.createDirectories(projectDir.resolve("build/classes")).toFile());
-                    builder.setJavaOutputDir(Files.createDirectories(projectDir.resolve("build/generated/ksp/java")).toFile());
-                    builder.setKotlinOutputDir(Files.createDirectories(projectDir.resolve("build/generated/ksp/kotlin")).toFile());
-                    builder.setResourceOutputDir(Files.createDirectories(projectDir.resolve("build/generated/ksp/resources")).toFile());
-                    builder.setCachesDir(Files.createDirectories(projectDir.resolve("build/resources")).toFile());
+                    builder.setProjectBaseDir(layout.projectDir().toFile());
+                    builder.setOutputBaseDir(Files.createDirectories(layout.buildDir()).toFile());
+                    builder.setClassOutputDir(Files.createDirectories(layout.classes()).toFile());
+                    builder.setJavaOutputDir(Files.createDirectories(layout.kspJavaOutput()).toFile());
+                    builder.setKotlinOutputDir(Files.createDirectories(layout.kspKotlinOutput()).toFile());
+                    builder.setResourceOutputDir(Files.createDirectories(layout.kspResourceOutput()).toFile());
+                    builder.setCachesDir(Files.createDirectories(layout.kspCachesDir()).toFile());
                     builder.setSourceRoots(allSources);
                     builder.setProcessorOptions(scenarioDescriptor.options().toMap());
                     builder.setLibraries(List.copyOf(compilationUnit));

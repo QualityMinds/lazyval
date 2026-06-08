@@ -1,7 +1,7 @@
 = Testkit
 
 Lazyval provides a testkit which can run either the Java Annotation Processor toolchain or the KSP2 toolchain together
-with the Kotlin compiler.
+with the Kotlin & Java compiler.
 
 [source, java]
 ----
@@ -26,7 +26,7 @@ when targeting KSP2.
 The testkit ships a collection of predefined valid scenarios for both Java and Kotlin. For instance,
 `Scenario.Java.Quantity` uses a primitive `int` which might need boxing in some generators (like JPA AttributeConverter)
 
-TIP: in general, SPI providers should test against `Scenario.Java.All` and `Scenario.Kotlin.All` to make sure the
+TIP: in general, SPI providers should test against `Scenario.Java.all()` and `Scenario.Kotlin.all()` to make sure the
 generator can handle all cases Lazyval will throw at it.
 
 IMPORTANT: the predefined scenarios need still to be configured with the required generator `Dependency` in order to yield generator artifacts.

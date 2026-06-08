@@ -6,20 +6,22 @@ import java.nio.file.Path;
 import java.util.SortedSet;
 
 /**
- * Result of the toolchain execution containing KSP and Kotlin compilation results.
+ * Result of the toolchain execution containing KSP, Kotlin and Java compilation results.
  */
-public record ToolchainResult(boolean kspSuccess, boolean kotlinSuccess, SortedSet<Path> generatedJavaFiles,
+public record ToolchainResult(boolean kspSuccess, boolean kotlinSuccess, boolean javacSuccess,
+                              SortedSet<Path> generatedJavaFiles,
                               SortedSet<Path> generatedKotlinFiles,
                               ImmutableList<String> errors,
                               ImmutableList<String> warnings) {
 
     public boolean isSuccessful() {
-        return kspSuccess && kotlinSuccess;
+        return kspSuccess && kotlinSuccess && javacSuccess;
     }
 
     public void printDebugMessages() {
         System.out.println("KSP Success: " + kspSuccess);
         System.out.println("Kotlin Success: " + kotlinSuccess);
+        System.out.println("Javac Success: " + javacSuccess);
         System.out.println("Generated Java Files:");
         generatedJavaFiles.forEach(System.out::println);
         System.out.println("Generated Kotlin Files:");
