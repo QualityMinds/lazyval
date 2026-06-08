@@ -57,10 +57,7 @@ class MapstructGenerator : Generator {
 
     private fun createJavaMapToWrappedTypeMethod(element: ValidatedKspGeneratorElement): MethodSpec {
         val className = element.typeName.name
-        val lazyvalTypeClassName = ClassName.get(
-            element.element.packageName.asString(),
-            element.element.simpleName.asString()
-        )
+        val lazyvalTypeClassName = nestedAwareClassName(element)
         val wrappedTypeName = getJavaTypeName(element.wrappedProperty.type)
 
         val methodBuilder = MethodSpec.methodBuilder("map${className}To${wrappedTypeName.asMethodName()}")
@@ -84,18 +81,19 @@ class MapstructGenerator : Generator {
 
     private fun createJavaMapFromWrappedTypeMethod(element: ValidatedKspGeneratorElement): MethodSpec {
         val className = element.element.simpleName.asString()
-        val lazyvalTypeClassName = ClassName.get(
-            element.element.packageName.asString(),
-            element.element.simpleName.asString()
-        )
+        val lazyvalTypeClassName = nestedAwareClassName(element)
         val wrappedTypeName = getJavaTypeName(element.wrappedProperty.type)
 
         // Store factory method in local variable to avoid smart cast issues
         val factoryMethod = element.factoryMethod
-        val objectCreation = if (factoryMethod != null) {
-            "${lazyvalTypeClassName.simpleName()}.${factoryMethod.simpleName.asString()}(value)"
+        val creationFormat: String
+        val creationArgs: Array<Any>
+        if (factoryMethod != null) {
+            creationFormat = "\$T.${factoryMethod.simpleName.asString()}(value)"
+            creationArgs = arrayOf(lazyvalTypeClassName)
         } else {
-            "new ${lazyvalTypeClassName.simpleName()}(value)"
+            creationFormat = "new \$T(value)"
+            creationArgs = arrayOf(lazyvalTypeClassName)
         }
 
         val methodBuilder = MethodSpec.methodBuilder("map${wrappedTypeName.asMethodName()}To$className")
@@ -104,13 +102,13 @@ class MapstructGenerator : Generator {
             .addParameter(wrappedTypeName, "value")
 
         if (element.wrappedProperty.isPrimitive()) {
-            methodBuilder.addStatement("return $objectCreation")
+            methodBuilder.addStatement("return $creationFormat", *creationArgs)
         } else {
             methodBuilder
                 .beginControlFlow("if (value == null)")
                 .addStatement("return null")
                 .endControlFlow()
-                .addStatement("return $objectCreation")
+                .addStatement("return $creationFormat", *creationArgs)
         }
 
         return methodBuilder.build()
@@ -133,6 +131,20 @@ class MapstructGenerator : Generator {
                 ClassName.get(packageName, simpleName)
             }
         }
+    }
+
+    /**
+     * Builds a [ClassName] from the (possibly nested) type name.
+     *
+     * [TypeName.value] uses dot-separated simple names for nested types (e.g. `Ids.ProductId`)
+     * and a plain simple name for top-level types (e.g. `Quantity`). JavaPoet expects the
+     * enclosing and nested simple names as separate varargs, so we split on '.' here.
+     * For top-level types this degrades to a single simple name with no nesting.
+     */
+    private fun nestedAwareClassName(element: ValidatedKspGeneratorElement): ClassName {
+        val packageName = element.element.packageName.asString()
+        val simpleNames = element.typeName.value.split(".")
+        return ClassName.get(packageName, simpleNames.first(), *simpleNames.drop(1).toTypedArray())
     }
 }
 
