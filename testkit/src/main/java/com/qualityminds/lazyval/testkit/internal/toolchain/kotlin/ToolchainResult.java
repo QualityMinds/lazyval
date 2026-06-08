@@ -3,25 +3,32 @@ package com.qualityminds.lazyval.testkit.internal.toolchain.kotlin;
 import org.eclipse.collections.api.list.ImmutableList;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.SortedSet;
 
 /**
- * Result of the toolchain execution containing KSP, Kotlin and Java compilation results.
+ * Result of a {@link KotlinToolchain} run.
+ * <p>
+ * {@link #stepOutcomes()} records the outcome of every step that was started. Steps that never started
+ * (because an earlier one failed) do not appear in the map; query via {@link #outcomeFor(Step)} which
+ * defaults to {@link StepOutcome#SKIPPED} for such steps.
  */
-public record ToolchainResult(boolean kspSuccess, boolean kotlinSuccess, boolean javacSuccess,
+public record ToolchainResult(Map<Step, StepOutcome> stepOutcomes,
                               SortedSet<Path> generatedJavaFiles,
                               SortedSet<Path> generatedKotlinFiles,
                               ImmutableList<String> errors,
                               ImmutableList<String> warnings) {
 
     public boolean isSuccessful() {
-        return kspSuccess && kotlinSuccess && javacSuccess;
+        return stepOutcomes.values().stream().allMatch(StepOutcome::isSuccessful);
+    }
+
+    public StepOutcome outcomeFor(Step step) {
+        return stepOutcomes.getOrDefault(step, StepOutcome.SKIPPED);
     }
 
     public void printDebugMessages() {
-        System.out.println("KSP Success: " + kspSuccess);
-        System.out.println("Kotlin Success: " + kotlinSuccess);
-        System.out.println("Javac Success: " + javacSuccess);
+        stepOutcomes.forEach((step, outcome) -> System.out.println(step + ": " + outcome));
         System.out.println("Generated Java Files:");
         generatedJavaFiles.forEach(System.out::println);
         System.out.println("Generated Kotlin Files:");
