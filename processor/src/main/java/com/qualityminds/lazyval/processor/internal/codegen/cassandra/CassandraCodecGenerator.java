@@ -2,6 +2,7 @@ package com.qualityminds.lazyval.processor.internal.codegen.cassandra;
 
 import com.palantir.javapoet.*;
 import com.qualityminds.lazyval.collections.NonEmptySet;
+import com.qualityminds.lazyval.processor.internal.codegen.GeneratedStamp;
 import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
@@ -213,6 +214,7 @@ public class CassandraCodecGenerator implements Generator {
         allMethod.addStatement(arrayInit.toString(), TYPE_CODEC);
 
         var builder = TypeSpec.classBuilder("LazyvalCassandraCodecs")
+                .addAnnotation(GeneratedStamp.forGenerator(CassandraCodecGenerator.class))
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .addMethod(MethodSpec.constructorBuilder()
                         .addModifiers(Modifier.PRIVATE)
@@ -285,6 +287,7 @@ public class CassandraCodecGenerator implements Generator {
                 .build();
 
         return TypeSpec.classBuilder("LazyvalCassandraCodecRegistrar")
+                .addAnnotation(GeneratedStamp.forGenerator(CassandraCodecGenerator.class))
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(ClassName.get("jakarta.enterprise.context", "ApplicationScoped"))
                 .addAnnotation(ClassName.get("jakarta.enterprise.inject", "Alternative"))

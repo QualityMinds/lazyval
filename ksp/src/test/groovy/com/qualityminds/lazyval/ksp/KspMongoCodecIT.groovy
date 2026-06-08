@@ -6,11 +6,13 @@ import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("KSP Generator Integration - MongoDB Codec")
 class KspMongoCodecIT extends Specification {
 
+    public static final Dependency dependencyJakartaAnnotations = new Dependency("jakarta.annotation", "jakarta.annotation-api", "3.0.0")
     public static final Dependency dependencyBson = new Dependency("org.mongodb", "bson", "5.6.5")
     public static final Dependency dependencyMongoDriverCore = new Dependency("org.mongodb", "mongodb-driver-core", "5.6.5")
     public static final Dependency dependencyQuarkusMongo = new Dependency("io.quarkus", "quarkus-mongodb-client", "3.34.5")
@@ -18,16 +20,17 @@ class KspMongoCodecIT extends Specification {
     public static final Dependency dependencyInject = new Dependency("jakarta.inject", "jakarta.inject-api", "2.0.1")
     public static final Dependency dependencyQuarkusArc = new Dependency("io.quarkus.arc", "arc", "3.34.5")
 
+    private static final String GENERATED_FILE_NAME = "LazyvalMongoCodecs.kt"
+
     @TempDir()
     Path projectDir
-
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
     @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
     void "MongoDB Codec with all Scenarios"() {
         given:
-        scenario.withDependencies(dependencyBson)
+        scenario.withDependencies(dependencyBson, dependencyJakartaAnnotations)
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -35,21 +38,17 @@ class KspMongoCodecIT extends Specification {
         then:
         result == expected
 
+        then: 'file is generated at correct location using base-package with generator-default'
+        projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/$GENERATED_FILE_NAME").toFile().exists()
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/$GENERATED_FILE_NAME")).contains("@Generated")
+
         where:
         scenario << Scenario.Kotlin.all()
-        expected = new Testresult.Kotlin.Success("LazyvalMongoCodecs.kt")
+        expected = new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
     }
 
-    void "Codec generated at correct default location when no override is given"() {
-        given:
-        def scenario = Scenario.Kotlin.quantity().withDependencies(dependencyBson)
-
-        when:
-        testkitKotlin.run(projectDir, scenario)
-
-        then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt").toFile().exists()
-    }
 
     void "Package override by generator works as expected"() {
         given:
@@ -61,10 +60,10 @@ class KspMongoCodecIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Kotlin.Success(["LazyvalMongoCodecs.kt"])
+        result == new Testresult.Kotlin.Success([GENERATED_FILE_NAME])
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/ksp/kotlin/test/custom/LazyvalMongoCodecs.kt").toFile().exists()
+        projectDir.resolve("build/generated/ksp/kotlin/test/custom/$GENERATED_FILE_NAME").toFile().exists()
     }
 
     void "OrderDate wrapping LocalDate generates a valid codec"() {
@@ -75,7 +74,7 @@ class KspMongoCodecIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("LazyvalMongoCodecs.kt")
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
     }
 
     void "Quarkus Registrar generated when quarkus-mongodb-client is available"() {
@@ -93,7 +92,7 @@ class KspMongoCodecIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("LazyvalMongoCodecs.kt", "LazyvalMongoCodecRegistrar.kt")
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME, "LazyvalMongoCodecRegistrar.kt")
     }
 
     void "Quarkus Registrar can be disabled via option"() {
@@ -112,7 +111,7 @@ class KspMongoCodecIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("LazyvalMongoCodecs.kt")
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
     }
 
     void "single valid user codec is added to userCodecs"() {
@@ -125,7 +124,7 @@ class KspMongoCodecIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("LazyvalMongoCodecs.kt")
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'generated file references the user codec'
         def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt").toFile().text
@@ -145,7 +144,7 @@ class KspMongoCodecIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("LazyvalMongoCodecs.kt")
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
         def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt").toFile().text
@@ -168,7 +167,7 @@ class KspMongoCodecIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("LazyvalMongoCodecs.kt")
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
         def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt").toFile().text
@@ -219,7 +218,7 @@ class KspMongoCodecIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success("LazyvalMongoCodecs.kt")
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
         def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt").toFile().text
@@ -284,5 +283,19 @@ class KspMongoCodecIT extends Specification {
         failure.errors().any {
             it.contains("scenarios.mongocodecs.NoNoArgMongoCodec") && it.contains("no-arg constructor")
         }
+    }
+
+    void "Does not add '@Generated' when jakarta.annotations-api not on classpath"(){
+        given:
+        def scenario = Scenario.Kotlin.quantity().withDependencies(dependencyBson)
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then:
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
+
+        and: 'doesnt contain @Generated'
+        !Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/$GENERATED_FILE_NAME")).contains("@Generated")
     }
 }

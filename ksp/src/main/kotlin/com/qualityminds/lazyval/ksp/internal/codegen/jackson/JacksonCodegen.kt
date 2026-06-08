@@ -1,5 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.jackson
 
+import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
+import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
@@ -128,6 +130,7 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
     }
 
     fun generateModule(
+        context: Generator.Context,
         serializers: List<TypeSpec>,
         deserializers: List<TypeSpec>,
         elementTypes: List<ClassName>,
@@ -158,6 +161,7 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
 
         val moduleBuilder = TypeSpec.classBuilder(version.lazyvalJacksonModuleName)
             .superclass(version.simpleModule())
+            .addGeneratedAnnotation(version.executingGenerator, context)
             .addType(companionBuilder.build())
             .addFunction(buildSetupModule(serializers, deserializers, elementTypes))
 

@@ -1,6 +1,8 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.jackson
 
+import com.qualityminds.lazyval.ksp.spi.Generator
 import com.squareup.kotlinpoet.ClassName
+import kotlin.reflect.KClass
 
 /**
  * Captures the package/class differences between Jackson 2 and Jackson 3.
@@ -17,7 +19,8 @@ internal enum class JacksonVersion(
     val deserializationContextClass: String,
     val setupContextOuterClass: String,
     val objectMapperPackage: String,
-    val lazyvalJacksonModuleName: String
+    val lazyvalJacksonModuleName: String,
+    val executingGenerator: KClass<out Generator>
 ) {
     JACKSON_2(
         spiPackage = "com.fasterxml.jackson.databind",
@@ -31,7 +34,8 @@ internal enum class JacksonVersion(
         deserializationContextClass = "DeserializationContext",
         setupContextOuterClass = "Module",
         objectMapperPackage = "com.fasterxml.jackson.databind",
-        lazyvalJacksonModuleName = "LazyvalJackson2Module"
+        lazyvalJacksonModuleName = "LazyvalJackson2Module",
+        executingGenerator = Jackson2Generator::class
     ),
     JACKSON_3(
         spiPackage = "tools.jackson.databind",
@@ -45,7 +49,8 @@ internal enum class JacksonVersion(
         deserializationContextClass = "DeserializationContext",
         setupContextOuterClass = "JacksonModule",
         objectMapperPackage = "tools.jackson.databind",
-        lazyvalJacksonModuleName = "LazyvalJacksonModule"
+        lazyvalJacksonModuleName = "LazyvalJacksonModule",
+        executingGenerator = Jackson3Generator::class
     );
 
     fun jsonGenerator(): ClassName = ClassName(corePackage, "JsonGenerator")

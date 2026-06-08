@@ -43,6 +43,7 @@ final public class MapstructGenerator implements Generator {
         final String mapperPackage = context.generatorPackage(OPTION_GENERATED_PACKAGE, null);
 
         TypeSpec.Builder typeSpecBuilder = TypeSpec.interfaceBuilder("LazyvalMapper")
+                .addAnnotation(GeneratedStamp.forGenerator(MapstructGenerator.class))
                 .addAnnotation(mapperAnnotationBuilder.build())
                 .addModifiers(Modifier.PUBLIC);
 

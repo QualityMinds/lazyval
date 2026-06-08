@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.processor.internal.codegen.jackson;
 
 import com.palantir.javapoet.ClassName;
+import com.qualityminds.lazyval.processor.spi.Generator;
 
 /**
  * Captures the package/class differences between Jackson 2 and Jackson 3.
@@ -19,7 +20,8 @@ record JacksonVersion(
         String setupContextOuterClass,
         String objectMapperPackage,
         String lazyvalJacksonModuleName,
-        boolean deserializerDeclaresExceptions
+        boolean deserializerDeclaresExceptions,
+        Class<? extends Generator> executingGenerator
 ) {
     static final JacksonVersion JACKSON_2 = new JacksonVersion(
             "com.fasterxml.jackson.databind",
@@ -35,7 +37,8 @@ record JacksonVersion(
             "Module",
             "com.fasterxml.jackson.databind",
             "LazyvalJackson2Module",
-            true
+            true,
+            Jackson2Generator.class
     );
 
     static final JacksonVersion JACKSON_3 = new JacksonVersion(
@@ -52,7 +55,8 @@ record JacksonVersion(
             "JacksonModule",
             "tools.jackson.databind",
             "LazyvalJacksonModule",
-            false
+            false,
+            Jackson3Generator.class
     );
 
     ClassName jsonGenerator() {

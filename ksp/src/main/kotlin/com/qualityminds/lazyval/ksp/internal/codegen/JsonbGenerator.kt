@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal.codegen
 
 import com.qualityminds.lazyval.collections.NonEmptySet
+import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
@@ -42,7 +43,7 @@ class JsonbGenerator : Generator {
         validatedElements: NonEmptySet<ValidatedKspGeneratorElement>,
         context: Generator.Context
     ): Stream<GeneratorResult> {
-        val adapters = validatedElements.map { generateAdapter(it) }
+        val adapters = validatedElements.map { generateAdapter(context, it) }
         val isQuarkus = context.isOnClasspath(QUARKUS_CUSTOMIZER_FQCN)
         val providerSpec = generateProvider(adapters, isQuarkus)
 
@@ -60,7 +61,7 @@ class JsonbGenerator : Generator {
         // a JAX-RS ContextResolver would double-register the same adapters via REST-easy.
         val register = context.getSetting(OPTION_REGISTER)?.toBoolean() ?: true
         if (register && !isQuarkus && context.isOnClasspath(CONTEXT_RESOLVER_FQCN)) {
-            val resolverSpec = generateContextResolver(fileMetadata)
+            val resolverSpec = generateContextResolver(context, fileMetadata)
             val resolverFile = FileSpec.builder(packageName, resolverSpec.name!!)
                 .addType(resolverSpec)
                 .build()
@@ -71,7 +72,7 @@ class JsonbGenerator : Generator {
         return results.build()
     }
 
-    private fun generateAdapter(element: ValidatedKspGeneratorElement): NamedAdapter {
+    private fun generateAdapter(context: Generator.Context, element: ValidatedKspGeneratorElement): NamedAdapter {
         val elementClassName = element.element.toClassName()
         val wrappedType = element.wrappedProperty
         val adapterName = "${element.typeName.name}Adapter"
@@ -101,6 +102,7 @@ class JsonbGenerator : Generator {
         return NamedAdapter(
             adapterName,
             TypeSpec.classBuilder(adapterName)
+                .addGeneratedAnnotation(JsonbGenerator::class, context)
                 .addSuperinterface(
                     JSONB_ADAPTER.parameterizedBy(elementClassName, wrappedTypeName)
                 )
@@ -110,7 +112,7 @@ class JsonbGenerator : Generator {
         )
     }
 
-    private fun generateContextResolver(adaptersMetadata: GeneratorResult.Metadata): TypeSpec {
+    private fun generateContextResolver(context: Generator.Context, adaptersMetadata: GeneratorResult.Metadata): TypeSpec {
         val adaptersType = ClassName(adaptersMetadata.packageName, adaptersMetadata.className)
 
         val getContextFun = FunSpec.builder("getContext")
@@ -121,6 +123,7 @@ class JsonbGenerator : Generator {
             .build()
 
         return TypeSpec.classBuilder("LazyvalJsonbContextResolver")
+            .addGeneratedAnnotation(JsonbGenerator::class, context)
             .addAnnotation(PROVIDER_ANNOTATION)
             .addSuperinterface(CONTEXT_RESOLVER.parameterizedBy(JSONB))
             .addFunction(getContextFun)

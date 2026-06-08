@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal.codegen
 
 import com.qualityminds.lazyval.collections.NonEmptySet
+import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
@@ -49,7 +50,7 @@ class JpaGenerator : Generator {
         val packageName = context.generatorPackage(OPTION_GENERATED_PACKAGE, "boundary.persistence.jpa")
 
         return validatedElements.stream()
-            .map { buildAttributeConverter(it) }
+            .map { buildAttributeConverter(context, it) }
             .map { FileSpec.builder(packageName, it.name!!).addType(it).build() }
             .map { GeneratorResult.Kotlin(
                 GeneratorResult.Metadata(it.packageName, it.name),
@@ -57,7 +58,7 @@ class JpaGenerator : Generator {
     }
 
 
-    private fun buildAttributeConverter(validatedElement: ValidatedKspGeneratorElement): TypeSpec {
+    private fun buildAttributeConverter(context: Generator.Context, validatedElement: ValidatedKspGeneratorElement): TypeSpec {
         val element = validatedElement.element
         val lazyvalTypeName = element.toClassName()
         val wrappedType = validatedElement.wrappedProperty
@@ -70,6 +71,7 @@ class JpaGenerator : Generator {
         val convertToEntityAttribute = buildConvertToEntityAttribute(lazyvalTypeName, wrappedTypeName, validatedElement)
 
         return TypeSpec.classBuilder(converterClassName)
+            .addGeneratedAnnotation(JpaGenerator::class, context)
             .addAnnotation(
                 AnnotationSpec.builder(ClassName("jakarta.persistence", "Converter"))
                     .addMember("autoApply = true")

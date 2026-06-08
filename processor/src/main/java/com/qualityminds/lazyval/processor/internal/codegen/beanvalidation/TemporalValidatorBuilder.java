@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.processor.internal.codegen.beanvalidation;
 
 import com.palantir.javapoet.*;
+import com.qualityminds.lazyval.processor.internal.codegen.GeneratedStamp;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
@@ -41,6 +42,7 @@ class TemporalValidatorBuilder {
         ClassName temporalAnnotation = ClassName.get("jakarta.validation.constraints", annotationName);
 
         TypeSpec validator = TypeSpec.classBuilder(className)
+                .addAnnotation(GeneratedStamp.forGenerator(BeanValidationGenerator.class))
                 .addModifiers(Modifier.PUBLIC)
                 .addSuperinterface(ParameterizedTypeName.get(
                         CONSTRAINT_VALIDATOR, temporalAnnotation, TypeName.get(lazyvalType)))

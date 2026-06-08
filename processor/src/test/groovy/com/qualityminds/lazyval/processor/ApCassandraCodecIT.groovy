@@ -6,6 +6,7 @@ import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - Cassandra Codec")
@@ -20,6 +21,8 @@ class ApCassandraCodecIT extends Specification {
     public static final Dependency dependencyQuarkusArc = new Dependency("io.quarkus.arc", "arc", "3.34.5")
     public static final Dependency dependencyQuarkusNetty = new Dependency("io.quarkus", "quarkus-netty", "3.34.5")
     public static final Dependency dependencyNetty = new Dependency("io.netty", "netty-transport", "4.1.132.Final")
+
+    private static final String GENERATED_FILE_NAME = "LazyvalCassandraCodecs.java"
 
     @TempDir()
     Path projectDir
@@ -38,6 +41,9 @@ class ApCassandraCodecIT extends Specification {
         then:
         result == expected
 
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/test/boundary/persistence/cassandra/$GENERATED_FILE_NAME")).contains("@Generated")
+
         where:
         scenario << Scenario.Java.all()
         expected = new Testresult.Java.Success("LazyvalCassandraCodecs.java")
@@ -52,7 +58,7 @@ class ApCassandraCodecIT extends Specification {
         testkitJava.run(projectDir, scenario)
 
         then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/test/boundary/persistence/cassandra/LazyvalCassandraCodecs.java").toFile().exists()
+        projectDir.resolve("build/generated/test/boundary/persistence/cassandra/$GENERATED_FILE_NAME").toFile().exists()
     }
 
     void "Package override by generator works as expected"(){
@@ -65,10 +71,10 @@ class ApCassandraCodecIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Java.Success("LazyvalCassandraCodecs.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/test/custom/LazyvalCassandraCodecs.java").toFile().exists()
+        projectDir.resolve("build/generated/test/custom/$GENERATED_FILE_NAME").toFile().exists()
     }
 
     void "OrderDate wrapping LocalDate generates a valid codec"(){
@@ -80,7 +86,7 @@ class ApCassandraCodecIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalCassandraCodecs.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
     }
 
     void "Quarkus Registration generated when Cassandra-Quarkus-Extension is available"(){
@@ -101,6 +107,6 @@ class ApCassandraCodecIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success("LazyvalCassandraCodecs.java", "LazyvalCassandraCodecRegistrar.java")
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME, "LazyvalCassandraCodecRegistrar.java")
     }
 }

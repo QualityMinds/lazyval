@@ -1,5 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.beanvalidation
 
+import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
+import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.squareup.kotlinpoet.*
@@ -16,18 +18,19 @@ internal object StringValidatorBuilder {
 
     fun supports(typeName: String): Boolean = typeName in STRING_TYPES
 
-    fun build(element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
+    fun build(context: Generator.Context, element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
         return Stream.concat(
-            buildPatternValidator(element, packageName),
-            buildEmailValidator(element, packageName))
+            buildPatternValidator(context, element, packageName),
+            buildEmailValidator(context, element, packageName))
     }
 
-    private fun buildPatternValidator(element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
+    private fun buildPatternValidator(context: Generator.Context, element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
         val lazyvalTypeName = element.element.toClassName()
         val className = "${element.typeName.name}PatternValidator"
         val patternAnnotation = ClassName("jakarta.validation.constraints", "Pattern")
 
         val typeSpec = TypeSpec.classBuilder(className)
+            .addGeneratedAnnotation(BeanValidationGenerator::class, context)
             .addSuperinterface(
                 CONSTRAINT_VALIDATOR.parameterizedBy(patternAnnotation, lazyvalTypeName)
             )
@@ -43,12 +46,13 @@ internal object StringValidatorBuilder {
         return ResultHelper.toResultStream(fileSpec, packageName, className)
     }
 
-    private fun buildEmailValidator(element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
+    private fun buildEmailValidator(context: Generator.Context, element: ValidatedKspGeneratorElement, packageName: String): Stream<GeneratorResult> {
         val lazyvalTypeName = element.element.toClassName()
         val className = "${element.typeName.name}EmailValidator"
         val emailAnnotation = ClassName("jakarta.validation.constraints", "Email")
 
         val typeSpec = TypeSpec.classBuilder(className)
+            .addGeneratedAnnotation(BeanValidationGenerator::class, context)
             .addSuperinterface(
                 CONSTRAINT_VALIDATOR.parameterizedBy(emailAnnotation, lazyvalTypeName)
             )

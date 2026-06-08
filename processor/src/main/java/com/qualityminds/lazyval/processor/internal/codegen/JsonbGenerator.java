@@ -32,6 +32,7 @@ public class JsonbGenerator implements Generator {
     private static final AnnotationSpec OVERRIDE_ANNOTATION = AnnotationSpec.builder(
             ClassName.get("java.lang", "Override")).build();
 
+
     @Override
     public String generatorId() {
         return GENERATOR_ID;
@@ -108,6 +109,7 @@ public class JsonbGenerator implements Generator {
                 .build();
 
         return TypeSpec.classBuilder(adapterName)
+                .addAnnotation(GeneratedStamp.forGenerator(JsonbGenerator.class))
                 .addSuperinterface(ParameterizedTypeName.get(
                         ClassName.get(JSONB_ADAPTER_PACKAGE, "JsonbAdapter"),
                         elementType, adaptedType))
@@ -133,6 +135,7 @@ public class JsonbGenerator implements Generator {
 
         return TypeSpec.classBuilder("LazyvalJsonbContextResolver")
                 .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(GeneratedStamp.forGenerator(JsonbGenerator.class))
                 .addAnnotation(providerAnnotation)
                 .addSuperinterface(ParameterizedTypeName.get(contextResolverType, jsonbType))
                 .addMethod(getContextMethod)

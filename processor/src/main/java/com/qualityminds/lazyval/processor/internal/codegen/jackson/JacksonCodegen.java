@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.processor.internal.codegen.jackson;
 
 import com.palantir.javapoet.*;
+import com.qualityminds.lazyval.processor.internal.codegen.GeneratedStamp;
 import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
@@ -69,6 +70,7 @@ final class JacksonCodegen {
         }
 
         return TypeSpec.classBuilder(serializerName)
+                .addAnnotation(GeneratedStamp.forGenerator(version.executingGenerator()))
                 .superclass(ParameterizedTypeName.get(version.stdSerializer(), elementType))
                 .addField(FieldSpec.builder(
                                 ClassName.bestGuess(serializerName), "INSTANCE",

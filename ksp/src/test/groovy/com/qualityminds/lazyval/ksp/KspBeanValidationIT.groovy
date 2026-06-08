@@ -6,11 +6,13 @@ import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
+import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("KSP Generator Integration - BeanValidation")
 class KspBeanValidationIT extends Specification {
 
+    public static final Dependency dependencyJakartaAnnotations = new Dependency("jakarta.annotation", "jakarta.annotation-api", "3.0.0")
     public static final Dependency dependencyBeanValidation = new Dependency("jakarta.validation", "jakarta.validation-api", "3.1.0")
 
     @TempDir()
@@ -22,13 +24,16 @@ class KspBeanValidationIT extends Specification {
     @Unroll("#scenario.name() compiles and generated #expectedFiles")
     void "String type generates Pattern- and EMail-Validator"(){
         given:
-        scenario.withDependencies(dependencyBeanValidation)
+        scenario.withDependencies(dependencyBeanValidation, dependencyJakartaAnnotations)
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
         result == new Testresult.Kotlin.Success(expectedFiles)
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/${expectedFiles.first}")).contains("@Generated")
 
         where:
         scenario                || expectedFiles
@@ -39,22 +44,28 @@ class KspBeanValidationIT extends Specification {
     void "Numeric type generates Min and Max Validators"(){
         given:
         def scenario = Scenario.Kotlin.quantity()
-                .withDependencies(dependencyBeanValidation)
+                .withDependencies(dependencyBeanValidation, dependencyJakartaAnnotations)
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
         result == new Testresult.Kotlin.Success("QuantityMaxValidator.kt", "QuantityMinValidator.kt")
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/QuantityMaxValidator.kt")).contains("@Generated")
     }
 
     void "LocalDate type generates temporal validators"(){
         given:
         def scenario = Scenario.Kotlin.orderDate()
-                .withDependencies(dependencyBeanValidation)
+                .withDependencies(dependencyBeanValidation, dependencyJakartaAnnotations)
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
+
+        and: 'contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/OrderDateFutureOrPresentValidator.kt")).contains("@Generated")
 
         then:
         result == new Testresult.Kotlin.Success(
@@ -64,17 +75,6 @@ class KspBeanValidationIT extends Specification {
                 "OrderDatePastValidator.kt")
     }
 
-    void "Generated at correct default location when no override is given"(){
-        given:
-        def scenario = Scenario.Kotlin.isbn()
-                .withDependencies(dependencyBeanValidation)
-
-        when:
-        testkitKotlin.run(projectDir, scenario)
-
-        then: 'file is generated at correct location using base-package without layer'
-        projectDir.resolve("build/generated/ksp/kotlin/test/IsbnPatternValidator.kt").toFile().exists()
-    }
 
     void "Package override by generator works as expected"(){
         given:

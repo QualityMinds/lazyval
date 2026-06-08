@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.processor.internal.codegen.beanvalidation;
 
 import com.palantir.javapoet.*;
+import com.qualityminds.lazyval.processor.internal.codegen.GeneratedStamp;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
@@ -37,6 +38,7 @@ class NumericValidatorBuilder {
         ClassName minAnnotation = ClassName.get("jakarta.validation.constraints", "Min");
 
         TypeSpec validator = TypeSpec.classBuilder(className)
+                .addAnnotation(GeneratedStamp.forGenerator(BeanValidationGenerator.class))
                 .addModifiers(Modifier.PUBLIC)
                 .addSuperinterface(ParameterizedTypeName.get(
                         CONSTRAINT_VALIDATOR, minAnnotation, TypeName.get(lazyvalType)))
@@ -79,6 +81,7 @@ class NumericValidatorBuilder {
         ClassName maxAnnotation = ClassName.get("jakarta.validation.constraints", "Max");
 
         TypeSpec validator = TypeSpec.classBuilder(className)
+                .addAnnotation(GeneratedStamp.forGenerator(BeanValidationGenerator.class))
                 .addModifiers(Modifier.PUBLIC)
                 .addSuperinterface(ParameterizedTypeName.get(
                         CONSTRAINT_VALIDATOR, maxAnnotation, TypeName.get(lazyvalType)))
