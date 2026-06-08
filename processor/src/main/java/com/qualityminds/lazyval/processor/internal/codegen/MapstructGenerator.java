@@ -65,14 +65,14 @@ final public class MapstructGenerator implements Generator {
         parameterName = "value";
         final MethodSpec map;
         if(wrappedType.isPrimitive()){
-            map = MethodSpec.methodBuilder(String.format("map%s", validElement.typeName().name()))
+            map = MethodSpec.methodBuilder(String.format("map%sTo%s", wrappedType.typeNameUpper(), validElement.typeName().name()))
                     .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                     .returns(TypeName.get(type))
                     .addParameter(TypeName.get(wrappedType.typeMirror()), parameterName)
                     .addStatement("return $L", validElement.objectCreation(parameterName))
                     .build();
         } else {
-            map = MethodSpec.methodBuilder(String.format("map%s", validElement.typeName().name()))
+            map = MethodSpec.methodBuilder(String.format("map%sTo%s", wrappedType.typeName(), validElement.typeName().name()))
                     .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                     .returns(TypeName.get(type))
                     .addParameter(TypeName.get(wrappedType.typeMirror()), parameterName)

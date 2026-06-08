@@ -24,19 +24,19 @@ Overrides `lazyval.generators.basePackage`.
     unmappedTargetPolicy = ReportingPolicy.ERROR
 )
 public interface LazyvalMapper {
-    default int mapQuantityToWrappedType(Quantity type) {
+    default int mapQuantityToInt(Quantity type) {
         return type.value();
     }
 
-    default Quantity mapQuantity(int value) {
+    default Quantity mapIntToQuantity(int value) {
         return new Quantity(value);
     }
 
-    default String mapIsbnToWrappedType(Isbn type) {
+    default String mapIsbnToString(Isbn type) {
         return type == null ? null : type.value();
     }
 
-    default Isbn mapIsbn(String value) {
+    default Isbn mapStringToIsbn(String value) {
         return value == null ? null : Isbn.parse(value);
     }
 }
