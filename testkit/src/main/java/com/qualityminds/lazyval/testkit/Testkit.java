@@ -1,9 +1,9 @@
 package com.qualityminds.lazyval.testkit;
 
 import com.qualityminds.lazyval.testkit.internal.toolchain.java.CompilerResult;
-import com.qualityminds.lazyval.testkit.internal.toolchain.java.CompilerSetup;
+import com.qualityminds.lazyval.testkit.internal.toolchain.java.JavaToolchain;
+import com.qualityminds.lazyval.testkit.internal.toolchain.kotlin.KotlinToolchain;
 import com.qualityminds.lazyval.testkit.internal.toolchain.kotlin.ToolchainResult;
-import com.qualityminds.lazyval.testkit.internal.toolchain.kotlin.ToolchainSetup;
 import com.qualityminds.lazyval.testkit.scenarios.Scenario;
 import com.qualityminds.lazyval.testkit.scenarios.ScenarioFactory;
 
@@ -149,16 +149,14 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         @Override
         public Testresult.Kotlin run(Path projectDir, Scenario.Kotlin scenario) {
             cleanProjectDir(projectDir);
-            var toolchainSetup = setupScenarioToolchain(projectDir, scenario);
-            var result = toolchainSetup.run();
-            return convertToolchainResult(result);
-        }
-
-        private ToolchainSetup setupScenarioToolchain(Path projectDir, Scenario.Kotlin scenario) {
-            return ToolchainSetup.setupTask(
+            try (var toolchain = KotlinToolchain.create(
                     Thread.currentThread().getContextClassLoader(),
                     projectDir,
-                    scenario.desc());
+                    scenario.desc())) {
+                return convertToolchainResult(toolchain.run());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }
 
         private Testresult.Kotlin convertToolchainResult(ToolchainResult toolchainResult){
@@ -207,8 +205,8 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         @Override
         public Testresult.Java run(Path projectDir, Scenario.Java scenario) {
             cleanProjectDir(projectDir);
-            var task = CompilerSetup.setupTask(projectDir, scenario.desc());
-            var result = task.run();
+            var toolchain = JavaToolchain.create(projectDir, scenario.desc());
+            var result = toolchain.run();
             return convertToolchainResult(result);
         }
 

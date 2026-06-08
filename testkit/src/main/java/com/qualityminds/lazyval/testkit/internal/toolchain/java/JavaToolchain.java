@@ -18,14 +18,21 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
-public class CompilerSetup {
+/**
+ * Single-step Java toolchain: javac runs annotation processing and compilation in one pass.
+ * <p>
+ * Counterpart to {@link com.qualityminds.lazyval.testkit.internal.toolchain.kotlin.KotlinToolchain},
+ * but simpler because annotation processors run in-process and any error in generated Java surfaces
+ * directly through the same {@code javac} invocation.
+ */
+public class JavaToolchain {
 
     private final JavaCompiler.CompilationTask task;
     private final LoggingDiagnosticsCollector<JavaFileObject> diagnostics;
     private final Path sourceOutputDir;
     private final ClassLoader processorClassLoader;
 
-    private CompilerSetup(JavaCompiler.CompilationTask task, LoggingDiagnosticsCollector<JavaFileObject> diagnostics, Path sourceOutputDir, ClassLoader processorClassLoader) {
+    private JavaToolchain(JavaCompiler.CompilationTask task, LoggingDiagnosticsCollector<JavaFileObject> diagnostics, Path sourceOutputDir, ClassLoader processorClassLoader) {
         this.task = task;
         this.diagnostics = diagnostics;
         this.sourceOutputDir = sourceOutputDir;
@@ -52,7 +59,7 @@ public class CompilerSetup {
         }
     }
 
-    public static CompilerSetup setupTask(Path projectDir, Scenario.Descriptor scenarioDescriptor) {
+    public static JavaToolchain create(Path projectDir, Scenario.Descriptor scenarioDescriptor) {
         Objects.requireNonNull(projectDir);
         var compiler = ToolProvider.getSystemJavaCompiler();
         var diagnostics = new LoggingDiagnosticsCollector<JavaFileObject>();
@@ -95,7 +102,7 @@ public class CompilerSetup {
                     .toArray(URL[]::new);
             // Load the LazyvalProcessor dynamically to avoid a project dependency on the processor because
             // then we would have a cycle processor <-> testkit (since we want to use the testkit in the processor tests)
-            URLClassLoader processorClassLoader = new URLClassLoader(urls, CompilerSetup.class.getClassLoader());
+            URLClassLoader processorClassLoader = new URLClassLoader(urls, JavaToolchain.class.getClassLoader());
             ServiceLoader<Processor> processors = ServiceLoader.load(Processor.class, processorClassLoader);
             List<Processor> processorList = new ArrayList<>();
             processors.forEach(processorList::add);
@@ -103,7 +110,7 @@ public class CompilerSetup {
 
             var outputLocation = fileManager.getLocation(StandardLocation.SOURCE_OUTPUT);
             var sourceOutputDir = outputLocation.iterator().next().toPath();
-            return new CompilerSetup(task, diagnostics, sourceOutputDir, processorClassLoader);
+            return new JavaToolchain(task, diagnostics, sourceOutputDir, processorClassLoader);
         } catch (Exception e) {
             throw new RuntimeException("Failed to setup compiler task", e);
         }
