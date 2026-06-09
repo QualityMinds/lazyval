@@ -9,24 +9,24 @@ import java.util.List;
 /**
  * Captures Log-Messages (only error/warning) to have access in tests
  */
-public class LogCollector {
+class LogCollector {
 
     private final List<String> errors = new ArrayList<>();
     private final List<String> warnings = new ArrayList<>();
 
-    public ImmutableList<String> getErrors() {
+    ImmutableList<String> getErrors() {
         return Lists.immutable.ofAll(errors);
     }
 
-    public ImmutableList<String> getWarnings() {
+    ImmutableList<String> getWarnings() {
         return Lists.immutable.ofAll(warnings);
     }
 
-    public void addWarning(String message) {
+    void addWarning(String message) {
         warnings.add(message);
     }
 
-    public void addError(String message) {
+    void addError(String message) {
         errors.add(message);
     }
 }

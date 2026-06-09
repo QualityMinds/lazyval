@@ -9,13 +9,13 @@ import org.slf4j.LoggerFactory;
 /**
  * Logger for KSP which routes logging to SLF4J
  */
-public class KspSlf4jLogger implements KSPLogger {
+class KspSlf4jLogger implements KSPLogger {
 
     private final Logger logger;
     private final LogCollector logCollector;
 
 
-    public KspSlf4jLogger(LogCollector logCollector) {
+    KspSlf4jLogger(LogCollector logCollector) {
         this("KSP", logCollector);
     }
 
