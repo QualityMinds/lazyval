@@ -6,20 +6,21 @@ import org.slf4j.LoggerFactory;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticListener;
+import javax.tools.JavaFileObject;
 import java.util.*;
 
 /**
  * A simple DiagnosticListener which behaves the same as {@link javax.tools.DiagnosticCollector}, but also logs to SLF4J
  * for better tracing during testing.
  */
-class LoggingDiagnosticsCollector<S> implements DiagnosticListener<S> {
+class LoggingDiagnosticsCollector implements DiagnosticListener<JavaFileObject> {
 
     private static final Logger logger = LoggerFactory.getLogger(LoggingDiagnosticsCollector.class);
-    private final List<Diagnostic<? extends S>> diagnostics =
+    private final List<Diagnostic<? extends JavaFileObject>> diagnostics =
             Collections.synchronizedList(new ArrayList<>());
 
     @Override
-    public void report(Diagnostic<? extends S> diagnostic) {
+    public void report(Diagnostic<? extends JavaFileObject> diagnostic) {
         Objects.requireNonNull(diagnostic);
         diagnostics.add(diagnostic);
         switch (diagnostic.getKind()) {
@@ -30,7 +31,7 @@ class LoggingDiagnosticsCollector<S> implements DiagnosticListener<S> {
         }
     }
 
-    public List<Diagnostic<? extends S>> getDiagnostics() {
+    public List<Diagnostic<? extends JavaFileObject>> getDiagnostics() {
         return Collections.unmodifiableList(diagnostics);
     }
 }

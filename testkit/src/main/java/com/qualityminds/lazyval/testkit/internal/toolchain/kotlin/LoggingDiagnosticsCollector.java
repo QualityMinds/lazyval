@@ -5,14 +5,15 @@ import org.slf4j.LoggerFactory;
 
 import javax.tools.Diagnostic;
 import javax.tools.DiagnosticListener;
+import javax.tools.JavaFileObject;
 import java.util.Locale;
 import java.util.Objects;
 
 /**
  * DiagnosticListener for javac which logs to SLF4J and forwards error/warning messages to the
- * shared {@link LogCollector} so they end up in the {@link ToolchainResult}.
+ * shared {@link LogCollector} so they end up in the {@link KotlinToolchain.Result}.
  */
-class LoggingDiagnosticsCollector<S> implements DiagnosticListener<S> {
+class LoggingDiagnosticsCollector implements DiagnosticListener<JavaFileObject> {
 
     private static final Logger logger = LoggerFactory.getLogger(LoggingDiagnosticsCollector.class);
     private final LogCollector logCollector;
@@ -22,7 +23,7 @@ class LoggingDiagnosticsCollector<S> implements DiagnosticListener<S> {
     }
 
     @Override
-    public void report(Diagnostic<? extends S> diagnostic) {
+    public void report(Diagnostic<? extends JavaFileObject> diagnostic) {
         Objects.requireNonNull(diagnostic);
         var message = diagnostic.getMessage(Locale.ENGLISH);
         switch (diagnostic.getKind()) {

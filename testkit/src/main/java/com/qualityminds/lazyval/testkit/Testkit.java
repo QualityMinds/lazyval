@@ -1,9 +1,7 @@
 package com.qualityminds.lazyval.testkit;
 
-import com.qualityminds.lazyval.testkit.internal.toolchain.java.CompilerResult;
 import com.qualityminds.lazyval.testkit.internal.toolchain.java.JavaToolchain;
 import com.qualityminds.lazyval.testkit.internal.toolchain.kotlin.KotlinToolchain;
-import com.qualityminds.lazyval.testkit.internal.toolchain.kotlin.ToolchainResult;
 import com.qualityminds.lazyval.testkit.scenarios.Scenario;
 import com.qualityminds.lazyval.testkit.scenarios.ScenarioFactory;
 
@@ -12,7 +10,6 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
-import java.util.Locale;
 import java.util.stream.Stream;
 
 import static org.eclipse.collections.impl.collector.Collectors2.toImmutableList;
@@ -159,35 +156,30 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
             }
         }
 
-        private Testresult.Kotlin convertToolchainResult(ToolchainResult toolchainResult){
+        private Testresult.Kotlin convertToolchainResult(KotlinToolchain.Result toolchainResult){
             if(toolchainResult.isSuccessful()){
                 if(toolchainResult.generatedNoFiles()){
                     return new Testresult.Kotlin.NothingGenerated();
                 }
+                var generatedFileNames = Stream.concat(
+                        toolchainResult.generatedJavaFiles().stream(),
+                        toolchainResult.generatedKotlinFiles().stream())
+                        .map(s -> s.getFileName().toString()).collect(toImmutableList());
                 if(!toolchainResult.warnings().isEmpty()){
                     return new Testresult.Kotlin.SuccessWithWarnings(
-                            Stream.concat(
-                                    toolchainResult.generatedJavaFiles().stream(),
-                                    toolchainResult.generatedKotlinFiles().stream()
-                            ).map(s -> s.getFileName().toString()).collect(toImmutableList()),
+                            generatedFileNames,
                             toolchainResult.warnings());
                 }else {
-                    return new Testresult.Kotlin.Success(
-                            Stream.concat(
-                                    toolchainResult.generatedJavaFiles().stream(),
-                                    toolchainResult.generatedKotlinFiles().stream()
-                            ).map(s -> s.getFileName().toString()).collect(toImmutableList())
-                    );
+                    return new Testresult.Kotlin.Success(generatedFileNames);
                 }
             }else {
                 return new Testresult.Kotlin.Failure(toolchainResult.errors());
             }
         }
-
     }
 
     /**
-     * Java-specific testkit which accepts only {@link Scenario.Java} scenarios and returns {@link Testresult.Java}.
+     * Java-specific testkit that accepts only {@link Scenario.Java} scenarios and returns {@link Testresult.Java}.
      * <p>
      * Runs Javac with dependencies configured within the scenario, collects compiler output, and transforms the result
      * to one of the following results:
@@ -210,21 +202,21 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
             return convertToolchainResult(result);
         }
 
-        private Testresult.Java convertToolchainResult(CompilerResult toolchainResult){
-            if(toolchainResult.taskResult()){
-                var generatedFileName = toolchainResult.generatedFiles().stream().map(s -> s.getFileName().toString()).collect(toImmutableList());
-                if(generatedFileName.isEmpty()){
+        private Testresult.Java convertToolchainResult(JavaToolchain.Result toolchainResult){
+            if(toolchainResult.isSuccessful()){
+                if(toolchainResult.generatedNoFiles()){
                     return new Testresult.Java.NothingGenerated();
                 }
+                var generatedFileNames = toolchainResult.generatedFiles().stream().map(s -> s.getFileName().toString()).collect(toImmutableList());
                 if(!toolchainResult.getWarnings().isEmpty()){
                     return new Testresult.Java.SuccessWithWarnings(
-                            generatedFileName,
-                            toolchainResult.getWarnings().stream().map(s -> s.getMessage(Locale.ENGLISH)).collect(toImmutableList()));
+                            generatedFileNames,
+                            toolchainResult.getWarnings());
                 }else {
-                    return new Testresult.Java.Success(generatedFileName);
+                    return new Testresult.Java.Success(generatedFileNames);
                 }
             }else {
-                return new Testresult.Java.Failure(toolchainResult.getErrors().stream().map(s -> s.getMessage(Locale.ENGLISH)).collect(toImmutableList()));
+                return new Testresult.Java.Failure(toolchainResult.getErrors());
             }
         }
     }

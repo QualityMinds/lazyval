@@ -4,7 +4,6 @@ import com.qualityminds.lazyval.testkit.dependencies.Dependency;
 import com.qualityminds.lazyval.testkit.scenarios.Scenario;
 import kotlin.KotlinVersion;
 
-import javax.tools.JavaFileObject;
 import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
 import java.io.File;
@@ -56,7 +55,7 @@ class JavaCompileStep {
             }
 
             var compiler = ToolProvider.getSystemJavaCompiler();
-            var diagnostics = new LoggingDiagnosticsCollector<JavaFileObject>(logCollector);
+            var diagnostics = new LoggingDiagnosticsCollector(logCollector);
             var fileManager = compiler.getStandardFileManager(diagnostics, null, null);
 
             // Reuse the same build/classes directory used by kotlinc, both as output and on the classpath,

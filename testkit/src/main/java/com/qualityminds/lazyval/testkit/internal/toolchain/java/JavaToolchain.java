@@ -2,12 +2,10 @@ package com.qualityminds.lazyval.testkit.internal.toolchain.java;
 
 import com.qualityminds.lazyval.testkit.dependencies.Dependency;
 import com.qualityminds.lazyval.testkit.scenarios.Scenario;
+import org.eclipse.collections.api.list.ImmutableList;
 
 import javax.annotation.processing.Processor;
-import javax.tools.JavaCompiler;
-import javax.tools.JavaFileObject;
-import javax.tools.StandardLocation;
-import javax.tools.ToolProvider;
+import javax.tools.*;
 import java.io.File;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -16,6 +14,8 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.eclipse.collections.impl.collector.Collectors2.toImmutableList;
 
 
 /**
@@ -28,18 +28,18 @@ import java.util.stream.Stream;
 public class JavaToolchain {
 
     private final JavaCompiler.CompilationTask task;
-    private final LoggingDiagnosticsCollector<JavaFileObject> diagnostics;
+    private final LoggingDiagnosticsCollector diagnostics;
     private final Path sourceOutputDir;
     private final ClassLoader processorClassLoader;
 
-    private JavaToolchain(JavaCompiler.CompilationTask task, LoggingDiagnosticsCollector<JavaFileObject> diagnostics, Path sourceOutputDir, ClassLoader processorClassLoader) {
+    private JavaToolchain(JavaCompiler.CompilationTask task, LoggingDiagnosticsCollector diagnostics, Path sourceOutputDir, ClassLoader processorClassLoader) {
         this.task = task;
         this.diagnostics = diagnostics;
         this.sourceOutputDir = sourceOutputDir;
         this.processorClassLoader = processorClassLoader;
     }
 
-    public CompilerResult run() {
+    public Result run() {
         ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             // Set the context classloader so ServiceLoader inside the processor can find SPI providers
@@ -51,7 +51,7 @@ public class JavaToolchain {
                 sourceFiles = stream.filter(p -> !Files.isDirectory(p))
                         .collect(Collectors.toCollection(TreeSet::new));
             }
-            return new CompilerResult(result, diagnostics.getDiagnostics(), sourceFiles);
+            return new Result(result, diagnostics.getDiagnostics(), sourceFiles);
         } catch (Exception e) {
             throw new RuntimeException("Failed to collect generated files", e);
         }finally {
@@ -62,7 +62,7 @@ public class JavaToolchain {
     public static JavaToolchain create(Path projectDir, Scenario.Descriptor scenarioDescriptor) {
         Objects.requireNonNull(projectDir);
         var compiler = ToolProvider.getSystemJavaCompiler();
-        var diagnostics = new LoggingDiagnosticsCollector<JavaFileObject>();
+        var diagnostics = new LoggingDiagnosticsCollector();
 
 
         List<File> additionalClasspath = new ArrayList<>(CoreModuleDependency.RESOLVED_FILE.toSet());
@@ -113,6 +113,44 @@ public class JavaToolchain {
             return new JavaToolchain(task, diagnostics, sourceOutputDir, processorClassLoader);
         } catch (Exception e) {
             throw new RuntimeException("Failed to setup compiler task", e);
+        }
+    }
+
+    /**
+     * Result of a {@link JavaToolchain} run.
+     * <p>
+     * Counterpart to {@link com.qualityminds.lazyval.testkit.internal.toolchain.kotlin.KotlinToolchain.Result}.
+     * Because javac is a single-step tool whose success model is binary, the outcome is a plain
+     * {@link #taskResult()} boolean rather than a per-step enum map. The structured detail lives in
+     * {@link #diagnostics()}.
+     * @param taskResult whether the task completed successfully
+     * @param diagnostics the list of diagnostics that occurred during compilation,
+     *                    use {@link #getErrors()} and {@link #getWarnings()} to extract specific kinds as english strings
+     * @param generatedFiles the set of generated Java files
+     */
+    public record Result(boolean taskResult, List<Diagnostic<? extends JavaFileObject>> diagnostics,
+                         SortedSet<Path> generatedFiles) {
+
+        public boolean isSuccessful() {
+            return taskResult;
+        }
+
+        public ImmutableList<String> getErrors() {
+            return diagnostics.stream()
+                    .filter(it -> it.getKind() == Diagnostic.Kind.ERROR)
+                    .map(s -> s.getMessage(Locale.ENGLISH))
+                    .collect(toImmutableList());
+        }
+
+        public ImmutableList<String> getWarnings() {
+            return diagnostics.stream()
+                    .filter(it -> it.getKind() == Diagnostic.Kind.WARNING || it.getKind() == Diagnostic.Kind.MANDATORY_WARNING)
+                    .map(s -> s.getMessage(Locale.ENGLISH))
+                    .collect(toImmutableList());
+        }
+
+        public boolean generatedNoFiles() {
+            return generatedFiles.isEmpty();
         }
     }
 }

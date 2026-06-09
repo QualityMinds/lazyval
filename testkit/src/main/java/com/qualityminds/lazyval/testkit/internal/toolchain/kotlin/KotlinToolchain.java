@@ -1,11 +1,14 @@
 package com.qualityminds.lazyval.testkit.internal.toolchain.kotlin;
 
 import com.qualityminds.lazyval.testkit.scenarios.Scenario;
+import org.eclipse.collections.api.list.ImmutableList;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumMap;
+import java.util.Map;
+import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
@@ -34,7 +37,7 @@ public class KotlinToolchain implements AutoCloseable {
         this.layout = layout;
     }
 
-    public ToolchainResult run() {
+    public Result run() {
         var outcomes = new EnumMap<Step, StepOutcome>(Step.class);
         try {
             var kspOutcome = kspStep.run();
@@ -61,7 +64,7 @@ public class KotlinToolchain implements AutoCloseable {
                         .collect(Collectors.toCollection(TreeSet::new));
             }
 
-            return new ToolchainResult(
+            return new Result(
                     outcomes,
                     generatedJavaFiles,
                     generatedKotlinFiles,
@@ -88,5 +91,31 @@ public class KotlinToolchain implements AutoCloseable {
         var kotlinStep = KotlinCompileStep.create(classLoader, layout, scenarioDescriptor, logCollector);
         var javaStep = JavaCompileStep.create(layout, scenarioDescriptor, logCollector);
         return new KotlinToolchain(kspStep, kotlinStep, javaStep, logCollector, layout);
+    }
+
+    /**
+     * Result of a {@link KotlinToolchain} run.
+     * <p>
+     * @param stepOutcomes records the outcome of every step that was started. Steps that never
+     *                     started (because an earlier one failed, or when Javac wasn't started because no Java files
+     *                     were present) do not appear in the map.
+     * @param generatedJavaFiles the set of generated Java files
+     * @param generatedKotlinFiles the set of generated Kotlin files
+     * @param errors the list of errors that occurred during compilation
+     * @param warnings the list of warnings that occurred during compilation
+     */
+    public record Result(Map<Step, StepOutcome> stepOutcomes,
+                         SortedSet<Path> generatedJavaFiles,
+                         SortedSet<Path> generatedKotlinFiles,
+                         ImmutableList<String> errors,
+                         ImmutableList<String> warnings) {
+
+        public boolean isSuccessful() {
+            return stepOutcomes.values().stream().allMatch(StepOutcome::isSuccessful);
+        }
+
+        public boolean generatedNoFiles() {
+            return generatedJavaFiles.isEmpty() && generatedKotlinFiles.isEmpty();
+        }
     }
 }
