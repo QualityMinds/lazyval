@@ -17,7 +17,7 @@ often needed when modeling _"Domain Primitives"_, which are simple, domain-speci
 === Features
 
 * Codegenerators
-** Bean-Validation Validator (useful for legacy/migration projects where after-the-fact validation is still needed)
+** Bean-Validation ValueExtractors (useful for legacy/migration projects where after-the-fact validation is still needed)
 ** Cassandra
 ** Jackson 2 & 3 (scalar serde)
 ** JPA AttributeConverters

@@ -20,8 +20,8 @@ class ApBeanValidationIT extends Specification {
     @Shared
     def testkitJava = Testkit.java()
 
-    @Unroll("#scenario.name() compiles and generated #expectedFiles")
-    void "String type generates Pattern- and EMail-Validator"(){
+    @Unroll("#scenario.name() compiles and generates #expectedFile")
+    void "each domain-primitive generates a single ValueExtractor"(){
         given:
         scenario.withDependencies(dependencyBeanValidation)
 
@@ -29,49 +29,17 @@ class ApBeanValidationIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Java.Success(expectedFiles)
+        result == new Testresult.Java.Success(expectedFile)
 
         and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/test/${expectedFiles.first}")).contains("@Generated")
+        Files.readString(projectDir.resolve("build/generated/test/$expectedFile")).contains("@Generated")
 
         where:
-        scenario                || expectedFiles
-        Scenario.Java.isbn()    || ["IsbnEmailValidator.java", "IsbnPatternValidator.java"]
-        Scenario.Java.ids()     || ["IdsProductIdEmailValidator.java", "IdsProductIdPatternValidator.java"]
-    }
-
-    void "Numeric type generates Min and Max Validators"(){
-        given:
-        def scenario = Scenario.Java.quantity()
-                .withDependencies(dependencyBeanValidation)
-
-        when:
-        def result = testkitJava.run(projectDir, scenario)
-
-        then:
-        result == new Testresult.Java.Success("QuantityMaxValidator.java", "QuantityMinValidator.java")
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/test/QuantityMaxValidator.java")).contains("@Generated")
-    }
-
-    void "LocalDate type generates temporal validators"(){
-        given:
-        def scenario = Scenario.Java.orderDate()
-                .withDependencies(dependencyBeanValidation)
-
-        when:
-        def result = testkitJava.run(projectDir, scenario)
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/test/OrderDateFutureOrPresentValidator.java")).contains("@Generated")
-
-        then:
-        result == new Testresult.Java.Success(
-                "OrderDateFutureOrPresentValidator.java",
-                "OrderDateFutureValidator.java",
-                "OrderDatePastOrPresentValidator.java",
-                "OrderDatePastValidator.java")
+        scenario                || expectedFile
+        Scenario.Java.isbn()    || "IsbnValueExtractor.java"
+        Scenario.Java.ids()     || "IdsProductIdValueExtractor.java"
+        Scenario.Java.quantity()|| "QuantityValueExtractor.java"
+        Scenario.Java.orderDate()|| "OrderDateValueExtractor.java"
     }
 
     void "Package override by generator works as expected"(){
@@ -85,9 +53,9 @@ class ApBeanValidationIT extends Specification {
         def result = testkitJava.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Java.Success("IsbnEmailValidator.java", "IsbnPatternValidator.java")
+        result == new Testresult.Java.Success("IsbnValueExtractor.java")
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/test/custom/IsbnPatternValidator.java").toFile().exists()
+        projectDir.resolve("build/generated/test/custom/IsbnValueExtractor.java").toFile().exists()
     }
 }
