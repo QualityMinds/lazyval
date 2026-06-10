@@ -266,9 +266,12 @@ public class CassandraCodecGenerator implements Generator {
                 .addCode(
                         """
                                 return stage.thenApply(session -> {
-                                    $T registry = ($T) session.getContext().getCodecRegistry();
+                                    var codecRegistry = session.getContext().getCodecRegistry();
+                                    if (!(codecRegistry instanceof $T registry)) {
+                                        throw new IllegalStateException(
+                                            "CodecRegistry does not support runtime registration. Expected MutableCodecRegistry but got: " + codecRegistry.getClass().getName());
+                                    }
                                 """,
-                        ClassName.get("com.datastax.oss.driver.api.core.type.codec.registry", "MutableCodecRegistry"),
                         ClassName.get("com.datastax.oss.driver.api.core.type.codec.registry", "MutableCodecRegistry"))
                 .addCode(codecClassNames.stream()
                         .map(name -> "    registry.register(new LazyvalCassandraCodecs." + name + "());\n")

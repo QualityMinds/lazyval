@@ -235,7 +235,10 @@ class CassandraCodecGenerator : Generator {
             .addCode(
                 """
                 |return stage.thenApply { session ->
-                |    val registry = session.context.codecRegistry as %T
+                |    val registry = session.context.codecRegistry as? %T
+                |        ?: throw IllegalStateException(
+                |            "CodecRegistry does not support runtime registration. Expected MutableCodecRegistry but got: " + session.context.codecRegistry::class.java.name
+                |        )
                 |%L
                 |    session
                 |}
