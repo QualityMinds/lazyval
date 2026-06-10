@@ -116,7 +116,7 @@ public class CassandraCodecGenerator implements Generator {
 
             if (isQuarkus && quarkusRegister) {
                 List<String> codecClassNames = codecSpecs.stream().map(TypeSpec::name).toList();
-                TypeSpec registrarSpec = buildQuarkusRegistrar(codecClassNames);
+                TypeSpec registrarSpec = CassandraQuarkusRegistrar.build(codecClassNames);
                 JavaFile registrarFile = JavaFile.builder(codecPackage, registrarSpec).build();
                 results.add(new GeneratorResult.Java(
                         new GeneratorResult.Metadata(registrarFile.packageName(), registrarFile.typeSpec().name()),
@@ -226,80 +226,4 @@ public class CassandraCodecGenerator implements Generator {
         return builder.build();
     }
 
-    private static TypeSpec buildQuarkusRegistrar(List<String> codecClassNames) {
-        ClassName quarkusCqlSession = ClassName.get("com.datastax.oss.quarkus.runtime.api.session", "QuarkusCqlSession");
-        ClassName cassandraClientConfig = ClassName.get("com.datastax.oss.quarkus.runtime.api.config", "CassandraClientConfig");
-        ClassName cassandraClientProducer = ClassName.get("com.datastax.oss.quarkus.runtime.internal.quarkus", "CassandraClientProducer");
-        ClassName completionStage = ClassName.get("java.util.concurrent", "CompletionStage");
-        TypeName sessionStageType = ParameterizedTypeName.get(completionStage, quarkusCqlSession);
-
-        // Generate a method that observes the produced CompletionStage and
-        // registers codecs right after session creation but before anyone uses it.
-        // This doesn't work — we need to intercept BEFORE buildAsync().
-
-        // The correct approach: generate an @Alternative producer that replaces
-        // the original CompletionStage<QuarkusCqlSession> producer, adding codecs
-        // to the builder before buildAsync() is called.
-
-        // Actually the simplest approach: since MutableCodecRegistry supports
-        // runtime registration, and the REAL issue is that the mapper's thenApply
-        // runs when the stage completes, we need to register codecs in a
-        // thenApply that runs BEFORE the mapper's thenApply.
-        // We can do this by producing the CompletionStage ourselves as @Alternative.
-
-        // But actually the simplest: wrap the original stage with codec registration.
-
-        MethodSpec produceMethod = MethodSpec.methodBuilder("produceCodecAwareSessionStage")
-                .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(ClassName.get("jakarta.enterprise.inject", "Produces"))
-                .addAnnotation(ClassName.get("jakarta.enterprise.context", "ApplicationScoped"))
-                .addAnnotation(ClassName.get("io.quarkus.arc", "Unremovable"))
-                .returns(sessionStageType)
-                .addParameter(
-                        ParameterSpec.builder(cassandraClientConfig, "config").build())
-                .addParameter(
-                        ParameterSpec.builder(
-                                        ClassName.get("io.netty.channel", "EventLoopGroup"), "mainEventLoop")
-                                .addAnnotation(ClassName.get("io.quarkus.netty", "MainEventLoopGroup"))
-                                .build())
-                .addStatement("$T stage = delegate.produceQuarkusCqlSessionStage(config, mainEventLoop)", sessionStageType)
-                .addCode(
-                        """
-                                return stage.thenApply(session -> {
-                                    var codecRegistry = session.getContext().getCodecRegistry();
-                                    if (!(codecRegistry instanceof $T registry)) {
-                                        throw new IllegalStateException(
-                                            "CodecRegistry does not support runtime registration. Expected MutableCodecRegistry but got: " + codecRegistry.getClass().getName());
-                                    }
-                                """,
-                        ClassName.get("com.datastax.oss.driver.api.core.type.codec.registry", "MutableCodecRegistry"))
-                .addCode(codecClassNames.stream()
-                        .map(name -> "    registry.register(new LazyvalCassandraCodecs." + name + "());\n")
-                        .reduce("", String::concat))
-                .addCode("""
-                            return session;
-                        });
-                        """)
-                .build();
-
-        MethodSpec constructor = MethodSpec.constructorBuilder()
-                .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(ClassName.get("jakarta.inject", "Inject"))
-                .addParameter(cassandraClientProducer, "delegate")
-                .addStatement("this.delegate = delegate")
-                .build();
-
-        return TypeSpec.classBuilder("LazyvalCassandraCodecRegistrar")
-                .addAnnotation(GeneratedStamp.forGenerator(CassandraCodecGenerator.class))
-                .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(ClassName.get("jakarta.enterprise.context", "ApplicationScoped"))
-                .addAnnotation(ClassName.get("jakarta.enterprise.inject", "Alternative"))
-                .addAnnotation(AnnotationSpec.builder(ClassName.get("jakarta.annotation", "Priority"))
-                        .addMember("value", "$L", 1)
-                        .build())
-                .addField(FieldSpec.builder(cassandraClientProducer, "delegate", Modifier.PRIVATE, Modifier.FINAL).build())
-                .addMethod(constructor)
-                .addMethod(produceMethod)
-                .build();
-    }
 }
