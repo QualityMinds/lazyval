@@ -21,8 +21,8 @@ class KspBeanValidationIT extends Specification {
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
-    @Unroll("#scenario.name() compiles and generated #expectedFiles")
-    void "String type generates Pattern- and EMail-Validator"(){
+    @Unroll("#scenario.name() compiles and generates #implFile and #baseFile")
+    void "each domain-primitive generates a Java base class and a Kotlin ValueExtractor"(){
         given:
         scenario.withDependencies(dependencyBeanValidation, dependencyJakartaAnnotations)
 
@@ -30,56 +30,26 @@ class KspBeanValidationIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then:
-        result == new Testresult.Kotlin.Success(expectedFiles)
+        result == new Testresult.Kotlin.Success(baseFile, implFile)
 
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/${expectedFiles.first}")).contains("@Generated")
+        and: 'Java base contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/ksp/java/test/$baseFile")).contains("@Generated")
+
+        and: 'Kotlin impl contains @Generated'
+        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/$implFile")).contains("@Generated")
 
         where:
-        scenario                || expectedFiles
-        Scenario.Kotlin.isbn()  || ["IsbnEmailValidator.kt", "IsbnPatternValidator.kt"]
-        Scenario.Kotlin.ids()   || ["IdsProductIdEmailValidator.kt", "IdsProductIdPatternValidator.kt"]
+        scenario                   || baseFile                              | implFile
+        Scenario.Kotlin.isbn()     || "IsbnValueExtractorBase.java"         | "IsbnValueExtractor.kt"
+        Scenario.Kotlin.ids()      || "IdsProductIdValueExtractorBase.java" | "IdsProductIdValueExtractor.kt"
+        Scenario.Kotlin.quantity() || "QuantityValueExtractorBase.java"     | "QuantityValueExtractor.kt"
+        Scenario.Kotlin.orderDate()|| "OrderDateValueExtractorBase.java"    | "OrderDateValueExtractor.kt"
     }
-
-    void "Numeric type generates Min and Max Validators"(){
-        given:
-        def scenario = Scenario.Kotlin.quantity()
-                .withDependencies(dependencyBeanValidation, dependencyJakartaAnnotations)
-
-        when:
-        def result = testkitKotlin.run(projectDir, scenario)
-
-        then:
-        result == new Testresult.Kotlin.Success("QuantityMaxValidator.kt", "QuantityMinValidator.kt")
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/QuantityMaxValidator.kt")).contains("@Generated")
-    }
-
-    void "LocalDate type generates temporal validators"(){
-        given:
-        def scenario = Scenario.Kotlin.orderDate()
-                .withDependencies(dependencyBeanValidation, dependencyJakartaAnnotations)
-
-        when:
-        def result = testkitKotlin.run(projectDir, scenario)
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/OrderDateFutureOrPresentValidator.kt")).contains("@Generated")
-
-        then:
-        result == new Testresult.Kotlin.Success(
-                "OrderDateFutureOrPresentValidator.kt",
-                "OrderDateFutureValidator.kt",
-                "OrderDatePastOrPresentValidator.kt",
-                "OrderDatePastValidator.kt")
-    }
-
 
     void "Package override by generator works as expected"(){
         given:
         def scenario = Scenario.Kotlin.isbn()
-                .withDependencies(dependencyBeanValidation)
+                .withDependencies(dependencyBeanValidation, dependencyJakartaAnnotations)
         and: 'generator-package is overridden'
         scenario.withOption("lazyval.beanvalidation.package", "test.custom")
 
@@ -87,10 +57,10 @@ class KspBeanValidationIT extends Specification {
         def result = testkitKotlin.run(projectDir, scenario)
 
         then: 'no warning is issued'
-        result == new Testresult.Kotlin.Success(["IsbnEmailValidator.kt", "IsbnPatternValidator.kt"])
+        result == new Testresult.Kotlin.Success("IsbnValueExtractorBase.java", "IsbnValueExtractor.kt")
 
-        and: 'file is at correct package'
-        projectDir.resolve("build/generated/ksp/kotlin/test/custom/IsbnPatternValidator.kt").toFile().exists()
+        and: 'files are at the correct package'
+        projectDir.resolve("build/generated/ksp/java/test/custom/IsbnValueExtractorBase.java").toFile().exists()
+        projectDir.resolve("build/generated/ksp/kotlin/test/custom/IsbnValueExtractor.kt").toFile().exists()
     }
-
 }
