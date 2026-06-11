@@ -136,7 +136,7 @@ class MapstructGenerator : Generator {
     /**
      * Builds a [ClassName] from the (possibly nested) type name.
      *
-     * [TypeName.value] uses dot-separated simple names for nested types (e.g. `Ids.ProductId`)
+     * [com.qualityminds.lazyval.ksp.spi.TypeName.value] uses dot-separated simple names for nested types (e.g. `Ids.ProductId`)
      * and a plain simple name for top-level types (e.g. `Quantity`). JavaPoet expects the
      * enclosing and nested simple names as separate varargs, so we split on '.' here.
      * For top-level types this degrades to a single simple name with no nesting.
