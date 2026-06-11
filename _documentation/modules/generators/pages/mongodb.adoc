@@ -78,19 +78,11 @@ public final class LazyvalMongoCodecs implements CodecProvider {
 
     @Override
     public void encode(BsonWriter writer, OrderDate value, EncoderContext encoderContext) {
-      if (value == null) {
-        writer.writeNull();
-        return;
-      }
       innerCodec.encode(writer, value.date(), encoderContext);
     }
 
     @Override
     public OrderDate decode(BsonReader reader, DecoderContext decoderContext) {
-      if (reader.getCurrentBsonType() == BsonType.NULL) {
-        reader.readNull();
-        return null;
-      }
       return new OrderDate(innerCodec.decode(reader, decoderContext));
     }
 
@@ -149,12 +141,39 @@ public class LazyvalMongoCodecs : CodecProvider {
 ----
 ====
 
-NOTE: The Kotlin generator omits the defensive `value == null` / `currentBsonType == NULL`
-guards present in the Java version because Mongo's POJO codec resolves null fields at the
-document level before invoking field codecs — and Kotlin's non-nullable parameter and return
-types make those guards either unreachable or impossible to express. When a domain-primitive
-has a nullable factory method (Kotlin only, e.g. `fun ofNullable(...): T?`), the generated codec
-is parameterised over `Codec<T?>` instead and re-introduces the null guards on encode.
+=== Null handling — Mongo driver convention
+
+The generated codecs follow the MongoDB Java driver convention: property-level codecs
+operate on non-null values and assume the `BsonReader` is positioned on a non-null BSON
+token. This matches how the driver's own stock codecs (`StringCodec`, `IntegerCodec`,
+`DateCodec`, …) behave — none of them null-guard `encode` / `decode`.
+
+Every standard call path pre-filters BSON `NULL` before invoking property codecs:
+
+* `PojoCodec` writes `writeNull()` directly for null fields on encode and sets the property
+  to `null` without invoking the codec on decode.
+* `IterableCodec`, `MapCodec`, and the array codecs apply the same filter at the element
+  level.
+
+**Garbage-in / garbage-out.** Invoking `encode` with a `null` value, or `decode` on a reader
+positioned at a BSON `NULL`, is a contract violation by the caller. The behavior in that case
+— `NullPointerException`, `BsonInvalidOperationException` from the inner reader, or a domain
+`IllegalArgumentException` thrown by the wrapper's factory — is intentionally undefined and
+depends on the inner codec and the wrapper. Code that performs non-standard direct codec
+lookups (e.g. `registry.get(Quantity.class).decode(reader, ctx)` without first checking the
+BSON token type) is responsible for filtering BSON nulls itself.
+
+[NOTE]
+====
+Kotlin-only exception: when a wrapper's factory method has a nullable return type
+(e.g. `fun ofNullable(...): CouponCode?`), the generated codec is typed `Codec<Wrapper?>` so
+the nullable decode path is visible at the Kotlin level. At JVM erasure this is
+indistinguishable from `Codec<Wrapper>`, so registry lookups for `Codec<Wrapper>` resolve
+correctly. The encode-side null guard on these codecs exists only because the parameter type
+is `Wrapper?`; it is not a deviation from the convention above.
+====
+
+== Manual Registration
 
 To manually register the codecs with a `MongoClient`:
 

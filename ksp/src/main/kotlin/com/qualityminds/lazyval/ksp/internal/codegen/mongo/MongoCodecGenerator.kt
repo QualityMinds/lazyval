@@ -20,18 +20,30 @@ import java.util.stream.Stream
  * representation the registry has configured for the wrapped type (e.g. UUID representation,
  * date/time codecs).
  *
- * ## Null invariants
+ * ## Null handling — Mongo driver convention
  *
- * BSON `Codec.encode` writes `writeNull()` when called with a `null` value and `decode` returns
- * `null` when the reader is positioned on a BSON null. The POJO codec layer in the MongoDB
- * driver typically handles null at the field level itself and does not invoke our codec for
- * null fields, so the guards inside `encode` and `decode` are defensive safety nets for direct
- * codec use.
+ * The generated codecs follow the MongoDB Java driver convention: property-level codecs
+ * operate on non-null values and assume the `BsonReader` is positioned on a non-null BSON
+ * token. This matches how the driver's own stock codecs (`StringCodec`, `IntegerCodec`,
+ * `DateCodec`, ...) behave — none of them null-guard their `encode`/`decode`.
  *
- * The generated codec is declared as `Codec<DomainType?>` (nullable outer) so the nullable
- * decode return path and nullable encode parameter are visible at the Kotlin level. At the
- * JVM erasure level this is indistinguishable from `Codec<DomainType>`, so registry lookups
- * for `Codec<DomainType>` resolve correctly.
+ * The standard call paths all pre-filter BSON `NULL` before invoking property codecs:
+ * `PojoCodec` writes `writeNull()` directly for null fields on encode and sets the property
+ * to `null` without invoking the codec on decode; `IterableCodec`, `MapCodec`, and array
+ * codecs apply the same filter at the element level.
+ *
+ * **Garbage-in / garbage-out.** Invoking `encode` with a `null` value, or `decode` on a
+ * reader positioned at a BSON `NULL` token, is a contract violation by the caller. The exact
+ * behavior in that case — `NullPointerException`, `BsonInvalidOperationException` from the
+ * inner reader, or a domain `IllegalArgumentException` from the wrapper's factory — is
+ * intentionally undefined and depends on the inner codec and the wrapper type. Callers using
+ * non-standard direct codec lookups are responsible for filtering BSON nulls themselves.
+ *
+ * When a wrapper's factory method is declared with a nullable return type (e.g.
+ * `fun ofNullable(...): CouponCode?`), the generated codec is typed as `Codec<Wrapper?>` so
+ * the nullable decode return path is visible at the Kotlin level. At JVM erasure this is
+ * indistinguishable from `Codec<Wrapper>`, so registry lookups for `Codec<Wrapper>` resolve
+ * correctly.
  *
  * ## Quarkus integration
  *
@@ -230,9 +242,11 @@ class MongoCodecGenerator : Generator {
 
         return TypeSpec.classBuilder(codecClassName)
             .addKdoc(
-                "BSON codec for [%T]. The Mongo POJO codec resolves null fields at the document level " +
-                    "before invoking this codec, so encode/decode operate on non-null values when used " +
-                    "through the POJO codec.",
+                "BSON codec for [%T]. Follows the MongoDB driver convention: invoked only on " +
+                    "non-null BSON tokens. Standard call paths (PojoCodec, IterableCodec, ...) " +
+                    "filter nulls at the document/element level before invoking property codecs. " +
+                    "Direct invocation with a null value or a reader at a BSON NULL token is a " +
+                    "contract violation and the behavior is undefined.",
                 elementClassName
             )
             .addSuperinterface(CODEC.parameterizedBy(outerType))

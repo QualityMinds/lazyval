@@ -21,12 +21,28 @@ import java.util.stream.Stream;
  * representation the registry has configured for the wrapped type (e.g. UUID representation,
  * date/time codecs).
  *
- * <h3>Null invariants</h3>
- * BSON {@code Codec.encode} writes {@code writeNull()} when called with a {@code null} value
- * and {@code decode} returns {@code null} when the reader is positioned on a BSON null. The
- * POJO codec layer in the MongoDB driver typically handles null at the field level itself
- * and does not invoke our codec for null fields, so the guards inside {@code encode} and
- * {@code decode} are defensive safety nets for direct codec use.
+ * <h3>Null handling — Mongo driver convention</h3>
+ * The generated codecs follow the MongoDB Java driver convention: property-level codecs
+ * operate on non-null values and assume the {@link org.bson.BsonReader} is positioned on a
+ * non-null BSON token. This matches how the driver's own stock codecs
+ * ({@code StringCodec}, {@code IntegerCodec}, {@code DateCodec}, ...) behave — none of them
+ * null-guard their {@code encode}/{@code decode}.
+ *
+ * <p>The standard call paths all pre-filter BSON {@code NULL} before invoking property codecs:
+ * <ul>
+ *   <li>{@code PojoCodec} writes {@code writeNull()} directly for null fields on encode and
+ *       sets the property to {@code null} without invoking the codec on decode.</li>
+ *   <li>{@code IterableCodec}, {@code MapCodec}, array codecs apply the same filter at the
+ *       element level.</li>
+ * </ul>
+ *
+ * <p><b>Garbage-in / garbage-out.</b> Invoking {@code encode} with a {@code null} value, or
+ * {@code decode} on a reader positioned at a BSON {@code NULL} token, is a contract violation
+ * by the caller. The exact behavior in that case — {@link NullPointerException},
+ * {@code BsonInvalidOperationException} from the inner reader, or a domain
+ * {@code IllegalArgumentException} from the wrapper's factory — is intentionally undefined
+ * and depends on the inner codec and the wrapper type. Callers using non-standard direct
+ * codec lookups are responsible for filtering BSON nulls themselves.
  *
  * <h3>Quarkus integration</h3>
  * When the {@code quarkus-mongodb-client} extension is detected on the classpath, a
@@ -49,7 +65,6 @@ public class MongoCodecGenerator implements Generator {
     private static final ClassName CODEC = ClassName.get("org.bson.codecs", "Codec");
     private static final ClassName BSON_READER = ClassName.get("org.bson", "BsonReader");
     private static final ClassName BSON_WRITER = ClassName.get("org.bson", "BsonWriter");
-    private static final ClassName BSON_TYPE = ClassName.get("org.bson", "BsonType");
     private static final ClassName ENCODER_CONTEXT = ClassName.get("org.bson.codecs", "EncoderContext");
     private static final ClassName DECODER_CONTEXT = ClassName.get("org.bson.codecs", "DecoderContext");
     private static final ClassName CODEC_REGISTRY = ClassName.get("org.bson.codecs.configuration", "CodecRegistry");
@@ -187,6 +202,9 @@ public class MongoCodecGenerator implements Generator {
                 .addStatement("this.innerCodec = innerCodec")
                 .build();
 
+        // Codec follows the Mongo driver convention: invoked only on non-null BSON tokens;
+        // standard call paths (PojoCodec, IterableCodec, ...) filter nulls upstream.
+        // See the class-level Javadoc for details.
         MethodSpec encode = MethodSpec.methodBuilder("encode")
                 .addAnnotation(OVERRIDE_ANNOTATION)
                 .addModifiers(Modifier.PUBLIC)
@@ -194,10 +212,6 @@ public class MongoCodecGenerator implements Generator {
                 .addParameter(BSON_WRITER, "writer")
                 .addParameter(elementTypeName, "value")
                 .addParameter(ENCODER_CONTEXT, "encoderContext")
-                .beginControlFlow("if (value == null)")
-                .addStatement("writer.writeNull()")
-                .addStatement("return")
-                .endControlFlow()
                 .addStatement("innerCodec.encode(writer, value.$L, encoderContext)", element.accessor())
                 .build();
 
@@ -207,10 +221,6 @@ public class MongoCodecGenerator implements Generator {
                 .returns(elementTypeName)
                 .addParameter(BSON_READER, "reader")
                 .addParameter(DECODER_CONTEXT, "decoderContext")
-                .beginControlFlow("if (reader.getCurrentBsonType() == $T.NULL)", BSON_TYPE)
-                .addStatement("reader.readNull()")
-                .addStatement("return null")
-                .endControlFlow()
                 .addStatement("return $L", element.objectCreation("innerCodec.decode(reader, decoderContext)"))
                 .build();
 
