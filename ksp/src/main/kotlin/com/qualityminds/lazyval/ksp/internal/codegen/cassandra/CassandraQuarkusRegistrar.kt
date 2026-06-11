@@ -38,7 +38,7 @@ internal object CassandraQuarkusRegistrar {
 
     private const val REGISTRAR_CLASS_NAME = "LazyvalCassandraCodecRegistrar"
 
-    fun build(context: Generator.Context, codecClassNames: List<String>): TypeSpec {
+    fun build(context: Generator.Context, codecClassNames: List<String>, userCodecFqns: List<String>): TypeSpec {
         return TypeSpec.classBuilder(REGISTRAR_CLASS_NAME)
             .addGeneratedAnnotation(CassandraCodecGenerator::class, context)
             .addAnnotation(APPLICATION_SCOPED)
@@ -53,7 +53,7 @@ internal object CassandraQuarkusRegistrar {
                     .addModifiers(KModifier.PRIVATE)
                     .build()
             )
-            .addFunction(buildProduceFunction(codecClassNames))
+            .addFunction(buildProduceFunction(codecClassNames, userCodecFqns))
             .build()
     }
 
@@ -63,11 +63,16 @@ internal object CassandraQuarkusRegistrar {
             .addParameter("delegate", CASSANDRA_CLIENT_PRODUCER)
             .build()
 
-    private fun buildProduceFunction(codecClassNames: List<String>): FunSpec {
+    private fun buildProduceFunction(codecClassNames: List<String>, userCodecFqns: List<String>): FunSpec {
         val sessionStageType = COMPLETION_STAGE.parameterizedBy(QUARKUS_CQL_SESSION)
-        val codecRegistrations = codecClassNames.joinToString("\n") { name ->
+        // Generated codecs first, then user-supplied — last-registered wins in DataStax's codec resolution.
+        val generatedRegistrations = codecClassNames.map { name ->
             "    registry.register(LazyvalCassandraCodecs.$name())"
         }
+        val userRegistrations = userCodecFqns.map { fqn ->
+            "    registry.register($fqn())"
+        }
+        val codecRegistrations = (generatedRegistrations + userRegistrations).joinToString("\n")
 
         return FunSpec.builder("produceCodecAwareSessionStage")
             .addAnnotation(PRODUCES)

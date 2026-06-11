@@ -20,6 +20,10 @@ Overrides `lazyval.generators.basePackage`.
 |Controls whether the Quarkus codec registrar is generated when Quarkus is detected.
 Defaults to `true`. Set to `false` to disable automatic registration.
 
+|_lazyval.cassandra.codecs_
+|Comma-separated list of fully qualified `TypeCodec` class names appended to the generated codec set.
+Only needed when the defaults don't fit — see <<custom-codecs>>.
+
 |===
 
 == Generated Files — Codecs
@@ -197,3 +201,107 @@ public class LazyvalCassandraCodecRegistrar {
 ----
 
 No manual registration is needed — the codecs are available as soon as the Cassandra session is injected.
+
+[[custom-codecs]]
+[appendix]
+== When the defaults aren't enough
+
+The default Java-to-CQL mapping above covers the types most domain-primitives wrap. Domain-primitives
+wrapping types outside that table are skipped by the generator — `registry.codecFor(...)` would fail at
+runtime if a codec for the wrapped type isn't registered.
+
+Plug in a custom codec via `lazyval.cassandra.codecs` when:
+
+* **the wrapped type isn't in the default mapping** — e.g. wrapping `java.net.URI`, `java.util.Locale`,
+  or a third-party value type.
+* **a different CQL representation is needed** — e.g. storing `LocalDate` as `TEXT` (ISO-8601) instead of
+  the default `DATE`, to keep cqlsh-rendered values human-readable or to dodge driver-version mismatches
+  on `LocalDate` encoding.
+
+User-supplied codecs are appended to `LazyvalCassandraCodecs.all()` (and to the Quarkus registrar's
+`register(...)` calls) _after_ the generated codecs, so DataStax's last-registered-wins resolution picks
+them when both target the same Java type.
+
+=== Example: store `LocalDate` as an ISO string
+
+[tabs]
+====
+Java::
++
+[source,java]
+----
+public class IsoStringOrderDateCodec extends MappingCodec<String, OrderDate> {
+
+    public IsoStringOrderDateCodec() {
+        super(TypeCodecs.TEXT, GenericType.of(OrderDate.class));
+    }
+
+    @Override
+    protected OrderDate innerToOuter(String value) {
+        return value == null ? null : new OrderDate(LocalDate.parse(value));
+    }
+
+    @Override
+    protected String outerToInner(OrderDate value) {
+        return value == null ? null : value.date().toString();
+    }
+}
+----
+
+Kotlin::
++
+[source,kotlin]
+----
+class IsoStringOrderDateCodec :
+    MappingCodec<String, OrderDate>(TypeCodecs.TEXT, GenericType.of(OrderDate::class.java)) {
+    override fun innerToOuter(value: String?): OrderDate? = value?.let { OrderDate(LocalDate.parse(it)) }
+    override fun outerToInner(value: OrderDate?): String? = value?.value?.toString()
+}
+----
+====
+
+Register via:
+
+[tabs]
+====
+Maven (Java APT)::
++
+[source,xml]
+----
+<compilerArg>-Alazyval.cassandra.codecs=com.example.IsoStringOrderDateCodec</compilerArg>
+----
+
+Maven (KSP)::
++
+[source,xml]
+----
+<apOptions>
+    <lazyval.cassandra.codecs>com.example.IsoStringOrderDateCodec</lazyval.cassandra.codecs>
+</apOptions>
+----
+====
+
+=== Validation rules
+
+Each FQN passed to `lazyval.cassandra.codecs` is checked at compile time:
+
+* the class must exist
+* implement `com.datastax.oss.driver.api.core.type.codec.TypeCodec`
+* be accessible from the package where `LazyvalCassandraCodecs` is written
+* declare a no-arg constructor with at least the same visibility.
+
+The build fails with one error per offending FQN.
+
+Accessibility covers more than `public`. In Java, package-private is fine when the codec lives in the
+same package as the generated configuration. In Kotlin, `internal` is fine when the codec is declared
+in the current compilation module; Java package-private follows the same-package rule. This lets users
+co-locate codecs with the generated configuration and keep them out of the module's public API.
+
+=== Override semantics — last-wins
+
+DataStax resolves codecs by registration order: when two codecs target the same Java type, the one
+registered last wins. The generator emits user codecs after the generated ones in both
+`LazyvalCassandraCodecs.all()` and the Quarkus registrar's `register(...)` sequence, so a user codec
+overrides the generated one for the same target type. At class-load time, an `INFO`-level message via
+`System.Logger` names the user codec and the generated codec it replaces, matching the
+xref:mongodb.adoc#custom-codecs[Mongo last-wins] semantics.

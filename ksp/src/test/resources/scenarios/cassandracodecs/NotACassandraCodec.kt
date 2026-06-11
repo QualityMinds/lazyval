@@ -1,0 +1,3 @@
+package scenarios.cassandracodecs
+
+class NotACassandraCodec

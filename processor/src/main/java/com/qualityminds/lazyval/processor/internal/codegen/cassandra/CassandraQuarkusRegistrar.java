@@ -42,7 +42,7 @@ final class CassandraQuarkusRegistrar {
     private CassandraQuarkusRegistrar() {
     }
 
-    static TypeSpec build(List<String> codecClassNames) {
+    static TypeSpec build(List<String> codecClassNames, List<String> userCodecFqns) {
         return TypeSpec.classBuilder(REGISTRAR_CLASS_NAME)
                 .addAnnotation(GeneratedStamp.forGenerator(CassandraCodecGenerator.class))
                 .addModifiers(Modifier.PUBLIC)
@@ -53,7 +53,7 @@ final class CassandraQuarkusRegistrar {
                         .build())
                 .addField(FieldSpec.builder(CASSANDRA_CLIENT_PRODUCER, "delegate", Modifier.PRIVATE, Modifier.FINAL).build())
                 .addMethod(buildConstructor())
-                .addMethod(buildProduceMethod(codecClassNames))
+                .addMethod(buildProduceMethod(codecClassNames, userCodecFqns))
                 .build();
     }
 
@@ -66,10 +66,14 @@ final class CassandraQuarkusRegistrar {
                 .build();
     }
 
-    private static MethodSpec buildProduceMethod(List<String> codecClassNames) {
+    private static MethodSpec buildProduceMethod(List<String> codecClassNames, List<String> userCodecFqns) {
         TypeName sessionStageType = ParameterizedTypeName.get(COMPLETION_STAGE, QUARKUS_CQL_SESSION);
+        // Generated codecs first, then user-supplied — last-registered wins in DataStax's codec resolution.
         String codecRegistrations = codecClassNames.stream()
                 .map(name -> "    registry.register(new LazyvalCassandraCodecs." + name + "());\n")
+                .reduce("", String::concat)
+                + userCodecFqns.stream()
+                .map(fqn -> "    registry.register(new " + fqn + "());\n")
                 .reduce("", String::concat);
 
         return MethodSpec.methodBuilder("produceCodecAwareSessionStage")
