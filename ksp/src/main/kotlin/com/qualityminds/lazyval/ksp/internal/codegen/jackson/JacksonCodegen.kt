@@ -3,6 +3,7 @@ package com.qualityminds.lazyval.ksp.internal.codegen.jackson
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
+import com.qualityminds.lazyval.ksp.spi.WrappedProperty
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ksp.toClassName
@@ -40,31 +41,58 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
         val serializerName = "${element.typeName.name}Serializer"
 
         val wrappedTypeName = wrappedType.type.declaration.simpleName.asString()
-        val serializeBody: FunSpec.Builder.() -> Unit = if (wrappedType.isPrimitive()) {
-            {
-                val writeStatement = when (wrappedTypeName) {
-                    "Int", "Long", "Short" -> "gen.writeNumber(value.${element.kotlinAccessor})"
-                    "Float", "Double" -> "gen.writeNumber(value.${element.kotlinAccessor})"
-                    "Boolean" -> "gen.writeBoolean(value.${element.kotlinAccessor})"
-                    "Char", "Byte" -> "gen.writeString(value.${element.kotlinAccessor})"
-                    else -> "gen.writeString(value.${element.kotlinAccessor})"
+        val needsCachedSerializer = !wrappedType.isPrimitive() && !isStringType(wrappedType)
+
+        val serializeBody: FunSpec.Builder.() -> Unit = when {
+            wrappedType.isPrimitive() -> {
+                {
+                    val writeStatement = when (wrappedTypeName) {
+                        "Int", "Long", "Short" -> "gen.writeNumber(value.${element.kotlinAccessor})"
+                        "Float", "Double" -> "gen.writeNumber(value.${element.kotlinAccessor})"
+                        "Boolean" -> "gen.writeBoolean(value.${element.kotlinAccessor})"
+                        "Char", "Byte" -> "gen.writeString(value.${element.kotlinAccessor})"
+                        else -> "gen.writeString(value.${element.kotlinAccessor})"
+                    }
+                    addStatement(writeStatement)
                 }
-                addStatement(writeStatement)
             }
-        } else {
-            {
-                // Delegate to the already-registered serializer (e.g. JavaTimeModule for DateTime types)
-                addStatement(
-                    "val ser = ctx.findValueSerializer(%T::class.java)",
-                    wrappedType.type.toTypeName()
-                )
-                addStatement("ser.serialize(value.${element.kotlinAccessor}, gen, ctx)")
+            isStringType(wrappedType) -> {
+                {
+                    // Direct write — avoids per-call serializer lookup. Bypasses any user-customized
+                    // String serializer; acceptable for scalar wrapper payloads.
+                    addStatement("gen.writeString(value.${element.kotlinAccessor})")
+                }
+            }
+            else -> {
+                {
+                    // Resolve the delegate serializer (e.g. JavaTimeModule for DateTime types) once
+                    // and cache it. Benign data race on assignment: redundant resolution yields an
+                    // equivalent serializer, never an incorrect one.
+                    addStatement(
+                        "val ser = innerSerializer ?: ctx.findValueSerializer(%T::class.java).also { innerSerializer = it }",
+                        wrappedType.type.toTypeName()
+                    )
+                    addStatement("ser.serialize(value.${element.kotlinAccessor}, gen, ctx)")
+                }
             }
         }
 
-        return TypeSpec.classBuilder(serializerName)
+        val builder = TypeSpec.classBuilder(serializerName)
             .superclass(version.stdSerializer().parameterizedBy(elementClassName))
             .addSuperclassConstructorParameter(CodeBlock.of("%T::class.java", elementClassName))
+
+        if (needsCachedSerializer) {
+            val cachedFieldType = version.valueSerializer().parameterizedBy(ANY).copy(nullable = true)
+            builder.addProperty(
+                PropertySpec.builder("innerSerializer", cachedFieldType)
+                    .addModifiers(KModifier.PRIVATE)
+                    .mutable(true)
+                    .initializer("null")
+                    .build()
+            )
+        }
+
+        return builder
             .addFunction(
                 FunSpec.builder("serialize")
                     .addModifiers(KModifier.OVERRIDE)
@@ -84,49 +112,81 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
 
         val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
         val returnType = elementClassName.copy(nullable = factoryReturnsNullable)
-
-        val wrappedTypeName = wrappedType.type.declaration.simpleName.asString()
-
-        val deserializeBody: FunSpec.Builder.() -> Unit = if (wrappedType.isPrimitive()) {
-            {
-                val readValueStatement = when (wrappedTypeName) {
-                    "Int" -> "val value = p.valueAsInt"
-                    "Long" -> "val value = p.valueAsLong"
-                    "Double" -> "val value = p.valueAsDouble"
-                    "Boolean" -> "val value = p.valueAsBoolean"
-                    "Float" -> "val value = p.valueAsDouble.toFloat()"
-                    "Short" -> "val value = p.valueAsInt.toShort()"
-                    "Byte" -> "val value = p.valueAsInt.toByte()"
-                    "Char" -> "val value = p.valueAsString[0]"
-                    else -> "val value = p.valueAsString"
-                }
-                addStatement(readValueStatement)
-                addStatement("return ${element.objectCreation("value")}")
-            }
-        } else {
-            {
-                // Delegate to the already-registered deserializer (e.g. JavaTimeModule for DateTime types)
-                addStatement(
-                    "val deser = ctx.findContextualValueDeserializer(ctx.constructType(%T::class.java), null)",
-                    wrappedType.type.toTypeName()
-                )
-                addStatement("val value = deser.deserialize(p, ctx) as %T", wrappedType.type.toTypeName())
-                addStatement("return ${element.objectCreation("value")}")
-            }
-        }
+        val needsCachedDeserializer = !wrappedType.isPrimitive() && !isStringType(wrappedType)
 
         val deserializeMethod = FunSpec.builder("deserialize")
             .addModifiers(KModifier.OVERRIDE)
             .returns(returnType)
             .addParameter("p", version.jsonParser())
             .addParameter("ctx", version.deserializationContext())
-            .apply(deserializeBody)
+            .apply(deserializeBody(element, wrappedType))
 
-        return TypeSpec.classBuilder(deserializerName)
+        val builder = TypeSpec.classBuilder(deserializerName)
             .superclass(version.stdDeserializer().parameterizedBy(returnType))
             .addSuperclassConstructorParameter(CodeBlock.of("%T::class.java", elementClassName))
-            .addFunction(deserializeMethod.build())
-            .build()
+
+        if (needsCachedDeserializer) {
+            val cachedFieldType = version.valueDeserializer().parameterizedBy(ANY).copy(nullable = true)
+            builder.addProperty(
+                PropertySpec.builder("innerDeserializer", cachedFieldType)
+                    .addModifiers(KModifier.PRIVATE)
+                    .mutable(true)
+                    .initializer("null")
+                    .build()
+            )
+        }
+
+        return builder.addFunction(deserializeMethod.build()).build()
+    }
+
+    private fun deserializeBody(
+        element: ValidatedKspGeneratorElement,
+        wrappedType: WrappedProperty
+    ): FunSpec.Builder.() -> Unit = when {
+        wrappedType.isPrimitive() -> {
+            {
+                addStatement(primitiveReadStatement(wrappedType.type.declaration.simpleName.asString()))
+                addStatement("return ${element.objectCreation("value")}")
+            }
+        }
+        isStringType(wrappedType) -> {
+            {
+                // Direct read — avoids per-call deserializer lookup. Bypasses any user-customized
+                // String deserializer; acceptable for scalar wrapper payloads.
+                addStatement("val value = p.valueAsString")
+                addStatement("return ${element.objectCreation("value")}")
+            }
+        }
+        else -> {
+            {
+                // Resolve the delegate deserializer (e.g. JavaTimeModule for DateTime types) once
+                // and cache it. Benign data race on assignment: redundant resolution yields an
+                // equivalent deserializer, never an incorrect one.
+                addStatement(
+                    "val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(%T::class.java), null).also { innerDeserializer = it }",
+                    wrappedType.type.toTypeName()
+                )
+                addStatement("val value = deser.deserialize(p, ctx) as %T", wrappedType.type.toTypeName())
+                addStatement("return ${element.objectCreation("value")}")
+            }
+        }
+    }
+
+    private fun primitiveReadStatement(wrappedTypeName: String): String = when (wrappedTypeName) {
+        "Int" -> "val value = p.valueAsInt"
+        "Long" -> "val value = p.valueAsLong"
+        "Double" -> "val value = p.valueAsDouble"
+        "Boolean" -> "val value = p.valueAsBoolean"
+        "Float" -> "val value = p.valueAsDouble.toFloat()"
+        "Short" -> "val value = p.valueAsInt.toShort()"
+        "Byte" -> "val value = p.valueAsInt.toByte()"
+        "Char" -> "val value = p.valueAsString[0]"
+        else -> "val value = p.valueAsString"
+    }
+
+    private fun isStringType(wrappedType: WrappedProperty): Boolean {
+        val fqn = wrappedType.type.declaration.qualifiedName?.asString()
+        return fqn == "kotlin.String" || fqn == "java.lang.String"
     }
 
     fun generateModule(

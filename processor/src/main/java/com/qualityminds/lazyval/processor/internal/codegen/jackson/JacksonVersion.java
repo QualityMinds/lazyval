@@ -20,6 +20,8 @@ record JacksonVersion(
         String setupContextOuterClass,
         String objectMapperPackage,
         String lazyvalJacksonModuleName,
+        String valueSerializerClass,
+        String valueDeserializerClass,
         boolean deserializerDeclaresExceptions,
         Class<? extends Generator> executingGenerator
 ) {
@@ -37,6 +39,8 @@ record JacksonVersion(
             "Module",
             "com.fasterxml.jackson.databind",
             "LazyvalJackson2Module",
+            "JsonSerializer",
+            "JsonDeserializer",
             true,
             Jackson2Generator.class
     );
@@ -55,6 +59,8 @@ record JacksonVersion(
             "JacksonModule",
             "tools.jackson.databind",
             "LazyvalJacksonModule",
+            "ValueSerializer",
+            "ValueDeserializer",
             false,
             Jackson3Generator.class
     );
@@ -101,5 +107,13 @@ record JacksonVersion(
 
     ClassName objectMapper() {
         return ClassName.get(objectMapperPackage, "ObjectMapper");
+    }
+
+    ClassName valueSerializer() {
+        return ClassName.get(databindPackage, valueSerializerClass);
+    }
+
+    ClassName valueDeserializer() {
+        return ClassName.get(databindPackage, valueDeserializerClass);
     }
 }
