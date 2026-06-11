@@ -125,12 +125,18 @@ public class JsonbGenerator implements Generator {
         var adaptersType = ClassName.get(adaptersMetadata.packageName(), adaptersMetadata.className());
         var providerAnnotation = AnnotationSpec.builder(ClassName.get(JAXRS_PROVIDER_PACKAGE, "Provider")).build();
 
+        // Jsonb instances are expensive to create and thread-safe per the JSON-B spec, so the
+        // resolver caches a single instance instead of rebuilding it on every JAX-RS lookup.
+        var jsonbField = FieldSpec.builder(jsonbType, "jsonb", Modifier.PRIVATE, Modifier.FINAL)
+                .initializer("$T.create($T.config())", jsonbBuilderType, adaptersType)
+                .build();
+
         var getContextMethod = MethodSpec.methodBuilder("getContext")
                 .addAnnotation(OVERRIDE_ANNOTATION)
                 .addModifiers(Modifier.PUBLIC)
                 .returns(jsonbType)
                 .addParameter(ParameterizedTypeName.get(ClassName.get(Class.class), WildcardTypeName.subtypeOf(Object.class)), "type")
-                .addStatement("return $T.create($T.config())", jsonbBuilderType, adaptersType)
+                .addStatement("return this.jsonb")
                 .build();
 
         return TypeSpec.classBuilder("LazyvalJsonbContextResolver")
@@ -138,6 +144,7 @@ public class JsonbGenerator implements Generator {
                 .addAnnotation(GeneratedStamp.forGenerator(JsonbGenerator.class))
                 .addAnnotation(providerAnnotation)
                 .addSuperinterface(ParameterizedTypeName.get(contextResolverType, jsonbType))
+                .addField(jsonbField)
                 .addMethod(getContextMethod)
                 .build();
     }

@@ -115,17 +115,25 @@ class JsonbGenerator : Generator {
     private fun generateContextResolver(context: Generator.Context, adaptersMetadata: GeneratorResult.Metadata): TypeSpec {
         val adaptersType = ClassName(adaptersMetadata.packageName, adaptersMetadata.className)
 
+        // Jsonb instances are expensive to create and thread-safe per the JSON-B spec, so the
+        // resolver caches a single instance instead of rebuilding it on every JAX-RS lookup.
+        val jsonbProperty = PropertySpec.builder("jsonb", JSONB)
+            .addModifiers(KModifier.PRIVATE)
+            .initializer("%T.create(%T.config())", JSONB_BUILDER, adaptersType)
+            .build()
+
         val getContextFun = FunSpec.builder("getContext")
             .addModifiers(KModifier.OVERRIDE)
             .returns(JSONB)
             .addParameter("type", Class::class.asClassName().parameterizedBy(STAR))
-            .addStatement("return %T.create(%T.config())", JSONB_BUILDER, adaptersType)
+            .addStatement("return jsonb")
             .build()
 
         return TypeSpec.classBuilder("LazyvalJsonbContextResolver")
             .addGeneratedAnnotation(JsonbGenerator::class, context)
             .addAnnotation(PROVIDER_ANNOTATION)
             .addSuperinterface(CONTEXT_RESOLVER.parameterizedBy(JSONB))
+            .addProperty(jsonbProperty)
             .addFunction(getContextFun)
             .build()
     }

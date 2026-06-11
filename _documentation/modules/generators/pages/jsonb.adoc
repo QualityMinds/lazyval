@@ -133,6 +133,11 @@ an additional `LazyvalJsonbContextResolver` class is generated. It is annotated 
 pre-configured `Jsonb` instance for the JAX-RS runtime so that the adapters are applied to every request/response
 that uses JSON-B for marshalling.
 
+The `Jsonb` instance is built once during construction and reused for every `getContext` lookup. JAX-RS providers
+are not required to cache `ContextResolver` results, and `JsonbBuilder.create(...)` initializes provider lookup,
+adapter chain, and config defaults — so caching the instance avoids that cost on every request. `Jsonb` is
+thread-safe per the JSON-B specification.
+
 [tabs]
 ====
 Java::
@@ -141,9 +146,11 @@ Java::
 ----
 @Provider
 public class LazyvalJsonbContextResolver implements ContextResolver<Jsonb> {
+  private final Jsonb jsonb = JsonbBuilder.create(LazyvalJsonbAdapters.config());
+
   @Override
   public Jsonb getContext(Class<?> type) {
-    return JsonbBuilder.create(LazyvalJsonbAdapters.config());
+    return this.jsonb;
   }
 }
 ----
@@ -154,7 +161,9 @@ Kotlin::
 ----
 @Provider
 public class LazyvalJsonbContextResolver : ContextResolver<Jsonb> {
-  override fun getContext(type: Class<*>): Jsonb = JsonbBuilder.create(LazyvalJsonbAdapters.config())
+  private val jsonb: Jsonb = JsonbBuilder.create(LazyvalJsonbAdapters.config())
+
+  override fun getContext(type: Class<*>): Jsonb = jsonb
 }
 ----
 ====
