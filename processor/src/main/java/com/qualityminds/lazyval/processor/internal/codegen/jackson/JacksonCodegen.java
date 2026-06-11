@@ -53,6 +53,7 @@ final class JacksonCodegen {
             serializeMethod.addException(ClassName.get("java.io", "IOException"));
         }
 
+        boolean needsCachedSerializer = false;
         if (wrappedType.isPrimitive()) {
             String wrappedTypeName = wrappedType.typeName().simpleName();
             String writeStatement = switch (wrappedTypeName) {
@@ -63,14 +64,26 @@ final class JacksonCodegen {
                 default -> "gen.writeString(String.valueOf(value.$L))";
             };
             serializeMethod.addStatement(writeStatement, element.accessor());
+        } else if (isStringType(wrappedType)) {
+            // Direct write — avoids per-call serializer lookup. Bypasses any user-customized
+            // String serializer; acceptable for scalar wrapper payloads.
+            serializeMethod.addStatement("gen.writeString(value.$L)", element.accessor());
         } else {
-            // Delegate to the already-registered serializer (e.g. JavaTimeModule for DateTime types)
-            serializeMethod.addStatement("var ser = provider.findValueSerializer($T.class)", TypeName.get(wrappedType.typeMirror()));
-            serializeMethod.addStatement("ser.serialize(value.$L, gen, provider)", element.accessor());
+            // Resolve the delegate serializer (e.g. JavaTimeModule for DateTime types) once
+            // and cache it. Benign data race on assignment: redundant resolution yields an
+            // equivalent serializer, never an incorrect one.
+            needsCachedSerializer = true;
+            var cachedFieldType = ParameterizedTypeName.get(version.valueSerializer(), ClassName.OBJECT);
+            serializeMethod
+                    .addStatement("$T ser = this.innerSerializer", cachedFieldType)
+                    .beginControlFlow("if (ser == null)")
+                    .addStatement("ser = provider.findValueSerializer($T.class)", TypeName.get(wrappedType.typeMirror()))
+                    .addStatement("this.innerSerializer = ser")
+                    .endControlFlow()
+                    .addStatement("ser.serialize(value.$L, gen, provider)", element.accessor());
         }
 
-        return TypeSpec.classBuilder(serializerName)
-                .addAnnotation(GeneratedStamp.forGenerator(version.executingGenerator()))
+        var builder = TypeSpec.classBuilder(serializerName)
                 .superclass(ParameterizedTypeName.get(version.stdSerializer(), elementType))
                 .addField(FieldSpec.builder(
                                 ClassName.bestGuess(serializerName), "INSTANCE",
@@ -79,8 +92,17 @@ final class JacksonCodegen {
                 .addMethod(MethodSpec.constructorBuilder()
                         .addModifiers(Modifier.PROTECTED)
                         .addStatement("super($T.class)", elementType).build())
-                .addMethod(serializeMethod.build())
-                .build();
+                .addMethod(serializeMethod.build());
+
+        if (needsCachedSerializer) {
+            builder.addField(FieldSpec.builder(
+                            ParameterizedTypeName.get(version.valueSerializer(), ClassName.OBJECT),
+                            "innerSerializer",
+                            Modifier.PRIVATE)
+                    .build());
+        }
+
+        return builder.build();
     }
 
     TypeSpec generateDeserializer(ValidatedGeneratorElement element) {
@@ -101,6 +123,7 @@ final class JacksonCodegen {
                     .addException(ClassName.get(version.corePackage(), "JacksonException"));
         }
 
+        boolean needsCachedDeserializer = false;
         if (wrappedType.isPrimitive()) {
             String wrappedTypeName = wrappedType.typeName().simpleName();
             String readValueStatement = switch (wrappedTypeName) {
@@ -115,18 +138,31 @@ final class JacksonCodegen {
                 default -> "var value = p.getValueAsString()";
             };
             deserializeMethod.addStatement(readValueStatement);
+        } else if (isStringType(wrappedType)) {
+            // Direct read — avoids per-call deserializer lookup. Bypasses any user-customized
+            // String deserializer; acceptable for scalar wrapper payloads.
+            deserializeMethod.addStatement("var value = p.getValueAsString()");
         } else {
-            // Delegate to the already-registered deserializer (e.g. JavaTimeModule for DateTime types)
-            deserializeMethod.addStatement("var deser = ctxt.findContextualValueDeserializer(ctxt.constructType($T.class), null)",
-                    TypeName.get(wrappedType.typeMirror()));
-            deserializeMethod.addStatement("var value = ($T) deser.deserialize(p, ctxt)",
-                    TypeName.get(wrappedType.typeMirror()));
+            // Resolve the delegate deserializer (e.g. JavaTimeModule for DateTime types) once
+            // and cache it. Benign data race on assignment: redundant resolution yields an
+            // equivalent deserializer, never an incorrect one.
+            needsCachedDeserializer = true;
+            var cachedFieldType = ParameterizedTypeName.get(version.valueDeserializer(), ClassName.OBJECT);
+            deserializeMethod
+                    .addStatement("$T deser = this.innerDeserializer", cachedFieldType)
+                    .beginControlFlow("if (deser == null)")
+                    .addStatement("deser = ctxt.findContextualValueDeserializer(ctxt.constructType($T.class), null)",
+                            TypeName.get(wrappedType.typeMirror()))
+                    .addStatement("this.innerDeserializer = deser")
+                    .endControlFlow()
+                    .addStatement("var value = ($T) deser.deserialize(p, ctxt)",
+                            TypeName.get(wrappedType.typeMirror()));
         }
 
         deserializeMethod
                 .addStatement("return $L", element.objectCreation("value"));
 
-        return TypeSpec.classBuilder(deserializerName)
+        var builder = TypeSpec.classBuilder(deserializerName)
                 .superclass(ParameterizedTypeName.get(version.stdDeserializer(), elementType))
                 .addField(FieldSpec.builder(
                                 ClassName.bestGuess(deserializerName), "INSTANCE",
@@ -135,8 +171,21 @@ final class JacksonCodegen {
                 .addMethod(MethodSpec.constructorBuilder()
                         .addModifiers(Modifier.PROTECTED)
                         .addStatement("super($T.class)", elementType).build())
-                .addMethod(deserializeMethod.build())
-                .build();
+                .addMethod(deserializeMethod.build());
+
+        if (needsCachedDeserializer) {
+            builder.addField(FieldSpec.builder(
+                            ParameterizedTypeName.get(version.valueDeserializer(), ClassName.OBJECT),
+                            "innerDeserializer",
+                            Modifier.PRIVATE)
+                    .build());
+        }
+
+        return builder.build();
+    }
+
+    private static boolean isStringType(ValidatedGeneratorElement.WrappedType wrappedType) {
+        return "java.lang.String".equals(wrappedType.typeMirror().toString());
     }
 
     TypeSpec generateModule(List<TypeSpec> serializers, List<TypeSpec> deserializers,
@@ -144,6 +193,7 @@ final class JacksonCodegen {
         boolean isQuarkus = context.isOnClasspath("io.quarkus.jackson.ObjectMapperCustomizer");
 
         var moduleBuilder = TypeSpec.classBuilder(version.lazyvalJacksonModuleName())
+                .addAnnotation(GeneratedStamp.forGenerator(version.executingGenerator()))
                 .addModifiers(Modifier.PUBLIC)
                 .superclass(version.simpleModule())
                 .addMethod(buildSetupModule(serializers, deserializers, elementTypes));

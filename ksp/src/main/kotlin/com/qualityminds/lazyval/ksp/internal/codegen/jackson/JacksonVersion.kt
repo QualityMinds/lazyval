@@ -7,6 +7,7 @@ import kotlin.reflect.KClass
 /**
  * Captures the package/class differences between Jackson 2 and Jackson 3.
  */
+@Suppress("TooManyFunctions") // Centralizes Jackson 2/3 type projections; splitting would scatter version-difference data.
 internal enum class JacksonVersion(
     val spiPackage: String,
     val spiClass: String,
@@ -20,6 +21,8 @@ internal enum class JacksonVersion(
     val setupContextOuterClass: String,
     val objectMapperPackage: String,
     val lazyvalJacksonModuleName: String,
+    val valueSerializerClass: String,
+    val valueDeserializerClass: String,
     val executingGenerator: KClass<out Generator>
 ) {
     JACKSON_2(
@@ -35,6 +38,8 @@ internal enum class JacksonVersion(
         setupContextOuterClass = "Module",
         objectMapperPackage = "com.fasterxml.jackson.databind",
         lazyvalJacksonModuleName = "LazyvalJackson2Module",
+        valueSerializerClass = "JsonSerializer",
+        valueDeserializerClass = "JsonDeserializer",
         executingGenerator = Jackson2Generator::class
     ),
     JACKSON_3(
@@ -50,6 +55,8 @@ internal enum class JacksonVersion(
         setupContextOuterClass = "JacksonModule",
         objectMapperPackage = "tools.jackson.databind",
         lazyvalJacksonModuleName = "LazyvalJacksonModule",
+        valueSerializerClass = "ValueSerializer",
+        valueDeserializerClass = "ValueDeserializer",
         executingGenerator = Jackson3Generator::class
     );
 
@@ -64,4 +71,6 @@ internal enum class JacksonVersion(
     fun simpleDeserializers(): ClassName = ClassName(modulePackage, "SimpleDeserializers")
     fun setupContext(): ClassName = ClassName(databindPackage, setupContextOuterClass, "SetupContext")
     fun objectMapper(): ClassName = ClassName(objectMapperPackage, "ObjectMapper")
+    fun valueSerializer(): ClassName = ClassName(databindPackage, valueSerializerClass)
+    fun valueDeserializer(): ClassName = ClassName(databindPackage, valueDeserializerClass)
 }
