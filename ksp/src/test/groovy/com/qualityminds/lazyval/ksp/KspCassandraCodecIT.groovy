@@ -106,4 +106,128 @@ class KspCassandraCodecIT extends Specification {
         and: 'doesnt contain @Generated'
         !Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/cassandra/$GENERATED_FILE_NAME")).contains("@Generated")
     }
+
+    void "single valid user codec is appended to all()"() {
+        given:
+        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/cassandracodecs/ValidCassandraCodec.kt")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.ValidCassandraCodec")
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then:
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
+
+        and: 'generated file references the user codec'
+        def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/cassandra/$GENERATED_FILE_NAME").toFile().text
+        generated.contains("scenarios.cassandracodecs.ValidCassandraCodec()")
+    }
+
+    void "multiple valid user codecs are appended in declared order"() {
+        given:
+        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt",
+                "scenarios/cassandracodecs/ValidCassandraCodec.kt",
+                "scenarios/cassandracodecs/AnotherValidCassandraCodec.kt")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs",
+                "scenarios.cassandracodecs.ValidCassandraCodec,scenarios.cassandracodecs.AnotherValidCassandraCodec")
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then:
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
+
+        and:
+        def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/cassandra/$GENERATED_FILE_NAME").toFile().text
+        def validIdx = generated.indexOf("scenarios.cassandracodecs.ValidCassandraCodec()")
+        def anotherIdx = generated.indexOf("scenarios.cassandracodecs.AnotherValidCassandraCodec()")
+        validIdx >= 0
+        anotherIdx > validIdx
+    }
+
+    void "missing class FQN fails the build"() {
+        given:
+        def scenario = Scenario.Kotlin.quantity().withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs", "com.example.Missing")
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then:
+        result instanceof Testresult.Kotlin.Failure
+        def failure = result as Testresult.Kotlin.Failure
+        failure.errors().any {
+            it.contains("lazyval.cassandra.codecs") && it.contains("com.example.Missing") && it.contains("not found on compile classpath")
+        }
+    }
+
+    void "class that does not implement TypeCodec fails the build"() {
+        given:
+        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/cassandracodecs/NotACassandraCodec.kt")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NotACassandraCodec")
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then:
+        result instanceof Testresult.Kotlin.Failure
+        def failure = result as Testresult.Kotlin.Failure
+        failure.errors().any {
+            it.contains("scenarios.cassandracodecs.NotACassandraCodec") && it.contains("does not implement") && it.contains("TypeCodec")
+        }
+    }
+
+    void "internal codec in different module fails the build"() {
+        given: 'codecs are generated at default location (test.boundary.persistence.cassandra); codec lives in scenarios.cassandracodecs'
+        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/cassandracodecs/NonPublicCassandraCodec.kt")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NonPublicCassandraCodec")
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then: 'internal in current module is accessible — the codec is included'
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
+
+        and:
+        def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/cassandra/$GENERATED_FILE_NAME").toFile().text
+        generated.contains("scenarios.cassandracodecs.NonPublicCassandraCodec()")
+    }
+
+    void "file-private codec fails the build"() {
+        given: 'NonAccessibleCassandraCodec is a top-level private (file-scoped) class — unreachable from anywhere'
+        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/cassandracodecs/NonAccessibleCassandraCodec.kt")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NonAccessibleCassandraCodec")
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then:
+        result instanceof Testresult.Kotlin.Failure
+        def failure = result as Testresult.Kotlin.Failure
+        failure.errors().any {
+            it.contains("scenarios.cassandracodecs.NonAccessibleCassandraCodec") && it.contains("not accessible")
+        }
+    }
+
+    void "codec without no-arg constructor fails the build"() {
+        given:
+        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/cassandracodecs/NoNoArgCassandraCodec.kt")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NoNoArgCassandraCodec")
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then:
+        result instanceof Testresult.Kotlin.Failure
+        def failure = result as Testresult.Kotlin.Failure
+        failure.errors().any {
+            it.contains("scenarios.cassandracodecs.NoNoArgCassandraCodec") && it.contains("no-arg constructor")
+        }
+    }
 }

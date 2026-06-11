@@ -109,4 +109,193 @@ class ApCassandraCodecIT extends Specification {
         then:
         result == new Testresult.Java.Success(GENERATED_FILE_NAME, "LazyvalCassandraCodecRegistrar.java")
     }
+
+    void "single valid user codec is appended to all()"() {
+        given:
+        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/cassandracodecs/ValidCassandraCodec.java")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.ValidCassandraCodec")
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then:
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
+
+        and: 'generated file references the user codec'
+        def generated = projectDir.resolve("build/generated/test/boundary/persistence/cassandra/$GENERATED_FILE_NAME").toFile().text
+        generated.contains("new scenarios.cassandracodecs.ValidCassandraCodec()")
+    }
+
+    void "multiple valid user codecs are appended in declared order"() {
+        given:
+        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+                "scenarios/cassandracodecs/ValidCassandraCodec.java",
+                "scenarios/cassandracodecs/AnotherValidCassandraCodec.java")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs",
+                "scenarios.cassandracodecs.ValidCassandraCodec,scenarios.cassandracodecs.AnotherValidCassandraCodec")
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then:
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
+
+        and:
+        def generated = projectDir.resolve("build/generated/test/boundary/persistence/cassandra/$GENERATED_FILE_NAME").toFile().text
+        def validIdx = generated.indexOf("new scenarios.cassandracodecs.ValidCassandraCodec()")
+        def anotherIdx = generated.indexOf("new scenarios.cassandracodecs.AnotherValidCassandraCodec()")
+        validIdx >= 0
+        anotherIdx > validIdx
+    }
+
+    void "whitespace and empty segments in option are tolerated"() {
+        given:
+        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+                "scenarios/cassandracodecs/ValidCassandraCodec.java",
+                "scenarios/cassandracodecs/AnotherValidCassandraCodec.java")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs",
+                " scenarios.cassandracodecs.ValidCassandraCodec , , scenarios.cassandracodecs.AnotherValidCassandraCodec ")
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then:
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
+
+        and:
+        def generated = projectDir.resolve("build/generated/test/boundary/persistence/cassandra/$GENERATED_FILE_NAME").toFile().text
+        generated.contains("new scenarios.cassandracodecs.ValidCassandraCodec()")
+        generated.contains("new scenarios.cassandracodecs.AnotherValidCassandraCodec()")
+    }
+
+    void "missing class FQN fails the build"() {
+        given:
+        def scenario = Scenario.Java.quantity().withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs", "com.example.Missing")
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then:
+        result instanceof Testresult.Java.Failure
+        def failure = result as Testresult.Java.Failure
+        failure.errors().any {
+            it.contains("lazyval.cassandra.codecs") && it.contains("com.example.Missing") && it.contains("not found on compile classpath")
+        }
+    }
+
+    void "class that does not implement TypeCodec fails the build"() {
+        given:
+        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/cassandracodecs/NotACassandraCodec.java")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NotACassandraCodec")
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then:
+        result instanceof Testresult.Java.Failure
+        def failure = result as Testresult.Java.Failure
+        failure.errors().any {
+            it.contains("scenarios.cassandracodecs.NotACassandraCodec") && it.contains("does not implement") && it.contains("TypeCodec")
+        }
+    }
+
+    void "package-private codec in different package fails the build"() {
+        given: 'codecs are generated at default location (test.boundary.persistence.cassandra), codec lives in scenarios.cassandracodecs'
+        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/cassandracodecs/NonPublicCassandraCodec.java")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NonPublicCassandraCodec")
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then:
+        result instanceof Testresult.Java.Failure
+        def failure = result as Testresult.Java.Failure
+        failure.errors().any {
+            it.contains("scenarios.cassandracodecs.NonPublicCassandraCodec") && it.contains("not accessible")
+        }
+    }
+
+    void "package-private codec in same package as generated codecs succeeds"() {
+        given: 'codecs class is generated into the codec package'
+        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/cassandracodecs/NonPublicCassandraCodec.java")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.package", "scenarios.cassandracodecs")
+        scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NonPublicCassandraCodec")
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then:
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
+
+        and:
+        def generated = projectDir.resolve("build/generated/scenarios/cassandracodecs/$GENERATED_FILE_NAME").toFile().text
+        generated.contains("new scenarios.cassandracodecs.NonPublicCassandraCodec()")
+    }
+
+    void "unconditionally inaccessible codec class fails the build"() {
+        given: 'NonAccessibleCassandraCodec.Inner is a private static nested class - unreachable from anywhere'
+        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/cassandracodecs/NonAccessibleCassandraCodec.java")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NonAccessibleCassandraCodec.Inner")
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then:
+        result instanceof Testresult.Java.Failure
+        def failure = result as Testresult.Java.Failure
+        failure.errors().any {
+            it.contains("scenarios.cassandracodecs.NonAccessibleCassandraCodec.Inner") && it.contains("not accessible")
+        }
+    }
+
+    void "codec without no-arg constructor fails the build"() {
+        given:
+        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/cassandracodecs/NoNoArgCassandraCodec.java")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NoNoArgCassandraCodec")
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then:
+        result instanceof Testresult.Java.Failure
+        def failure = result as Testresult.Java.Failure
+        failure.errors().any {
+            it.contains("scenarios.cassandracodecs.NoNoArgCassandraCodec") && it.contains("no-arg constructor")
+        }
+    }
+
+    void "two invalid FQNs report both errors in one build"() {
+        given:
+        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+                "scenarios/cassandracodecs/NotACassandraCodec.java",
+                "scenarios/cassandracodecs/NoNoArgCassandraCodec.java")
+                .withDependencies(dependencyDriverCore)
+        scenario.withOption("lazyval.cassandra.codecs",
+                "scenarios.cassandracodecs.NotACassandraCodec,scenarios.cassandracodecs.NoNoArgCassandraCodec")
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then:
+        result instanceof Testresult.Java.Failure
+        def failure = result as Testresult.Java.Failure
+
+        and: 'NotACassandraCodec error is reported'
+        failure.errors().any {
+            it.contains("scenarios.cassandracodecs.NotACassandraCodec") && it.contains("does not implement")
+        }
+        and: 'NoNoArgCassandraCodec error is reported'
+        failure.errors().any {
+            it.contains("scenarios.cassandracodecs.NoNoArgCassandraCodec") && it.contains("no-arg constructor")
+        }
+    }
 }

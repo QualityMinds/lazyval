@@ -38,7 +38,7 @@ class CassandraCodecGenerator : Generator {
     override fun requiredClasspath(): Collection<String> =
         listOf("com.datastax.oss.driver.api.core.type.codec.MappingCodec")
 
-    override fun supportedOptions(): Set<String> = setOf(OPTION_GENERATED_PACKAGE, OPTION_QUARKUS_REGISTER)
+    override fun supportedOptions(): Set<String> = setOf(OPTION_GENERATED_PACKAGE, OPTION_QUARKUS_REGISTER, OPTION_USER_CODECS)
 
     override fun generate(
         validatedElements: NonEmptySet<ValidatedKspGeneratorElement>,
@@ -46,16 +46,20 @@ class CassandraCodecGenerator : Generator {
     ): Stream<GeneratorResult> {
         val codecPackage = context.generatorPackage(OPTION_GENERATED_PACKAGE, "boundary.persistence.cassandra")
 
+        val userCodecFqns = validateUserCodecs(context, codecPackage)
+
+        val orderedElements = mutableListOf<ValidatedKspGeneratorElement>()
         val results = mutableListOf<GeneratorResult>()
         val codecSpecs = mutableListOf<TypeSpec>()
 
         for (element in validatedElements) {
             val typeCodecConstant = resolveTypeCodecConstant(element) ?: continue
+            orderedElements += element
             codecSpecs += buildMappingCodec(element, typeCodecConstant)
         }
 
         if (codecSpecs.isNotEmpty()) {
-            val utilitySpec = buildCodecsUtility(context, codecSpecs)
+            val utilitySpec = buildCodecsUtility(context, orderedElements, codecSpecs, userCodecFqns)
             val fileSpec = FileSpec.builder(codecPackage, utilitySpec.name!!)
                 .addType(utilitySpec)
                 .build()
@@ -71,7 +75,7 @@ class CassandraCodecGenerator : Generator {
 
             if (isQuarkus && quarkusRegister) {
                 val codecClassNames = codecSpecs.map { it.name!! }
-                val registrarSpec = CassandraQuarkusRegistrar.build(context, codecClassNames)
+                val registrarSpec = CassandraQuarkusRegistrar.build(context, codecClassNames, userCodecFqns)
                 val registrarFile = FileSpec.builder(codecPackage, registrarSpec.name!!)
                     .addType(registrarSpec)
                     .build()
@@ -83,6 +87,41 @@ class CassandraCodecGenerator : Generator {
         }
 
         return results.stream()
+    }
+
+    private fun validateUserCodecs(context: Generator.Context, codecPackage: String): List<String> {
+        val raw = context.getSetting(OPTION_USER_CODECS) ?: return emptyList()
+        if (raw.isBlank()) return emptyList()
+
+        val fqns = raw.split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+
+        val valid = mutableListOf<String>()
+        for (fqn in fqns) {
+            val info = context.inspectClass(fqn)
+            if (info == null) {
+                context.logError(this, "$OPTION_USER_CODECS: class '$fqn' not found on compile classpath")
+                continue
+            }
+            var ok = true
+            if (!info.isAssignableTo(TYPE_CODEC_FQN)) {
+                context.logError(this, "$OPTION_USER_CODECS: class '$fqn' does not implement $TYPE_CODEC_FQN")
+                ok = false
+            }
+            if (!info.isAccessibleFrom(codecPackage)) {
+                context.logError(this, "$OPTION_USER_CODECS: class '$fqn' is not accessible from the generated codecs at package '$codecPackage'")
+                ok = false
+            }
+            if (!info.hasAccessibleNoArgConstructor(codecPackage)) {
+                context.logError(this, "$OPTION_USER_CODECS: class '$fqn' must declare a no-arg constructor accessible from the generated codecs at package '$codecPackage'")
+                ok = false
+            }
+            if (ok) {
+                valid += fqn
+            }
+        }
+        return valid
     }
 
     private fun resolveTypeCodecConstant(element: ValidatedKspGeneratorElement): String? {
@@ -124,8 +163,15 @@ class CassandraCodecGenerator : Generator {
             .build()
     }
 
-    private fun buildCodecsUtility(context: Generator.Context, codecSpecs: List<TypeSpec>): TypeSpec {
+    private fun buildCodecsUtility(
+        context: Generator.Context,
+        elements: List<ValidatedKspGeneratorElement>,
+        codecSpecs: List<TypeSpec>,
+        userCodecFqns: List<String>
+    ): TypeSpec {
         val codecClassNames = codecSpecs.map { it.name!! }
+        val codecEntries = codecClassNames.map { "    ${it}()" } +
+            userCodecFqns.map { "    $it()" }
 
         val allFun = FunSpec.builder("all")
             .addKdoc(
@@ -136,19 +182,26 @@ class CassandraCodecGenerator : Generator {
                 "    .addTypeCodecs(*LazyvalCassandraCodecs.all())\n" +
                 "    .build()\n" +
                 "```\n\n" +
-                "@return an array containing one codec instance per generated wrapper type",
+                "User-supplied codecs configured via `lazyval.cassandra.codecs` are appended to the\n" +
+                "array so they take precedence in DataStax's last-registered-wins resolution.\n\n" +
+                "@return an array containing one codec instance per generated wrapper type, followed\n" +
+                "by one instance of each user-supplied codec",
                 TYPE_CODEC
             )
             .returns(ARRAY.parameterizedBy(TYPE_CODEC.parameterizedBy(STAR)))
             .addStatement(
                 "return arrayOf(\n%L\n)",
-                codecClassNames.joinToString(",\n") { "    ${it}()" }
+                codecEntries.joinToString(",\n")
             )
             .build()
 
         val builder = TypeSpec.objectBuilder("LazyvalCassandraCodecs")
             .addGeneratedAnnotation(CassandraCodecGenerator::class, context)
             .addFunction(allFun)
+
+        if (userCodecFqns.isNotEmpty()) {
+            builder.addInitializerBlock(buildOverrideDetectionBlock(elements, userCodecFqns))
+        }
 
         codecSpecs.forEach { spec ->
             builder.addType(spec.toBuilder().addModifiers(KModifier.INTERNAL).build())
@@ -157,15 +210,49 @@ class CassandraCodecGenerator : Generator {
         return builder.build()
     }
 
+    private fun buildOverrideDetectionBlock(
+        elements: List<ValidatedKspGeneratorElement>,
+        userCodecFqns: List<String>
+    ): CodeBlock {
+        val generatedTypesList = elements.joinToString(",\n") {
+            "    ${it.element.toClassName().simpleName}::class.java"
+        }
+        val userCodecArrayInit = userCodecFqns.joinToString(",\n") { "    $it()" }
+        return CodeBlock.of(
+            """
+            |val logger = %T.getLogger(LazyvalCassandraCodecs::class.java.name)
+            |val generatedTypes = setOf<Class<*>>(
+            |%L
+            |)
+            |val userCodecs = arrayOf<%T<*>>(
+            |%L
+            |)
+            |for (userCodec in userCodecs) {
+            |    if (userCodec.javaType.rawType in generatedTypes) {
+            |        logger.log(%T.INFO) {
+            |            "User-supplied codec ${'$'}{userCodec::class.java.name} overrides the generated codec for ${'$'}{userCodec.javaType.rawType.name}"
+            |        }
+            |    }
+            |}
+            |""".trimMargin(),
+            JAVA_LANG_SYSTEM, generatedTypesList, TYPE_CODEC, userCodecArrayInit, SYSTEM_LOGGER_LEVEL
+        )
+    }
+
     companion object {
         private const val GENERATOR_ID = "cassandra"
         private const val OPTION_GENERATED_PACKAGE = "lazyval.cassandra.package"
         private const val OPTION_QUARKUS_REGISTER = "lazyval.cassandra.quarkus.register"
+        private const val OPTION_USER_CODECS = "lazyval.cassandra.codecs"
+
+        private const val TYPE_CODEC_FQN = "com.datastax.oss.driver.api.core.type.codec.TypeCodec"
 
         private val MAPPING_CODEC = ClassName("com.datastax.oss.driver.api.core.type.codec", "MappingCodec")
         private val TYPE_CODECS = ClassName("com.datastax.oss.driver.api.core.type.codec", "TypeCodecs")
         private val GENERIC_TYPE = ClassName("com.datastax.oss.driver.api.core.type.reflect", "GenericType")
         private val TYPE_CODEC = ClassName("com.datastax.oss.driver.api.core.type.codec", "TypeCodec")
+        private val SYSTEM_LOGGER_LEVEL = ClassName("java.lang", "System", "Logger", "Level")
+        private val JAVA_LANG_SYSTEM = ClassName("java.lang", "System")
 
         /**
          * Maps Kotlin/Java type qualified names to their corresponding
