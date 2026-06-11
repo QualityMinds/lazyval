@@ -15,7 +15,7 @@ class Jackson3Generator : Generator {
     companion object {
         const val GENERATOR_ID = "jackson-3"
         private const val OPTION_GENERATED_PACKAGE = "lazyval.jackson.package"
-        private val VERSION = JacksonVersion.JACKSON_3
+        private val VERSION = GeneratorConfig.JACKSON_3
     }
 
     private val codegen = JacksonCodegen(VERSION)

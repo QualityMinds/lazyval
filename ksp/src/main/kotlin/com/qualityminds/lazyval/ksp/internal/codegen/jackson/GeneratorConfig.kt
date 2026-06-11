@@ -8,7 +8,7 @@ import kotlin.reflect.KClass
  * Captures the package/class differences between Jackson 2 and Jackson 3.
  */
 @Suppress("TooManyFunctions") // Centralizes Jackson 2/3 type projections; splitting would scatter version-difference data.
-internal enum class JacksonVersion(
+internal enum class GeneratorConfig(
     val spiPackage: String,
     val spiClass: String,
     val corePackage: String,

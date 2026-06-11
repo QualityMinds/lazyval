@@ -11,7 +11,7 @@ import com.squareup.kotlinpoet.ksp.toTypeName
 
 /**
  * Shared code-generation logic for Jackson serializer/deserializer modules.
- * Parameterized by [JacksonVersion] to handle Jackson 2 vs 3 differences.
+ * Parameterized by [GeneratorConfig] to handle Jackson 2 vs 3 differences.
  *
  * ## Null invariants
  *
@@ -33,7 +33,7 @@ import com.squareup.kotlinpoet.ksp.toTypeName
  * property, a `NullPointerException` will be thrown at first access, not during deserialization.
  * Any property holding a type with a nullable factory **must** be declared as `DomainType?`.
  */
-internal class JacksonCodegen(private val version: JacksonVersion) {
+internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
 
     fun generateSerializer(element: ValidatedKspGeneratorElement): TypeSpec {
         val elementClassName = element.element.toClassName()
@@ -78,11 +78,11 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
         }
 
         val builder = TypeSpec.classBuilder(serializerName)
-            .superclass(version.stdSerializer().parameterizedBy(elementClassName))
+            .superclass(generatorConfig.stdSerializer().parameterizedBy(elementClassName))
             .addSuperclassConstructorParameter(CodeBlock.of("%T::class.java", elementClassName))
 
         if (needsCachedSerializer) {
-            val cachedFieldType = version.valueSerializer().parameterizedBy(ANY).copy(nullable = true)
+            val cachedFieldType = generatorConfig.valueSerializer().parameterizedBy(ANY).copy(nullable = true)
             builder.addProperty(
                 PropertySpec.builder("innerSerializer", cachedFieldType)
                     .addModifiers(KModifier.PRIVATE)
@@ -97,8 +97,8 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
                 FunSpec.builder("serialize")
                     .addModifiers(KModifier.OVERRIDE)
                     .addParameter("value", elementClassName)
-                    .addParameter("gen", version.jsonGenerator())
-                    .addParameter("ctx", version.serializerProvider())
+                    .addParameter("gen", generatorConfig.jsonGenerator())
+                    .addParameter("ctx", generatorConfig.serializerProvider())
                     .apply(serializeBody)
                     .build()
             )
@@ -117,16 +117,16 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
         val deserializeMethod = FunSpec.builder("deserialize")
             .addModifiers(KModifier.OVERRIDE)
             .returns(returnType)
-            .addParameter("p", version.jsonParser())
-            .addParameter("ctx", version.deserializationContext())
+            .addParameter("p", generatorConfig.jsonParser())
+            .addParameter("ctx", generatorConfig.deserializationContext())
             .apply(deserializeBody(element, wrappedType))
 
         val builder = TypeSpec.classBuilder(deserializerName)
-            .superclass(version.stdDeserializer().parameterizedBy(returnType))
+            .superclass(generatorConfig.stdDeserializer().parameterizedBy(returnType))
             .addSuperclassConstructorParameter(CodeBlock.of("%T::class.java", elementClassName))
 
         if (needsCachedDeserializer) {
-            val cachedFieldType = version.valueDeserializer().parameterizedBy(ANY).copy(nullable = true)
+            val cachedFieldType = generatorConfig.valueDeserializer().parameterizedBy(ANY).copy(nullable = true)
             builder.addProperty(
                 PropertySpec.builder("innerDeserializer", cachedFieldType)
                     .addModifiers(KModifier.PRIVATE)
@@ -219,9 +219,12 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
             )
         }
 
-        val moduleBuilder = TypeSpec.classBuilder(version.lazyvalJacksonModuleName)
-            .superclass(version.simpleModule())
-            .addGeneratedAnnotation(version.executingGenerator, context)
+        val moduleBuilder = TypeSpec.classBuilder(generatorConfig.lazyvalJacksonModuleName)
+            .superclass(generatorConfig.simpleModule())
+            .addSuperclassConstructorParameter("%S, %T.unknownVersion()",
+                generatorConfig.lazyvalJacksonModuleName,
+                ClassName(generatorConfig.corePackage, "Version"))
+            .addGeneratedAnnotation(generatorConfig.executingGenerator, context)
             .addType(companionBuilder.build())
             .addFunction(buildSetupModule(serializers, deserializers, elementTypes))
 
@@ -245,10 +248,10 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
     ): FunSpec {
         val builder = FunSpec.builder("setupModule")
             .addModifiers(KModifier.OVERRIDE)
-            .addParameter("context", version.setupContext())
+            .addParameter("context", generatorConfig.setupContext())
             .addStatement("super.setupModule(context)")
-            .addStatement("val sers = %T()", version.simpleSerializers())
-            .addStatement("val desers = %T()", version.simpleDeserializers())
+            .addStatement("val sers = %T()", generatorConfig.simpleSerializers())
+            .addStatement("val desers = %T()", generatorConfig.simpleDeserializers())
 
         for (i in serializers.indices) {
             val instanceName = serializers[i].name!!.replaceFirstChar { it.lowercase() }
@@ -268,7 +271,7 @@ internal class JacksonCodegen(private val version: JacksonVersion) {
     private fun buildQuarkusCustomizer(): FunSpec =
         FunSpec.builder("customize")
             .addModifiers(KModifier.OVERRIDE)
-            .addParameter("objectMapper", version.objectMapper())
+            .addParameter("objectMapper", generatorConfig.objectMapper())
             .addStatement("objectMapper.registerModule(this)")
             .build()
 }

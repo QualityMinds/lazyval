@@ -10,7 +10,7 @@ import java.util.List;
 
 /**
  * Shared code-generation logic for Jackson serializer/deserializer modules.
- * Parameterized by {@link JacksonVersion} to handle Jackson 2 vs 3 differences.
+ * Parameterized by {@link GeneratorConfig} to handle Jackson 2 vs 3 differences.
  *
  * <h3>Null invariants</h3>
  * <b>Serializer:</b> Jackson never calls {@code serialize} for a {@code null} value; null is
@@ -30,10 +30,10 @@ final class JacksonCodegen {
     private static final AnnotationSpec OVERRIDE_ANNOTATION = AnnotationSpec.builder(
             ClassName.get("java.lang", "Override")).build();
 
-    private final JacksonVersion version;
+    private final GeneratorConfig generatorConfig;
 
-    JacksonCodegen(JacksonVersion version) {
-        this.version = version;
+    JacksonCodegen(GeneratorConfig generatorConfig) {
+        this.generatorConfig = generatorConfig;
     }
 
     TypeSpec generateSerializer(ValidatedGeneratorElement element) {
@@ -46,10 +46,10 @@ final class JacksonCodegen {
                 .addModifiers(Modifier.PUBLIC)
                 .returns(TypeName.VOID)
                 .addParameter(elementType, "value")
-                .addParameter(version.jsonGenerator(), "gen")
-                .addParameter(version.serializerProvider(), "provider");
+                .addParameter(generatorConfig.jsonGenerator(), "gen")
+                .addParameter(generatorConfig.serializerProvider(), "provider");
 
-        if (version.deserializerDeclaresExceptions()) {
+        if (generatorConfig.deserializerDeclaresExceptions()) {
             serializeMethod.addException(ClassName.get("java.io", "IOException"));
         }
 
@@ -73,7 +73,7 @@ final class JacksonCodegen {
             // and cache it. Benign data race on assignment: redundant resolution yields an
             // equivalent serializer, never an incorrect one.
             needsCachedSerializer = true;
-            var cachedFieldType = ParameterizedTypeName.get(version.valueSerializer(), ClassName.OBJECT);
+            var cachedFieldType = ParameterizedTypeName.get(generatorConfig.valueSerializer(), ClassName.OBJECT);
             serializeMethod
                     .addStatement("$T ser = this.innerSerializer", cachedFieldType)
                     .beginControlFlow("if (ser == null)")
@@ -84,7 +84,7 @@ final class JacksonCodegen {
         }
 
         var builder = TypeSpec.classBuilder(serializerName)
-                .superclass(ParameterizedTypeName.get(version.stdSerializer(), elementType))
+                .superclass(ParameterizedTypeName.get(generatorConfig.stdSerializer(), elementType))
                 .addField(FieldSpec.builder(
                                 ClassName.bestGuess(serializerName), "INSTANCE",
                                 Modifier.STATIC, Modifier.FINAL)
@@ -96,7 +96,7 @@ final class JacksonCodegen {
 
         if (needsCachedSerializer) {
             builder.addField(FieldSpec.builder(
-                            ParameterizedTypeName.get(version.valueSerializer(), ClassName.OBJECT),
+                            ParameterizedTypeName.get(generatorConfig.valueSerializer(), ClassName.OBJECT),
                             "innerSerializer",
                             Modifier.PRIVATE)
                     .build());
@@ -114,13 +114,13 @@ final class JacksonCodegen {
                 .addAnnotation(OVERRIDE_ANNOTATION)
                 .addModifiers(Modifier.PUBLIC)
                 .returns(elementType)
-                .addParameter(version.jsonParser(), "p")
-                .addParameter(version.deserializationContext(), "ctxt");
+                .addParameter(generatorConfig.jsonParser(), "p")
+                .addParameter(generatorConfig.deserializationContext(), "ctxt");
 
-        if (version.deserializerDeclaresExceptions()) {
+        if (generatorConfig.deserializerDeclaresExceptions()) {
             deserializeMethod
                     .addException(ClassName.get("java.io", "IOException"))
-                    .addException(ClassName.get(version.corePackage(), "JacksonException"));
+                    .addException(ClassName.get(generatorConfig.corePackage(), "JacksonException"));
         }
 
         boolean needsCachedDeserializer = false;
@@ -147,7 +147,7 @@ final class JacksonCodegen {
             // and cache it. Benign data race on assignment: redundant resolution yields an
             // equivalent deserializer, never an incorrect one.
             needsCachedDeserializer = true;
-            var cachedFieldType = ParameterizedTypeName.get(version.valueDeserializer(), ClassName.OBJECT);
+            var cachedFieldType = ParameterizedTypeName.get(generatorConfig.valueDeserializer(), ClassName.OBJECT);
             deserializeMethod
                     .addStatement("$T deser = this.innerDeserializer", cachedFieldType)
                     .beginControlFlow("if (deser == null)")
@@ -163,7 +163,7 @@ final class JacksonCodegen {
                 .addStatement("return $L", element.objectCreation("value"));
 
         var builder = TypeSpec.classBuilder(deserializerName)
-                .superclass(ParameterizedTypeName.get(version.stdDeserializer(), elementType))
+                .superclass(ParameterizedTypeName.get(generatorConfig.stdDeserializer(), elementType))
                 .addField(FieldSpec.builder(
                                 ClassName.bestGuess(deserializerName), "INSTANCE",
                                 Modifier.STATIC, Modifier.FINAL)
@@ -175,7 +175,7 @@ final class JacksonCodegen {
 
         if (needsCachedDeserializer) {
             builder.addField(FieldSpec.builder(
-                            ParameterizedTypeName.get(version.valueDeserializer(), ClassName.OBJECT),
+                            ParameterizedTypeName.get(generatorConfig.valueDeserializer(), ClassName.OBJECT),
                             "innerDeserializer",
                             Modifier.PRIVATE)
                     .build());
@@ -192,10 +192,11 @@ final class JacksonCodegen {
                             List<TypeName> elementTypes, Generator.Context context) {
         boolean isQuarkus = context.isOnClasspath("io.quarkus.jackson.ObjectMapperCustomizer");
 
-        var moduleBuilder = TypeSpec.classBuilder(version.lazyvalJacksonModuleName())
-                .addAnnotation(GeneratedStamp.forGenerator(version.executingGenerator()))
+        var moduleBuilder = TypeSpec.classBuilder(generatorConfig.lazyvalJacksonModuleName())
+                .addAnnotation(GeneratedStamp.forGenerator(generatorConfig.executingGenerator()))
                 .addModifiers(Modifier.PUBLIC)
-                .superclass(version.simpleModule())
+                .superclass(generatorConfig.simpleModule())
+                .addMethod(buildModuleConstructor())
                 .addMethod(buildSetupModule(serializers, deserializers, elementTypes));
 
         if (isQuarkus) {
@@ -211,16 +212,24 @@ final class JacksonCodegen {
         return moduleBuilder.build();
     }
 
+    private MethodSpec buildModuleConstructor() {
+        var versionClass = ClassName.get(generatorConfig.corePackage(), "Version");
+        return MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PUBLIC)
+                .addStatement("super($S, $T.unknownVersion())", generatorConfig.lazyvalJacksonModuleName(), versionClass)
+                .build();
+    }
+
     private MethodSpec buildSetupModule(List<TypeSpec> serializers, List<TypeSpec> deserializers,
                                         List<TypeName> elementTypes) {
         var builder = MethodSpec.methodBuilder("setupModule")
                 .addAnnotation(OVERRIDE_ANNOTATION)
                 .addModifiers(Modifier.PUBLIC)
-                .addParameter(version.setupContext(), "context")
+                .addParameter(generatorConfig.setupContext(), "context")
                 .returns(TypeName.VOID)
                 .addStatement("super.setupModule(context)")
-                .addStatement("$T sers = new $T()", version.simpleSerializers(), version.simpleSerializers())
-                .addStatement("$T desers = new $T()", version.simpleDeserializers(), version.simpleDeserializers());
+                .addStatement("$T sers = new $T()", generatorConfig.simpleSerializers(), generatorConfig.simpleSerializers())
+                .addStatement("$T desers = new $T()", generatorConfig.simpleDeserializers(), generatorConfig.simpleDeserializers());
 
         for (int i = 0; i < serializers.size(); i++) {
             builder.addStatement("sers.addSerializer($T.class, $L.INSTANCE)",
@@ -241,7 +250,7 @@ final class JacksonCodegen {
         return MethodSpec.methodBuilder("customize")
                 .addAnnotation(OVERRIDE_ANNOTATION)
                 .addModifiers(Modifier.PUBLIC)
-                .addParameter(version.objectMapper(), "objectMapper")
+                .addParameter(generatorConfig.objectMapper(), "objectMapper")
                 .returns(TypeName.VOID)
                 .addStatement("objectMapper.registerModule(this)")
                 .build();

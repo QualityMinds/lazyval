@@ -21,7 +21,7 @@ public class Jackson2Generator implements Generator {
     public static final String GENERATOR_ID = "jackson-2";
     private static final String OPTION_GENERATED_PACKAGE = "lazyval.jackson.package";
 
-    private static final JacksonVersion VERSION = JacksonVersion.JACKSON_2;
+    private static final GeneratorConfig VERSION = GeneratorConfig.JACKSON_2;
     private final JacksonCodegen codegen = new JacksonCodegen(VERSION);
 
     @Override

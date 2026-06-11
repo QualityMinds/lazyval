@@ -6,7 +6,7 @@ import com.qualityminds.lazyval.processor.spi.Generator;
 /**
  * Captures the package/class differences between Jackson 2 and Jackson 3.
  */
-record JacksonVersion(
+record GeneratorConfig(
         String spiPackage,
         String spiClass,
         String requiredClasspath,
@@ -25,7 +25,7 @@ record JacksonVersion(
         boolean deserializerDeclaresExceptions,
         Class<? extends Generator> executingGenerator
 ) {
-    static final JacksonVersion JACKSON_2 = new JacksonVersion(
+    static final GeneratorConfig JACKSON_2 = new GeneratorConfig(
             "com.fasterxml.jackson.databind",
             "Module",
             "com.fasterxml.jackson.databind.Module",
@@ -45,7 +45,7 @@ record JacksonVersion(
             Jackson2Generator.class
     );
 
-    static final JacksonVersion JACKSON_3 = new JacksonVersion(
+    static final GeneratorConfig JACKSON_3 = new GeneratorConfig(
             "tools.jackson.databind",
             "JacksonModule",
             "tools.jackson.databind.JacksonModule",
