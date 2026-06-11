@@ -39,6 +39,10 @@ Java (Jackson 2.x)::
 ----
 @Generated(...)
 public class LazyvalJacksonModule extends SimpleModule {
+  public LazyvalJacksonModule() {
+    super("LazyvalJacksonModule", Version.unknownVersion());
+  }
+
   @Override
   public void setupModule(Module.SetupContext context) {
     super.setupModule(context);
@@ -165,7 +169,7 @@ Kotlin (Jackson 3.x)::
 [source,kotlin]
 ----
 @Generated(...)
-public class LazyvalJacksonModule : SimpleModule() {
+public class LazyvalJacksonModule : SimpleModule("LazyvalJacksonModule", Version.unknownVersion()) {
   override fun setupModule(context: JacksonModule.SetupContext) {
     super.setupModule(context)
     val sers = SimpleSerializers()
