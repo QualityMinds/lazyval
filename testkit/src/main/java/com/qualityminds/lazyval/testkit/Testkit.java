@@ -54,6 +54,8 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
      */
     public abstract R run(Path projectDir, S scenario);
 
+    public abstract R run(Path projectDir, S scenario, ApprovalDefinition... approvalDefinitions);
+
     /**
      * Builds the given scenario factory and runs the resulting scenario in the supplied
      * project directory.
@@ -68,6 +70,10 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
      */
     public R run(Path projectDir, ScenarioFactory<S> scenarioFactory){
         return run(projectDir, scenarioFactory.build());
+    }
+
+    public R runWithApproval(Path projectDir, ScenarioFactory<S> scenarioFactory, ApprovalDefinition... approvalDefinitions){
+        return run(projectDir, scenarioFactory.build(), approvalDefinitions);
     }
 
     /**
@@ -156,6 +162,19 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
             }
         }
 
+        @Override
+        public Testresult.Kotlin run(Path projectDir, Scenario.Kotlin scenario, ApprovalDefinition... approvalDefinitions) {
+            cleanProjectDir(projectDir);
+            try (var toolchain = KotlinToolchain.create(
+                    Thread.currentThread().getContextClassLoader(),
+                    projectDir,
+                    scenario.desc())) {
+                return convertToolchainResult(toolchain.run());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
         private Testresult.Kotlin convertToolchainResult(KotlinToolchain.Result toolchainResult){
             if(toolchainResult.isSuccessful()){
                 if(toolchainResult.generatedNoFiles()){
@@ -196,6 +215,14 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
 
         @Override
         public Testresult.Java run(Path projectDir, Scenario.Java scenario) {
+            cleanProjectDir(projectDir);
+            var toolchain = JavaToolchain.create(projectDir, scenario.desc());
+            var result = toolchain.run();
+            return convertToolchainResult(result);
+        }
+
+        @Override
+        public Testresult.Java run(Path projectDir, Scenario.Java scenario, ApprovalDefinition... approvalDefinitions) {
             cleanProjectDir(projectDir);
             var toolchain = JavaToolchain.create(projectDir, scenario.desc());
             var result = toolchain.run();

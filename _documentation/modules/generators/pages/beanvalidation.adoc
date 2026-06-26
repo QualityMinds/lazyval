@@ -79,7 +79,7 @@ To work around this, the KSP generator splits the extractor into two files:
    provides the implementation.
 
 This split is an internal implementation detail of the generator.
-From a user perspective nothing changes: the extractor is auto-discovered and constraint
+From a user perspective nothing differences: the extractor is auto-discovered and constraint
 annotations work on domain-primitives just as they do for the Java variant.
 
 == Supported Wrapped Types

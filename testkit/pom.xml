@@ -37,6 +37,11 @@
             <groupId>org.jspecify</groupId>
             <artifactId>jspecify</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.github.java-diff-utils</groupId>
+            <artifactId>java-diff-utils</artifactId>
+            <version>${version.diff-utils}</version>
+        </dependency>
         <!-- The following Dependencies are used to set up a KSP2 and Kotlin compiler toolchain in the testkit -->
         <dependency>
             <!-- needs to be explicitly defined because otherwise it is just a runtime dep -->

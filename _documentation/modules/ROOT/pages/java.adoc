@@ -54,7 +54,7 @@ include::ROOT:example$java/pom.xml[tags=docu;!excluded]
 
 Maven 4::
 +
-Maven 4 changes the way the annotation-processor-classpath is set.
+Maven 4 differences the way the annotation-processor-classpath is set.
 +
 .pom.xml
 [source, xml]
