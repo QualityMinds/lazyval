@@ -112,7 +112,9 @@ class ApSpringDataCassandraIT extends Specification {
 
     void "single valid user converter is appended to cassandraCustomConversions"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/ValidConverter.java")
+        def scenario = Scenario.Java.of("one-valid",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/ValidConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.ValidConverter")
 
@@ -130,7 +132,8 @@ class ApSpringDataCassandraIT extends Specification {
 
     void "multiple valid user converters are all appended in declared order"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+        def scenario = Scenario.Java.of("two-valid",
+                "scenarios/java/Quantity.java",
                 "scenarios/converters/ValidConverter.java",
                 "scenarios/converters/AnotherValidConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
@@ -153,7 +156,9 @@ class ApSpringDataCassandraIT extends Specification {
 
     void "whitespace and empty segments in option are tolerated"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+        def scenario = Scenario.Java.of(
+                "whitespace-in-option",
+                "scenarios/java/Quantity.java",
                 "scenarios/converters/ValidConverter.java",
                 "scenarios/converters/AnotherValidConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
@@ -191,7 +196,10 @@ class ApSpringDataCassandraIT extends Specification {
 
     void "class that does not implement Converter fails the build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NotAConverter.java")
+        def scenario = Scenario.Java.of(
+                "not-a-converter",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/NotAConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NotAConverter")
 
@@ -208,7 +216,10 @@ class ApSpringDataCassandraIT extends Specification {
 
     void "package-private converter in different package fails the build"() {
         given: 'config is generated at default location, converter lives in scenarios.converters'
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NonPublicConverter.java")
+        def scenario = Scenario.Java.of(
+                "not-accessible",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/NonPublicConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NonPublicConverter")
 
@@ -225,7 +236,10 @@ class ApSpringDataCassandraIT extends Specification {
 
     void "package-private converter in same package as generated config succeeds"() {
         given: 'configuration class is generated into the converter package'
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NonPublicConverter.java")
+        def scenario = Scenario.Java.of(
+                "package-private-converter",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/NonPublicConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.package", "scenarios.converters")
         scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NonPublicConverter")
@@ -243,7 +257,10 @@ class ApSpringDataCassandraIT extends Specification {
 
     void "unconditionally inaccessible converter class fails the build"() {
         given: 'NonAccessibleConverter.Inner is a private static nested class — unreachable from anywhere'
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NonAccessibleConverter.java")
+        def scenario = Scenario.Java.of(
+                "inner-private-not-accessible",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/NonAccessibleConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NonAccessibleConverter.Inner")
 
@@ -260,7 +277,10 @@ class ApSpringDataCassandraIT extends Specification {
 
     void "converter without @ReadingConverter or @WritingConverter fails the build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/UnannotatedConverter.java")
+        def scenario = Scenario.Java.of(
+                "missing-annotations",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/UnannotatedConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.UnannotatedConverter")
 
@@ -277,7 +297,10 @@ class ApSpringDataCassandraIT extends Specification {
 
     void "converter without no-arg constructor fails the build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NoNoArgConverter.java")
+        def scenario = Scenario.Java.of(
+                "missing-no-arg-ctor",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/NoNoArgConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NoNoArgConverter")
 
@@ -294,7 +317,9 @@ class ApSpringDataCassandraIT extends Specification {
 
     void "two invalid FQNs report both errors in one build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+        def scenario = Scenario.Java.of(
+                "invalid-fqns-reported",
+                "scenarios/java/Quantity.java",
                 "scenarios/converters/NotAConverter.java",
                 "scenarios/converters/NoNoArgConverter.java")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)

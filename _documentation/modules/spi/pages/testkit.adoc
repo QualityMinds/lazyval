@@ -28,6 +28,8 @@ The testkit ships a collection of predefined valid scenarios for both Java and K
 
 TIP: in general, SPI providers should test against `Scenario.Java.all()` and `Scenario.Kotlin.all()` to make sure the
 generator can handle all cases Lazyval will throw at it.
+As an alternative for generators creating only a single file for multiple primitives, `Scenario.Java.combined()` and `Scenario.Kotlin.combined()` provide a Scenario that contains all predefined cases in a single compilation unit.
+
 
 IMPORTANT: the predefined scenarios need still to be configured with the required generator `Dependency` in order to yield generator artifacts.
 

@@ -41,7 +41,7 @@ class KspJpaIT extends Specification {
 
         where:
         scenario << Scenario.Kotlin.all()
-        generatedJpaMapper = scenario.name() == "Ids.kt" ? "IdsProductIdAttributeConverter.kt" : scenario.name().replace(".kt", "AttributeConverter.kt")
+        generatedJpaMapper = scenario.name().contains("Ids.kt") ? "IdsProductIdAttributeConverter.kt" : scenario.name().replace(".kt", "AttributeConverter.kt")
         expected = new Testresult.Kotlin.Success(generatedJpaMapper)
     }
 

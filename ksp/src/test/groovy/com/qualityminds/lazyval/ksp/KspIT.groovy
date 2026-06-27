@@ -51,13 +51,13 @@ class KspIT extends Specification {
 
         where:
         scenario                                                             | error
-        Scenario.Kotlin.of( "scenarios/failing/AbstractClass.kt")            | "Lazyval: Abstract class is not a valid ValueType."
-        Scenario.Kotlin.of( "scenarios/failing/IsbnMissingFactory.kt")       | "Cannot access 'constructor(value: String): IsbnMissingFactory': it is private in 'scenarios.failing.IsbnMissingFactory'." // kotlin-compiler warning, so no Lazyval message prefix
-        Scenario.Kotlin.of( "scenarios/failing/ValueClass.kt")               | "Lazyval: value class is not supported by Lazyval."
-        Scenario.Kotlin.of( "scenarios/failing/MultipleFactoriesClass.kt")   | "Lazyval: Multiple matching factory methods with the same signature found. Please check functions ofNullable, of"
-        Scenario.Kotlin.of( "scenarios/failing/MultiplePropertyClass.kt")    | "Lazyval: Not a simple ValueType. Lazyval only supports classes with one non-transient property."
-        Scenario.Kotlin.of( "scenarios/failing/MultiplePropertyDataClass.kt")| "Lazyval: Not a simple ValueType. Lazyval only supports classes with one non-transient property."
-        Scenario.Kotlin.of( "scenarios/failing/NullableWrappedType.kt")      | "Lazyval: Wrapped type must not be nullable. Please use a non-nullable type."
+        Scenario.Kotlin.ofSingle("scenarios/failing/AbstractClass.kt")            | "Lazyval: Abstract class is not a valid ValueType."
+        Scenario.Kotlin.ofSingle("scenarios/failing/IsbnMissingFactory.kt")       | "Cannot access 'constructor(value: String): IsbnMissingFactory': it is private in 'scenarios.failing.IsbnMissingFactory'." // kotlin-compiler warning, so no Lazyval message prefix
+        Scenario.Kotlin.ofSingle("scenarios/failing/ValueClass.kt")               | "Lazyval: value class is not supported by Lazyval."
+        Scenario.Kotlin.ofSingle("scenarios/failing/MultipleFactoriesClass.kt")   | "Lazyval: Multiple matching factory methods with the same signature found. Please check functions ofNullable, of"
+        Scenario.Kotlin.ofSingle("scenarios/failing/MultiplePropertyClass.kt")    | "Lazyval: Not a simple ValueType. Lazyval only supports classes with one non-transient property."
+        Scenario.Kotlin.ofSingle("scenarios/failing/MultiplePropertyDataClass.kt")| "Lazyval: Not a simple ValueType. Lazyval only supports classes with one non-transient property."
+        Scenario.Kotlin.ofSingle("scenarios/failing/NullableWrappedType.kt")      | "Lazyval: Wrapped type must not be nullable. Please use a non-nullable type."
     }
 
     @Unroll("#scenario.name() #message")
@@ -73,10 +73,10 @@ class KspIT extends Specification {
 
         where:
         scenario                                                            | warning
-        Scenario.Kotlin.of("scenarios/edge/IsbnWithAccessor.kt")            | null
-        Scenario.Kotlin.of("scenarios/edge/ClassWithTransientProperty.kt")  | null
-        Scenario.Kotlin.of("scenarios/edge/IsbnNotFinal.kt")                | "Lazyval: Value Types should not be extendable, hence the class should be final."
-        Scenario.Kotlin.of("scenarios/edge/QuantityMutable.kt")             | "Lazyval: Value Types should be immutable, hence the wrapped property should be final (val)."
+        Scenario.Kotlin.ofSingle("scenarios/edge/IsbnWithAccessor.kt")            | null
+        Scenario.Kotlin.ofSingle("scenarios/edge/ClassWithTransientProperty.kt")  | null
+        Scenario.Kotlin.ofSingle("scenarios/edge/IsbnNotFinal.kt")                | "Lazyval: Value Types should not be extendable, hence the class should be final."
+        Scenario.Kotlin.ofSingle("scenarios/edge/QuantityMutable.kt")             | "Lazyval: Value Types should be immutable, hence the wrapped property should be final (val)."
         expected = warning != null
                 ? new Testresult.Kotlin.SuccessWithWarnings(Lists.immutable.of(GENERATED_MAPSTRUCT_MAPPER_NAME), Lists.immutable.of(warning))
                 : new Testresult.Kotlin.Success(GENERATED_MAPSTRUCT_MAPPER_NAME)
@@ -101,14 +101,17 @@ class KspIT extends Specification {
 
     void "Error is issued when multiple LazyvalConfigurations are present" (){
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/failing/MultiConfigs.kt")
+        def scenario = Scenario.Kotlin.ofSingle("scenarios/failing/MultiConfigs.kt")
         expect:
         testkitKotlin.run(projectDir, scenario) == new Testresult.Kotlin.Failure("Lazyval: Only one @LazyvalConfiguration is allowed per compilation unit.")
     }
 
     void "Error is issued when LazyvalConfiguration marks an local type of the current compilation unit as external" (){
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/failing/LocalTypeAsExternal.kt", "scenarios/failing/LocalTypeAsExternalReferenz.kt")
+        def scenario = Scenario.Kotlin.of(
+                "package-config-local-type",
+                "scenarios/failing/LocalTypeAsExternal.kt",
+                "scenarios/failing/LocalTypeAsExternalReferenz.kt")
         expect:
         testkitKotlin.run(projectDir, scenario) == new Testresult.Kotlin.Failure("Lazyval: Type 'scenarios.failing.LocalTypeAsExternalReferenz' listed in @LazyvalConfiguration.externalTypes belongs to the current compilation unit. Annotate it with @LazyValue directly.")
     }

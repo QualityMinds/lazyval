@@ -18,29 +18,34 @@ import static org.eclipse.collections.impl.collector.Collectors2.toImmutableList
  * @param <T> the type of the scenario to create
  */
 public class ScenarioFactory<T extends Scenario> {
-    private final File sourceFile;
-    private final ImmutableCollection<File> additionalSourceFiles;
+    private final String name;
+    private final ImmutableCollection<File> sources;
     private final java.util.function.Function<Scenario.Descriptor, T> constructionFunction;
     private ImmutableCollection<Dependency> dependencies = Lists.immutable.empty();
     private ImmutableCollection<String> disabledGenerators = Lists.immutable.empty();
     private boolean basePackageDisabled = false;
     private Map<String, String> options = new HashMap<>();
 
+    protected static String deriveName(String sourcePath) {
+        int slash = sourcePath.lastIndexOf('/');
+        return slash < 0 ? sourcePath : sourcePath.substring(slash + 1);
+    }
+
     /**
-     * Returns the name of the source file this scenario is based on.
+     * Returns the name of the scenario this factory should build.
      * <p>
      * Convenience method to access the name from test definitions before actually running the scenario and thus
      * building from the factory.
-     * @return the name of the source file
+     * @return the name of the scenario
      */
     public String name(){
-        return sourceFile.getName();
+        return name;
     }
 
     @SuppressWarnings("doclint:accessibility,missing")
-    protected ScenarioFactory(java.util.function.Function<Scenario.Descriptor, T> constructionFunction, String source, String... additionalSources) {
-        this.sourceFile = Scenario.loadSource(source);
-        this.additionalSourceFiles = Arrays.stream(additionalSources)
+    protected ScenarioFactory(java.util.function.Function<Scenario.Descriptor, T> constructionFunction, String name, String... sources) {
+        this.name = name;
+        this.sources = Arrays.stream(sources)
                 .map(Scenario::loadSource)
                 .collect(toImmutableList());
         // this function is needed to call either the Java- or the Kotlin-typed constructor from the respective
@@ -112,7 +117,7 @@ public class ScenarioFactory<T extends Scenario> {
         if(!basePackageDisabled){
             options.put("lazyval.generators.basePackage", "test");
         }
-        var descriptor = new Scenario.Descriptor(sourceFile, additionalSourceFiles, dependencies, Maps.immutable.ofMap(options));
+        var descriptor = new Scenario.Descriptor(name, sources, dependencies, Maps.immutable.ofMap(options));
         return constructionFunction.apply(descriptor);
     }
 }

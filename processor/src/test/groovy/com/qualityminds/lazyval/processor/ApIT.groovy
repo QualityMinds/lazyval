@@ -43,12 +43,12 @@ class ApIT extends Specification {
 
         where:
         scenario                                                                | error
-        Scenario.Java.of( "scenarios/failing/AbstractClass.java")               | "Lazyval: Abstract class is not a valid ValueType."
-        Scenario.Java.of( "scenarios/failing/RecordMoreThanOneProperty.java")   | "Lazyval: Not a simple ValueType. Lazyval only supports Records with one non-transient field."
-        Scenario.Java.of( "scenarios/failing/ObjectMoreThanOneProperty.java")   | "Lazyval: Not a simple ValueType. Lazyval only supports Objects with one non-transient value."
-        Scenario.Java.of( "scenarios/failing/ObjectMultipleFactories.java")     | "Lazyval: Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
-        Scenario.Java.of( "scenarios/failing/RecordMultipleFactories.java")     | "Lazyval: Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
-        Scenario.Java.of( "scenarios/failing/ObjectMissingValueAccessor.java")  | "Lazyval: No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation."
+        Scenario.Java.ofSingle( "scenarios/failing/AbstractClass.java")               | "Lazyval: Abstract class is not a valid ValueType."
+        Scenario.Java.ofSingle( "scenarios/failing/RecordMoreThanOneProperty.java")   | "Lazyval: Not a simple ValueType. Lazyval only supports Records with one non-transient field."
+        Scenario.Java.ofSingle( "scenarios/failing/ObjectMoreThanOneProperty.java")   | "Lazyval: Not a simple ValueType. Lazyval only supports Objects with one non-transient value."
+        Scenario.Java.ofSingle( "scenarios/failing/ObjectMultipleFactories.java")     | "Lazyval: Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
+        Scenario.Java.ofSingle( "scenarios/failing/RecordMultipleFactories.java")     | "Lazyval: Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
+        Scenario.Java.ofSingle( "scenarios/failing/ObjectMissingValueAccessor.java")  | "Lazyval: No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation."
         expected = new Testresult.Java.Failure(error)
     }
 
@@ -64,10 +64,10 @@ class ApIT extends Specification {
         result == expected
 
         where:
-        scenario                                                            | warning
-        Scenario.Java.of("scenarios/edge/ObjectValueNotFinal.java")         | "Lazyval: Value Types should be immutable, hence the wrapped field should be final."
-        Scenario.Java.of("scenarios/edge/ObjectNotFinal.java")              | "Lazyval: Value Types should not be extendable, hence the class should be final."
-        Scenario.Java.of("scenarios/edge/ObjectWithTransientField.java")    | null
+        scenario                                                                  | warning
+        Scenario.Java.ofSingle("scenarios/edge/ObjectValueNotFinal.java")         | "Lazyval: Value Types should be immutable, hence the wrapped field should be final."
+        Scenario.Java.ofSingle("scenarios/edge/ObjectNotFinal.java")              | "Lazyval: Value Types should not be extendable, hence the class should be final."
+        Scenario.Java.ofSingle("scenarios/edge/ObjectWithTransientField.java")    | null
         expected = warning != null
                 ? new Testresult.Java.SuccessWithWarnings(Lists.immutable.of("LazyvalMapper.java"), Lists.immutable.of(warning))
                 : new Testresult.Java.Success("LazyvalMapper.java")
@@ -92,14 +92,20 @@ class ApIT extends Specification {
 
     void "Error is issued when multiple LazyvalConfigurations are present" (){
         given:
-        def scenario = Scenario.Java.of("scenarios/package-info.java", "scenarios/failing/package-info.java")
+        def scenario = Scenario.Java.of(
+                "package-config-invalid",
+                "scenarios/package-info.java",
+                "scenarios/failing/package-info.java")
         expect:
         testkitJava.run(projectDir, scenario) == new Testresult.Java.Failure("Lazyval: Only one @LazyvalConfiguration is allowed per compilation unit.")
     }
 
     void "Error is issued when LazyvalConfiguration marks an local type of the current compilation unit as external" (){
         given:
-        def scenario = Scenario.Java.of("scenarios/failing/LocalTypeAsExternal.java", "scenarios/failing/LocalTypeAsExternalReferenz.java")
+        def scenario = Scenario.Java.of(
+                "package-config-local-type",
+                "scenarios/failing/LocalTypeAsExternal.java",
+                "scenarios/failing/LocalTypeAsExternalReferenz.java")
         expect:
         testkitJava.run(projectDir, scenario) == new Testresult.Java.Failure("Lazyval: Type 'scenarios.failing.LocalTypeAsExternalReferenz' listed in @LazyvalConfiguration.externalTypes belongs to the current compilation unit. Annotate it with @LazyValue directly.")
     }

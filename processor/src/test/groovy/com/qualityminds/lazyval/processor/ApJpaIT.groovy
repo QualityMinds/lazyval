@@ -37,7 +37,7 @@ class ApJpaIT extends Specification {
 
         where:
         scenario << Scenario.Java.all()
-        generatedJpaMapper = scenario.name() == "Ids.java" ? "IdsProductIdAttributeConverter.java" : scenario.name().replace(".java", "AttributeConverter.java")
+        generatedJpaMapper = scenario.name().contains( "Ids.java") ? "IdsProductIdAttributeConverter.java" : scenario.name().replace(".java", "AttributeConverter.java")
         expected = new Testresult.Java.Success(generatedJpaMapper)
     }
 

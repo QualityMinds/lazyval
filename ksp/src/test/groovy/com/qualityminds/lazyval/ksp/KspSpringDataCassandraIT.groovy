@@ -95,7 +95,10 @@ class KspSpringDataCassandraIT extends Specification {
 
     void "single valid user converter is appended to cassandraCustomConversions"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/converters/ValidConverter.kt")
+        def scenario = Scenario.Kotlin.of(
+                "one-valid",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/converters/ValidConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.ValidConverter")
 
@@ -113,7 +116,9 @@ class KspSpringDataCassandraIT extends Specification {
 
     void "multiple valid user converters are all appended in declared order"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt",
+        def scenario = Scenario.Kotlin.of(
+                "two-valid",
+                "scenarios/kotlin/Quantity.kt",
                 "scenarios/converters/ValidConverter.kt",
                 "scenarios/converters/AnotherValidConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
@@ -136,7 +141,9 @@ class KspSpringDataCassandraIT extends Specification {
 
     void "whitespace and empty segments in option are tolerated"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt",
+        def scenario = Scenario.Kotlin.of(
+                "whitespace-in-option",
+                "scenarios/kotlin/Quantity.kt",
                 "scenarios/converters/ValidConverter.kt",
                 "scenarios/converters/AnotherValidConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
@@ -174,7 +181,10 @@ class KspSpringDataCassandraIT extends Specification {
 
     void "class that does not implement Converter fails the build"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/converters/NotAConverter.kt")
+        def scenario = Scenario.Kotlin.of(
+                "not-a-converter",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/converters/NotAConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NotAConverter")
 
@@ -191,7 +201,10 @@ class KspSpringDataCassandraIT extends Specification {
 
     void "internal converter from the current module succeeds"() {
         given: 'NonPublicConverter is declared `internal` and lives in the same KSP-processed module'
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/converters/NonPublicConverter.kt")
+        def scenario = Scenario.Kotlin.of(
+                "internal-converter",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/converters/NonPublicConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NonPublicConverter")
 
@@ -208,7 +221,10 @@ class KspSpringDataCassandraIT extends Specification {
 
     void "unconditionally inaccessible converter class fails the build"() {
         given: 'NonAccessibleConverter is a top-level `private` (file-scoped) class'
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/converters/NonAccessibleConverter.kt")
+        def scenario = Scenario.Kotlin.of(
+                "file-private",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/converters/NonAccessibleConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NonAccessibleConverter")
 
@@ -225,7 +241,10 @@ class KspSpringDataCassandraIT extends Specification {
 
     void "converter without @ReadingConverter or @WritingConverter fails the build"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/converters/UnannotatedConverter.kt")
+        def scenario = Scenario.Kotlin.of(
+                "missing-annotations",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/converters/UnannotatedConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.UnannotatedConverter")
 
@@ -242,7 +261,10 @@ class KspSpringDataCassandraIT extends Specification {
 
     void "converter without no-arg constructor fails the build"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/converters/NoNoArgConverter.kt")
+        def scenario = Scenario.Kotlin.of(
+                "missing-no-arg-ctor",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/converters/NoNoArgConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.NoNoArgConverter")
 
@@ -259,7 +281,9 @@ class KspSpringDataCassandraIT extends Specification {
 
     void "two invalid FQNs report both errors in one build"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt",
+        def scenario = Scenario.Kotlin.of(
+                "invalid-fqns-reported",
+                "scenarios/kotlin/Quantity.kt",
                 "scenarios/converters/NotAConverter.kt",
                 "scenarios/converters/NoNoArgConverter.kt")
                 .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
