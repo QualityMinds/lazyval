@@ -112,7 +112,10 @@ class ApCassandraCodecIT extends Specification {
 
     void "single valid user codec is appended to all()"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/cassandracodecs/ValidCassandraCodec.java")
+        def scenario = Scenario.Java.of(
+                "valid-codec",
+                "scenarios/java/Quantity.java",
+                "scenarios/cassandracodecs/ValidCassandraCodec.java")
                 .withDependencies(dependencyDriverCore)
         scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.ValidCassandraCodec")
 
@@ -129,7 +132,9 @@ class ApCassandraCodecIT extends Specification {
 
     void "multiple valid user codecs are appended in declared order"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+        def scenario = Scenario.Java.of(
+                "multiple-valid",
+                "scenarios/java/Quantity.java",
                 "scenarios/cassandracodecs/ValidCassandraCodec.java",
                 "scenarios/cassandracodecs/AnotherValidCassandraCodec.java")
                 .withDependencies(dependencyDriverCore)
@@ -152,7 +157,9 @@ class ApCassandraCodecIT extends Specification {
 
     void "whitespace and empty segments in option are tolerated"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+        def scenario = Scenario.Java.of(
+                "whitespace-in-option",
+                "scenarios/java/Quantity.java",
                 "scenarios/cassandracodecs/ValidCassandraCodec.java",
                 "scenarios/cassandracodecs/AnotherValidCassandraCodec.java")
                 .withDependencies(dependencyDriverCore)
@@ -189,7 +196,10 @@ class ApCassandraCodecIT extends Specification {
 
     void "class that does not implement TypeCodec fails the build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/cassandracodecs/NotACassandraCodec.java")
+        def scenario = Scenario.Java.of(
+                "invalid-codec",
+                "scenarios/java/Quantity.java",
+                "scenarios/cassandracodecs/NotACassandraCodec.java")
                 .withDependencies(dependencyDriverCore)
         scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NotACassandraCodec")
 
@@ -206,7 +216,10 @@ class ApCassandraCodecIT extends Specification {
 
     void "package-private codec in different package fails the build"() {
         given: 'codecs are generated at default location (test.boundary.persistence.cassandra), codec lives in scenarios.cassandracodecs'
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/cassandracodecs/NonPublicCassandraCodec.java")
+        def scenario = Scenario.Java.of(
+                "not-accessible",
+                "scenarios/java/Quantity.java",
+                "scenarios/cassandracodecs/NonPublicCassandraCodec.java")
                 .withDependencies(dependencyDriverCore)
         scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NonPublicCassandraCodec")
 
@@ -223,7 +236,10 @@ class ApCassandraCodecIT extends Specification {
 
     void "package-private codec in same package as generated codecs succeeds"() {
         given: 'codecs class is generated into the codec package'
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/cassandracodecs/NonPublicCassandraCodec.java")
+        def scenario = Scenario.Java.of(
+                "accessible",
+                "scenarios/java/Quantity.java",
+                "scenarios/cassandracodecs/NonPublicCassandraCodec.java")
                 .withDependencies(dependencyDriverCore)
         scenario.withOption("lazyval.cassandra.package", "scenarios.cassandracodecs")
         scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NonPublicCassandraCodec")
@@ -241,7 +257,10 @@ class ApCassandraCodecIT extends Specification {
 
     void "unconditionally inaccessible codec class fails the build"() {
         given: 'NonAccessibleCassandraCodec.Inner is a private static nested class - unreachable from anywhere'
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/cassandracodecs/NonAccessibleCassandraCodec.java")
+        def scenario = Scenario.Java.of(
+                "inner-private-not-accessible",
+                "scenarios/java/Quantity.java",
+                "scenarios/cassandracodecs/NonAccessibleCassandraCodec.java")
                 .withDependencies(dependencyDriverCore)
         scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NonAccessibleCassandraCodec.Inner")
 
@@ -258,7 +277,10 @@ class ApCassandraCodecIT extends Specification {
 
     void "codec without no-arg constructor fails the build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/cassandracodecs/NoNoArgCassandraCodec.java")
+        def scenario = Scenario.Java.of(
+                "missing-no-arg-ctor",
+                "scenarios/java/Quantity.java",
+                "scenarios/cassandracodecs/NoNoArgCassandraCodec.java")
                 .withDependencies(dependencyDriverCore)
         scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NoNoArgCassandraCodec")
 
@@ -275,7 +297,9 @@ class ApCassandraCodecIT extends Specification {
 
     void "two invalid FQNs report both errors in one build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+        def scenario = Scenario.Java.of(
+                "invalid-fqns-reported",
+                "scenarios/java/Quantity.java",
                 "scenarios/cassandracodecs/NotACassandraCodec.java",
                 "scenarios/cassandracodecs/NoNoArgCassandraCodec.java")
                 .withDependencies(dependencyDriverCore)

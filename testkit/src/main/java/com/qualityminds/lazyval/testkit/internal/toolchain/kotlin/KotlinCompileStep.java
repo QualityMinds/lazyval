@@ -127,17 +127,12 @@ record KotlinCompileStep(ProjectLayout layout, CompilationService service,
             incrementalConfig.usePreciseJavaTracking(true);
             compilationConfig.useLogger(new KotlinCompilerSlf4jLogger(logCollector));
 
-            var allSources = Stream.concat(
-                    Stream.of(scenarioDescriptor.source()),
-                    scenarioDescriptor.additionalSources().stream()
-            ).toList();
-
             return new KotlinCompileStep(
                     layout,
                     service,
                     strategyConfig,
                     compilationConfig,
-                    allSources,
+                    scenarioDescriptor.sources().toList(),
                     List.copyOf(compilerClasspath)
             );
         } catch (Exception e) {

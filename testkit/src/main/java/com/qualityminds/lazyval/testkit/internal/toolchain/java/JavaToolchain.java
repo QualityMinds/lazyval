@@ -13,7 +13,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.eclipse.collections.impl.collector.Collectors2.toImmutableList;
 
@@ -79,11 +78,7 @@ public class JavaToolchain {
                 fileManager.setLocation(StandardLocation.CLASS_PATH, additionalClasspath);
             }
 
-            var allSources = Stream.concat(
-                    Stream.of(scenarioDescriptor.source()),
-                    scenarioDescriptor.additionalSources().stream()
-            ).toArray(File[]::new);
-            var compilationUnits = fileManager.getJavaFileObjects(allSources);
+            var compilationUnits = fileManager.getJavaFileObjects(scenarioDescriptor.sources().toArray(new File[]{}));
 
             var processorOptions = scenarioDescriptor.options()
                     .keyValuesView()

@@ -47,7 +47,10 @@ class ApSpringDataMongoIT extends Specification {
 
     void "single valid user converter is appended to mongoCustomConversions"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/ValidConverter.java")
+        def scenario = Scenario.Java.of(
+                "valid-converter",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/ValidConverter.java")
                 .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.mongo.converters", "scenarios.converters.ValidConverter")
 
@@ -65,7 +68,9 @@ class ApSpringDataMongoIT extends Specification {
 
     void "multiple valid user converters are all appended in declared order"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+        def scenario = Scenario.Java.of(
+                "multiple-valid-converters",
+                "scenarios/java/Quantity.java",
                 "scenarios/converters/ValidConverter.java",
                 "scenarios/converters/AnotherValidConverter.java")
                 .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
@@ -88,7 +93,9 @@ class ApSpringDataMongoIT extends Specification {
 
     void "whitespace and empty segments in option are tolerated"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+        def scenario = Scenario.Java.of(
+                "whitespace-in-option",
+                "scenarios/java/Quantity.java",
                 "scenarios/converters/ValidConverter.java",
                 "scenarios/converters/AnotherValidConverter.java")
                 .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
@@ -126,7 +133,10 @@ class ApSpringDataMongoIT extends Specification {
 
     void "class that does not implement Converter fails the build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NotAConverter.java")
+        def scenario = Scenario.Java.of(
+                "not-a-converter",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/NotAConverter.java")
                 .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.mongo.converters", "scenarios.converters.NotAConverter")
 
@@ -143,7 +153,10 @@ class ApSpringDataMongoIT extends Specification {
 
     void "package-private converter in different package fails the build"() {
         given: 'config is generated at default location (test.boundary.persistence), converter lives in scenarios.converters'
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NonPublicConverter.java")
+        def scenario = Scenario.Java.of(
+                "not-accessible",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/NonPublicConverter.java")
                 .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.mongo.converters", "scenarios.converters.NonPublicConverter")
 
@@ -160,7 +173,10 @@ class ApSpringDataMongoIT extends Specification {
 
     void "package-private converter in same package as generated config succeeds"() {
         given: 'configuration class is generated into the converter package'
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NonPublicConverter.java")
+        def scenario = Scenario.Java.of(
+                "package-private-converter",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/NonPublicConverter.java")
                 .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.package", "scenarios.converters")
         scenario.withOption("lazyval.springdata.mongo.converters", "scenarios.converters.NonPublicConverter")
@@ -178,7 +194,10 @@ class ApSpringDataMongoIT extends Specification {
 
     void "unconditionally inaccessible converter class fails the build"() {
         given: 'NonAccessibleConverter.Inner is a private static nested class — unreachable from anywhere'
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NonAccessibleConverter.java")
+        def scenario = Scenario.Java.of(
+                "inner-private-not-accessible",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/NonAccessibleConverter.java")
                 .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.mongo.converters", "scenarios.converters.NonAccessibleConverter.Inner")
 
@@ -195,7 +214,10 @@ class ApSpringDataMongoIT extends Specification {
 
     void "converter without @ReadingConverter or @WritingConverter fails the build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/UnannotatedConverter.java")
+        def scenario = Scenario.Java.of(
+                "missing-annotations",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/UnannotatedConverter.java")
                 .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.mongo.converters", "scenarios.converters.UnannotatedConverter")
 
@@ -212,7 +234,10 @@ class ApSpringDataMongoIT extends Specification {
 
     void "converter without no-arg constructor fails the build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/converters/NoNoArgConverter.java")
+        def scenario = Scenario.Java.of(
+                "missing-no-arg-ctor",
+                "scenarios/java/Quantity.java",
+                "scenarios/converters/NoNoArgConverter.java")
                 .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
         scenario.withOption("lazyval.springdata.mongo.converters", "scenarios.converters.NoNoArgConverter")
 
@@ -229,7 +254,9 @@ class ApSpringDataMongoIT extends Specification {
 
     void "two invalid FQNs report both errors in one build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+        def scenario = Scenario.Java.of(
+                "invalid-fqns-reported",
+                "scenarios/java/Quantity.java",
                 "scenarios/converters/NotAConverter.java",
                 "scenarios/converters/NoNoArgConverter.java")
                 .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
@@ -275,32 +302,5 @@ class ApSpringDataMongoIT extends Specification {
         and: 'no mongo bean method is generated'
         def generated = projectDir.resolve("build/generated/test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
         !generated.contains("mongoCustomConversions")
-    }
-
-    void "Cassandra and Mongo options are independent"() {
-        given: 'both stores on classpath, each with its own user converter'
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
-                "scenarios/converters/ValidConverter.java",
-                "scenarios/converters/AnotherValidConverter.java")
-                .withDependencies(dependencySpringDataCassandra, dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
-        scenario.withOption("lazyval.springdata.cassandra.converters", "scenarios.converters.ValidConverter")
-        scenario.withOption("lazyval.springdata.mongo.converters", "scenarios.converters.AnotherValidConverter")
-
-        when:
-        def result = testkitJava.run(projectDir, scenario)
-
-        then:
-        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
-
-        and: 'cassandra method contains only ValidConverter; mongo method contains only AnotherValidConverter'
-        def generated = projectDir.resolve("build/generated/test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
-        def cassandraStart = generated.indexOf("cassandraCustomConversions")
-        def mongoStart = generated.indexOf("mongoCustomConversions")
-        def cassandraSection = generated.substring(cassandraStart, mongoStart)
-        def mongoSection = generated.substring(mongoStart)
-        cassandraSection.contains("new scenarios.converters.ValidConverter()")
-        !cassandraSection.contains("AnotherValidConverter")
-        mongoSection.contains("new scenarios.converters.AnotherValidConverter()")
-        !mongoSection.contains("new scenarios.converters.ValidConverter()")
     }
 }

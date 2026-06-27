@@ -123,7 +123,10 @@ class ApMongoCodecIT extends Specification {
 
     void "single valid user codec is added to userCodecs"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/mongocodecs/ValidMongoCodec.java")
+        def scenario = Scenario.Java.of(
+                "valid-codec",
+                "scenarios/java/Quantity.java",
+                "scenarios/mongocodecs/ValidMongoCodec.java")
                 .withDependencies(dependencyBson)
         scenario.withOption("lazyval.mongodb.codecs", "scenarios.mongocodecs.ValidMongoCodec")
 
@@ -140,7 +143,9 @@ class ApMongoCodecIT extends Specification {
 
     void "multiple valid user codecs are all included in declared order"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+        def scenario = Scenario.Java.of(
+                "multiple-valid-codecs",
+                "scenarios/java/Quantity.java",
                 "scenarios/mongocodecs/ValidMongoCodec.java",
                 "scenarios/mongocodecs/AnotherValidMongoCodec.java")
                 .withDependencies(dependencyBson)
@@ -163,7 +168,9 @@ class ApMongoCodecIT extends Specification {
 
     void "whitespace and empty segments in option are tolerated"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+        def scenario = Scenario.Java.of(
+                "whitespace-in-option",
+                "scenarios/java/Quantity.java",
                 "scenarios/mongocodecs/ValidMongoCodec.java",
                 "scenarios/mongocodecs/AnotherValidMongoCodec.java")
                 .withDependencies(dependencyBson)
@@ -200,7 +207,10 @@ class ApMongoCodecIT extends Specification {
 
     void "class that does not implement Codec fails the build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/mongocodecs/NotAMongoCodec.java")
+        def scenario = Scenario.Java.of(
+                "not-implementing-interface",
+                "scenarios/java/Quantity.java",
+                "scenarios/mongocodecs/NotAMongoCodec.java")
                 .withDependencies(dependencyBson)
         scenario.withOption("lazyval.mongodb.codecs", "scenarios.mongocodecs.NotAMongoCodec")
 
@@ -217,7 +227,10 @@ class ApMongoCodecIT extends Specification {
 
     void "package-private codec in different package fails the build"() {
         given: 'codecs are generated at default location (test.boundary.persistence.mongodb), codec lives in scenarios.mongocodecs'
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/mongocodecs/NonPublicMongoCodec.java")
+        def scenario = Scenario.Java.of(
+                "valid-codec",
+                "scenarios/java/Quantity.java",
+                "scenarios/mongocodecs/NonPublicMongoCodec.java")
                 .withDependencies(dependencyBson)
         scenario.withOption("lazyval.mongodb.codecs", "scenarios.mongocodecs.NonPublicMongoCodec")
 
@@ -234,7 +247,10 @@ class ApMongoCodecIT extends Specification {
 
     void "package-private codec in same package as generated codecs succeeds"() {
         given: 'codecs class is generated into the codec package'
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/mongocodecs/NonPublicMongoCodec.java")
+        def scenario = Scenario.Java.of(
+                "valid-codec",
+                "scenarios/java/Quantity.java",
+                "scenarios/mongocodecs/NonPublicMongoCodec.java")
                 .withDependencies(dependencyBson)
         scenario.withOption("lazyval.mongodb.package", "scenarios.mongocodecs")
         scenario.withOption("lazyval.mongodb.codecs", "scenarios.mongocodecs.NonPublicMongoCodec")
@@ -252,7 +268,10 @@ class ApMongoCodecIT extends Specification {
 
     void "unconditionally inaccessible codec class fails the build"() {
         given: 'NonAccessibleMongoCodec.Inner is a private static nested class - unreachable from anywhere'
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/mongocodecs/NonAccessibleMongoCodec.java")
+        def scenario = Scenario.Java.of(
+                "inner-private-not-accessible",
+                "scenarios/java/Quantity.java",
+                "scenarios/mongocodecs/NonAccessibleMongoCodec.java")
                 .withDependencies(dependencyBson)
         scenario.withOption("lazyval.mongodb.codecs", "scenarios.mongocodecs.NonAccessibleMongoCodec.Inner")
 
@@ -269,7 +288,10 @@ class ApMongoCodecIT extends Specification {
 
     void "codec without no-arg constructor fails the build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java", "scenarios/mongocodecs/NoNoArgMongoCodec.java")
+        def scenario = Scenario.Java.of(
+                "missing-no-arg-ctor",
+                "scenarios/java/Quantity.java",
+                "scenarios/mongocodecs/NoNoArgMongoCodec.java")
                 .withDependencies(dependencyBson)
         scenario.withOption("lazyval.mongodb.codecs", "scenarios.mongocodecs.NoNoArgMongoCodec")
 
@@ -286,7 +308,9 @@ class ApMongoCodecIT extends Specification {
 
     void "two invalid FQNs report both errors in one build"() {
         given:
-        def scenario = Scenario.Java.of("scenarios/java/Quantity.java",
+        def scenario = Scenario.Java.of(
+                "invalid-fqns-reported",
+                "scenarios/java/Quantity.java",
                 "scenarios/mongocodecs/NotAMongoCodec.java",
                 "scenarios/mongocodecs/NoNoArgMongoCodec.java")
                 .withDependencies(dependencyBson)

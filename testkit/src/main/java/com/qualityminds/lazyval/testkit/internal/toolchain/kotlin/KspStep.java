@@ -14,7 +14,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
-import java.util.stream.Stream;
 
 /**
  * First step in the Kotlin toolchain: runs KSP2 against the scenario sources.
@@ -113,10 +112,6 @@ class KspStep implements AutoCloseable {
                     .map(ServiceLoader.Provider::get)
                     .toList();
 
-            var sources = Stream.concat(
-                    Stream.of(scenarioDescriptor.source()),
-                    scenarioDescriptor.additionalSources().stream()
-            ).toList();
 
             var kotlinVersion = KotlinVersion.CURRENT;
             var builder = new KSPJvmConfig.Builder();
@@ -132,7 +127,7 @@ class KspStep implements AutoCloseable {
             builder.setKotlinOutputDir(Files.createDirectories(layout.kspKotlinOutput()).toFile());
             builder.setResourceOutputDir(Files.createDirectories(layout.kspResourceOutput()).toFile());
             builder.setCachesDir(Files.createDirectories(layout.kspCachesDir()).toFile());
-            builder.setSourceRoots(sources);
+            builder.setSourceRoots(scenarioDescriptor.sources().toList());
             builder.setProcessorOptions(scenarioDescriptor.options().toMap());
             builder.setLibraries(List.copyOf(libraries));
 

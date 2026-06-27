@@ -109,7 +109,10 @@ class KspCassandraCodecIT extends Specification {
 
     void "single valid user codec is appended to all()"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/cassandracodecs/ValidCassandraCodec.kt")
+        def scenario = Scenario.Kotlin.of(
+                "valid-codec",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/cassandracodecs/ValidCassandraCodec.kt")
                 .withDependencies(dependencyDriverCore)
         scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.ValidCassandraCodec")
 
@@ -126,7 +129,9 @@ class KspCassandraCodecIT extends Specification {
 
     void "multiple valid user codecs are appended in declared order"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt",
+        def scenario = Scenario.Kotlin.of(
+                "multiple-valid",
+                "scenarios/kotlin/Quantity.kt",
                 "scenarios/cassandracodecs/ValidCassandraCodec.kt",
                 "scenarios/cassandracodecs/AnotherValidCassandraCodec.kt")
                 .withDependencies(dependencyDriverCore)
@@ -165,7 +170,10 @@ class KspCassandraCodecIT extends Specification {
 
     void "class that does not implement TypeCodec fails the build"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/cassandracodecs/NotACassandraCodec.kt")
+        def scenario = Scenario.Kotlin.of(
+                "invalid-codec",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/cassandracodecs/NotACassandraCodec.kt")
                 .withDependencies(dependencyDriverCore)
         scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NotACassandraCodec")
 
@@ -182,7 +190,10 @@ class KspCassandraCodecIT extends Specification {
 
     void "internal codec in different module fails the build"() {
         given: 'codecs are generated at default location (test.boundary.persistence.cassandra); codec lives in scenarios.cassandracodecs'
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/cassandracodecs/NonPublicCassandraCodec.kt")
+        def scenario = Scenario.Kotlin.of(
+                "internal-codec",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/cassandracodecs/NonPublicCassandraCodec.kt")
                 .withDependencies(dependencyDriverCore)
         scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NonPublicCassandraCodec")
 
@@ -199,7 +210,10 @@ class KspCassandraCodecIT extends Specification {
 
     void "file-private codec fails the build"() {
         given: 'NonAccessibleCassandraCodec is a top-level private (file-scoped) class — unreachable from anywhere'
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/cassandracodecs/NonAccessibleCassandraCodec.kt")
+        def scenario = Scenario.Kotlin.of(
+                "file-private",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/cassandracodecs/NonAccessibleCassandraCodec.kt")
                 .withDependencies(dependencyDriverCore)
         scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NonAccessibleCassandraCodec")
 
@@ -216,7 +230,10 @@ class KspCassandraCodecIT extends Specification {
 
     void "codec without no-arg constructor fails the build"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/cassandracodecs/NoNoArgCassandraCodec.kt")
+        def scenario = Scenario.Kotlin.of(
+                "missing-no-arg-ctor",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/cassandracodecs/NoNoArgCassandraCodec.kt")
                 .withDependencies(dependencyDriverCore)
         scenario.withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.NoNoArgCassandraCodec")
 

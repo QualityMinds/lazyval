@@ -19,10 +19,10 @@ import java.util.Objects;
 public sealed interface Scenario {
 
     /**
-     * The name of the source file this scenario is based on.
-     * @return the name of the source file
+     * a short, human-readable label identifying this scenario in test reports
+     * @return the display name of this scenario
      */
-    String name();
+    String displayName();
 
     /**
      * Java-specific Scenario to be used in {@link Testkit.Java} instance.
@@ -35,18 +35,26 @@ public sealed interface Scenario {
          * {@inheritDoc}
          */
         @Override
-        public String name(){
-            return desc.source().getName();
+        public String displayName(){
+            return desc.name();
         }
 
         /**
          * Creates a scenario factory for testing Java annotation processing.
-         * @param source the source file to be tested, not null.
-         * @param additionalSources additional source files needed to compile the test `source`. Can be omitted.
+         * @param name the name describing this scenario
+         * @param sources all files relevant for the compilation (imports). Must not contain null elements.
          * @return scenario factory for further configuration
          */
-        public static ScenarioFactory<Java> of(String source, String... additionalSources){
-            return new ScenarioFactory<>(Java::new, source, additionalSources);
+        public static ScenarioFactory<Java> of(String name, String... sources){
+            return new ScenarioFactory<>(Java::new, name, sources);
+        }
+
+        /**
+         * Single-source convenience; the name is derived from the source filename.
+         * For multi-source scenarios, use {@link #of(String, String...)} with an explicit name.
+         */
+        public static ScenarioFactory<Java> ofSingle(String source) {
+            return new ScenarioFactory<>(Java::new, ScenarioFactory.deriveName(source), source);
         }
 
         /**
@@ -88,7 +96,7 @@ public sealed interface Scenario {
          * @return new ScenarioFactory instance
          */
         public static ScenarioFactory<Java> isbn() {
-            return Scenario.Java.of("scenarios/java/Isbn.java");
+            return Scenario.Java.ofSingle("scenarios/java/Isbn.java");
         }
         /**
          * Default record case wrapping a primitive int (which might need boxing in some generated code).
@@ -105,7 +113,7 @@ public sealed interface Scenario {
          * @return new ScenarioFactory instance
          */
         public static ScenarioFactory<Java> quantity() {
-            return Scenario.Java.of("scenarios/java/Quantity.java");
+            return Scenario.Java.ofSingle("scenarios/java/Quantity.java");
         }
         /**
          * Edge-Case: a sealed interface defining an inner ProductId to test inner types.
@@ -140,7 +148,9 @@ public sealed interface Scenario {
          * @return new ScenarioFactory instance
          */
         public static ScenarioFactory<Java> ids() {
-            return Scenario.Java.of("scenarios/java/Ids.java", "util/IdGenerator.java");
+            return Scenario.Java.of("Ids.java with required IdGenerator.java",
+                    "scenarios/java/Ids.java",
+                    "util/IdGenerator.java");
         }
 
 
@@ -165,21 +175,33 @@ public sealed interface Scenario {
          * @return new ScenarioFactory instance
          */
         public static ScenarioFactory<Java> orderDate() {
-            return Scenario.Java.of("scenarios/java/OrderDate.java");
+            return Scenario.Java.of("OrderDate.java", "scenarios/java/OrderDate.java");
         }
 
-//        /**
-//         * Combines all sources into a single scenario.
-//         * @return new ScenarioFactory instance
-//         */
-        // FIXME needed to catch errors when multiple source are processed in one round
-//        public static ScenarioFactory<Java> combined() {
-//            return Scenario.Java.of();
-//        }
+        /**
+         * Combines all sources into a single scenario.
+         * @return new ScenarioFactory instance
+         * @see #isbn()
+         * @see #quantity()
+         * @see #orderDate()
+         * @see #ids()
+         */
+        public static ScenarioFactory<Java> combined() {
+            return Scenario.Java.of("All predefined Java sources in one compilation",
+                    "scenarios/java/Isbn.java",
+                    "scenarios/java/Quantity.java",
+                    "scenarios/java/OrderDate.java",
+                    "scenarios/java/Ids.java"
+            );
+        }
 
         /**
          * All predefined sample scenarios, without any dependencies.
          * @return immutable list of all predefined scenarios
+         * @see #isbn()
+         * @see #quantity()
+         * @see #orderDate()
+         * @see #ids()
          */
         public static List<ScenarioFactory<Java>> all() {
             return List.of(isbn(), quantity(), ids(), orderDate());
@@ -197,18 +219,35 @@ public sealed interface Scenario {
          * {@inheritDoc}
          */
         @Override
-        public String name(){
-            return desc.source().getName();
+        public String displayName(){
+            return desc.name();
         }
 
         /**
-         * Creates a scenario factory for testing Java annotation processing.
-         * @param source the source file to be tested, not null.
-         * @param additionalSources additional source files needed to compile the test `source`. Can be omitted.
+         * Creates a scenario factory for the Java annotation processor.
+         *
+         * @param displayName a short, human-readable label identifying this scenario in test reports,
+         *                    {@code @Unroll} substitutions and failure messages — surfaced through
+         *                    {@link Scenario#displayName()}. Prefer a noun phrase describing what makes
+         *                    this set of inputs distinct from sibling scenarios in the same test file
+         *                    (e.g. {@code "two-converters"}, {@code "no-noarg-ctor"}) rather than
+         *                    restating the behavior under test. For single-source scenarios consider
+         *                    {@link #ofSingle(String)}, which derives the display name from the source
+         *                    filename.
+         * @param sources classpath-relative paths of source files to compile together; order is
+         *                irrelevant to the toolchain.
          * @return scenario factory for further configuration
          */
-        public static ScenarioFactory<Kotlin> of(String source, String... additionalSources){
-            return new ScenarioFactory<>(Kotlin::new, source, additionalSources);
+        public static ScenarioFactory<Kotlin> of(String displayName, String... sources){
+            return new ScenarioFactory<>(Kotlin::new, displayName, sources);
+        }
+
+        /**
+         * Single-source convenience; the name is derived from the source filename.
+         * For multi-source scenarios, use {@link #of(String, String...)} with an explicit name.
+         */
+        public static ScenarioFactory<Kotlin> ofSingle(String source) {
+            return new ScenarioFactory<>(Kotlin::new, ScenarioFactory.deriveName(source), source);
         }
 
         /**
@@ -228,7 +267,7 @@ public sealed interface Scenario {
          * @return new ScenarioFactory instance
          */
         public static ScenarioFactory<Kotlin> isbn() {
-            return Scenario.Kotlin.of("scenarios/kotlin/Isbn.kt");
+            return Scenario.Kotlin.ofSingle("scenarios/kotlin/Isbn.kt");
         }
         /**
          * Default data class case.
@@ -243,7 +282,7 @@ public sealed interface Scenario {
          * @return new ScenarioFactory instance
          */
         public static ScenarioFactory<Kotlin> quantity() {
-            return Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt");
+            return Scenario.Kotlin.ofSingle("scenarios/kotlin/Quantity.kt");
         }
         /**
          * A data class which uses a factory capable of returning null.
@@ -266,7 +305,7 @@ public sealed interface Scenario {
          * @return new ScenarioFactory instance
          */
         public static ScenarioFactory<Kotlin> nullableQuantity() {
-            return Scenario.Kotlin.of("scenarios/kotlin/NullableQuantity.kt");
+            return Scenario.Kotlin.ofSingle("scenarios/kotlin/NullableQuantity.kt");
         }
         /**
          * Edge-Case: a sealed interface defining an inner ProductId to test inner types.
@@ -302,7 +341,9 @@ public sealed interface Scenario {
          * @return new ScenarioFactory instance
          */
         public static ScenarioFactory<Kotlin> ids() {
-            return Scenario.Kotlin.of("scenarios/kotlin/Ids.kt", "util/IdGenerator.java");
+            return Scenario.Kotlin.of("Ids.kt with required IdGenerator.kt",
+                    "scenarios/kotlin/Ids.kt",
+                    "util/IdGenerator.java");
         }
 
         /**
@@ -318,48 +359,71 @@ public sealed interface Scenario {
          * @return new ScenarioFactory instance
          */
         public static ScenarioFactory<Kotlin> orderDate() {
-            return Scenario.Kotlin.of("scenarios/kotlin/OrderDate.kt");
+            return Scenario.Kotlin.ofSingle("scenarios/kotlin/OrderDate.kt");
         }
 
         /**
          * All predefined sample scenarios, without any dependencies.
          * @return immutable list of all predefined scenarios
+         * @see #isbn()
+         * @see #quantity()
+         * @see #nullableQuantity()
+         * @see #orderDate()
+         * @see #ids()
          */
         public static List<ScenarioFactory<Kotlin>> all() {
-            return List.of(isbn(), quantity(), nullableQuantity(), ids(), orderDate());
+            return List.of(isbn(), quantity(), nullableQuantity(), orderDate(), ids());
+        }
+
+        /**
+         * Combines all sources into a single scenario.
+         * @return new ScenarioFactory instance
+         * @see #isbn()
+         * @see #quantity()
+         * @see #nullableQuantity()
+         * @see #orderDate()
+         * @see #ids()
+         */
+        public static ScenarioFactory<Kotlin> combined() {
+            return Scenario.Kotlin.of("All predefined sources in one compilation",
+                    "scenarios/kotlin/Isbn.kt",
+                    "scenarios/kotlin/Quantity.kt",
+                    "scenarios/kotlin/NullableQuantity.kt",
+                    "scenarios/kotlin/OrderDate.kt",
+                    "scenarios/kotlin/Ids.kt"
+            );
         }
     }
 
 
     /**
      * Describes required and optional information for a scenario.
-     * @param source the actual source file to process.
-     * @param additionalSources any other source file relevant for the compilation (imports). Optional but must not contain null elements.
+     * @param name the name describing this scenario
+     * @param sources all source files relevant for the compilation (imports). Must not contain null elements.
      * @param dependencies will be added to the classpath of the temporary project. Optional but must not contain null elements.
      * @param options will be added as a processor-option "lazyval.generators.disable" to the compilation. Optional but must not contain null elements.
      */
     record Descriptor(
-            File source,
-            ImmutableCollection<File> additionalSources,
+            String name,
+            ImmutableCollection<File> sources,
             ImmutableCollection<Dependency> dependencies,
             ImmutableMap<String, String> options){
 
         /**
          * Creates a new Descriptor instance.
-         * @param source the actual source file to process.
-         * @param additionalSources any other source file relevant for the compilation (imports). Can be empty (optional) but must not contain null elements.
+         * @param sources all source files relevant for the compilation (imports). Must not contain null elements.
          * @param dependencies will be added to the classpath of the temporary project. Can be empty (optional) but must not contain null elements.
          * @param options will be added as a processor-option. Can be empty (optional).
          */
         public Descriptor {
-            Objects.requireNonNull(source);
+            Objects.requireNonNull(name);
+            Objects.requireNonNull(sources);
             Objects.requireNonNull(dependencies);
-            Objects.requireNonNull(additionalSources);
-            for (File f : additionalSources) {
-                Objects.requireNonNull(f, "additional-sources cannot contain null elements");
+            for (File f : sources) {
+                Objects.requireNonNull(f, "sources must not contain null elements");
             }
             for (Dependency d : dependencies) {
-                Objects.requireNonNull(d, "dependencies cannot contain null elements");
+                Objects.requireNonNull(d, "dependencies must not contain null elements");
             }
         }
     }

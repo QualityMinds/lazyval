@@ -116,7 +116,10 @@ class KspMongoCodecIT extends Specification {
 
     void "single valid user codec is added to userCodecs"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/mongocodecs/ValidMongoCodec.kt")
+        def scenario = Scenario.Kotlin.of(
+                "valid-codec",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/mongocodecs/ValidMongoCodec.kt")
                 .withDependencies(dependencyBson)
         scenario.withOption("lazyval.mongodb.codecs", "scenarios.mongocodecs.ValidMongoCodec")
 
@@ -133,7 +136,9 @@ class KspMongoCodecIT extends Specification {
 
     void "multiple valid user codecs are all included in declared order"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt",
+        def scenario = Scenario.Kotlin.of(
+                "multiple-valid-codecs",
+                "scenarios/kotlin/Quantity.kt",
                 "scenarios/mongocodecs/ValidMongoCodec.kt",
                 "scenarios/mongocodecs/AnotherValidMongoCodec.kt")
                 .withDependencies(dependencyBson)
@@ -156,7 +161,9 @@ class KspMongoCodecIT extends Specification {
 
     void "whitespace and empty segments in option are tolerated"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt",
+        def scenario = Scenario.Kotlin.of(
+                "whitespace-in-option",
+                "scenarios/kotlin/Quantity.kt",
                 "scenarios/mongocodecs/ValidMongoCodec.kt",
                 "scenarios/mongocodecs/AnotherValidMongoCodec.kt")
                 .withDependencies(dependencyBson)
@@ -193,7 +200,10 @@ class KspMongoCodecIT extends Specification {
 
     void "class that does not implement Codec fails the build"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/mongocodecs/NotAMongoCodec.kt")
+        def scenario = Scenario.Kotlin.of(
+                "not-implementing-interface",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/mongocodecs/NotAMongoCodec.kt")
                 .withDependencies(dependencyBson)
         scenario.withOption("lazyval.mongodb.codecs", "scenarios.mongocodecs.NotAMongoCodec")
 
@@ -210,7 +220,10 @@ class KspMongoCodecIT extends Specification {
 
     void "internal codec from the current module succeeds"() {
         given: 'NonPublicMongoCodec is declared `internal` and lives in the same KSP-processed module'
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/mongocodecs/NonPublicMongoCodec.kt")
+        def scenario = Scenario.Kotlin.of(
+                "internal-codec",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/mongocodecs/NonPublicMongoCodec.kt")
                 .withDependencies(dependencyBson)
         scenario.withOption("lazyval.mongodb.codecs", "scenarios.mongocodecs.NonPublicMongoCodec")
 
@@ -227,7 +240,10 @@ class KspMongoCodecIT extends Specification {
 
     void "unconditionally inaccessible codec class fails the build"() {
         given: 'NonAccessibleMongoCodec is a top-level `private` (file-scoped) class'
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/mongocodecs/NonAccessibleMongoCodec.kt")
+        def scenario = Scenario.Kotlin.of(
+                "file-private",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/mongocodecs/NonAccessibleMongoCodec.kt")
                 .withDependencies(dependencyBson)
         scenario.withOption("lazyval.mongodb.codecs", "scenarios.mongocodecs.NonAccessibleMongoCodec")
 
@@ -244,7 +260,10 @@ class KspMongoCodecIT extends Specification {
 
     void "codec without no-arg constructor fails the build"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt", "scenarios/mongocodecs/NoNoArgMongoCodec.kt")
+        def scenario = Scenario.Kotlin.of(
+                "missing-no-arg-ctor",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/mongocodecs/NoNoArgMongoCodec.kt")
                 .withDependencies(dependencyBson)
         scenario.withOption("lazyval.mongodb.codecs", "scenarios.mongocodecs.NoNoArgMongoCodec")
 
@@ -261,7 +280,9 @@ class KspMongoCodecIT extends Specification {
 
     void "two invalid FQNs report both errors in one build"() {
         given:
-        def scenario = Scenario.Kotlin.of("scenarios/kotlin/Quantity.kt",
+        def scenario = Scenario.Kotlin.of(
+                "invalid-fqns-reported",
+                "scenarios/kotlin/Quantity.kt",
                 "scenarios/mongocodecs/NotAMongoCodec.kt",
                 "scenarios/mongocodecs/NoNoArgMongoCodec.kt")
                 .withDependencies(dependencyBson)
