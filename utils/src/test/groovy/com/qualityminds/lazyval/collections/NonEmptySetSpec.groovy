@@ -64,4 +64,31 @@ class NonEmptySetSpec extends Specification {
         streamedSet instanceof NonEmptySet
     }
 
+    void "insertion order is preserved across every construction and iteration path"() {
+        given: 'a deliberately non-alphabetical input so we can tell preserved order from accidental sorting'
+        def insertionOrder = ["zebra", "apple", "mango", "banana"]
+
+        expect: 'varargs factory iterates in the order arguments were given'
+        NonEmptySet.of("zebra", "apple", "mango", "banana").stream().toList() == insertionOrder
+
+        and: 'iterable factory iterates in the order of the source iterable'
+        NonEmptySet.ofAll(insertionOrder).stream().toList() == insertionOrder
+
+        and: 'stream collector preserves stream encounter order'
+        insertionOrder.stream().collect(NonEmptySet.collector()).stream().toList() == insertionOrder
+
+        and: 'iterator() returns elements in insertion order'
+        def fromIterator = []
+        NonEmptySet.ofAll(insertionOrder).iterator().forEachRemaining { fromIterator << it }
+        fromIterator == insertionOrder
+
+        and: 'forEach (Iterable contract) visits elements in insertion order'
+        def fromForEach = []
+        NonEmptySet.ofAll(insertionOrder).forEach { fromForEach << it }
+        fromForEach == insertionOrder
+
+        and: 'the underlying Set view also preserves insertion order'
+        new ArrayList<String>(NonEmptySet.ofAll(insertionOrder).toSet()) == insertionOrder
+    }
+
 }
