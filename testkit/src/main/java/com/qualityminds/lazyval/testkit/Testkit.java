@@ -99,6 +99,15 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         return run(projectDir, scenarioFactory.build(), approvals);
     }
 
+    /**
+     * Collection-accepting overload of {@link #run(Path, ScenarioFactory, Approval...)} for Groovy/Kotlin
+     * call sites that build their approvals as a {@code List}.
+     *
+     * @param projectDir the project directory used to compile the scenario
+     * @param scenarioFactory the scenario factory to build and run
+     * @param approvals approvals to verify after the run
+     * @return the test result
+     */
     public R run(Path projectDir, ScenarioFactory<S> scenarioFactory, Collection<Approval> approvals){
         return run(projectDir, scenarioFactory.build(), approvals.toArray(Approval[]::new));
     }
@@ -263,6 +272,10 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         /**
          * Resolves the absolute filesystem path of a generated Java source under
          * {@code build/generated/ksp/java/}. Hides the KSP output-layout from test code.
+         *
+         * @param projectDir the project directory used in the run
+         * @param relativePath path under the KSP Java output root (slash-separated, package directories included)
+         * @return absolute path to the generated Java source
          */
         public Path generatedJavaSourcePath(Path projectDir, String relativePath) {
             return KotlinToolchain.kspJavaOutputDir(projectDir).resolve(relativePath);
@@ -271,6 +284,10 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         /**
          * Resolves the absolute filesystem path of a generated Kotlin source under
          * {@code build/generated/ksp/kotlin/}. Hides the KSP output-layout from test code.
+         *
+         * @param projectDir the project directory used in the run
+         * @param relativePath path under the KSP Kotlin output root (slash-separated, package directories included)
+         * @return absolute path to the generated Kotlin source
          */
         public Path generatedKotlinSourcePath(Path projectDir, String relativePath) {
             return KotlinToolchain.kspKotlinOutputDir(projectDir).resolve(relativePath);
@@ -279,6 +296,10 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         /**
          * Resolves the absolute filesystem path of a KSP-generated resource under
          * {@code build/generated/ksp/resources/}.
+         *
+         * @param projectDir the project directory used in the run
+         * @param relativePath path under the KSP resource output root (e.g. {@code "META-INF/services/<fqn>"})
+         * @return absolute path to the generated resource
          */
         public Path generatedResourcePath(Path projectDir, String relativePath) {
             return KotlinToolchain.kspResourceOutputDir(projectDir).resolve(relativePath);
@@ -405,6 +426,10 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
          * <p>
          * Example: {@code testkit.generatedSourcePath(projectDir, "test/custom/X.java")}
          * → {@code <projectDir>/build/generated/test/custom/X.java}.
+         *
+         * @param projectDir the project directory used in the run
+         * @param relativePath path under the javac source-output root (slash-separated, package directories included)
+         * @return absolute path to the generated source
          */
         public Path generatedSourcePath(Path projectDir, String relativePath) {
             return JavaToolchain.sourceOutputDir(projectDir).resolve(relativePath);
@@ -413,6 +438,10 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         /**
          * Resolves the absolute filesystem path of a generated resource under
          * {@code build/classes/} (e.g. {@code META-INF/services/...} entries).
+         *
+         * @param projectDir the project directory used in the run
+         * @param relativePath path under the javac class-output root (e.g. {@code "META-INF/services/<fqn>"})
+         * @return absolute path to the generated resource
          */
         public Path generatedResourcePath(Path projectDir, String relativePath) {
             return JavaToolchain.classOutputDir(projectDir).resolve(relativePath);

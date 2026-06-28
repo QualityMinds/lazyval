@@ -27,8 +27,8 @@ import java.util.Objects;
  *       toolchain's relevant output root</em>; the testkit uses this both for the file lookup and
  *       for diagnostic messages.</li>
  *   <li>{@link #expectedContent()} — the full text the generated file is expected to contain;
- *       whitespace and blank-line differences are tolerated by
- *       {@link com.qualityminds.lazyval.testkit.internal.toolchain.diff.Diff}.</li>
+ *       the diff engine tolerates whitespace, blank-line, and line-ending differences, and sorts
+ *       import blocks before comparing source files.</li>
  * </ul>
  */
 public sealed interface Approval {
@@ -36,10 +36,14 @@ public sealed interface Approval {
     /**
      * Slash-separated path of the generated artifact, relative to the toolchain's output root for
      * its kind. See the variant javadoc for which root that is.
+     * @return slash-separated path of the generated artifact
      */
     String generatedPath();
 
-    /** Full expected text of the generated artifact. */
+    /**
+     * Full expected text of the generated artifact.
+     * @return full expected text of the generated artifact
+     */
     String expectedContent();
 
     /**
@@ -67,20 +71,34 @@ public sealed interface Approval {
      * {@code build/generated/ksp/java/}.
      * <p>
      * Example: {@code "test/boundary/persistence/jpa/QuantityAttributeConverter.java"}.
+     *
+     * @param generatedPath slash-separated path of the generated file, relative to the source-output root
+     * @param expectedContent full expected text of the generated file
      */
     record JavaSource(String generatedPath, String expectedContent) implements Approval {
 
+        /** Canonical constructor; rejects null components. */
         public JavaSource {
             Objects.requireNonNull(generatedPath, "generatedPath must not be null");
             Objects.requireNonNull(expectedContent, "expectedContent must not be null");
         }
 
-        /** Literal-content factory. */
+        /**
+         * Literal-content factory.
+         * @param generatedPath slash-separated path of the generated file, relative to the source-output root
+         * @param expectedContent full expected text of the generated file
+         * @return a new JavaSource approval
+         */
         public static JavaSource of(String generatedPath, String expectedContent) {
             return new JavaSource(generatedPath, expectedContent);
         }
 
-        /** Resource-backed factory; reads {@code resourcePath} from the test classpath. */
+        /**
+         * Resource-backed factory; reads {@code resourcePath} from the test classpath.
+         * @param generatedPath slash-separated path of the generated file, relative to the source-output root
+         * @param resourcePath classpath-relative path to the approval fixture
+         * @return a new JavaSource approval whose expected content is the fixture's text
+         */
         public static JavaSource at(String generatedPath, String resourcePath) {
             return new JavaSource(generatedPath, loadResource(resourcePath));
         }
@@ -93,20 +111,34 @@ public sealed interface Approval {
      * throws {@link IllegalArgumentException} — the Java testkit has no Kotlin output to compare against.
      * <p>
      * Example: {@code "test/boundary/persistence/jpa/QuantityAttributeConverter.kt"}.
+     *
+     * @param generatedPath slash-separated path of the generated file, relative to the source-output root
+     * @param expectedContent full expected text of the generated file
      */
     record KotlinSource(String generatedPath, String expectedContent) implements Approval {
 
+        /** Canonical constructor; rejects null components. */
         public KotlinSource {
             Objects.requireNonNull(generatedPath, "generatedPath must not be null");
             Objects.requireNonNull(expectedContent, "expectedContent must not be null");
         }
 
-        /** Literal-content factory. */
+        /**
+         * Literal-content factory.
+         * @param generatedPath slash-separated path of the generated file, relative to the source-output root
+         * @param expectedContent full expected text of the generated file
+         * @return a new KotlinSource approval
+         */
         public static KotlinSource of(String generatedPath, String expectedContent) {
             return new KotlinSource(generatedPath, expectedContent);
         }
 
-        /** Resource-backed factory; reads {@code resourcePath} from the test classpath. */
+        /**
+         * Resource-backed factory; reads {@code resourcePath} from the test classpath.
+         * @param generatedPath slash-separated path of the generated file, relative to the source-output root
+         * @param resourcePath classpath-relative path to the approval fixture
+         * @return a new KotlinSource approval whose expected content is the fixture's text
+         */
         public static KotlinSource at(String generatedPath, String resourcePath) {
             return new KotlinSource(generatedPath, loadResource(resourcePath));
         }
@@ -118,20 +150,34 @@ public sealed interface Approval {
      * resources it's relative to {@code build/generated/ksp/resources/}.
      * <p>
      * Example: {@code "META-INF/lazyval.properties"}.
+     *
+     * @param generatedPath slash-separated path of the generated file, relative to the resource-output root
+     * @param expectedContent full expected text of the generated file
      */
     record Resource(String generatedPath, String expectedContent) implements Approval {
 
+        /** Canonical constructor; rejects null components. */
         public Resource {
             Objects.requireNonNull(generatedPath, "generatedPath must not be null");
             Objects.requireNonNull(expectedContent, "expectedContent must not be null");
         }
 
-        /** Literal-content factory. */
+        /**
+         * Literal-content factory.
+         * @param generatedPath slash-separated path of the generated file, relative to the resource-output root
+         * @param expectedContent full expected text of the generated file
+         * @return a new Resource approval
+         */
         public static Resource of(String generatedPath, String expectedContent) {
             return new Resource(generatedPath, expectedContent);
         }
 
-        /** Resource-backed factory; reads {@code resourcePath} from the test classpath. */
+        /**
+         * Resource-backed factory; reads {@code resourcePath} from the test classpath.
+         * @param generatedPath slash-separated path of the generated file, relative to the resource-output root
+         * @param resourcePath classpath-relative path to the approval fixture
+         * @return a new Resource approval whose expected content is the fixture's text
+         */
         public static Resource at(String generatedPath, String resourcePath) {
             return new Resource(generatedPath, loadResource(resourcePath));
         }
@@ -144,11 +190,15 @@ public sealed interface Approval {
      * <p>
      * Underlying storage is the resolved {@link #generatedPath()}, identical to a {@link Resource}
      * at the same path; equality and lookup behave the same.
+     *
+     * @param generatedPath the resolved {@code META-INF/services/<interfaceFqn>} path
+     * @param expectedContent full expected text of the services file (one provider FQN per line)
      */
     record ServiceLoader(String generatedPath, String expectedContent) implements Approval {
 
         private static final String PREFIX = "META-INF/services/";
 
+        /** Canonical constructor; rejects null components. */
         public ServiceLoader {
             Objects.requireNonNull(generatedPath, "generatedPath must not be null");
             Objects.requireNonNull(expectedContent, "expectedContent must not be null");
@@ -160,6 +210,11 @@ public sealed interface Approval {
          * provider FQN line — pass them individually instead of pre-joining at the call site. A single
          * pre-joined string still works (varargs accepts one arg), so existing one-entry call sites
          * keep compiling unchanged.
+         *
+         * @param interfaceFqn fully-qualified name of the service interface; the {@code META-INF/services/}
+         *                     prefix is appended internally
+         * @param entries provider FQN lines, joined with {@code \n} to form the expected content
+         * @return a new ServiceLoader approval
          */
         public static ServiceLoader of(String interfaceFqn, String... entries) {
             Objects.requireNonNull(interfaceFqn, "interfaceFqn must not be null");
@@ -173,6 +228,11 @@ public sealed interface Approval {
         /**
          * Resource-backed factory; the fixture at {@code resourcePath} is the expected content of
          * the services file.
+         *
+         * @param interfaceFqn fully-qualified name of the service interface; the {@code META-INF/services/}
+         *                     prefix is appended internally
+         * @param resourcePath classpath-relative path to the approval fixture
+         * @return a new ServiceLoader approval whose expected content is the fixture's text
          */
         public static ServiceLoader at(String interfaceFqn, String resourcePath) {
             Objects.requireNonNull(interfaceFqn, "interfaceFqn must not be null");
