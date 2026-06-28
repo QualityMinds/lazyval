@@ -1,48 +1,109 @@
 = Testkit
 
-Lazyval provides a testkit which can run either the Java Annotation Processor toolchain or the KSP2 toolchain together
-with the Kotlin & Java compiler.
+Lazyval ships a testkit that runs a complete compiler toolchain — Lazyval's Java Annotation Processor *or* the KSP2 processor together with the Kotlin and Java compilers — against a temporary project you describe with a `Scenario`. The testkit returns a typed result you can compare directly with framework-native assertions; no custom matchers required.
 
 [source, java]
 ----
 var tmpDir = Path.of(System.getProperty("java.io.tmpdir")); // <1>
-var scenario = Scenario.Java.of("scenarios/java/MyTestLazyval.java") // <2>
+var scenario = Scenario.Java.ofSingle("scenarios/java/MyTestLazyval.java") // <2>
     .withDependencies(new Dependency("some.groupId", "some.artifactId", "1.0.0")); // <3>
 var result = Testkit.java() // <4>
     .run(tmpDir, scenario); // <5>
 ----
-<1> The testkit needs a folder where it can put generated-sources, as well as compiled classes. Usually
-you would use your test-framework to get a temporary folder for the test execution.
-<2> Define the scenario with the main source file, as well as any additionally required sources. The sources must be
-located in your classpath meaning `src/test/resources`.
-<3> Add the dependency which is required for your SPI implementation. Remember, if the required classpath is not available,
-Lazyval will not trigger any generation for that SPI.
-<4> Initialize the testkit either with `java()` when you are targeting Lazyvals Java Annotation Processor or `kotlin()`
-when targeting KSP2.
+<1> A working directory for generated sources and compiled classes. In practice, use your test framework's temporary-directory facility (Spock `@TempDir`, JUnit `@TempDir`, Kotest `tempdir()`).
+<2> Describe the scenario by listing the source files relevant to the compilation. Sources are resolved from the test classpath — typically `src/test/resources`.
+<3> Add the compile-classpath dependency the SPI requires. If the required classpath isn't present, Lazyval will not trigger any generation for that SPI.
+<4> Pick the toolchain: `Testkit.java()` runs the APT pipeline; `Testkit.kotlin()` runs KSP2 followed by the Kotlin compiler.
 <5> Run the scenario and verify the result.
 
-== Using Predefined Scenarios
+== Defining a Scenario
 
-The testkit ships a collection of predefined valid scenarios for both Java and Kotlin. For instance,
-`Scenario.Java.Quantity` uses a primitive `int` which might need boxing in some generators (like JPA AttributeConverter)
+A `Scenario` is the toolchain-typed description of what gets compiled. Each variant — `Scenario.Java` and `Scenario.Kotlin` — carries a `Descriptor` with the source files, optional classpath dependencies, and optional processor options.
 
-TIP: in general, SPI providers should test against `Scenario.Java.all()` and `Scenario.Kotlin.all()` to make sure the
-generator can handle all cases Lazyval will throw at it.
-As an alternative for generators creating only a single file for multiple primitives, `Scenario.Java.combined()` and `Scenario.Kotlin.combined()` provide a Scenario that contains all predefined cases in a single compilation unit.
+=== Predefined Scenarios
 
+The testkit ships a collection of valid scenarios for both Java and Kotlin so SPI providers don't have to invent their own input every time. Each represents a distinct Lazyval-relevant shape:
 
-IMPORTANT: the predefined scenarios need still to be configured with the required generator `Dependency` in order to yield generator artifacts.
+|===
+|Scenario |What makes it interesting
+
+|`isbn()`
+|Class with a bean-convention getter (`getValue()`).
+
+|`quantity()`
+|Record / data-class wrapping a primitive (`int`) — exercises boxing in generators that need a reference type.
+
+|`orderDate()`
+|Record / data-class wrapping a non-primitive reference (`LocalDate`).
+
+|`ids()`
+|Sealed-interface holding a nested record `ProductId` — exercises inner-type handling, and includes multiple factories of which only `of(String)` is relevant to Lazyval.
+
+|`nullableQuantity()` _(Kotlin only)_
+|Factory that can return `null` — exercises nullability propagation.
+|===
+
+[TIP]
+====
+SPI providers should test against either `Scenario.Java.all()` / `Scenario.Kotlin.all()` to fan out one scenario per test method, or `Scenario.Java.combined()` / `Scenario.Kotlin.combined()` to compile every predefined source in a single run. Both make sure the generator handles every shape Lazyval will throw at it.
+====
+
+IMPORTANT: Predefined scenarios still need to be configured with the generator's required `Dependency`. Without it, Lazyval skips generation for that SPI by design.
+
+=== `combined()` vs `all()`
+
+The two helpers solve different problems:
+
+`Scenario.Java.combined()`:: Returns a *single* scenario that bundles every predefined source. One compilation, one assertion. Best when a generator emits one aggregate artifact (e.g. `LazyvalMapper.java`, `LazyvalCassandraCodecs.java`) or you want to verify exact file contents with xref:#_approval_testing[Approval Testing].
+
+`Scenario.Java.all()`:: Returns a *list* of scenarios, one per predefined source. Use it with your test framework's data-driven runner (Spock `where:`, Kotest `withData`) when you want per-scenario diagnostics and your generator emits a separate file per input.
+
+NOTE: `combined()` is typically faster because the compiler boots once. Where it fits the generator's output shape, prefer it.
+
+=== Custom Scenarios
+
+For inputs the predefined set doesn't cover, build a scenario from arbitrary classpath resources:
+
+[source, java]
+----
+var scenario = Scenario.Java.of("custom-multi-source",
+        "scenarios/java/Quantity.java",
+        "scenarios/cassandracodecs/ValidCassandraCodec.java")
+    .withDependencies(myDependency)
+    .withOption("lazyval.cassandra.codecs", "scenarios.cassandracodecs.ValidCassandraCodec");
+----
+
+The first argument is a display name used in test reports; subsequent arguments are classpath-relative source paths. Use `withOption(key, value)` to feed processor options the same way `-A<key>=<value>` would on the compiler command line.
 
 === Data-Driven Samples
 
-See the xref:spi:testkit-spock.adoc[Spock Example] or xref:spi:testkit-kotest.adoc[Kotest Example] for how to set up
-a data-driven test scenario using the predefined scenarios.
+See the xref:spi:testkit-spock.adoc[Spock Example] or xref:spi:testkit-kotest.adoc[Kotest Example] for a data-driven setup over the predefined scenarios.
 
 == Verifying Results
 
-The testkit defines result record types for the interfaces `Testresult.Java` and `Testresult.Kotlin`.
-The motivation for using records is that they are easily comparable by all kinds of testframeworks without requiring
-any additional and specific matchers.
+Results are returned as records — directly comparable with framework-native equality. The `Testresult.Java` and `Testresult.Kotlin` sealed interfaces enumerate every possible outcome:
+
+|===
+|Variant |Meaning
+
+|`Success(generatedFiles)`
+|Compilation succeeded, the listed files were produced, no warnings.
+
+|`SuccessWithWarnings(generatedFiles, warnings)`
+|Compilation succeeded but the listed warnings were emitted.
+
+|`NothingGenerated`
+|Compilation succeeded but no generator was active — typically because the required classpath was absent.
+
+|`Failure(errors)`
+|Compilation failed; the listed compiler errors were observed.
+
+|`Approved(generatedFiles, warnings)`
+|Strict-closed-set verdict from xref:#_approval_testing[Approval Testing]: every approval matched and no extra files were produced.
+
+|`ApprovalMismatch(failures)`
+|Strict-closed-set verdict from approvals failed. The `toString()` renders a per-failure description, including the unified diff for content failures.
+|===
 
 .Spock uses its PowerAssert
 [source, groovy]
@@ -62,45 +123,160 @@ result shouldEqual Testresult.Kotlin.Success("LazyvalMapper.java")
 assertEquals(new Testresult.Java.Success("LazyvalMapper.java"), result);
 ----
 
+[#_approval_testing]
+== Approval Testing
+
+For generators where the *exact content* of the produced file matters — formatting, imports, annotations, method order — comparing only file names is too weak. The testkit's approval-testing mode pairs each expected artifact with a reference content (the "approval") and asserts that the generator produced exactly that, *nothing more, nothing less*.
+
+=== The Flow
+
+[source, java]
+----
+var scenario = Scenario.Java.combined()
+    .withDependencies(dependencyJakartaPersistence);
+
+var approvals = List.of( // <1>
+    Approval.JavaSource.at("test/boundary/persistence/jpa/QuantityAttributeConverter.java",
+        "approvals/jpa/QuantityAttributeConverter.java"),
+    Approval.JavaSource.at("test/boundary/persistence/jpa/IsbnAttributeConverter.java",
+        "approvals/jpa/IsbnAttributeConverter.java")
+);
+
+var result = Testkit.java().run(tmpDir, scenario, approvals); // <2>
+
+assertEquals(Testresult.Java.Approved.of(approvals), result); // <3>
+----
+<1> Each `Approval` pairs a *generated path* (where the toolchain produces the file) with the *expected content* (read from a classpath fixture or supplied literally).
+<2> The same `run(...)` method accepts approvals as the final argument.
+<3> `Approved.of(approvals)` derives the expected file list from the approval definitions — no duplication.
+
+=== Approval Variants
+
+The variant must match the kind of artifact the toolchain produced; the testkit dispatches per kind so a `JavaSource` approval never silently matches a `.kt` file at the same path.
+
+`Approval.JavaSource`:: Java source emitted by APT (under `build/generated/`) or KSP (under `build/generated/ksp/java/`).
+
+`Approval.KotlinSource`:: Kotlin source emitted by KSP (under `build/generated/ksp/kotlin/`). Passing one to `Testkit.java()` throws `IllegalArgumentException` — the Java testkit has no Kotlin output to compare against.
+
+`Approval.Resource`:: Any non-source artifact, e.g. a generated `.properties` file under `build/classes/META-INF/`.
+
+`Approval.ServiceLoader`:: Convenience wrapper around `Resource` that builds the `META-INF/services/<interfaceFqn>` path from the service-interface FQN.
+
+=== Literal vs Resource-Backed Approvals
+
+Every variant exposes two factory styles:
+
+`at(generatedPath, classpathResource)`:: Reads the expected content from `classpathResource` on the test classpath (typically `src/test/resources/approvals/...`). Use this for non-trivial fixtures — checking them into the repo makes diffs reviewable and lets editors do the formatting.
+
+`of(generatedPath, expectedContent)`:: Takes the expected content as a literal `String`. Suitable for short artifacts (e.g. a single-line service-loader file) or test-local content.
+
+[source, java]
+----
+// resource-backed: fixture in src/test/resources/approvals/jpa/QuantityAttributeConverter.java
+Approval.JavaSource.at(
+    "test/boundary/persistence/jpa/QuantityAttributeConverter.java",
+    "approvals/jpa/QuantityAttributeConverter.java");
+
+// literal content
+Approval.JavaSource.of(
+    "test/Foo.java",
+    "package test;\npublic class Foo {}\n");
+----
+
+=== ServiceLoader Approvals
+
+`META-INF/services/<fqn>` files contain one provider FQN per line; the `ServiceLoader` factory takes the service FQN as its first argument (the `META-INF/services/` prefix is appended internally) and accepts the provider FQNs as varargs, joining them with `\n`:
+
+[source, java]
+----
+Approval.ServiceLoader.of("jakarta.validation.valueextraction.ValueExtractor",
+    "test.IdsProductIdValueExtractor",
+    "test.IsbnValueExtractor",
+    "test.OrderDateValueExtractor",
+    "test.QuantityValueExtractor");
+----
+
+For a single entry, pass one vararg:
+
+[source, java]
+----
+Approval.ServiceLoader.of("com.fasterxml.jackson.databind.Module", "test.LazyvalJackson2Module");
+----
+
+=== Strict Closed-Set Semantics
+
+`Testresult.X.Approved` is a *strict closed-set* verdict — it only passes when:
+
+. every approval matched a produced file of the right kind, *and*
+. no produced file is left unclaimed.
+
+A surplus file no approval covers surfaces as `ApprovalMismatch` with `UnexpectedFile`. This prevents the silent-pass failure mode where a generator emits an extra artifact nobody asserted against.
+
+If you only want to assert *some* of the produced files, use `Testresult.X.Success(filenames...)` (loose check on file names) instead of approvals.
+
+=== Diff Tolerances
+
+The diff engine deliberately ignores differences that are visually identical but textually noisy. This keeps approval fixtures stable across formatter drift, IDE auto-edits, and platform line-ending conventions.
+
+* *Whitespace-insensitive at the line level.* Runs of whitespace within a line are treated as equal; trailing/leading whitespace on a line is ignored. Tabs are normalized to four spaces before comparing.
+
+* *Blank-line tolerant.* Extra blank lines on *either* side are not a mismatch. Line numbers in failure diagnostics stay anchored to the original source so they remain navigable.
+
+* *Import-order tolerant for source files.* For `JavaSource` and `KotlinSource` approvals, the import block is sorted on both sides before comparing — generator version drift or hand-edited fixtures with re-sorted imports don't surface as diffs. (`Resource` and `ServiceLoader` are *not* sorted; non-source content is opaque.)
+
+* *Line-ending tolerant.* `\r\n` and `\r` are normalized to `\n` on both sides before splitting, so CRLF approval fixtures (Windows checkouts with git's `core.autocrlf`) and custom generators emitting `System.lineSeparator()` compare equal to LF content.
+
+=== ApprovalMismatch Diagnostics
+
+When approvals don't match, `Testresult.X.ApprovalMismatch` carries one entry per problem and its `toString()` renders a useful diagnostic:
+
+`ContentDiffers(generatedPath, renderedDiff)`:: The file was produced but content differed. `renderedDiff` is a unified, context-aware diff with line numbers tied to the *expected* fixture.
+
+`FileNotFound(expectedPath, actualGeneratedPaths)`:: No file at the expected path. The diagnostic lists every path the run actually produced — useful for spotting package-override mistakes.
+
+`UnexpectedFile(generatedPath)`:: The run produced a file no approval was declared for.
+
+Because `ApprovalMismatch.toString()` already renders the diff, no custom matcher is needed — Spock PowerAssert, Kotest `shouldEqual`, and JUnit `assertEquals` all print the rendered failure inline.
+
+=== Refreshing Approvals After Intentional Changes
+
+When you intentionally change a generator's output, the existing approval files need updating. The recommended workflow:
+
+. Run the test and let it fail with `ApprovalMismatch.ContentDiffers`.
+. Read the rendered diff to confirm the change is the one you expected.
+. Copy the actual file out of the toolchain output (e.g. `build/generated/ksp/kotlin/...`) over the fixture at `src/test/resources/approvals/...`.
+. Re-run the test — it should now pass.
+
 == Logging
 
-The testkit captures all logs from the toolchains and forwards them to SLF4J.
-To see any output, the test-classpath must provide any SLF4J implementation (like `slf4j-simple`),
-since the testkit only depends on `slf4j-api`.
+The testkit captures all output from the underlying toolchains and forwards it to SLF4J. To see anything, the test classpath must provide an SLF4J implementation (e.g. `slf4j-simple`); the testkit itself depends only on `slf4j-api`.
 
 == Dependency on Eclipse Collections
 
-Eclipse Collections are used throughout the testkit since they provide stronger guarantees compared to
-`Collections.unmodifiableXXX` which also aligns better with how Kotlin treats Collections.
+The testkit's public API uses Eclipse Collections for its immutable list and map types. Their guarantees are stronger than `Collections.unmodifiableXxx` and they interop more cleanly with Kotlin's `List`/`Map` views, which is why they leak into result records (`Testresult.X.Success.generatedFiles`, `warnings`, etc.). Both `Testresult.X.Success` and `Testresult.X.Approved` also expose `List<String>`/varargs constructors so call-sites stay framework-native.
 
 == Dependency Resolution
 
-CAUTION: The testkit mimics Maven when downloading and caching dependencies, but it does not read any Maven-specific
-configuration files (settings.xml, pom.xml).
+CAUTION: The testkit mimics Maven when downloading and caching dependencies, but it does not read any Maven-specific configuration files (`settings.xml`, `pom.xml`).
 
 By default, dependencies are downloaded from `https://repo1.maven.org/maven2/` and stored at `<user-home>/.m2/repository`.
 
-This might not work in corporate environments which might block direct access to Maven Central or use an internal
-Registry (Nexus). Or users might have reconfigured their cache-location.
-In this case you can override the defaults via JVM system properties:
+This might not work in corporate environments which block direct access to Maven Central or use an internal registry (Nexus), or where users have reconfigured their cache location. In that case, override the defaults via JVM system properties:
 
 |===
 |Property |Description
 
 |`lazyval.testkit.maven-repo`
-|Absolute path to the folder where the dependencies should be cached, (usually Maven cache location)
+|Absolute path to the folder where dependencies should be cached (usually the Maven cache location).
 
 |`lazyval.testkit.maven-mirror`
-|Base-URL of the repository instance or mirror to be used. Note that this must provide the `maven2` url path to resolve
-dependencies like `https://acme.com/maven2/<groupid>/<artifactid>/<version>`
+|Base URL of the repository instance or mirror to be used. Must provide the `maven2` URL path so dependencies resolve as `https://acme.com/maven2/<groupid>/<artifactid>/<version>`.
 
 |===
 
 === Repository Authentication
 
-In case your repository server does not allow anonymous access, you can use Basic-Auth by specifying the following
-environment variables:
+If your repository server does not allow anonymous access, use Basic-Auth via these environment variables:
 
 * `LAZYVAL_TESTKIT_MIRROR_USERNAME`
 * `LAZYVAL_TESTKIT_MIRROR_PASSWORD`
-
