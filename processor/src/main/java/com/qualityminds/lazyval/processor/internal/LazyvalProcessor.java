@@ -103,10 +103,15 @@ public class LazyvalProcessor extends AbstractProcessor {
                 : Set.of();
         var configuredElements = lazyvalEnvironment.getConfiguredValues(roundEnv);
 
-        Set<ValidatedGeneratorElement> validatedElements = Stream.concat(annotatedElements.stream(), configuredElements.stream())
+        // Sort by qualified type name so the iteration order is deterministic across runs.
+        // Generators that emit a single file containing entries for every element (Jackson modules, etc.)
+        // rely on stable input order to produce byte-identical output; approval tests fail otherwise.
+        // Multi-file generators are unaffected.
+        List<ValidatedGeneratorElement> validatedElements = Stream.concat(annotatedElements.stream(), configuredElements.stream())
                 .map(element -> elementValidator.validate((TypeElement) element))
                 .flatMap(Optional::stream)
-                .collect(Collectors.toUnmodifiableSet());
+                .sorted(Comparator.comparing(e -> e.element().getQualifiedName().toString()))
+                .toList();
         if (validatedElements.isEmpty()) {
             return false;
         }
@@ -185,9 +190,11 @@ public class LazyvalProcessor extends AbstractProcessor {
         }
     }
 
-    private Stream<InternalResult> callGenerator(Generator generator, Set<ValidatedGeneratorElement> validatedElements, List<Element> orignatingElements) {
+    private Stream<InternalResult> callGenerator(Generator generator, List<ValidatedGeneratorElement> validatedElements, List<Element> orignatingElements) {
         //noinspection ConstantValue
         return generator.generate(
+                // NonEmptySet uses a LinkedHashSet internally, so the sorted order established in
+                // process() is preserved when generators iterate the set.
                 NonEmptySet.ofAll(validatedElements),
                         lazyvalEnvironment.createContext(validatedElements.iterator().next()))
                 // remove potential null, since external generators might not use JSpecify annotations/tooling

@@ -79,6 +79,10 @@ class LazyvalSymbolProcessor(
         val annotatedSymbols: List<KSAnnotated> = resolver.getSymbolsWithAnnotation(LazyValue::class.qualifiedName!!).toList()
         val configuredElements = lazyvalEnvironment.configuredValues()
 
+        // Sort by qualified type name so the iteration order is deterministic across runs.
+        // Generators that emit a single file containing entries for every element (Jackson modules, etc.)
+        // rely on stable input order to produce byte-identical output; approval tests fail otherwise.
+        // Multi-file generators are unaffected.
         val validatedElements: List<ValidatedElement> = (annotatedSymbols + configuredElements)
             .filterIsInstance<KSClassDeclaration>()
             .mapNotNull { classDecl ->
@@ -91,7 +95,7 @@ class LazyvalSymbolProcessor(
                     }
                 }
             }
-            .toList()
+            .sortedBy { it.element.element.qualifiedName?.asString().orEmpty() }
 
         if(validatedElements.isNotEmpty() && !hasProcessed) {
             validateOptions()
