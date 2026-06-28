@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.ksp
 
+import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
@@ -28,28 +29,28 @@ class KspSpringDataCassandraIT extends Specification {
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
-    @Unroll("#scenario.name() compiles and generates LazyvalSpringDataConfiguration.kt for Cassandra")
-    void "all Scenarios compile and generate the configuration"() {
-        given:
-        scenario.withDependencies(
-                dependencySpringDataCassandra,
-                dependencySpringDataCommons,
-                dependencySpringCore,
-                dependencySpringBeans,
-                dependencySpringContext,
-                dependencyJakartaAnnotations)
+    void "Spring Data Cassandra with combined Scenarios"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Kotlin.combined()
+                .withDependencies(
+                        dependencySpringDataCassandra,
+                        dependencySpringDataCommons,
+                        dependencySpringCore,
+                        dependencySpringBeans,
+                        dependencySpringContext,
+                        dependencyJakartaAnnotations)
+
+        and: 'a defined approval for the generated configuration'
+        List<Approval> approvals = [
+                Approval.KotlinSource.at("test/boundary/persistence/$GENERATED_FILE_NAME",
+                        "approvals/springdata/cassandra/$GENERATED_FILE_NAME")
+        ]
 
         when:
-        def result = testkitKotlin.run(projectDir, scenario)
+        def result = testkitKotlin.run(projectDir, scenario, approvals)
 
         then:
-        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/$GENERATED_FILE_NAME")).contains("@Generated")
-
-        where:
-        scenario << Scenario.Kotlin.all()
+        result == Testresult.Kotlin.Approved.of(approvals)
     }
 
     void "Nothing generated when no CustomConversions is on classpath"() {
@@ -73,7 +74,7 @@ class KspSpringDataCassandraIT extends Specification {
         testkitKotlin.run(projectDir, scenario)
 
         then: 'single configuration file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().exists()
+        testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().exists()
     }
 
     void "Package override by generator works as expected"() {
@@ -90,7 +91,7 @@ class KspSpringDataCassandraIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/ksp/kotlin/test/custom/LazyvalSpringDataConfiguration.kt").toFile().exists()
+        testkitKotlin.generatedKotlinSourcePath(projectDir, "test/custom/LazyvalSpringDataConfiguration.kt").toFile().exists()
     }
 
     void "single valid user converter is appended to cassandraCustomConversions"() {
@@ -109,7 +110,7 @@ class KspSpringDataCassandraIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
-        def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
+        def generated = testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
         generated.contains("scenarios.converters.ValidConverter()")
         generated.contains("// user-supplied via lazyval.springdata.cassandra.converters:")
     }
@@ -132,7 +133,7 @@ class KspSpringDataCassandraIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
-        def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
+        def generated = testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
         def validIdx = generated.indexOf("scenarios.converters.ValidConverter()")
         def anotherIdx = generated.indexOf("scenarios.converters.AnotherValidConverter()")
         validIdx >= 0
@@ -157,7 +158,7 @@ class KspSpringDataCassandraIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
-        def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
+        def generated = testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
         generated.contains("scenarios.converters.ValidConverter()")
         generated.contains("scenarios.converters.AnotherValidConverter()")
     }
@@ -215,7 +216,7 @@ class KspSpringDataCassandraIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
-        def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
+        def generated = testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
         generated.contains("scenarios.converters.NonPublicConverter()")
     }
 
@@ -327,7 +328,7 @@ class KspSpringDataCassandraIT extends Specification {
         }
 
         and: 'no cassandra bean method is generated'
-        def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
+        def generated = testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/LazyvalSpringDataConfiguration.kt").toFile().text
         !generated.contains("cassandraCustomConversions")
     }
 
@@ -347,6 +348,6 @@ class KspSpringDataCassandraIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'doesnt contain @Generated'
-        !Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/$GENERATED_FILE_NAME")).contains("@Generated")
+        !Files.readString(testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/$GENERATED_FILE_NAME")).contains("@Generated")
     }
 }

@@ -154,10 +154,20 @@ public sealed interface Approval {
             Objects.requireNonNull(expectedContent, "expectedContent must not be null");
         }
 
-        /** Literal-content factory; takes the service interface FQN, derives the META-INF path. */
-        public static ServiceLoader of(String interfaceFqn, String expectedContent) {
+        /**
+         * Literal-content factory; takes the service interface FQN, derives the META-INF path, and
+         * joins {@code entries} with {@code \n} to form the expected file content. Each vararg is one
+         * provider FQN line — pass them individually instead of pre-joining at the call site. A single
+         * pre-joined string still works (varargs accepts one arg), so existing one-entry call sites
+         * keep compiling unchanged.
+         */
+        public static ServiceLoader of(String interfaceFqn, String... entries) {
             Objects.requireNonNull(interfaceFqn, "interfaceFqn must not be null");
-            return new ServiceLoader(PREFIX + interfaceFqn, expectedContent);
+            Objects.requireNonNull(entries, "entries must not be null");
+            for (String entry : entries) {
+                Objects.requireNonNull(entry, "entries must not contain null elements");
+            }
+            return new ServiceLoader(PREFIX + interfaceFqn, String.join("\n", entries));
         }
 
         /**

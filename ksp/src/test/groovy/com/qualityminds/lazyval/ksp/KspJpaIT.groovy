@@ -1,12 +1,15 @@
 package com.qualityminds.lazyval.ksp
 
+import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
-import spock.lang.*
+import spock.lang.Shared
+import spock.lang.Specification
+import spock.lang.TempDir
+import spock.lang.Title
 
-import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("KSP Generator Integration - JPA")
@@ -21,28 +24,24 @@ class KspJpaIT extends Specification {
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
-    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
-    void "JPA with all Scenarios"(){
-        given:
-        scenario.withDependencies(dependencyJakartaPersistence, dependencyJakartaAnnotations)
+    void "JPA with combined Scenarios"(){
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Kotlin.combined().withDependencies(dependencyJakartaPersistence, dependencyJakartaAnnotations)
+
+        and: 'a defined approval for each generated file'
+        List<Approval> approvals = [
+                Approval.KotlinSource.at("test/boundary/persistence/jpa/QuantityAttributeConverter.kt", "approvals/jpa/QuantityAttributeConverter.kt"),
+                Approval.KotlinSource.at("test/boundary/persistence/jpa/NullableQuantityAttributeConverter.kt", "approvals/jpa/NullableQuantityAttributeConverter.kt"),
+                Approval.KotlinSource.at("test/boundary/persistence/jpa/IsbnAttributeConverter.kt", "approvals/jpa/IsbnAttributeConverter.kt"),
+                Approval.KotlinSource.at("test/boundary/persistence/jpa/OrderDateAttributeConverter.kt", "approvals/jpa/OrderDateAttributeConverter.kt"),
+                Approval.KotlinSource.at("test/boundary/persistence/jpa/IdsProductIdAttributeConverter.kt", "approvals/jpa/IdsProductIdAttributeConverter.kt")
+        ]
 
         when:
-        def result = testkitKotlin.run(projectDir, scenario)
+        def result = testkitKotlin.run(projectDir, scenario, approvals)
 
         then:
-        result == expected
-
-        then: 'file is generated at correct location using base-package with generator-default'
-        def resolvedFile = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/jpa/$generatedJpaMapper")
-        resolvedFile.toFile().exists()
-
-        and: 'contains @Generated'
-        Files.readString(resolvedFile).contains("@Generated")
-
-        where:
-        scenario << Scenario.Kotlin.all()
-        generatedJpaMapper = scenario.name().contains("Ids.kt") ? "IdsProductIdAttributeConverter.kt" : scenario.name().replace(".kt", "AttributeConverter.kt")
-        expected = new Testresult.Kotlin.Success(generatedJpaMapper)
+        result == Testresult.Kotlin.Approved.of(approvals)
     }
 
     void "Package override by Generator works as expected"(){
@@ -58,21 +57,23 @@ class KspJpaIT extends Specification {
         result == new Testresult.Kotlin.Success("QuantityAttributeConverter.kt")
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/ksp/kotlin/test/custom/QuantityAttributeConverter.kt").toFile().exists()
+        testkitKotlin.generatedKotlinSourcePath(projectDir, "test/custom/QuantityAttributeConverter.kt").toFile().exists()
     }
 
     void "Does not add '@Generated' when jakarta.annotations-api not on classpath"(){
         given:
         def scenario = Scenario.Kotlin.quantity().withDependencies(dependencyJakartaPersistence)
 
+        and: 'a approval file not containing @Generated'
+        def approval = Approval.KotlinSource.at(
+                "test/boundary/persistence/jpa/QuantityAttributeConverter.kt",
+                "approvals/jpa/QuantityAttributeConverterNoGenerated.kt")
+
         when:
-        def result = testkitKotlin.run(projectDir, scenario)
+        def result = testkitKotlin.run(projectDir, scenario, approval)
 
         then:
-        result == new Testresult.Kotlin.Success("QuantityAttributeConverter.kt")
-
-        and: 'doesnt contain @Generated'
-        !Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/jpa/QuantityAttributeConverter.kt")).contains("@Generated")
+        result == Testresult.Kotlin.Approved.of(approval)
     }
 
 }

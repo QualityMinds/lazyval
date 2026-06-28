@@ -1,12 +1,15 @@
 package com.qualityminds.lazyval.processor
 
+import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
-import spock.lang.*
+import spock.lang.Shared
+import spock.lang.Specification
+import spock.lang.TempDir
+import spock.lang.Title
 
-import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - BeanValidation")
@@ -20,29 +23,31 @@ class ApBeanValidationIT extends Specification {
     @Shared
     def testkitJava = Testkit.java()
 
-    @Unroll("#scenario.name() compiles and generates #expectedFile")
-    void "each domain-primitive generates a single ValueExtractor"(){
-        given:
-        scenario.withDependencies(dependencyBeanValidation)
+    void "BeanValidation with combined Scenarios"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Java.combined().withDependencies(dependencyBeanValidation)
+
+        and: 'a defined approval for each generated ValueExtractor and the ServiceLoader registration'
+        List<Approval> approvals = [
+                Approval.JavaSource.at("test/IsbnValueExtractor.java", "approvals/beanvalidation/IsbnValueExtractor.java"),
+                Approval.JavaSource.at("test/IdsProductIdValueExtractor.java", "approvals/beanvalidation/IdsProductIdValueExtractor.java"),
+                Approval.JavaSource.at("test/QuantityValueExtractor.java", "approvals/beanvalidation/QuantityValueExtractor.java"),
+                Approval.JavaSource.at("test/OrderDateValueExtractor.java", "approvals/beanvalidation/OrderDateValueExtractor.java"),
+                Approval.ServiceLoader.of("jakarta.validation.valueextraction.ValueExtractor",
+                        "test.IdsProductIdValueExtractor",
+                        "test.IsbnValueExtractor",
+                        "test.OrderDateValueExtractor",
+                        "test.QuantityValueExtractor")
+        ]
 
         when:
-        def result = testkitJava.run(projectDir, scenario)
+        def result = testkitJava.run(projectDir, scenario, approvals)
 
         then:
-        result == new Testresult.Java.Success(expectedFile)
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/test/$expectedFile")).contains("@Generated")
-
-        where:
-        scenario                || expectedFile
-        Scenario.Java.isbn()    || "IsbnValueExtractor.java"
-        Scenario.Java.ids()     || "IdsProductIdValueExtractor.java"
-        Scenario.Java.quantity()|| "QuantityValueExtractor.java"
-        Scenario.Java.orderDate()|| "OrderDateValueExtractor.java"
+        result == Testresult.Java.Approved.of(approvals)
     }
 
-    void "Package override by generator works as expected"(){
+    void "Package override by generator works as expected"() {
         given:
         def scenario = Scenario.Java.isbn()
                 .withDependencies(dependencyBeanValidation)
@@ -56,6 +61,6 @@ class ApBeanValidationIT extends Specification {
         result == new Testresult.Java.Success("IsbnValueExtractor.java")
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/test/custom/IsbnValueExtractor.java").toFile().exists()
+        testkitJava.generatedSourcePath(projectDir, "test/custom/IsbnValueExtractor.java").toFile().exists()
     }
 }

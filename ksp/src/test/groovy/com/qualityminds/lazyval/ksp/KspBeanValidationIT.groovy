@@ -1,12 +1,12 @@
 package com.qualityminds.lazyval.ksp
 
+import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
-import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("KSP Generator Integration - BeanValidation")
@@ -21,32 +21,39 @@ class KspBeanValidationIT extends Specification {
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
-    @Unroll("#scenario.name() compiles and generates #implFile and #baseFile")
-    void "each domain-primitive generates a Java base class and a Kotlin ValueExtractor"(){
-        given:
-        scenario.withDependencies(dependencyBeanValidation, dependencyJakartaAnnotations)
+    void "BeanValidation with combined Scenarios"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Kotlin.combined()
+                .withDependencies(dependencyBeanValidation, dependencyJakartaAnnotations)
+
+        and: 'a defined approval for each generated Kotlin impl, Java base and the ServiceLoader registration'
+        List<Approval> approvals = [
+                Approval.KotlinSource.at("test/IsbnValueExtractor.kt", "approvals/beanvalidation/IsbnValueExtractor.kt"),
+                Approval.KotlinSource.at("test/IdsProductIdValueExtractor.kt", "approvals/beanvalidation/IdsProductIdValueExtractor.kt"),
+                Approval.KotlinSource.at("test/NullableQuantityValueExtractor.kt", "approvals/beanvalidation/NullableQuantityValueExtractor.kt"),
+                Approval.KotlinSource.at("test/QuantityValueExtractor.kt", "approvals/beanvalidation/QuantityValueExtractor.kt"),
+                Approval.KotlinSource.at("test/OrderDateValueExtractor.kt", "approvals/beanvalidation/OrderDateValueExtractor.kt"),
+                Approval.JavaSource.at("test/IsbnValueExtractorBase.java", "approvals/beanvalidation/IsbnValueExtractorBase.java"),
+                Approval.JavaSource.at("test/IdsProductIdValueExtractorBase.java", "approvals/beanvalidation/IdsProductIdValueExtractorBase.java"),
+                Approval.JavaSource.at("test/NullableQuantityValueExtractorBase.java", "approvals/beanvalidation/NullableQuantityValueExtractorBase.java"),
+                Approval.JavaSource.at("test/QuantityValueExtractorBase.java", "approvals/beanvalidation/QuantityValueExtractorBase.java"),
+                Approval.JavaSource.at("test/OrderDateValueExtractorBase.java", "approvals/beanvalidation/OrderDateValueExtractorBase.java"),
+                Approval.ServiceLoader.of("jakarta.validation.valueextraction.ValueExtractor",
+                        "test.IdsProductIdValueExtractor",
+                        "test.IsbnValueExtractor",
+                        "test.NullableQuantityValueExtractor",
+                        "test.OrderDateValueExtractor",
+                        "test.QuantityValueExtractor")
+        ]
 
         when:
-        def result = testkitKotlin.run(projectDir, scenario)
+        def result = testkitKotlin.run(projectDir, scenario, approvals)
 
         then:
-        result == new Testresult.Kotlin.Success(baseFile, implFile)
-
-        and: 'Java base contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/ksp/java/test/$baseFile")).contains("@Generated")
-
-        and: 'Kotlin impl contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/$implFile")).contains("@Generated")
-
-        where:
-        scenario                   || baseFile                              | implFile
-        Scenario.Kotlin.isbn()     || "IsbnValueExtractorBase.java"         | "IsbnValueExtractor.kt"
-        Scenario.Kotlin.ids()      || "IdsProductIdValueExtractorBase.java" | "IdsProductIdValueExtractor.kt"
-        Scenario.Kotlin.quantity() || "QuantityValueExtractorBase.java"     | "QuantityValueExtractor.kt"
-        Scenario.Kotlin.orderDate()|| "OrderDateValueExtractorBase.java"    | "OrderDateValueExtractor.kt"
+        result == Testresult.Kotlin.Approved.of(approvals)
     }
 
-    void "Package override by generator works as expected"(){
+    void "Package override by generator works as expected"() {
         given:
         def scenario = Scenario.Kotlin.isbn()
                 .withDependencies(dependencyBeanValidation, dependencyJakartaAnnotations)
@@ -60,7 +67,7 @@ class KspBeanValidationIT extends Specification {
         result == new Testresult.Kotlin.Success("IsbnValueExtractorBase.java", "IsbnValueExtractor.kt")
 
         and: 'files are at the correct package'
-        projectDir.resolve("build/generated/ksp/java/test/custom/IsbnValueExtractorBase.java").toFile().exists()
-        projectDir.resolve("build/generated/ksp/kotlin/test/custom/IsbnValueExtractor.kt").toFile().exists()
+        testkitKotlin.generatedJavaSourcePath(projectDir, "test/custom/IsbnValueExtractorBase.java").toFile().exists()
+        testkitKotlin.generatedKotlinSourcePath(projectDir, "test/custom/IsbnValueExtractor.kt").toFile().exists()
     }
 }

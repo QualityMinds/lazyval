@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.processor
 
+import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
@@ -7,7 +8,6 @@ import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import org.eclipse.collections.api.factory.Lists
 import spock.lang.*
 
-import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - Mapstruct")
@@ -23,23 +23,20 @@ class ApMapstructIT extends Specification {
     def testkitJava = Testkit.java()
 
 
-    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
-    void "Mapstruct with all Scenarios"(){
-        given:
-        scenario.withDependencies(dependencyMapstruct)
+    void "Mapstruct with combined Scenarios"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Java.combined().withDependencies(dependencyMapstruct)
+
+        and: 'a defined approval for the generated mapper'
+        List<Approval> approvals = [
+                Approval.JavaSource.at("test/$GENERATED_FILE_NAME", "approvals/mapstruct/$GENERATED_FILE_NAME")
+        ]
 
         when:
-        def result = testkitJava.run(projectDir, scenario)
+        def result = testkitJava.run(projectDir, scenario, approvals)
 
         then:
-        result == expected
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME")).contains("@Generated")
-
-        where:
-        scenario << Scenario.Java.all()
-        expected = new Testresult.Java.Success("LazyvalMapper.java")
+        result == Testresult.Java.Approved.of(approvals)
     }
 
     void "Warning is issued when package is not configured in any way"(){
@@ -69,6 +66,6 @@ class ApMapstructIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/test/custom/$GENERATED_FILE_NAME").toFile().exists()
+        testkitJava.generatedSourcePath(projectDir, "test/custom/$GENERATED_FILE_NAME").toFile().exists()
     }
 }

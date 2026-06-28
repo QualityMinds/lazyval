@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.ksp
 
+import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
@@ -27,26 +28,21 @@ class KspJsonbIT extends Specification {
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
-    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
-    void "JSON-B with all Scenarios"(){
-        given:
-        scenario.withDependencies(dependencyJsonbApi, dependencyJakartaAnnotations)
+    void "JSON-B with combined Scenarios"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Kotlin.combined()
+                .withDependencies(dependencyJsonbApi, dependencyJakartaAnnotations)
+
+        and: 'a defined approval for the generated adapters file'
+        List<Approval> approvals = [
+                Approval.KotlinSource.at("test/$GENERATED_FILE_NAME", "approvals/jsonb/$GENERATED_FILE_NAME")
+        ]
 
         when:
-        def result = testkitKotlin.run(projectDir, scenario)
+        def result = testkitKotlin.run(projectDir, scenario, approvals)
 
         then:
-        result == expected
-
-        then: 'files are generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME").toFile().exists()
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME")).contains("@Generated")
-
-        where:
-        scenario << Scenario.Kotlin.all()
-        expected = new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
+        result == Testresult.Kotlin.Approved.of(approvals)
     }
 
     void "JSON-B package override by generator works as expected"(){
@@ -63,23 +59,25 @@ class KspJsonbIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/ksp/kotlin/test/custom/$GENERATED_FILE_NAME").toFile().exists()
+        testkitKotlin.generatedKotlinSourcePath(projectDir, "test/custom/$GENERATED_FILE_NAME").toFile().exists()
     }
 
-    @Unroll("#scenario.name() compiles and generated ContextResolver with JAX-RS on classpath")
-    void "JSON-B with JAX-RS generates ContextResolver"(){
+    void "JSON-B with JAX-RS generates ContextResolver for combined Scenarios"() {
         given:
-        scenario.withDependencies(dependencyJsonbApi, dependencyJaxRsApi)
+        def scenario = Scenario.Kotlin.combined()
+                .withDependencies(dependencyJsonbApi, dependencyJaxRsApi, dependencyJakartaAnnotations)
+
+        and: 'a defined approval for adapters and context resolver'
+        List<Approval> approvals = [
+                Approval.KotlinSource.at("test/$GENERATED_FILE_NAME", "approvals/jsonb/$GENERATED_FILE_NAME"),
+                Approval.KotlinSource.at("test/$GENERATED_RESOLVER_FILE_NAME", "approvals/jsonb/$GENERATED_RESOLVER_FILE_NAME")
+        ]
 
         when:
-        def result = testkitKotlin.run(projectDir, scenario)
+        def result = testkitKotlin.run(projectDir, scenario, approvals)
 
         then:
-        result == expected
-
-        where:
-        scenario << Scenario.Kotlin.all()
-        expected = new Testresult.Kotlin.Success(GENERATED_FILE_NAME, GENERATED_RESOLVER_FILE_NAME)
+        result == Testresult.Kotlin.Approved.of(approvals)
     }
 
     void "JSON-B ContextResolver is generated at correct default location"(){
@@ -91,10 +89,10 @@ class KspJsonbIT extends Specification {
         testkitKotlin.run(projectDir, scenario)
 
         then: 'adapters file is generated'
-        projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME").toFile().exists()
+        testkitKotlin.generatedKotlinSourcePath(projectDir, "test/$GENERATED_FILE_NAME").toFile().exists()
 
         and: 'ContextResolver file is generated'
-        projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
+        testkitKotlin.generatedKotlinSourcePath(projectDir, "test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
     }
 
     void "JSON-B ContextResolver is not generated when register is false"(){
@@ -111,7 +109,7 @@ class KspJsonbIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'ContextResolver file is not generated'
-        !projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
+        !testkitKotlin.generatedKotlinSourcePath(projectDir, "test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
     }
 
     void "JSON-B emits a Singleton JsonbConfigCustomizer when Quarkus is on the classpath"(){
@@ -126,7 +124,7 @@ class KspJsonbIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'no ContextResolver is emitted (avoids registering the same adapters twice in Quarkus REST)'
-        !projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
+        !testkitKotlin.generatedKotlinSourcePath(projectDir, "test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
     }
 
     void "JSON-B ContextResolver is suppressed when both JAX-RS and Quarkus are on the classpath"(){
@@ -142,7 +140,7 @@ class KspJsonbIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'ContextResolver file is not generated'
-        !projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
+        !testkitKotlin.generatedKotlinSourcePath(projectDir, "test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
     }
 
     void "Does not add '@Generated' when jakarta.annotations-api not on classpath"(){
@@ -156,6 +154,6 @@ class KspJsonbIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'doesnt contain @Generated'
-        !Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/$GENERATED_FILE_NAME")).contains("@Generated")
+        !Files.readString(testkitKotlin.generatedKotlinSourcePath(projectDir, "test/$GENERATED_FILE_NAME")).contains("@Generated")
     }
 }

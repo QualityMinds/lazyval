@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.ksp
 
+import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
@@ -27,26 +28,22 @@ class KspMongoCodecIT extends Specification {
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
-    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
-    void "MongoDB Codec with all Scenarios"() {
-        given:
-        scenario.withDependencies(dependencyBson, dependencyJakartaAnnotations)
+    void "MongoDB Codec with combined Scenarios"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Kotlin.combined()
+                .withDependencies(dependencyBson, dependencyJakartaAnnotations)
+
+        and: 'a defined approval for the generated codecs file'
+        List<Approval> approvals = [
+                Approval.KotlinSource.at("test/boundary/persistence/mongodb/$GENERATED_FILE_NAME",
+                        "approvals/mongocodec/$GENERATED_FILE_NAME")
+        ]
 
         when:
-        def result = testkitKotlin.run(projectDir, scenario)
+        def result = testkitKotlin.run(projectDir, scenario, approvals)
 
         then:
-        result == expected
-
-        then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/$GENERATED_FILE_NAME").toFile().exists()
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/$GENERATED_FILE_NAME")).contains("@Generated")
-
-        where:
-        scenario << Scenario.Kotlin.all()
-        expected = new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
+        result == Testresult.Kotlin.Approved.of(approvals)
     }
 
 
@@ -63,7 +60,7 @@ class KspMongoCodecIT extends Specification {
         result == new Testresult.Kotlin.Success([GENERATED_FILE_NAME])
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/ksp/kotlin/test/custom/$GENERATED_FILE_NAME").toFile().exists()
+        testkitKotlin.generatedKotlinSourcePath(projectDir, "test/custom/$GENERATED_FILE_NAME").toFile().exists()
     }
 
     void "OrderDate wrapping LocalDate generates a valid codec"() {
@@ -130,7 +127,7 @@ class KspMongoCodecIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'generated file references the user codec'
-        def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt").toFile().text
+        def generated = testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt").toFile().text
         generated.contains("scenarios.mongocodecs.ValidMongoCodec()")
     }
 
@@ -152,7 +149,7 @@ class KspMongoCodecIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
-        def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt").toFile().text
+        def generated = testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt").toFile().text
         def validIdx = generated.indexOf("scenarios.mongocodecs.ValidMongoCodec()")
         def anotherIdx = generated.indexOf("scenarios.mongocodecs.AnotherValidMongoCodec()")
         validIdx >= 0
@@ -177,7 +174,7 @@ class KspMongoCodecIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
-        def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt").toFile().text
+        def generated = testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt").toFile().text
         generated.contains("scenarios.mongocodecs.ValidMongoCodec()")
         generated.contains("scenarios.mongocodecs.AnotherValidMongoCodec()")
     }
@@ -234,7 +231,7 @@ class KspMongoCodecIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and:
-        def generated = projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt").toFile().text
+        def generated = testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt").toFile().text
         generated.contains("scenarios.mongocodecs.NonPublicMongoCodec()")
     }
 
@@ -317,6 +314,6 @@ class KspMongoCodecIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'doesnt contain @Generated'
-        !Files.readString(projectDir.resolve("build/generated/ksp/kotlin/test/boundary/persistence/mongodb/$GENERATED_FILE_NAME")).contains("@Generated")
+        !Files.readString(testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/mongodb/$GENERATED_FILE_NAME")).contains("@Generated")
     }
 }
