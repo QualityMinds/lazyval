@@ -23,18 +23,48 @@ import static org.eclipse.collections.impl.collector.Collectors2.toImmutableList
  * Counterpart to {@link com.qualityminds.lazyval.testkit.internal.toolchain.kotlin.KotlinToolchain},
  * but simpler because annotation processors run in-process and any error in generated Java surfaces
  * directly through the same {@code javac} invocation.
+ * <p>
+ * The toolchain layout — where javac writes sources vs. classes — is exposed via the static helpers
+ * {@link #sourceOutputDir(Path)} and {@link #classOutputDir(Path)} so that consumers (the testkit's
+ * collectors and its public path helpers) share one source of truth instead of duplicating string
+ * literals.
  */
 public class JavaToolchain {
+
+    /**
+     * Root for annotation-processor-emitted Java sources ({@code <projectDir>/build/generated/}).
+     * Maps to {@link StandardLocation#SOURCE_OUTPUT}.
+     */
+    public static Path sourceOutputDir(Path projectDir) {
+        return projectDir.resolve("build/generated");
+    }
+
+    /**
+     * Root for compiled classes <em>and</em> any non-source artifacts emitted by
+     * {@code Filer.createResource(StandardLocation.CLASS_OUTPUT, ...)} — typically
+     * {@code <projectDir>/build/classes/}. The toolchain filters {@code *.class} files out of the
+     * Result's resource list, so callers using {@code generatedResources} see only the
+     * processor-emitted artifacts.
+     */
+    public static Path classOutputDir(Path projectDir) {
+        return projectDir.resolve("build/classes");
+    }
 
     private final JavaCompiler.CompilationTask task;
     private final LoggingDiagnosticsCollector diagnostics;
     private final Path sourceOutputDir;
+    private final Path classOutputDir;
     private final ClassLoader processorClassLoader;
 
-    private JavaToolchain(JavaCompiler.CompilationTask task, LoggingDiagnosticsCollector diagnostics, Path sourceOutputDir, ClassLoader processorClassLoader) {
+    private JavaToolchain(JavaCompiler.CompilationTask task,
+                          LoggingDiagnosticsCollector diagnostics,
+                          Path sourceOutputDir,
+                          Path classOutputDir,
+                          ClassLoader processorClassLoader) {
         this.task = task;
         this.diagnostics = diagnostics;
         this.sourceOutputDir = sourceOutputDir;
+        this.classOutputDir = classOutputDir;
         this.processorClassLoader = processorClassLoader;
     }
 
@@ -45,16 +75,29 @@ public class JavaToolchain {
             Thread.currentThread().setContextClassLoader(processorClassLoader);
 
             boolean result = task.call();
-            TreeSet<Path> sourceFiles;
-            try (var stream = Files.walk(sourceOutputDir)) {
-                sourceFiles = stream.filter(p -> !Files.isDirectory(p))
-                        .collect(Collectors.toCollection(TreeSet::new));
-            }
-            return new Result(result, diagnostics.getDiagnostics(), sourceFiles);
+            var generatedSources = walkFiles(sourceOutputDir, path -> true);
+            // CLASS_OUTPUT also contains compiled .class files from the input sources; only the
+            // non-class artifacts are processor-generated resources (META-INF/services, properties,
+            // etc.). A generator that emits a .class file directly via Filer.createClassFile would
+            // be missed here, but in practice no real generator does that.
+            var generatedResources = walkFiles(classOutputDir, path -> !path.getFileName().toString().endsWith(".class"));
+            return new Result(result, diagnostics.getDiagnostics(), generatedSources, generatedResources);
         } catch (Exception e) {
             throw new RuntimeException("Failed to collect generated files", e);
-        }finally {
+        } finally {
             Thread.currentThread().setContextClassLoader(originalClassLoader);
+        }
+    }
+
+    private static TreeSet<Path> walkFiles(Path root, java.util.function.Predicate<Path> filter) throws java.io.IOException {
+        if (!Files.isDirectory(root)) {
+            return new TreeSet<>();
+        }
+        try (var stream = Files.walk(root)) {
+            return stream
+                    .filter(p -> !Files.isDirectory(p))
+                    .filter(filter)
+                    .collect(Collectors.toCollection(TreeSet::new));
         }
     }
 
@@ -69,8 +112,8 @@ public class JavaToolchain {
 
         var fileManager = compiler.getStandardFileManager(diagnostics, null, null);
         try {
-            var outputDir = Files.createDirectories(projectDir.resolve("build/classes"));
-            var generatedSourcesDir = Files.createDirectories(projectDir.resolve("build/generated"));
+            var outputDir = Files.createDirectories(classOutputDir(projectDir));
+            var generatedSourcesDir = Files.createDirectories(sourceOutputDir(projectDir));
             fileManager.setLocation(StandardLocation.CLASS_OUTPUT, List.of(outputDir.toFile()));
             fileManager.setLocation(StandardLocation.SOURCE_OUTPUT, List.of(generatedSourcesDir.toFile()));
 
@@ -103,9 +146,11 @@ public class JavaToolchain {
             processors.forEach(processorList::add);
             task.setProcessors(processorList);
 
-            var outputLocation = fileManager.getLocation(StandardLocation.SOURCE_OUTPUT);
-            var sourceOutputDir = outputLocation.iterator().next().toPath();
-            return new JavaToolchain(task, diagnostics, sourceOutputDir, processorClassLoader);
+            var sourceOutputLocation = fileManager.getLocation(StandardLocation.SOURCE_OUTPUT);
+            var sourceOutputDir = sourceOutputLocation.iterator().next().toPath();
+            var classOutputLocation = fileManager.getLocation(StandardLocation.CLASS_OUTPUT);
+            var classOutputDir = classOutputLocation.iterator().next().toPath();
+            return new JavaToolchain(task, diagnostics, sourceOutputDir, classOutputDir, processorClassLoader);
         } catch (Exception e) {
             throw new RuntimeException("Failed to setup compiler task", e);
         }
@@ -118,13 +163,21 @@ public class JavaToolchain {
      * Because javac is a single-step tool whose success model is binary, the outcome is a plain
      * {@link #taskResult()} boolean rather than a per-step enum map. The structured detail lives in
      * {@link #diagnostics()}.
-     * @param taskResult whether the task completed successfully
-     * @param diagnostics the list of diagnostics that occurred during compilation,
-     *                    use {@link #getErrors()} and {@link #getWarnings()} to extract specific kinds as english strings
-     * @param generatedFiles the set of generated Java files
+     *
+     * @param taskResult         whether the task completed successfully
+     * @param diagnostics        the list of diagnostics that occurred during compilation, use
+     *                           {@link #getErrors()} and {@link #getWarnings()} to extract specific kinds
+     *                           as English strings
+     * @param generatedSources   Java source files emitted by the annotation processor under
+     *                           {@code SOURCE_OUTPUT} (typically {@code build/generated/})
+     * @param generatedResources non-class artifacts emitted by the annotation processor under
+     *                           {@code CLASS_OUTPUT} (typically {@code build/classes/}); excludes the
+     *                           {@code .class} files produced by compilation of the input sources
      */
-    public record Result(boolean taskResult, List<Diagnostic<? extends JavaFileObject>> diagnostics,
-                         SortedSet<Path> generatedFiles) {
+    public record Result(boolean taskResult,
+                         List<Diagnostic<? extends JavaFileObject>> diagnostics,
+                         SortedSet<Path> generatedSources,
+                         SortedSet<Path> generatedResources) {
 
         public boolean isSuccessful() {
             return taskResult;
@@ -144,8 +197,9 @@ public class JavaToolchain {
                     .collect(toImmutableList());
         }
 
+        /** True when the run produced neither sources nor resources. */
         public boolean generatedNoFiles() {
-            return generatedFiles.isEmpty();
+            return generatedSources.isEmpty() && generatedResources.isEmpty();
         }
     }
 }

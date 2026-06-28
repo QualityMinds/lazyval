@@ -175,7 +175,7 @@ public sealed interface Scenario {
          * @return new ScenarioFactory instance
          */
         public static ScenarioFactory<Java> orderDate() {
-            return Scenario.Java.of("OrderDate.java", "scenarios/java/OrderDate.java");
+            return Scenario.Java.ofSingle("scenarios/java/OrderDate.java");
         }
 
         /**
@@ -191,7 +191,8 @@ public sealed interface Scenario {
                     "scenarios/java/Isbn.java",
                     "scenarios/java/Quantity.java",
                     "scenarios/java/OrderDate.java",
-                    "scenarios/java/Ids.java"
+                    "scenarios/java/Ids.java",
+                    "util/IdGenerator.java"
             );
         }
 
@@ -390,7 +391,8 @@ public sealed interface Scenario {
                     "scenarios/kotlin/Quantity.kt",
                     "scenarios/kotlin/NullableQuantity.kt",
                     "scenarios/kotlin/OrderDate.kt",
-                    "scenarios/kotlin/Ids.kt"
+                    "scenarios/kotlin/Ids.kt",
+                    "util/IdGenerator.java"
             );
         }
     }

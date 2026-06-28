@@ -19,8 +19,28 @@ import java.util.stream.Collectors;
  * <p>
  * Holds an open {@link java.net.URLClassLoader} for KSP symbol-processor SPI discovery. Callers must
  * {@link #close()} the toolchain (or use try-with-resources) to release the file handles.
+ * <p>
+ * The toolchain layout — where KSP writes Java sources, Kotlin sources and resources — is exposed via
+ * the static helpers {@link #kspJavaOutputDir}, {@link #kspKotlinOutputDir} and
+ * {@link #kspResourceOutputDir} so that consumers (the testkit's collectors and its public path
+ * helpers) share one source of truth instead of duplicating string literals.
  */
 public class KotlinToolchain implements AutoCloseable {
+
+    /** Root for KSP-emitted Java sources ({@code <projectDir>/build/generated/ksp/java/}). */
+    public static Path kspJavaOutputDir(Path projectDir) {
+        return new ProjectLayout(projectDir).kspJavaOutput();
+    }
+
+    /** Root for KSP-emitted Kotlin sources ({@code <projectDir>/build/generated/ksp/kotlin/}). */
+    public static Path kspKotlinOutputDir(Path projectDir) {
+        return new ProjectLayout(projectDir).kspKotlinOutput();
+    }
+
+    /** Root for KSP-emitted resources ({@code <projectDir>/build/generated/ksp/resources/}). */
+    public static Path kspResourceOutputDir(Path projectDir) {
+        return new ProjectLayout(projectDir).kspResourceOutput();
+    }
 
     private final KspStep kspStep;
     private final KotlinCompileStep kotlinStep;
@@ -50,29 +70,31 @@ public class KotlinToolchain implements AutoCloseable {
                 }
             }
 
-            TreeSet<Path> generatedJavaFiles;
-            try (var stream = Files.walk(layout.kspJavaOutput())) {
-                generatedJavaFiles = stream
-                        .filter(p -> !Files.isDirectory(p))
-                        .collect(Collectors.toCollection(TreeSet::new));
-            }
-
-            TreeSet<Path> generatedKotlinFiles;
-            try (var stream = Files.walk(layout.kspKotlinOutput())) {
-                generatedKotlinFiles = stream
-                        .filter(p -> !Files.isDirectory(p))
-                        .collect(Collectors.toCollection(TreeSet::new));
-            }
+            var generatedJavaSources = walkFiles(layout.kspJavaOutput());
+            var generatedKotlinSources = walkFiles(layout.kspKotlinOutput());
+            var generatedResources = walkFiles(layout.kspResourceOutput());
 
             return new Result(
                     outcomes,
-                    generatedJavaFiles,
-                    generatedKotlinFiles,
+                    generatedJavaSources,
+                    generatedKotlinSources,
+                    generatedResources,
                     logCollector.getErrors(),
                     logCollector.getWarnings()
             );
         } catch (Exception e) {
             throw new RuntimeException("Toolchain execution failed", e);
+        }
+    }
+
+    private static TreeSet<Path> walkFiles(Path root) throws IOException {
+        if (!Files.isDirectory(root)) {
+            return new TreeSet<>();
+        }
+        try (var stream = Files.walk(root)) {
+            return stream
+                    .filter(p -> !Files.isDirectory(p))
+                    .collect(Collectors.toCollection(TreeSet::new));
         }
     }
 
@@ -95,18 +117,22 @@ public class KotlinToolchain implements AutoCloseable {
 
     /**
      * Result of a {@link KotlinToolchain} run.
-     * <p>
-     * @param stepOutcomes records the outcome of every step that was started. Steps that never
-     *                     started (because an earlier one failed, or when Javac wasn't started because no Java files
-     *                     were present) do not appear in the map.
-     * @param generatedJavaFiles the set of generated Java files
-     * @param generatedKotlinFiles the set of generated Kotlin files
-     * @param errors the list of errors that occurred during compilation
-     * @param warnings the list of warnings that occurred during compilation
+     *
+     * @param stepOutcomes           records the outcome of every step that was started. Steps that never
+     *                               started (because an earlier one failed, or when Javac wasn't started
+     *                               because no Java files were present) do not appear in the map.
+     * @param generatedJavaSources   Java sources emitted by KSP under {@code build/generated/ksp/java/}
+     * @param generatedKotlinSources Kotlin sources emitted by KSP under {@code build/generated/ksp/kotlin/}
+     * @param generatedResources     non-source artifacts emitted by KSP under
+     *                               {@code build/generated/ksp/resources/} (META-INF/services entries,
+     *                               properties files, etc.)
+     * @param errors                 errors that occurred during compilation
+     * @param warnings               warnings that occurred during compilation
      */
     public record Result(Map<Step, StepOutcome> stepOutcomes,
-                         SortedSet<Path> generatedJavaFiles,
-                         SortedSet<Path> generatedKotlinFiles,
+                         SortedSet<Path> generatedJavaSources,
+                         SortedSet<Path> generatedKotlinSources,
+                         SortedSet<Path> generatedResources,
                          ImmutableList<String> errors,
                          ImmutableList<String> warnings) {
 
@@ -114,8 +140,11 @@ public class KotlinToolchain implements AutoCloseable {
             return stepOutcomes.values().stream().allMatch(StepOutcome::isSuccessful);
         }
 
+        /** True when the run produced neither Java/Kotlin sources nor resources. */
         public boolean generatedNoFiles() {
-            return generatedJavaFiles.isEmpty() && generatedKotlinFiles.isEmpty();
+            return generatedJavaSources.isEmpty()
+                    && generatedKotlinSources.isEmpty()
+                    && generatedResources.isEmpty();
         }
     }
 }
