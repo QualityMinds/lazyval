@@ -157,22 +157,24 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
     }
 
     /**
-     * Adds relative-path → absolute-path entries for every file in {@code files} that sits under
-     * {@code root}. Files outside the root (or root not existing) are skipped. Paths are normalized
-     * to use forward slashes so they match the {@link Approval#generatedPath()} convention
+     * Builds a relative-path → absolute-path map for every file in {@code files} that sits under
+     * {@code root}. Files outside the root (or root not existing) yield an empty map. Paths are
+     * normalized to use forward slashes so they match the {@link Approval#generatedPath()} convention
      * regardless of platform.
      */
-    private static void collectGeneratedFiles(Path root, SortedSet<Path> files, Map<String, Path> into) {
+    private static Map<String, Path> collectGeneratedFiles(Path root, SortedSet<Path> files) {
         if (!Files.isDirectory(root)) {
-            return;
+            return Map.of();
         }
+        var map = new LinkedHashMap<String, Path>();
         for (Path file : files) {
             if (!file.startsWith(root)) {
                 continue;
             }
             var relative = root.relativize(file).toString().replace(java.io.File.separatorChar, '/');
-            into.put(relative, file);
+            map.put(relative, file);
         }
+        return map;
     }
 
     /**
@@ -282,15 +284,14 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
             return KotlinToolchain.kspResourceOutputDir(projectDir).resolve(relativePath);
         }
 
-        private static Map<String, Path> collectKotlinGeneratedFiles(Path projectDir, KotlinToolchain.Result result) {
-            // Keys are relative paths under each respective root. Java/Kotlin sources and resources
-            // live in disjoint directory trees (ksp/java, ksp/kotlin, ksp/resources), so even though
-            // they share one map, collisions on the relative path are vanishingly unlikely in practice.
-            var map = new LinkedHashMap<String, Path>();
-            collectGeneratedFiles(KotlinToolchain.kspJavaOutputDir(projectDir), result.generatedJavaSources(), map);
-            collectGeneratedFiles(KotlinToolchain.kspKotlinOutputDir(projectDir), result.generatedKotlinSources(), map);
-            collectGeneratedFiles(KotlinToolchain.kspResourceOutputDir(projectDir), result.generatedResources(), map);
-            return map;
+        private static ApprovalEvaluator.GeneratedFiles collectKotlinGeneratedFiles(Path projectDir, KotlinToolchain.Result result) {
+            // Per-kind maps so the evaluator can dispatch on Approval variant. Without this split, a
+            // mistyped variant (e.g. JavaSource for a .kt file under ksp/kotlin/) would resolve via
+            // path-string equality and silently pass.
+            return new ApprovalEvaluator.GeneratedFiles(
+                    collectGeneratedFiles(KotlinToolchain.kspJavaOutputDir(projectDir), result.generatedJavaSources()),
+                    collectGeneratedFiles(KotlinToolchain.kspKotlinOutputDir(projectDir), result.generatedKotlinSources()),
+                    collectGeneratedFiles(KotlinToolchain.kspResourceOutputDir(projectDir), result.generatedResources()));
         }
 
         private Testresult.Kotlin convertToolchainResult(KotlinToolchain.Result toolchainResult){
@@ -417,14 +418,13 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
             return JavaToolchain.classOutputDir(projectDir).resolve(relativePath);
         }
 
-        private static Map<String, Path> collectJavaGeneratedFiles(Path projectDir, JavaToolchain.Result result) {
-            // Sources land under SOURCE_OUTPUT (build/generated/); resources land under CLASS_OUTPUT
-            // (build/classes/, minus the .class files filtered at the toolchain layer). The two roots
-            // are disjoint so a single relative-path-keyed map is collision-safe in realistic use.
-            var map = new LinkedHashMap<String, Path>();
-            collectGeneratedFiles(JavaToolchain.sourceOutputDir(projectDir), result.generatedSources(), map);
-            collectGeneratedFiles(JavaToolchain.classOutputDir(projectDir), result.generatedResources(), map);
-            return map;
+        private static ApprovalEvaluator.GeneratedFiles collectJavaGeneratedFiles(Path projectDir, JavaToolchain.Result result) {
+            // Per-kind split so the evaluator can dispatch on Approval variant. javac doesn't emit
+            // Kotlin sources, so the kotlinSources map is always empty for the Java testkit.
+            return new ApprovalEvaluator.GeneratedFiles(
+                    collectGeneratedFiles(JavaToolchain.sourceOutputDir(projectDir), result.generatedSources()),
+                    Map.of(),
+                    collectGeneratedFiles(JavaToolchain.classOutputDir(projectDir), result.generatedResources()));
         }
 
         private Testresult.Java convertToolchainResult(JavaToolchain.Result toolchainResult){
