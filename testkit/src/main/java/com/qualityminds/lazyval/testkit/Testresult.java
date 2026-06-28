@@ -14,6 +14,12 @@ import static org.eclipse.collections.impl.collector.Collectors2.toImmutableList
 /**
  * ADT for test results, distinguishing between Java and Kotlin
  */
+// The Java and Kotlin sub-ADTs mirror each other by design — same shape, same nested
+// member names (Success, Failure, ApprovalMismatch.Failure, ...). Error-prone flags
+// the shared ApprovalMismatch.Failure name as SameNameButDifferent; the parallel is
+// intentional and qualifying every reference with Java./Kotlin. would hurt readability
+// more than it helps.
+@SuppressWarnings("SameNameButDifferent")
 public sealed interface Testresult {
 
     /**
