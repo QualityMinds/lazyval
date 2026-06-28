@@ -52,6 +52,9 @@ public sealed interface Scenario {
         /**
          * Single-source convenience; the name is derived from the source filename.
          * For multi-source scenarios, use {@link #of(String, String...)} with an explicit name.
+         *
+         * @param source classpath-relative path of the single source file to compile
+         * @return scenario factory for further configuration
          */
         public static ScenarioFactory<Java> ofSingle(String source) {
             return new ScenarioFactory<>(Java::new, ScenarioFactory.deriveName(source), source);
@@ -246,6 +249,9 @@ public sealed interface Scenario {
         /**
          * Single-source convenience; the name is derived from the source filename.
          * For multi-source scenarios, use {@link #of(String, String...)} with an explicit name.
+         *
+         * @param source classpath-relative path of the single source file to compile
+         * @return scenario factory for further configuration
          */
         public static ScenarioFactory<Kotlin> ofSingle(String source) {
             return new ScenarioFactory<>(Kotlin::new, ScenarioFactory.deriveName(source), source);

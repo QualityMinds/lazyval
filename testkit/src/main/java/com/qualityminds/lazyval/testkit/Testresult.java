@@ -144,6 +144,13 @@ public sealed interface Testresult {
                 return new Approved(paths, Lists.immutable.empty());
             }
 
+            /**
+             * Collection-accepting overload of {@link #of(Approval...)} for Groovy/Kotlin call sites
+             * that build their approvals as a {@code List}.
+             *
+             * @param approvals the approval definitions used in the run
+             * @return an {@code Approved} expectation with no warnings
+             */
             public static Approved of(Collection<Approval> approvals) {
                 return of(approvals.toArray(Approval[]::new));
             }
@@ -314,7 +321,12 @@ public sealed interface Testresult {
             }
         }
 
-        /** See {@link Java.Approved} — the Kotlin equivalent. */
+        /**
+         * See {@link Java.Approved} — the Kotlin equivalent.
+         *
+         * @param generatedFiles relative paths of every file produced
+         * @param warnings warnings observed during the run
+         */
         record Approved(ImmutableList<String> generatedFiles,
                         ImmutableList<String> warnings) implements Kotlin {
             @SuppressWarnings("doclint:accessibility,missing")
@@ -325,7 +337,11 @@ public sealed interface Testresult {
                 warnings = warnings.toSortedList().toImmutable();
             }
 
-            /** See {@link Java.Approved#of(Approval...)}. */
+            /**
+             * See {@link Java.Approved#of(Approval...)}.
+             * @param approvals the approval definitions used in the run
+             * @return an {@code Approved} expectation with no warnings
+             */
             public static Approved of(Approval... approvals) {
                 var paths = Arrays.stream(approvals)
                         .map(Approval::generatedPath)
@@ -333,17 +349,31 @@ public sealed interface Testresult {
                 return new Approved(paths, Lists.immutable.empty());
             }
 
+            /**
+             * Collection-accepting overload of {@link #of(Approval...)} for Groovy/Kotlin call sites
+             * that build their approvals as a {@code List}.
+             *
+             * @param approvals the approval definitions used in the run
+             * @return an {@code Approved} expectation with no warnings
+             */
             public static Kotlin.Approved of(Collection<Approval> approvals) {
                 return of(approvals.toArray(Approval[]::new));
             }
 
-            /** See {@link Java.Approved#withWarnings(String...)}. */
+            /**
+             * See {@link Java.Approved#withWarnings(String...)}.
+             * @param warnings warnings expected to be observed during the run
+             * @return a new {@code Approved} expectation with the warnings attached
+             */
             public Approved withWarnings(String... warnings) {
                 return new Approved(generatedFiles, Lists.immutable.of(warnings));
             }
         }
 
-        /** See {@link Java.ApprovalMismatch} — the Kotlin equivalent. */
+        /**
+         * See {@link Java.ApprovalMismatch} — the Kotlin equivalent.
+         * @param failures one entry per individual failure (a single run may produce several)
+         */
         record ApprovalMismatch(ImmutableList<Failure> failures) implements Kotlin {
             @SuppressWarnings("doclint:accessibility,missing")
             public ApprovalMismatch {
@@ -355,9 +385,23 @@ public sealed interface Testresult {
 
             /** A single reason the strict approval contract was not satisfied. See {@link Java.ApprovalMismatch.Failure}. */
             public sealed interface Failure {
+                /**
+                 * See {@link Java.ApprovalMismatch.Failure.ContentDiffers}.
+                 * @param generatedPath the path the approval targeted
+                 * @param renderedDiff the rendered, plain-text diff between actual and expected content
+                 */
                 record ContentDiffers(String generatedPath, String renderedDiff) implements Failure {}
+                /**
+                 * See {@link Java.ApprovalMismatch.Failure.FileNotFound}.
+                 * @param expectedPath the path the approval targeted
+                 * @param actualGeneratedPaths every file the run produced, for cross-reference
+                 */
                 record FileNotFound(String expectedPath,
                                     ImmutableList<String> actualGeneratedPaths) implements Failure {}
+                /**
+                 * See {@link Java.ApprovalMismatch.Failure.UnexpectedFile}.
+                 * @param generatedPath the surplus file's path
+                 */
                 record UnexpectedFile(String generatedPath) implements Failure {}
             }
 

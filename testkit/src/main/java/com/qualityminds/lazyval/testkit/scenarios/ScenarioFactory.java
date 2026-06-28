@@ -26,6 +26,14 @@ public class ScenarioFactory<T extends Scenario> {
     private boolean basePackageDisabled = false;
     private Map<String, String> options = new HashMap<>();
 
+    /**
+     * Derives a display name from a classpath-relative source path by taking the filename segment
+     * (everything after the last slash). Used by {@code ofSingle(...)} factories to keep scenario
+     * call-sites terse.
+     *
+     * @param sourcePath classpath-relative path of a source file, e.g. {@code "scenarios/java/Quantity.java"}
+     * @return the filename segment (no directory prefix), e.g. {@code "Quantity.java"}
+     */
     protected static String deriveName(String sourcePath) {
         int slash = sourcePath.lastIndexOf('/');
         return slash < 0 ? sourcePath : sourcePath.substring(slash + 1);

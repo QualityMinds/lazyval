@@ -3,28 +3,6 @@ package com.qualityminds.lazyval.testkit.internal.toolchain.diff;
 import java.util.List;
 
 /**
- * Structured, render-free representation of a diff: the ordered row stream produced by the engine,
- * including unchanged rows that serve as context. Rendering options (ANSI, context width) are applied
- * by {@link DiffReportFormatter} when the report is actually emitted.
- */
-record ReportModel(List<ReportRow> rows) {
-
-    static final ReportModel EMPTY = new ReportModel(List.of());
-
-    ReportModel(List<ReportRow> rows) {
-        this.rows = List.copyOf(rows);
-    }
-
-    static ReportModel empty() {
-        return EMPTY;
-    }
-
-    boolean isEmpty() {
-        return rows.isEmpty();
-    }
-}
-
-/**
  * A single row in the {@link ReportModel structured report}. For {@link Tag#CHANGE CHANGE} rows,
  * each side carries the inline word-level segmentation so a renderer can highlight the exact changed
  * sub-string. For other tags the line text lives in a single non-highlighted segment on the relevant
