@@ -47,8 +47,12 @@ public final class Diff {
      *         contextual report on demand (for display)
      */
     public static ComparisonResult compare(String actual, String expected) {
-        var actualLines = Arrays.asList(actual.split("\n", -1));
-        var expectedLines = Arrays.asList(expected.split("\n", -1));
+        // Normalize line endings before splitting so CRLF (Windows checkouts of approval fixtures
+        // via git's autocrlf, or generators using System.lineSeparator()) compares equal to LF.
+        // The split below is \n-only, and we don't want the trailing \r per line to depend on the
+        // diff library's ignoreWhiteSpaces heuristic.
+        var actualLines = Arrays.asList(normalizeLineEndings(actual).split("\n", -1));
+        var expectedLines = Arrays.asList(normalizeLineEndings(expected).split("\n", -1));
         var rows = generator().generateDiffRows(expectedLines, actualLines);
 
         var changes = new ArrayList<ComparisonResult.Difference>();
@@ -112,6 +116,11 @@ public final class Diff {
             return ComparisonResult.match();
         }
         return new ComparisonResult.Mismatch(changes, new ReportModel(reportRows));
+    }
+
+    private static String normalizeLineEndings(String text) {
+        // Handle CRLF first to avoid leaving a stray \n from a CR-only pass.
+        return text.replace("\r\n", "\n").replace("\r", "\n");
     }
 
     private static DiffRowGenerator generator() {
