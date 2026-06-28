@@ -2,26 +2,26 @@ package test.boundary.persistence.jpa;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import scenarios.java.Quantity;
-
+import java.time.LocalDate;
 import javax.annotation.processing.Generated;
+import scenarios.java.OrderDate;
 
 @Generated("com.qualityminds.lazyval.processor.internal.codegen.JpaGenerator")
 @Converter(
     autoApply = true
 )
-public class QuantityAttributeConverter implements AttributeConverter<Quantity, Integer> {
-  public Integer convertToDatabaseColumn(Quantity type) {
+public class OrderDateAttributeConverter implements AttributeConverter<OrderDate, LocalDate> {
+  public LocalDate convertToDatabaseColumn(OrderDate type) {
     if(type == null) {
       return null;
     }
     return type.value();
   }
 
-  public Quantity convertToEntityAttribute(Integer dbValue) {
+  public OrderDate convertToEntityAttribute(LocalDate dbValue) {
     if(dbValue == null) {
       return null;
     }
-    return new Quantity(dbValue);
+    return new OrderDate(dbValue);
   }
 }

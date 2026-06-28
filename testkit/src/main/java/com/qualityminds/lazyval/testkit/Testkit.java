@@ -1,15 +1,17 @@
 package com.qualityminds.lazyval.testkit;
 
+import com.qualityminds.lazyval.testkit.internal.approvals.ApprovalEvaluator;
 import com.qualityminds.lazyval.testkit.internal.toolchain.java.JavaToolchain;
 import com.qualityminds.lazyval.testkit.internal.toolchain.kotlin.KotlinToolchain;
 import com.qualityminds.lazyval.testkit.scenarios.Scenario;
 import com.qualityminds.lazyval.testkit.scenarios.ScenarioFactory;
+import org.eclipse.collections.api.list.ImmutableList;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Comparator;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static org.eclipse.collections.impl.collector.Collectors2.toImmutableList;
@@ -54,7 +56,18 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
      */
     public abstract R run(Path projectDir, S scenario);
 
-    public abstract R run(Path projectDir, S scenario, ApprovalDefinition... approvalDefinitions);
+    /**
+     * Runs the given scenario and verifies each {@link Approval} against the files the
+     * scenario produced. Returns the corresponding {@code Approved} variant if every approval passed,
+     * the {@code ApprovalMismatch} variant if any approval failed, or {@code Failure} if compilation
+     * itself failed.
+     *
+     * @param projectDir          the project directory used to compile the scenario
+     * @param scenario            the scenario to run
+     * @param approvals one or more approvals to verify after the run
+     * @return the test result
+     */
+    public abstract R run(Path projectDir, S scenario, Approval... approvals);
 
     /**
      * Builds the given scenario factory and runs the resulting scenario in the supplied
@@ -72,8 +85,22 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         return run(projectDir, scenarioFactory.build());
     }
 
-    public R runWithApproval(Path projectDir, ScenarioFactory<S> scenarioFactory, ApprovalDefinition... approvalDefinitions){
-        return run(projectDir, scenarioFactory.build(), approvalDefinitions);
+    /**
+     * Builds the given scenario factory and runs the resulting scenario with approval verification.
+     * Symmetric with {@link #run(Path, Scenario, Approval...)} but accepts a factory so
+     * callers can chain configuration without an explicit {@code build()} step.
+     *
+     * @param projectDir          the project directory used to compile the scenario
+     * @param scenarioFactory     the scenario factory to build and run
+     * @param approvals one or more approvals to verify after the run
+     * @return the test result
+     */
+    public R run(Path projectDir, ScenarioFactory<S> scenarioFactory, Approval... approvals){
+        return run(projectDir, scenarioFactory.build(), approvals);
+    }
+
+    public R run(Path projectDir, ScenarioFactory<S> scenarioFactory, Collection<Approval> approvals){
+        return run(projectDir, scenarioFactory.build(), approvals.toArray(Approval[]::new));
     }
 
     /**
@@ -130,6 +157,25 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
     }
 
     /**
+     * Adds relative-path → absolute-path entries for every file in {@code files} that sits under
+     * {@code root}. Files outside the root (or root not existing) are skipped. Paths are normalized
+     * to use forward slashes so they match the {@link Approval#generatedPath()} convention
+     * regardless of platform.
+     */
+    private static void collectGeneratedFiles(Path root, SortedSet<Path> files, Map<String, Path> into) {
+        if (!Files.isDirectory(root)) {
+            return;
+        }
+        for (Path file : files) {
+            if (!file.startsWith(root)) {
+                continue;
+            }
+            var relative = root.relativize(file).toString().replace(java.io.File.separatorChar, '/');
+            into.put(relative, file);
+        }
+    }
+
+    /**
      * Kotlin-specific testkit which accepts only {@link Scenario.Kotlin} scenarios and returns {@link Testresult.Kotlin}.
      * <p>
      * Runs KSP2 and the Kotlin compiler with dependencies configured within the scenario, collects compiler output,
@@ -139,6 +185,8 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
      *     <li>{@link Testresult.Kotlin.SuccessWithWarnings}</li>
      *     <li>{@link Testresult.Kotlin.NothingGenerated}</li>
      *     <li>{@link Testresult.Kotlin.Failure}</li>
+     *     <li>{@link Testresult.Kotlin.Approved} (when approvals are passed and all match)</li>
+     *     <li>{@link Testresult.Kotlin.ApprovalMismatch} (when approvals are passed and at least one fails)</li>
      * </ul>
      * <p>
      * In contrast to Javac, which includes the annotation processing, KSP2 is not a Kotlin compiler plugin and runs
@@ -163,16 +211,86 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         }
 
         @Override
-        public Testresult.Kotlin run(Path projectDir, Scenario.Kotlin scenario, ApprovalDefinition... approvalDefinitions) {
+        public Testresult.Kotlin run(Path projectDir, Scenario.Kotlin scenario, Approval... approvals) {
+            //noinspection ConstantValue
+            if (approvals == null || approvals.length == 0) {
+                return run(projectDir, scenario);
+            }
+            // Kotlin testkit accepts all ApprovalDefinition variants — no pre-flight rejection.
             cleanProjectDir(projectDir);
             try (var toolchain = KotlinToolchain.create(
                     Thread.currentThread().getContextClassLoader(),
                     projectDir,
                     scenario.desc())) {
-                return convertToolchainResult(toolchain.run());
+                var toolchainResult = toolchain.run();
+                if (!toolchainResult.isSuccessful()) {
+                    return new Testresult.Kotlin.Failure(toolchainResult.errors());
+                }
+                var outcome = ApprovalEvaluator.evaluate(
+                        collectKotlinGeneratedFiles(projectDir, toolchainResult),
+                        approvals);
+                return toKotlinTestresult(outcome, toolchainResult.warnings());
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
+        }
+
+        private static Testresult.Kotlin toKotlinTestresult(ApprovalEvaluator.Outcome outcome,
+                                                            ImmutableList<String> warnings) {
+            if (outcome instanceof ApprovalEvaluator.Outcome.Approved approved) {
+                return new Testresult.Kotlin.Approved(approved.generatedFiles(), warnings);
+            }
+            var mismatch = (ApprovalEvaluator.Outcome.Mismatch) outcome;
+            var mapped = mismatch.failures().collect(Kotlin::mapFailure);
+            return new Testresult.Kotlin.ApprovalMismatch(mapped);
+        }
+
+        private static Testresult.Kotlin.ApprovalMismatch.Failure mapFailure(ApprovalEvaluator.Failure failure) {
+            if (failure instanceof ApprovalEvaluator.Failure.ContentDiffers cd) {
+                return new Testresult.Kotlin.ApprovalMismatch.Failure.ContentDiffers(cd.generatedPath(), cd.renderedDiff());
+            }
+            if (failure instanceof ApprovalEvaluator.Failure.FileNotFound fnf) {
+                return new Testresult.Kotlin.ApprovalMismatch.Failure.FileNotFound(fnf.expectedPath(), fnf.actualGeneratedPaths());
+            }
+            if (failure instanceof ApprovalEvaluator.Failure.UnexpectedFile uf) {
+                return new Testresult.Kotlin.ApprovalMismatch.Failure.UnexpectedFile(uf.generatedPath());
+            }
+            throw new IllegalStateException("Unknown failure type: " + failure);
+        }
+
+        /**
+         * Resolves the absolute filesystem path of a generated Java source under
+         * {@code build/generated/ksp/java/}. Hides the KSP output-layout from test code.
+         */
+        public Path generatedJavaSourcePath(Path projectDir, String relativePath) {
+            return KotlinToolchain.kspJavaOutputDir(projectDir).resolve(relativePath);
+        }
+
+        /**
+         * Resolves the absolute filesystem path of a generated Kotlin source under
+         * {@code build/generated/ksp/kotlin/}. Hides the KSP output-layout from test code.
+         */
+        public Path generatedKotlinSourcePath(Path projectDir, String relativePath) {
+            return KotlinToolchain.kspKotlinOutputDir(projectDir).resolve(relativePath);
+        }
+
+        /**
+         * Resolves the absolute filesystem path of a KSP-generated resource under
+         * {@code build/generated/ksp/resources/}.
+         */
+        public Path generatedResourcePath(Path projectDir, String relativePath) {
+            return KotlinToolchain.kspResourceOutputDir(projectDir).resolve(relativePath);
+        }
+
+        private static Map<String, Path> collectKotlinGeneratedFiles(Path projectDir, KotlinToolchain.Result result) {
+            // Keys are relative paths under each respective root. Java/Kotlin sources and resources
+            // live in disjoint directory trees (ksp/java, ksp/kotlin, ksp/resources), so even though
+            // they share one map, collisions on the relative path are vanishingly unlikely in practice.
+            var map = new LinkedHashMap<String, Path>();
+            collectGeneratedFiles(KotlinToolchain.kspJavaOutputDir(projectDir), result.generatedJavaSources(), map);
+            collectGeneratedFiles(KotlinToolchain.kspKotlinOutputDir(projectDir), result.generatedKotlinSources(), map);
+            collectGeneratedFiles(KotlinToolchain.kspResourceOutputDir(projectDir), result.generatedResources(), map);
+            return map;
         }
 
         private Testresult.Kotlin convertToolchainResult(KotlinToolchain.Result toolchainResult){
@@ -181,8 +299,8 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
                     return new Testresult.Kotlin.NothingGenerated();
                 }
                 var generatedFileNames = Stream.concat(
-                        toolchainResult.generatedJavaFiles().stream(),
-                        toolchainResult.generatedKotlinFiles().stream())
+                        toolchainResult.generatedJavaSources().stream(),
+                        toolchainResult.generatedKotlinSources().stream())
                         .map(s -> s.getFileName().toString()).collect(toImmutableList());
                 if(!toolchainResult.warnings().isEmpty()){
                     return new Testresult.Kotlin.SuccessWithWarnings(
@@ -207,6 +325,8 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
      *     <li>{@link Testresult.Java.SuccessWithWarnings}</li>
      *     <li>{@link Testresult.Java.NothingGenerated}</li>
      *     <li>{@link Testresult.Java.Failure}</li>
+     *     <li>{@link Testresult.Java.Approved} (when approvals are passed and all match)</li>
+     *     <li>{@link Testresult.Java.ApprovalMismatch} (when approvals are passed and at least one fails)</li>
      * </ul>
      */
     public static final class Java extends Testkit<Scenario.Java, Testresult.Java> {
@@ -222,11 +342,89 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         }
 
         @Override
-        public Testresult.Java run(Path projectDir, Scenario.Java scenario, ApprovalDefinition... approvalDefinitions) {
+        public Testresult.Java run(Path projectDir, Scenario.Java scenario, Approval... approvals) {
+            //noinspection ConstantValue
+            if (approvals == null || approvals.length == 0) {
+                return run(projectDir, scenario);
+            }
+            rejectKotlinSourceApprovals(approvals);
             cleanProjectDir(projectDir);
             var toolchain = JavaToolchain.create(projectDir, scenario.desc());
-            var result = toolchain.run();
-            return convertToolchainResult(result);
+            var toolchainResult = toolchain.run();
+            if (!toolchainResult.isSuccessful()) {
+                return new Testresult.Java.Failure(toolchainResult.getErrors());
+            }
+            var outcome = ApprovalEvaluator.evaluate(
+                    collectJavaGeneratedFiles(projectDir, toolchainResult),
+                    approvals);
+            return toJavaTestresult(outcome, toolchainResult.getWarnings());
+        }
+
+        /**
+         * The Java testkit runs javac only — KSP isn't on the pipeline, so {@code .kt} files are
+         * never produced. Fail loudly at the start of the run rather than producing a misleading
+         * {@code FileNotFound} for every {@link Approval.KotlinSource}.
+         */
+        private static void rejectKotlinSourceApprovals(Approval[] approvals) {
+            for (var approval : approvals) {
+                if (approval instanceof Approval.KotlinSource ks) {
+                    throw new IllegalArgumentException(
+                            "KotlinSource approvals are only valid for Testkit.kotlin(); "
+                                    + "use Testkit.kotlin() to verify '" + ks.generatedPath() + "'");
+                }
+            }
+        }
+
+        private static Testresult.Java toJavaTestresult(ApprovalEvaluator.Outcome outcome,
+                                                        ImmutableList<String> warnings) {
+            if (outcome instanceof ApprovalEvaluator.Outcome.Approved approved) {
+                return new Testresult.Java.Approved(approved.generatedFiles(), warnings);
+            }
+            var mismatch = (ApprovalEvaluator.Outcome.Mismatch) outcome;
+            var mapped = mismatch.failures().collect(Java::mapFailure);
+            return new Testresult.Java.ApprovalMismatch(mapped);
+        }
+
+        private static Testresult.Java.ApprovalMismatch.Failure mapFailure(ApprovalEvaluator.Failure failure) {
+            if (failure instanceof ApprovalEvaluator.Failure.ContentDiffers cd) {
+                return new Testresult.Java.ApprovalMismatch.Failure.ContentDiffers(cd.generatedPath(), cd.renderedDiff());
+            }
+            if (failure instanceof ApprovalEvaluator.Failure.FileNotFound fnf) {
+                return new Testresult.Java.ApprovalMismatch.Failure.FileNotFound(fnf.expectedPath(), fnf.actualGeneratedPaths());
+            }
+            if (failure instanceof ApprovalEvaluator.Failure.UnexpectedFile uf) {
+                return new Testresult.Java.ApprovalMismatch.Failure.UnexpectedFile(uf.generatedPath());
+            }
+            throw new IllegalStateException("Unknown failure type: " + failure);
+        }
+
+        /**
+         * Resolves the absolute filesystem path of a generated Java source under
+         * {@code build/generated/}. Hides the javac output-layout from test code.
+         * <p>
+         * Example: {@code testkit.generatedSourcePath(projectDir, "test/custom/X.java")}
+         * → {@code <projectDir>/build/generated/test/custom/X.java}.
+         */
+        public Path generatedSourcePath(Path projectDir, String relativePath) {
+            return JavaToolchain.sourceOutputDir(projectDir).resolve(relativePath);
+        }
+
+        /**
+         * Resolves the absolute filesystem path of a generated resource under
+         * {@code build/classes/} (e.g. {@code META-INF/services/...} entries).
+         */
+        public Path generatedResourcePath(Path projectDir, String relativePath) {
+            return JavaToolchain.classOutputDir(projectDir).resolve(relativePath);
+        }
+
+        private static Map<String, Path> collectJavaGeneratedFiles(Path projectDir, JavaToolchain.Result result) {
+            // Sources land under SOURCE_OUTPUT (build/generated/); resources land under CLASS_OUTPUT
+            // (build/classes/, minus the .class files filtered at the toolchain layer). The two roots
+            // are disjoint so a single relative-path-keyed map is collision-safe in realistic use.
+            var map = new LinkedHashMap<String, Path>();
+            collectGeneratedFiles(JavaToolchain.sourceOutputDir(projectDir), result.generatedSources(), map);
+            collectGeneratedFiles(JavaToolchain.classOutputDir(projectDir), result.generatedResources(), map);
+            return map;
         }
 
         private Testresult.Java convertToolchainResult(JavaToolchain.Result toolchainResult){
@@ -234,7 +432,7 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
                 if(toolchainResult.generatedNoFiles()){
                     return new Testresult.Java.NothingGenerated();
                 }
-                var generatedFileNames = toolchainResult.generatedFiles().stream().map(s -> s.getFileName().toString()).collect(toImmutableList());
+                var generatedFileNames = toolchainResult.generatedSources().stream().map(s -> s.getFileName().toString()).collect(toImmutableList());
                 if(!toolchainResult.getWarnings().isEmpty()){
                     return new Testresult.Java.SuccessWithWarnings(
                             generatedFileNames,

@@ -2,7 +2,7 @@ package test.boundary.persistence.jpa;
 
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
-import scenarios.java.Quantity;
+import scenarios.java.Ids;
 
 import javax.annotation.processing.Generated;
 
@@ -10,18 +10,18 @@ import javax.annotation.processing.Generated;
 @Converter(
     autoApply = true
 )
-public class QuantityAttributeConverter implements AttributeConverter<Quantity, Integer> {
-  public Integer convertToDatabaseColumn(Quantity type) {
+public class IdsProductIdAttributeConverter implements AttributeConverter<Ids.ProductId, String> {
+  public String convertToDatabaseColumn(Ids.ProductId type) {
     if(type == null) {
       return null;
     }
     return type.value();
   }
 
-  public Quantity convertToEntityAttribute(Integer dbValue) {
+  public Ids.ProductId convertToEntityAttribute(String dbValue) {
     if(dbValue == null) {
       return null;
     }
-    return new Quantity(dbValue);
+    return Ids.ProductId.of(dbValue);
   }
 }

@@ -56,7 +56,9 @@ public class JpaGenerator implements Generator {
         final String jpaConverterPackage = context.generatorPackage(OPTION_GENERATED_PACKAGE, "boundary.persistence.jpa");
 
         return elements.stream().map(JpaGenerator::buildAttributeConverter)
-                .map(attributeConverterSpec -> JavaFile.builder(jpaConverterPackage, attributeConverterSpec).build())
+                .map(attributeConverterSpec -> JavaFile.builder(jpaConverterPackage, attributeConverterSpec)
+                        .skipJavaLangImports(true)
+                        .build())
                 .map(javaFile -> new GeneratorResult.Java(new GeneratorResult.Metadata(
                         javaFile.packageName(), javaFile.typeSpec().name()),
                         javaFile.toString()));

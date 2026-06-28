@@ -4,8 +4,12 @@ import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.list.ImmutableList;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+
+import static org.eclipse.collections.impl.collector.Collectors2.toImmutableList;
 
 /**
  * ADT for test results, distinguishing between Java and Kotlin
@@ -91,6 +95,137 @@ public sealed interface Testresult {
                 this(Lists.immutable.of(error));
             }
         }
+
+        /**
+         * Compilation succeeded, every requested {@link Approval} matched, <em>and</em> no
+         * additional files were generated beyond those covered by the approvals. {@code Approved} is a
+         * strict closed-set verdict: a run that produces files outside the approved set yields
+         * {@link ApprovalMismatch} carrying one {@link ApprovalMismatch.Failure.UnexpectedFile}
+         * per surplus file, not {@code Approved}.
+         * <p>
+         * Returned by the testkit only when one or more {@code ApprovalDefinition}s were passed to
+         * {@link Testkit#run(java.nio.file.Path, com.qualityminds.lazyval.testkit.scenarios.Scenario, Approval...)}.
+         *
+         * @param generatedFiles relative paths of every file produced; in an {@code Approved} result
+         *                       this is exactly the set of {@link Approval#generatedPath()}s
+         *                       that were passed in
+         * @param warnings warnings observed during the run; default empty, but assert non-empty if a
+         *                 specific warning is expected
+         */
+        record Approved(ImmutableList<String> generatedFiles,
+                        ImmutableList<String> warnings) implements Java {
+            @SuppressWarnings("doclint:accessibility,missing")
+            public Approved {
+                Objects.requireNonNull(generatedFiles);
+                Objects.requireNonNull(warnings);
+                generatedFiles = generatedFiles.toSortedList().toImmutable();
+                warnings = warnings.toSortedList().toImmutable();
+            }
+
+            /**
+             * Builds the expected {@code Approved} from the same {@link Approval}s passed to
+             * {@code Testkit.run(...)}. The generated-files list is derived directly from the definitions'
+             * {@link Approval#generatedPath() generatedPath}s — no duplication needed at the call site.
+             *
+             * @param approvals the approval definitions used in the run
+             * @return an {@code Approved} expectation with no warnings; chain {@link #withWarnings(String...)}
+             *         when a specific warning is expected
+             */
+            public static Approved of(Approval... approvals) {
+                var paths = Arrays.stream(approvals)
+                        .map(Approval::generatedPath)
+                        .collect(toImmutableList());
+                return new Approved(paths, Lists.immutable.empty());
+            }
+
+            public static Approved of(Collection<Approval> approvals) {
+                return of(approvals.toArray(Approval[]::new));
+            }
+
+            /**
+             * Returns a copy of this expectation that also requires the given warnings. Repeating any
+             * existing warnings is fine; the underlying list is sorted and deduplicated by equality.
+             *
+             * @param warnings warnings expected to be observed during the run
+             * @return a new {@code Approved} expectation with the warnings attached
+             */
+            public Approved withWarnings(String... warnings) {
+                return new Approved(generatedFiles, Lists.immutable.of(warnings));
+            }
+        }
+
+        /**
+         * Compilation succeeded but the strict-closed-set contract of {@link Approved} was not
+         * satisfied: at least one approval differed from the generated content
+         * ({@link Failure.ContentDiffers}), targeted a path that was not generated
+         * ({@link Failure.FileNotFound}), or the run produced a file no approval was declared for
+         * ({@link Failure.UnexpectedFile}).
+         * <p>
+         * {@link #toString()} prints a per-failure description so the assertion error in the test
+         * runner is immediately useful, including the rendered diff for content failures.
+         *
+         * @param failures one entry per individual failure (a single run may produce several)
+         */
+        record ApprovalMismatch(ImmutableList<Failure> failures) implements Java {
+            @SuppressWarnings("doclint:accessibility,missing")
+            public ApprovalMismatch {
+                Objects.requireNonNull(failures);
+                if (failures.isEmpty()) {
+                    throw new IllegalArgumentException("ApprovalMismatch requires at least one failure");
+                }
+            }
+
+            /** A single reason the strict approval contract was not satisfied. */
+            public sealed interface Failure {
+                /**
+                 * The file existed at the expected path but its content differed.
+                 *
+                 * @param generatedPath the path the approval targeted (relative to the source-output root)
+                 * @param renderedDiff the rendered, plain-text diff between actual and expected content,
+                 *                     already including a few lines of context around each change
+                 */
+                record ContentDiffers(String generatedPath, String renderedDiff) implements Failure {}
+
+                /**
+                 * No file was generated at the expected path. The list of paths the run actually produced
+                 * is included to make the diagnostic message immediately actionable (e.g. spotting a
+                 * package-override mistake).
+                 *
+                 * @param expectedPath the path the approval targeted
+                 * @param actualGeneratedPaths every file the run produced, for cross-reference
+                 */
+                record FileNotFound(String expectedPath,
+                                    ImmutableList<String> actualGeneratedPaths) implements Failure {}
+
+                /**
+                 * The run generated a file that no {@link Approval} covers. {@link Approved}
+                 * is a closed set; surplus files surface here rather than passing silently.
+                 *
+                 * @param generatedPath the surplus file's path (relative to the source-output root)
+                 */
+                record UnexpectedFile(String generatedPath) implements Failure {}
+            }
+
+            @Override
+            public String toString() {
+                return failures.stream()
+                        .map(ApprovalMismatch::renderFailure)
+                        .collect(Collectors.joining(System.lineSeparator() + System.lineSeparator()));
+            }
+
+            private static String renderFailure(Failure failure) {
+                if (failure instanceof Failure.ContentDiffers cd) {
+                    return cd.generatedPath() + ":" + System.lineSeparator() + cd.renderedDiff();
+                }
+                if (failure instanceof Failure.FileNotFound fnf) {
+                    return "expected " + fnf.expectedPath() + " but the run produced " + fnf.actualGeneratedPaths();
+                }
+                if (failure instanceof Failure.UnexpectedFile uf) {
+                    return "unexpected file generated (no approval declared): " + uf.generatedPath();
+                }
+                throw new IllegalStateException("Unknown failure type: " + failure);
+            }
+        }
     }
 
     /**
@@ -170,6 +305,74 @@ public sealed interface Testresult {
             @SuppressWarnings("doclint:accessibility,missing")
             public Failure(String error) {
                 this(Lists.immutable.of(error));
+            }
+        }
+
+        /** See {@link Java.Approved} — the Kotlin equivalent. */
+        record Approved(ImmutableList<String> generatedFiles,
+                        ImmutableList<String> warnings) implements Kotlin {
+            @SuppressWarnings("doclint:accessibility,missing")
+            public Approved {
+                Objects.requireNonNull(generatedFiles);
+                Objects.requireNonNull(warnings);
+                generatedFiles = generatedFiles.toSortedList().toImmutable();
+                warnings = warnings.toSortedList().toImmutable();
+            }
+
+            /** See {@link Java.Approved#of(Approval...)}. */
+            public static Approved of(Approval... approvals) {
+                var paths = Arrays.stream(approvals)
+                        .map(Approval::generatedPath)
+                        .collect(toImmutableList());
+                return new Approved(paths, Lists.immutable.empty());
+            }
+
+            public static Kotlin.Approved of(Collection<Approval> approvals) {
+                return of(approvals.toArray(Approval[]::new));
+            }
+
+            /** See {@link Java.Approved#withWarnings(String...)}. */
+            public Approved withWarnings(String... warnings) {
+                return new Approved(generatedFiles, Lists.immutable.of(warnings));
+            }
+        }
+
+        /** See {@link Java.ApprovalMismatch} — the Kotlin equivalent. */
+        record ApprovalMismatch(ImmutableList<Failure> failures) implements Kotlin {
+            @SuppressWarnings("doclint:accessibility,missing")
+            public ApprovalMismatch {
+                Objects.requireNonNull(failures);
+                if (failures.isEmpty()) {
+                    throw new IllegalArgumentException("ApprovalMismatch requires at least one failure");
+                }
+            }
+
+            /** A single reason the strict approval contract was not satisfied. See {@link Java.ApprovalMismatch.Failure}. */
+            public sealed interface Failure {
+                record ContentDiffers(String generatedPath, String renderedDiff) implements Failure {}
+                record FileNotFound(String expectedPath,
+                                    ImmutableList<String> actualGeneratedPaths) implements Failure {}
+                record UnexpectedFile(String generatedPath) implements Failure {}
+            }
+
+            @Override
+            public String toString() {
+                return failures.stream()
+                        .map(ApprovalMismatch::renderFailure)
+                        .collect(Collectors.joining(System.lineSeparator() + System.lineSeparator()));
+            }
+
+            private static String renderFailure(Failure failure) {
+                if (failure instanceof Failure.ContentDiffers cd) {
+                    return cd.generatedPath() + ":" + System.lineSeparator() + cd.renderedDiff();
+                }
+                if (failure instanceof Failure.FileNotFound fnf) {
+                    return "expected " + fnf.expectedPath() + " but the run produced " + fnf.actualGeneratedPaths();
+                }
+                if (failure instanceof Failure.UnexpectedFile uf) {
+                    return "unexpected file generated (no approval declared): " + uf.generatedPath();
+                }
+                throw new IllegalStateException("Unknown failure type: " + failure);
             }
         }
     }

@@ -1,12 +1,15 @@
 package com.qualityminds.lazyval.processor
 
+import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
-import spock.lang.*
+import spock.lang.Shared
+import spock.lang.Specification
+import spock.lang.TempDir
+import spock.lang.Title
 
-import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - JPA")
@@ -21,36 +24,23 @@ class ApJpaIT extends Specification {
     def testkitJava = Testkit.java()
 
 
-    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
-    void "JPA with all Scenarios"(){
-        given:
-        scenario.withDependencies(dependencyJakartaPersistence)
+    void "JPA with combined Scenarios"(){
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Java.combined().withDependencies(dependencyJakartaPersistence)
+
+        and: 'a defined approval for each generated file'
+        List<Approval> approvals = [
+                Approval.JavaSource.at("test/boundary/persistence/jpa/QuantityAttributeConverter.java", "approvals/jpa/QuantityAttributeConverter.java"),
+                Approval.JavaSource.at("test/boundary/persistence/jpa/IsbnAttributeConverter.java", "approvals/jpa/IsbnAttributeConverter.java"),
+                Approval.JavaSource.at("test/boundary/persistence/jpa/OrderDateAttributeConverter.java", "approvals/jpa/OrderDateAttributeConverter.java"),
+                Approval.JavaSource.at("test/boundary/persistence/jpa/IdsProductIdAttributeConverter.java", "approvals/jpa/IdsProductIdAttributeConverter.java")
+        ]
 
         when:
-        def result = testkitJava.run(projectDir, scenario)
+        def result = testkitJava.run(projectDir, scenario, approvals)
 
         then:
-        result == expected
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/test/boundary/persistence/jpa/$generatedJpaMapper")).contains("@Generated")
-
-        where:
-        scenario << Scenario.Java.all()
-        generatedJpaMapper = scenario.name().contains( "Ids.java") ? "IdsProductIdAttributeConverter.java" : scenario.name().replace(".java", "AttributeConverter.java")
-        expected = new Testresult.Java.Success(generatedJpaMapper)
-    }
-
-    void "AttributeConverter generated at correct default location when no override is given"(){
-        given:
-        def scenario = Scenario.Java.quantity()
-                .withDependencies(dependencyJakartaPersistence)
-
-        when:
-        testkitJava.run(projectDir, scenario)
-
-        then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/test/boundary/persistence/jpa/QuantityAttributeConverter.java").toFile().exists()
+        result == Testresult.Java.Approved.of(approvals)
     }
 
     void "Package override by generator works as expected"(){
@@ -62,11 +52,11 @@ class ApJpaIT extends Specification {
         when:
         def result = testkitJava.run(projectDir, scenario)
 
-        then: 'no warning is issued'
+        then: 'file is generated at '
         result == new Testresult.Java.Success("QuantityAttributeConverter.java")
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/test/custom/QuantityAttributeConverter.java").toFile().exists()
+        testkitJava.generatedSourcePath(projectDir, "test/custom/QuantityAttributeConverter.java").toFile().exists()
     }
 
 }
