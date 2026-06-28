@@ -30,6 +30,19 @@ class DiffTest extends Specification {
         "leading whitespace on a line"             | "  foo\nbar"      | "foo\nbar"
     }
 
+    def "line-ending differences are not a mismatch: #description"() {
+        expect:
+        Diff.compare(actual, expected) == ComparisonResult.match()
+
+        where:
+        description                          | actual              | expected
+        "CRLF actual vs LF expected"         | "foo\r\nbar"        | "foo\nbar"
+        "LF actual vs CRLF expected"         | "foo\nbar"          | "foo\r\nbar"
+        "CR-only actual vs LF expected"      | "foo\rbar"          | "foo\nbar"
+        "mixed endings within one side"      | "foo\r\nbar\nbaz"   | "foo\nbar\nbaz"
+        "trailing CRLF vs no trailing"       | "foo\r\nbar\r\n"    | "foo\nbar"
+    }
+
     def "blank lines on only one side are not a mismatch: #description"() {
         expect:
         Diff.compare(actual, expected) == ComparisonResult.match()
