@@ -24,7 +24,7 @@ public class ScenarioFactory<T extends Scenario> {
     private ImmutableCollection<Dependency> dependencies = Lists.immutable.empty();
     private ImmutableCollection<String> disabledGenerators = Lists.immutable.empty();
     private boolean basePackageDisabled = false;
-    private Map<String, String> options = new HashMap<>();
+    private final Map<String, String> options = new HashMap<>();
 
     /**
      * Derives a display name from a classpath-relative source path by taking the filename segment
