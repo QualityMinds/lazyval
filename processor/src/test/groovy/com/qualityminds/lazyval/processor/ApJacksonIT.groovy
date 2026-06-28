@@ -1,13 +1,16 @@
 package com.qualityminds.lazyval.processor
 
+import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import org.eclipse.collections.api.factory.Lists
-import spock.lang.*
+import spock.lang.Shared
+import spock.lang.Specification
+import spock.lang.TempDir
+import spock.lang.Title
 
-import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - Jackson")
@@ -29,41 +32,21 @@ class ApJacksonIT extends Specification {
     @Shared
     def testkitJava = Testkit.java()
 
-    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
-    void "Jackson 2.x with all Scenarios"(){
-        given:
-        scenario.withDependencies(dependencyJackson_2_Databind, dependencyJackson_2_Core)
+    void "Jackson 2.x with combined Scenarios"(){
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Java.combined().withDependencies(dependencyJackson_2_Databind, dependencyJackson_2_Core)
+
+        and: 'a defined approval for source and service-loader'
+        List<Approval> approvals = [
+                Approval.JavaSource.at("test/LazyvalJackson2Module.java", "approvals/jackson/LazyvalJackson2Module.java"),
+                Approval.ServiceLoader.of(GENERATED_SERVICELOADER_JACKSON_2, "test.LazyvalJackson2Module")
+        ]
 
         when:
-        def result = testkitJava.run(projectDir, scenario)
+        def result = testkitJava.run(projectDir, scenario, approvals)
 
         then:
-        result == expected
-
-        and: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_2").toFile().exists()
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_2")).contains("@Generated")
-
-        where:
-        scenario << Scenario.Java.all()
-        expected = new Testresult.Java.Success(GENERATED_FILE_NAME_2)
-    }
-
-    void "Jackson 2.x generated at correct default location when no override is given"(){
-        given:
-        def scenario = Scenario.Java.quantity()
-                .withDependencies(dependencyJackson_2_Databind, dependencyJackson_2_Core)
-
-        when:
-        testkitJava.run(projectDir, scenario)
-
-        then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_2").toFile().exists()
-
-        and: 'ServiceLoader file is generated'
-        projectDir.resolve("build/classes/META-INF/services/$GENERATED_SERVICELOADER_JACKSON_2").toFile().exists()
+        result == Testresult.Java.Approved.of(approvals)
     }
 
     void "Jackson 2.x package override by generator works as expected"(){
@@ -80,44 +63,24 @@ class ApJacksonIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME_2)
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/test/custom/$GENERATED_FILE_NAME_2").toFile().exists()
+        testkitJava.generatedSourcePath(projectDir, "test/custom/$GENERATED_FILE_NAME_2").toFile().exists()
     }
 
-    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
-    void "Jackson 3.x with all Scenarios"(){
+    void "Jackson 3.x with combined Scenarios"(){
         given:
-        scenario.withDependencies(dependencyJackson_3_Databind, dependencyJackson_3_Core)
+        def scenario = Scenario.Java.combined().withDependencies(dependencyJackson_3_Databind, dependencyJackson_3_Core)
+
+        and: 'a defined approval for source and service-loader'
+        List<Approval> approvals = [
+                Approval.JavaSource.at("test/LazyvalJacksonModule.java", "approvals/jackson/LazyvalJacksonModule.java"),
+                Approval.ServiceLoader.of(GENERATED_SERVICELOADER_JACKSON_3, "test.LazyvalJacksonModule")
+        ]
 
         when:
-        def result = testkitJava.run(projectDir, scenario)
+        def result = testkitJava.run(projectDir, scenario, approvals)
 
         then:
-        result == expected
-
-        and: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_3").toFile().exists()
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_3")).contains("@Generated")
-
-        where:
-        scenario << Scenario.Java.all()
-        expected = new Testresult.Java.Success(GENERATED_FILE_NAME_3)
-    }
-
-    void "Jackson 3.x generated at correct default location when no override is given"(){
-        given:
-        def scenario = Scenario.Java.quantity()
-                .withDependencies(dependencyJackson_3_Databind, dependencyJackson_3_Core)
-
-        when:
-        testkitJava.run(projectDir, scenario)
-
-        then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME_3").toFile().exists()
-
-        and: 'ServiceLoader file is generated'
-        projectDir.resolve("build/classes/META-INF/services/$GENERATED_SERVICELOADER_JACKSON_3").toFile().exists()
+        result == Testresult.Java.Approved.of(approvals)
     }
 
     void "Jackson 3.x package override by generator works as expected"(){
@@ -134,7 +97,7 @@ class ApJacksonIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME_3)
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/test/custom/$GENERATED_FILE_NAME_3").toFile().exists()
+        testkitJava.generatedSourcePath(projectDir, "test/custom/$GENERATED_FILE_NAME_3").toFile().exists()
     }
 
     void "When Jackson 2 and 3 are active are warning is issued"(){

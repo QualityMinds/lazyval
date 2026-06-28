@@ -56,7 +56,9 @@ public class Jackson2Generator implements Generator {
 
         final String packageName = context.generatorPackage(OPTION_GENERATED_PACKAGE, null);
 
-        final JavaFile javaFile = JavaFile.builder(packageName, typeSpec).build();
+        final JavaFile javaFile = JavaFile.builder(packageName, typeSpec)
+                .skipJavaLangImports(true)
+                .build();
         var fileMetadata = new Metadata(javaFile.packageName(), javaFile.typeSpec().name());
         return Stream.of(
                 new GeneratorResult.ServiceLoader(
