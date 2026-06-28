@@ -1,12 +1,12 @@
 package com.qualityminds.lazyval.processor
 
+import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
-import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - Spring Data MongoDB")
@@ -27,22 +27,22 @@ class ApSpringDataMongoIT extends Specification {
     @Shared
     def testkitJava = Testkit.java()
 
-    @Unroll("#scenario.name() compiles and generates LazyvalSpringDataConfiguration.java for MongoDB")
-    void "all Scenarios compile and generate the configuration"() {
-        given:
-        scenario.withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
+    void "Spring Data MongoDB with combined Scenarios"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Java.combined()
+                .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
+
+        and: 'a defined approval for the generated configuration'
+        List<Approval> approvals = [
+                Approval.JavaSource.at("test/boundary/persistence/$GENERATED_FILE_NAME",
+                        "approvals/springdata/mongo/$GENERATED_FILE_NAME")
+        ]
 
         when:
-        def result = testkitJava.run(projectDir, scenario)
+        def result = testkitJava.run(projectDir, scenario, approvals)
 
         then:
-        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/test/boundary/persistence/$GENERATED_FILE_NAME")).contains("@Generated")
-
-        where:
-        scenario << Scenario.Java.all()
+        result == Testresult.Java.Approved.of(approvals)
     }
 
     void "single valid user converter is appended to mongoCustomConversions"() {
@@ -61,7 +61,7 @@ class ApSpringDataMongoIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'generated file contains the user converter and the marker comment'
-        def generated = projectDir.resolve("build/generated/test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
+        def generated = testkitJava.generatedSourcePath(projectDir, "test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
         generated.contains("new scenarios.converters.ValidConverter()")
         generated.contains("// user-supplied via lazyval.springdata.mongo.converters:")
     }
@@ -84,7 +84,7 @@ class ApSpringDataMongoIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and:
-        def generated = projectDir.resolve("build/generated/test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
+        def generated = testkitJava.generatedSourcePath(projectDir, "test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
         def validIdx = generated.indexOf("new scenarios.converters.ValidConverter()")
         def anotherIdx = generated.indexOf("new scenarios.converters.AnotherValidConverter()")
         validIdx >= 0
@@ -109,7 +109,7 @@ class ApSpringDataMongoIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and:
-        def generated = projectDir.resolve("build/generated/test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
+        def generated = testkitJava.generatedSourcePath(projectDir, "test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
         generated.contains("new scenarios.converters.ValidConverter()")
         generated.contains("new scenarios.converters.AnotherValidConverter()")
     }
@@ -188,7 +188,7 @@ class ApSpringDataMongoIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and:
-        def generated = projectDir.resolve("build/generated/scenarios/converters/LazyvalSpringDataConfiguration.java").toFile().text
+        def generated = testkitJava.generatedSourcePath(projectDir, "scenarios/converters/LazyvalSpringDataConfiguration.java").toFile().text
         generated.contains("new scenarios.converters.NonPublicConverter()")
     }
 
@@ -300,7 +300,7 @@ class ApSpringDataMongoIT extends Specification {
         }
 
         and: 'no mongo bean method is generated'
-        def generated = projectDir.resolve("build/generated/test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
+        def generated = testkitJava.generatedSourcePath(projectDir, "test/boundary/persistence/LazyvalSpringDataConfiguration.java").toFile().text
         !generated.contains("mongoCustomConversions")
     }
 }

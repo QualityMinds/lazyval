@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.ksp
 
+import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
@@ -23,26 +24,21 @@ class KspMapstructIT extends Specification {
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
-    @Unroll("#scenario.name() compiles and generated '#expected.generatedFiles()'")
-    void "Mapstruct with all Scenarios"(){
-        given:
-        scenario.withDependencies(dependencyMapstruct, dependencyJakartaAnnotations)
+    void "Mapstruct with combined Scenarios"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Kotlin.combined()
+                .withDependencies(dependencyMapstruct, dependencyJakartaAnnotations)
+
+        and: 'a defined approval for the generated mapper'
+        List<Approval> approvals = [
+                Approval.JavaSource.at("test/$GENERATED_FILE_NAME", "approvals/mapstruct/$GENERATED_FILE_NAME")
+        ]
 
         when:
-        def result = testkitKotlin.run(projectDir, scenario)
+        def result = testkitKotlin.run(projectDir, scenario, approvals)
 
         then:
-        result == expected
-
-        and: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/ksp/java/test/$GENERATED_FILE_NAME").toFile().exists()
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/ksp/java/test/$GENERATED_FILE_NAME")).contains("@Generated")
-
-        where:
-        scenario << Scenario.Kotlin.all()
-        expected = new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
+        result == Testresult.Kotlin.Approved.of(approvals)
     }
 
     void "Warning is issued when package is not configured in any way"(){
@@ -72,7 +68,7 @@ class KspMapstructIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/ksp/java/test/custom/$GENERATED_FILE_NAME").toFile().exists()
+        testkitKotlin.generatedJavaSourcePath(projectDir, "test/custom/$GENERATED_FILE_NAME").toFile().exists()
     }
 
     void "Does not add '@Generated' when jakarta.annotations-api not on classpath"(){
@@ -86,6 +82,6 @@ class KspMapstructIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'doesnt contain @Generated'
-        !Files.readString(projectDir.resolve("build/generated/ksp/java/test/$GENERATED_FILE_NAME")).contains("@Generated")
+        !Files.readString(testkitKotlin.generatedJavaSourcePath(projectDir, "test/$GENERATED_FILE_NAME")).contains("@Generated")
     }
 }

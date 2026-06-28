@@ -1,12 +1,12 @@
 package com.qualityminds.lazyval.processor
 
+import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
-import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - JSON-B")
@@ -26,23 +26,20 @@ class ApJsonbIT extends Specification {
     @Shared
     def testkitJava = Testkit.java()
 
-    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
-    void "JSON-B with all Scenarios"(){
-        given:
-        scenario.withDependencies(dependencyJsonbApi)
+    void "JSON-B with combined Scenarios"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Java.combined().withDependencies(dependencyJsonbApi)
+
+        and: 'a defined approval for the generated adapters file'
+        List<Approval> approvals = [
+                Approval.JavaSource.at("test/$GENERATED_FILE_NAME", "approvals/jsonb/$GENERATED_FILE_NAME")
+        ]
 
         when:
-        def result = testkitJava.run(projectDir, scenario)
+        def result = testkitJava.run(projectDir, scenario, approvals)
 
         then:
-        result == expected
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME")).contains("@Generated")
-
-        where:
-        scenario << [Scenario.Java.ids()]//Scenario.Java.all()
-        expected = new Testresult.Java.Success(GENERATED_FILE_NAME)
+        result == Testresult.Java.Approved.of(approvals)
     }
 
     void "JSON-B generated at correct default location when no override is given"(){
@@ -54,7 +51,7 @@ class ApJsonbIT extends Specification {
         testkitJava.run(projectDir, scenario)
 
         then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME").toFile().exists()
+        testkitJava.generatedSourcePath(projectDir, "test/$GENERATED_FILE_NAME").toFile().exists()
     }
 
     void "JSON-B package override by generator works as expected"(){
@@ -71,26 +68,24 @@ class ApJsonbIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/test/custom/$GENERATED_FILE_NAME").toFile().exists()
+        testkitJava.generatedSourcePath(projectDir, "test/custom/$GENERATED_FILE_NAME").toFile().exists()
     }
 
-    @Unroll("#scenario.name() compiles and generated ContextResolver with JAX-RS on classpath")
-    void "JSON-B with JAX-RS generates ContextResolver"(){
+    void "JSON-B with JAX-RS generates ContextResolver for combined Scenarios"() {
         given:
-        scenario.withDependencies(dependencyJsonbApi, dependencyJaxRsApi)
+        def scenario = Scenario.Java.combined().withDependencies(dependencyJsonbApi, dependencyJaxRsApi)
+
+        and: 'a defined approval for adapters and context resolver'
+        List<Approval> approvals = [
+                Approval.JavaSource.at("test/$GENERATED_FILE_NAME", "approvals/jsonb/$GENERATED_FILE_NAME"),
+                Approval.JavaSource.at("test/$GENERATED_RESOLVER_FILE_NAME", "approvals/jsonb/$GENERATED_RESOLVER_FILE_NAME")
+        ]
 
         when:
-        def result = testkitJava.run(projectDir, scenario)
+        def result = testkitJava.run(projectDir, scenario, approvals)
 
         then:
-        result == expected
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/test/$GENERATED_RESOLVER_FILE_NAME")).contains("@Generated")
-
-        where:
-        scenario << Scenario.Java.all()
-        expected = new Testresult.Java.Success(GENERATED_FILE_NAME, GENERATED_RESOLVER_FILE_NAME)
+        result == Testresult.Java.Approved.of(approvals)
     }
 
     void "JSON-B ContextResolver is generated at correct default location"(){
@@ -102,10 +97,10 @@ class ApJsonbIT extends Specification {
         testkitJava.run(projectDir, scenario)
 
         then: 'adapters file is generated'
-        projectDir.resolve("build/generated/test/$GENERATED_FILE_NAME").toFile().exists()
+        testkitJava.generatedSourcePath(projectDir, "test/$GENERATED_FILE_NAME").toFile().exists()
 
         and: 'ContextResolver file is generated'
-        projectDir.resolve("build/generated/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
+        testkitJava.generatedSourcePath(projectDir, "test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
     }
 
     void "JSON-B ContextResolver is not generated when register is false"(){
@@ -122,7 +117,7 @@ class ApJsonbIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'ContextResolver file is not generated'
-        !projectDir.resolve("build/generated/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
+        !testkitJava.generatedSourcePath(projectDir, "test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
     }
 
     void "JSON-B emits a Singleton JsonbConfigCustomizer when Quarkus is on the classpath"(){
@@ -137,7 +132,7 @@ class ApJsonbIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'no ContextResolver is emitted (avoids registering the same adapters twice in Quarkus REST)'
-        !projectDir.resolve("build/generated/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
+        !testkitJava.generatedSourcePath(projectDir, "test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
     }
 
     void "JSON-B ContextResolver is suppressed when both JAX-RS and Quarkus are on the classpath"(){
@@ -153,6 +148,6 @@ class ApJsonbIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'ContextResolver file is not generated'
-        !projectDir.resolve("build/generated/test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
+        !testkitJava.generatedSourcePath(projectDir, "test/$GENERATED_RESOLVER_FILE_NAME").toFile().exists()
     }
 }

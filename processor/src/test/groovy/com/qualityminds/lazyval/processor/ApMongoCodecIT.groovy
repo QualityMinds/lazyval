@@ -1,12 +1,12 @@
 package com.qualityminds.lazyval.processor
 
+import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
 import spock.lang.*
 
-import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("Generator Integration - MongoDB Codec")
@@ -27,23 +27,21 @@ class ApMongoCodecIT extends Specification {
     @Shared
     def testkitJava = Testkit.java()
 
-    @Unroll("#scenario.name() compiles and generated #expected.generatedFiles()")
-    void "MongoDB Codec with all Scenarios"() {
-        given:
-        scenario.withDependencies(dependencyBson)
+    void "MongoDB Codec with combined Scenarios"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Java.combined().withDependencies(dependencyBson)
+
+        and: 'a defined approval for the generated codecs class'
+        List<Approval> approvals = [
+                Approval.JavaSource.at("test/boundary/persistence/mongodb/$GENERATED_FILE_NAME",
+                        "approvals/mongocodec/$GENERATED_FILE_NAME")
+        ]
 
         when:
-        def result = testkitJava.run(projectDir, scenario)
+        def result = testkitJava.run(projectDir, scenario, approvals)
 
         then:
-        result == expected
-
-        and: 'contains @Generated'
-        Files.readString(projectDir.resolve("build/generated/test/boundary/persistence/mongodb/$GENERATED_FILE_NAME")).contains("@Generated")
-
-        where:
-        scenario << Scenario.Java.all()
-        expected = new Testresult.Java.Success(GENERATED_FILE_NAME)
+        result == Testresult.Java.Approved.of(approvals)
     }
 
     void "Codec generated at correct default location when no override is given"() {
@@ -54,7 +52,7 @@ class ApMongoCodecIT extends Specification {
         testkitJava.run(projectDir, scenario)
 
         then: 'file is generated at correct location using base-package with generator-default'
-        projectDir.resolve("build/generated/test/boundary/persistence/mongodb/LazyvalMongoCodecs.java").toFile().exists()
+        testkitJava.generatedSourcePath(projectDir, "test/boundary/persistence/mongodb/LazyvalMongoCodecs.java").toFile().exists()
     }
 
     void "Package override by generator works as expected"() {
@@ -70,7 +68,7 @@ class ApMongoCodecIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'file is at correct package'
-        projectDir.resolve("build/generated/test/custom/LazyvalMongoCodecs.java").toFile().exists()
+        testkitJava.generatedSourcePath(projectDir, "test/custom/LazyvalMongoCodecs.java").toFile().exists()
     }
 
     void "OrderDate wrapping LocalDate generates a valid codec"() {
@@ -137,7 +135,7 @@ class ApMongoCodecIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and: 'generated file references the user codec'
-        def generated = projectDir.resolve("build/generated/test/boundary/persistence/mongodb/LazyvalMongoCodecs.java").toFile().text
+        def generated = testkitJava.generatedSourcePath(projectDir, "test/boundary/persistence/mongodb/LazyvalMongoCodecs.java").toFile().text
         generated.contains("new scenarios.mongocodecs.ValidMongoCodec()")
     }
 
@@ -159,7 +157,7 @@ class ApMongoCodecIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and:
-        def generated = projectDir.resolve("build/generated/test/boundary/persistence/mongodb/LazyvalMongoCodecs.java").toFile().text
+        def generated = testkitJava.generatedSourcePath(projectDir, "test/boundary/persistence/mongodb/LazyvalMongoCodecs.java").toFile().text
         def validIdx = generated.indexOf("new scenarios.mongocodecs.ValidMongoCodec()")
         def anotherIdx = generated.indexOf("new scenarios.mongocodecs.AnotherValidMongoCodec()")
         validIdx >= 0
@@ -184,7 +182,7 @@ class ApMongoCodecIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and:
-        def generated = projectDir.resolve("build/generated/test/boundary/persistence/mongodb/LazyvalMongoCodecs.java").toFile().text
+        def generated = testkitJava.generatedSourcePath(projectDir, "test/boundary/persistence/mongodb/LazyvalMongoCodecs.java").toFile().text
         generated.contains("new scenarios.mongocodecs.ValidMongoCodec()")
         generated.contains("new scenarios.mongocodecs.AnotherValidMongoCodec()")
     }
@@ -262,7 +260,7 @@ class ApMongoCodecIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
 
         and:
-        def generated = projectDir.resolve("build/generated/scenarios/mongocodecs/LazyvalMongoCodecs.java").toFile().text
+        def generated = testkitJava.generatedSourcePath(projectDir, "scenarios/mongocodecs/LazyvalMongoCodecs.java").toFile().text
         generated.contains("new scenarios.mongocodecs.NonPublicMongoCodec()")
     }
 
