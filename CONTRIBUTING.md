@@ -24,7 +24,7 @@ This guide will help you get started and ensure your contributions are productiv
    Keep commits clear and descriptive. Use [Conventional Commits](https://www.conventionalcommits.org).
 
 1. **Run Tests** (if applicable)  
-   Make sure your differences don't break existing tests.
+   Make sure your changes don't break existing tests.
 
    Run `./mvnw install` (`-T 1C`) or, in case you have [act](https://github.com/nektos/act) installed, `act --action-offline-mode --artifact-server-path $PWD/.artifacts pull_request` which will run the Github-Action pipeline locally (though act will not run the integration tests due to issues with Docker)
 
