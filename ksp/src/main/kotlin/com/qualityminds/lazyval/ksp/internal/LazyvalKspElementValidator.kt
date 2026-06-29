@@ -1,11 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal
 
-import com.google.devtools.ksp.symbol.ClassKind
-import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.symbol.KSFunctionDeclaration
-import com.google.devtools.ksp.symbol.KSPropertyDeclaration
-import com.google.devtools.ksp.symbol.KSType
-import com.google.devtools.ksp.symbol.Modifier
+import com.google.devtools.ksp.getDeclaredFunctions
+import com.google.devtools.ksp.symbol.*
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.qualityminds.lazyval.ksp.spi.WrappedProperty
 
@@ -21,6 +17,9 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
             "Value Types should not be extendable, hence the class should be final."
         const val NOT_FINAL_VALUE_WARNING =
             "Value Types should be immutable, hence the wrapped property should be final (val)."
+        // Excluded when scanning for accessor candidates: every class inherits these from Object
+        // and their return types collide with common wrapped-property types (e.g. Int).
+        val objectMethodNames = setOf("equals", "hashCode", "toString")
     }
 
     fun validate(classDeclaration: KSClassDeclaration): ValidatedKspGeneratorElement? {
@@ -99,12 +98,13 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
     private fun findPropertyAccessorPairs(
         classDeclaration: KSClassDeclaration
     ): List<Pair<KSPropertyDeclaration, KSFunctionDeclaration?>> {
+        // Match the looser filter used by `validateClass` for `publicProperties` so we get a chance
+        // to pair properties of external Java types (e.g. java.time.Year's `year`) with a JavaBean
+        // accessor. KSP reports `getter=null`/`hasBackingField=false` for those synthesized properties
+        // even though a matching bean getter exists as a separate function.
         val properties = classDeclaration.getAllProperties()
             .filter { property ->
-                !property.isStatic() &&
-                        !property.isTransient() &&
-                        property.getter != null &&
-                        property.hasBackingField
+                !property.isStatic() && !property.isTransient()
             }
             .toList()
 
@@ -113,16 +113,42 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
                 !function.isStatic() &&
                         function.parameters.isEmpty() &&
                         function.returnType != null &&
-                        function.returnType!!.resolve().toString() != "kotlin.Unit"
+                        function.returnType!!.resolve().toString() != "kotlin.Unit" &&
+                        function.simpleName.asString() !in objectMethodNames
             }
             .toList()
 
+        // Tier 3 (type-only match) only runs for external Java declarations. Applying it to Kotlin
+        // would wrongly pair a data class's property with its synthesized `component1()` accessor
+        // and break the JavaBean output Mapstruct/JPA/etc. expect.
+        val isExternalJavaType = classDeclaration.origin == Origin.JAVA ||
+                classDeclaration.origin == Origin.JAVA_LIB
+
         return properties.mapNotNull { property ->
+            val propertyName = property.simpleName.asString()
+            val capitalized = propertyName.replaceFirstChar { it.uppercase() }
+            val propertyType = property.type.resolve()
+
+            // Three-tier lookup, in order of specificity:
+            //   1. Kotlin-style: method named exactly after the property (idiomatic Kotlin).
+            //   2. JavaBean-style: get<PropertyName> / is<PropertyName> (covers Java sources where the
+            //      property name and getter name align by convention).
+            //   3. Type-only fallback: first non-Object method that returns the property type. Mirrors
+            //      the Java APT validator's behavior so external JDK types like java.time.Year — whose
+            //      field is `year` but whose accessor is `getValue()` — can still be paired.
             val accessor = methods.firstOrNull { method ->
-                method.returnType?.resolve() == property.type.resolve() &&
-                        (method.simpleName.asString() == property.simpleName.asString() ||
-                                method.simpleName.asString() == "${property.simpleName.asString()}()")
-            }
+                method.returnType?.resolve() == propertyType &&
+                        (method.simpleName.asString() == propertyName ||
+                                method.simpleName.asString() == "$propertyName()")
+            } ?: methods.firstOrNull { method ->
+                method.returnType?.resolve() == propertyType &&
+                        (method.simpleName.asString() == "get$capitalized" ||
+                                method.simpleName.asString() == "is$capitalized")
+            } ?: if (isExternalJavaType) {
+                methods.firstOrNull { method ->
+                    method.returnType?.resolve() == propertyType
+                }
+            } else null
 
             // For data classes, the property itself is the accessor; for regular classes an explicit
             // accessor method is required.
@@ -138,13 +164,23 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
         classDeclaration: KSClassDeclaration,
         wrappedType: KSType
     ): List<KSFunctionDeclaration> {
-        val companionObject = classDeclaration.declarations
+        // Kotlin classes expose factories via companion objects. Java classes (e.g. java.time.Year.of)
+        // expose them as JAVA_STATIC methods declared on the class itself. Scan both so external Java
+        // types can be used as @LazyvalConfiguration.externalTypes — mirrors the APT validator, which
+        // simply scans static methods on the TypeElement.
+        val companionFactories = classDeclaration.declarations
             .filterIsInstance<KSClassDeclaration>()
             .firstOrNull { it.isCompanionObject }
-            ?: return emptyList()
+            ?.declarations
+            ?.filterIsInstance<KSFunctionDeclaration>()
+            ?.toList()
+            .orEmpty()
 
-        return companionObject.declarations
-            .filterIsInstance<KSFunctionDeclaration>()
+        val staticFactories = classDeclaration.getDeclaredFunctions()
+            .filter { Modifier.JAVA_STATIC in it.modifiers }
+            .toList()
+
+        return (companionFactories + staticFactories)
             .filter { function ->
                 if (function.parameters.size != 1) return@filter false
 
