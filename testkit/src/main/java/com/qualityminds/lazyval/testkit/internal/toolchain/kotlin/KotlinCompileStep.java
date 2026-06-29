@@ -3,7 +3,6 @@ package com.qualityminds.lazyval.testkit.internal.toolchain.kotlin;
 import com.qualityminds.lazyval.collections.NonEmptySet;
 import com.qualityminds.lazyval.testkit.dependencies.Dependency;
 import com.qualityminds.lazyval.testkit.scenarios.Scenario;
-import kotlin.KotlinVersion;
 import org.eclipse.collections.api.factory.Lists;
 import org.jetbrains.kotlin.buildtools.api.CompilationService;
 import org.jetbrains.kotlin.buildtools.api.CompilerExecutionStrategyConfiguration;
@@ -109,8 +108,8 @@ record KotlinCompileStep(ProjectLayout layout, CompilationService service,
         try {
             var extended = Lists.mutable.<Dependency>empty()
                     // additional dependencies are needed for the Kotlin compiler
-                    .with(new Dependency("org.jetbrains.kotlin", "kotlin-stdlib", KotlinVersion.CURRENT.toString()))
-                    .with(new Dependency("org.jetbrains.kotlin", "kotlin-reflect", KotlinVersion.CURRENT.toString()))
+                    .with(KotlinToolchainDependencies.KOTLIN_STDLIB)
+                    .with(KotlinToolchainDependencies.KOTLIN_REFLECT)
                     .withAll(scenarioDescriptor.dependencies())
                     .toImmutable();
 
