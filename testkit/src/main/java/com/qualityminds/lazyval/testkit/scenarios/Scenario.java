@@ -3,6 +3,7 @@ package com.qualityminds.lazyval.testkit.scenarios;
 
 import com.qualityminds.lazyval.testkit.Testkit;
 import com.qualityminds.lazyval.testkit.dependencies.Dependency;
+import com.qualityminds.lazyval.testkit.internal.ClasspathResources;
 import org.eclipse.collections.api.collection.ImmutableCollection;
 import org.eclipse.collections.api.map.ImmutableMap;
 
@@ -454,31 +455,22 @@ public sealed interface Scenario {
         try {
             var uri = resourceUrl.toURI();
 
-            // Check the scheme - "jar" means it's inside a JAR file
-            if ("jar".equals(uri.getScheme())) {
-                // Extract resource from JAR to a temporary directory with the correct filename
-                // This is necessary because JavaCompiler requires the filename to match the class name
-                String fileName = resource.substring(resource.lastIndexOf('/') + 1);
-
-                // Create a temp directory to hold the file with its proper name
-                File tempDir = Files.createTempDirectory("lazyval-testhelper").toFile();
-                tempDir.deleteOnExit();
-
-                File tempFile = new File(tempDir, fileName);
-                tempFile.deleteOnExit();
-
-                try (var input = classloader.getResourceAsStream(resource);
-                     var output = new java.io.FileOutputStream(tempFile)) {
-                    if (input == null) {
-                        throw new RuntimeException("Resource not found: " + resource);
-                    }
-                    input.transferTo(output);
-                }
-                return tempFile;
-            } else {
-                // Regular file URL (IDE using target/classes)
+            // Loose file (Maven/IDE running tests directly from target/test-classes) → return the
+            // real path. JavaCompiler reads it where it sits; no copy needed.
+            if (!"jar".equals(uri.getScheme())) {
                 return new File(uri);
             }
+
+            // JAR-packaged (Failsafe shading the testkit consumer, or the testkit itself being run
+            // from an uber-jar): extract to a temp file. JavaCompiler requires the filename to match
+            // the class name, so we materialize with the original filename inside a fresh temp dir.
+            String fileName = resource.substring(resource.lastIndexOf('/') + 1);
+            File tempDir = Files.createTempDirectory("lazyval-testhelper").toFile();
+            tempDir.deleteOnExit();
+            File tempFile = new File(tempDir, fileName);
+            tempFile.deleteOnExit();
+            Files.write(tempFile.toPath(), ClasspathResources.readBytes(resource));
+            return tempFile;
         } catch (Exception e) {
             throw new RuntimeException("Failed to load resource: " + resource, e);
         }
