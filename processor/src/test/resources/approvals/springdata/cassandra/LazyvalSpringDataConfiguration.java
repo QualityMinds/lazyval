@@ -1,11 +1,5 @@
 package test.boundary.persistence;
 
-import java.lang.Integer;
-import java.lang.Override;
-import java.lang.String;
-import java.time.LocalDate;
-import java.util.List;
-import javax.annotation.processing.Generated;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -16,6 +10,10 @@ import scenarios.java.Ids;
 import scenarios.java.Isbn;
 import scenarios.java.OrderDate;
 import scenarios.java.Quantity;
+
+import javax.annotation.processing.Generated;
+import java.time.LocalDate;
+import java.util.List;
 
 /**
  * Generated Spring Data converter configuration.

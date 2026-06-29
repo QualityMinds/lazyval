@@ -120,7 +120,9 @@ public class MongoCodecGenerator implements Generator {
 
         boolean hasMongoDriverCore = context.isOnClasspath(MONGO_CLIENT_SETTINGS_FQN);
         TypeSpec utilitySpec = buildCodecsUtility(orderedElements, codecSpecs, userCodecFqns, hasMongoDriverCore);
-        JavaFile utilityFile = JavaFile.builder(codecPackage, utilitySpec).build();
+        JavaFile utilityFile = JavaFile.builder(codecPackage, utilitySpec)
+                .skipJavaLangImports(true)
+                .build();
         results.add(new GeneratorResult.Java(
                 new GeneratorResult.Metadata(utilityFile.packageName(), utilityFile.typeSpec().name()),
                 utilityFile.toString()));
@@ -132,7 +134,9 @@ public class MongoCodecGenerator implements Generator {
 
         if (isQuarkus && quarkusRegister) {
             TypeSpec registrarSpec = buildQuarkusRegistrar(codecPackage);
-            JavaFile registrarFile = JavaFile.builder(codecPackage, registrarSpec).build();
+            JavaFile registrarFile = JavaFile.builder(codecPackage, registrarSpec)
+                    .skipJavaLangImports(true)
+                    .build();
             results.add(new GeneratorResult.Java(
                     new GeneratorResult.Metadata(registrarFile.packageName(), registrarFile.typeSpec().name()),
                     registrarFile.toString()));

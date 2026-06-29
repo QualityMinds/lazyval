@@ -1,12 +1,5 @@
 package test.boundary.persistence.mongodb;
 
-import java.lang.Class;
-import java.lang.Integer;
-import java.lang.Override;
-import java.lang.String;
-import java.lang.SuppressWarnings;
-import java.time.LocalDate;
-import javax.annotation.processing.Generated;
 import org.bson.BsonReader;
 import org.bson.BsonWriter;
 import org.bson.codecs.Codec;
@@ -18,6 +11,9 @@ import scenarios.java.Ids;
 import scenarios.java.Isbn;
 import scenarios.java.OrderDate;
 import scenarios.java.Quantity;
+
+import javax.annotation.processing.Generated;
+import java.time.LocalDate;
 
 @Generated("com.qualityminds.lazyval.processor.internal.codegen.mongo.MongoCodecGenerator")
 public final class LazyvalMongoCodecs implements CodecProvider {

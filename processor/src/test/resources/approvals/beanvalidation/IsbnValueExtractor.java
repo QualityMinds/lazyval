@@ -2,10 +2,9 @@ package test;
 
 import jakarta.validation.valueextraction.ExtractedValue;
 import jakarta.validation.valueextraction.ValueExtractor;
-import java.lang.Override;
-import java.lang.String;
-import javax.annotation.processing.Generated;
 import scenarios.java.Isbn;
+
+import javax.annotation.processing.Generated;
 
 @Generated("com.qualityminds.lazyval.processor.internal.codegen.beanvalidation.BeanValidationGenerator")
 public class IsbnValueExtractor implements ValueExtractor<@ExtractedValue(type = String.class) Isbn> {

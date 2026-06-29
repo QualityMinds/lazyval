@@ -1,11 +1,6 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.beanvalidation
 
-import com.palantir.javapoet.AnnotationSpec as JAnnotationSpec
-import com.palantir.javapoet.ClassName as JClassName
 import com.palantir.javapoet.JavaFile
-import com.palantir.javapoet.ParameterizedTypeName as JParameterizedTypeName
-import com.palantir.javapoet.TypeName as JTypeName
-import com.palantir.javapoet.TypeSpec as JTypeSpec
 import com.qualityminds.lazyval.collections.NonEmptySet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
@@ -15,6 +10,11 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ksp.toClassName
 import java.util.stream.Stream
 import javax.lang.model.element.Modifier
+import com.palantir.javapoet.AnnotationSpec as JAnnotationSpec
+import com.palantir.javapoet.ClassName as JClassName
+import com.palantir.javapoet.ParameterizedTypeName as JParameterizedTypeName
+import com.palantir.javapoet.TypeName as JTypeName
+import com.palantir.javapoet.TypeSpec as JTypeSpec
 
 /**
  * Generates a `ValueExtractor` for each domain-primitive, delegating all constraint validation
@@ -126,7 +126,9 @@ class BeanValidationGenerator : Generator {
             .addSuperinterface(superInterface)
             .build()
 
-        return JavaFile.builder(packageName, typeSpec).build()
+        return JavaFile.builder(packageName, typeSpec)
+            .skipJavaLangImports(true)
+            .build()
     }
 
     private fun buildKotlinImpl(

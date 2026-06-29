@@ -102,7 +102,9 @@ public class SpringDataGenerator implements Generator {
 
         TypeSpec configSpec = buildSpringDataConfiguration(
                 converterSpecs, isCassandra, isMongo, cassandraUserFqns, mongoUserFqns, hasConditionalOnMissingBean);
-        JavaFile configFile = JavaFile.builder(converterPackage, configSpec).build();
+        JavaFile configFile = JavaFile.builder(converterPackage, configSpec)
+                .skipJavaLangImports(true)
+                .build();
 
         return Stream.of(new GeneratorResult.Java(
                 new GeneratorResult.Metadata(configFile.packageName(), configFile.typeSpec().name()),

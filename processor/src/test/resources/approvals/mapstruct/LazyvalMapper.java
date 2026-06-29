@@ -1,13 +1,13 @@
 package test;
 
-import java.lang.String;
-import java.time.LocalDate;
-import javax.annotation.processing.Generated;
 import org.mapstruct.Mapper;
 import scenarios.java.Ids;
 import scenarios.java.Isbn;
 import scenarios.java.OrderDate;
 import scenarios.java.Quantity;
+
+import javax.annotation.processing.Generated;
+import java.time.LocalDate;
 
 @Generated("com.qualityminds.lazyval.processor.internal.codegen.MapstructGenerator")
 @Mapper(

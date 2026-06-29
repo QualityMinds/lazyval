@@ -2,16 +2,13 @@ package test;
 
 import jakarta.json.bind.JsonbConfig;
 import jakarta.json.bind.adapter.JsonbAdapter;
-import java.lang.Exception;
-import java.lang.Integer;
-import java.lang.Override;
-import java.lang.String;
-import java.time.LocalDate;
-import javax.annotation.processing.Generated;
 import scenarios.java.Ids;
 import scenarios.java.Isbn;
 import scenarios.java.OrderDate;
 import scenarios.java.Quantity;
+
+import javax.annotation.processing.Generated;
+import java.time.LocalDate;
 
 public class LazyvalJsonbAdapters {
   public static JsonbAdapter[] adapters() {

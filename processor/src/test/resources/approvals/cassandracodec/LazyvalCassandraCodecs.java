@@ -4,15 +4,13 @@ import com.datastax.oss.driver.api.core.type.codec.MappingCodec;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
-import java.lang.Integer;
-import java.lang.Override;
-import java.lang.String;
-import java.time.LocalDate;
-import javax.annotation.processing.Generated;
 import scenarios.java.Ids;
 import scenarios.java.Isbn;
 import scenarios.java.OrderDate;
 import scenarios.java.Quantity;
+
+import javax.annotation.processing.Generated;
+import java.time.LocalDate;
 
 @Generated("com.qualityminds.lazyval.processor.internal.codegen.cassandra.CassandraCodecGenerator")
 public final class LazyvalCassandraCodecs {
