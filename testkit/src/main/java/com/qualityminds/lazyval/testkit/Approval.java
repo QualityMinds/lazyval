@@ -1,9 +1,8 @@
 package com.qualityminds.lazyval.testkit;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
+import com.qualityminds.lazyval.testkit.internal.ClasspathResources;
+
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Objects;
 
@@ -48,21 +47,10 @@ public sealed interface Approval {
 
     /**
      * Loads a classpath resource as UTF-8 text. Used by every {@code at(...)} factory; extracted
-     * here to keep variant factories small.
+     * here to keep variant factories small. Handles loose-file and JAR-packaged fixtures uniformly.
      */
     private static String loadResource(String resourcePath) {
-        var url = Thread.currentThread().getContextClassLoader().getResource(resourcePath);
-        if (url == null) {
-            throw new IllegalArgumentException("Approval resource not found on classpath: " + resourcePath);
-        }
-        try {
-            // Using toURI() (not getPath()) so paths containing spaces or other URL-encoded
-            // characters resolve correctly on every platform.
-            return Files.readString(Path.of(url.toURI()));
-        } catch (URISyntaxException | IOException e) {
-            throw new UncheckedIOException("Failed to read approval resource: " + resourcePath,
-                    e instanceof IOException io ? io : new IOException(e));
-        }
+        return new String(ClasspathResources.readBytes(resourcePath), StandardCharsets.UTF_8);
     }
 
     /**
