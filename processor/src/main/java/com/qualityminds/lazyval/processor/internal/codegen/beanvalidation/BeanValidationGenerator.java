@@ -99,7 +99,9 @@ public class BeanValidationGenerator implements Generator {
                 .addMethod(extractValues)
                 .build();
 
-        JavaFile javaFile = JavaFile.builder(packageName, extractor).build();
+        JavaFile javaFile = JavaFile.builder(packageName, extractor)
+                .skipJavaLangImports(true)
+                .build();
         return toResultStream(javaFile, packageName, className);
     }
 

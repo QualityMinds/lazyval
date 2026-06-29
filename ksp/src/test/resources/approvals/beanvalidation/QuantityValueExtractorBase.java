@@ -3,7 +3,6 @@ package test;
 import jakarta.annotation.Generated;
 import jakarta.validation.valueextraction.ExtractedValue;
 import jakarta.validation.valueextraction.ValueExtractor;
-import java.lang.Integer;
 import scenarios.kotlin.Quantity;
 
 /**

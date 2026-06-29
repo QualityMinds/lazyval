@@ -4,8 +4,6 @@ import jakarta.json.bind.Jsonb;
 import jakarta.json.bind.JsonbBuilder;
 import jakarta.ws.rs.ext.ContextResolver;
 import jakarta.ws.rs.ext.Provider;
-import java.lang.Class;
-import java.lang.Override;
 import javax.annotation.processing.Generated;
 
 @Generated("com.qualityminds.lazyval.processor.internal.codegen.JsonbGenerator")

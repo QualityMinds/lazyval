@@ -48,6 +48,7 @@ class MapstructGenerator : Generator {
         val packageName = context.generatorPackage(OPTION_GENERATED_PACKAGE, null)
 
         val javaFile = JavaFile.builder(packageName, interfaceBuilder.build())
+            .skipJavaLangImports(true)
             .build()
 
         return Stream.of(GeneratorResult.Java(

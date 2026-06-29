@@ -115,7 +115,9 @@ public class CassandraCodecGenerator implements Generator {
 
         if (!codecSpecs.isEmpty()) {
             TypeSpec utilitySpec = buildCodecsUtility(orderedElements, codecSpecs, userCodecFqns);
-            JavaFile utilityFile = JavaFile.builder(codecPackage, utilitySpec).build();
+            JavaFile utilityFile = JavaFile.builder(codecPackage, utilitySpec)
+                    .skipJavaLangImports(true)
+                    .build();
             results.add(new GeneratorResult.Java(
                     new GeneratorResult.Metadata(utilityFile.packageName(), utilityFile.typeSpec().name()),
                     utilityFile.toString()));
@@ -128,7 +130,9 @@ public class CassandraCodecGenerator implements Generator {
             if (isQuarkus && quarkusRegister) {
                 List<String> codecClassNames = codecSpecs.stream().map(TypeSpec::name).toList();
                 TypeSpec registrarSpec = CassandraQuarkusRegistrar.build(codecClassNames, userCodecFqns);
-                JavaFile registrarFile = JavaFile.builder(codecPackage, registrarSpec).build();
+                JavaFile registrarFile = JavaFile.builder(codecPackage, registrarSpec)
+                        .skipJavaLangImports(true)
+                        .build();
                 results.add(new GeneratorResult.Java(
                         new GeneratorResult.Metadata(registrarFile.packageName(), registrarFile.typeSpec().name()),
                         registrarFile.toString()));

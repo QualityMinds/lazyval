@@ -1,8 +1,6 @@
 package test;
 
 import jakarta.annotation.Generated;
-import java.lang.String;
-import java.time.LocalDate;
 import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 import scenarios.kotlin.Ids;
@@ -10,6 +8,8 @@ import scenarios.kotlin.Isbn;
 import scenarios.kotlin.NullableQuantity;
 import scenarios.kotlin.OrderDate;
 import scenarios.kotlin.Quantity;
+
+import java.time.LocalDate;
 
 @Generated("com.qualityminds.lazyval.ksp.internal.codegen.MapstructGenerator")
 @Mapper(

@@ -52,7 +52,9 @@ final public class MapstructGenerator implements Generator {
             typeSpecBuilder.addMethod(buildMapType(validElement));
         });
 
-        JavaFile javaFile = JavaFile.builder(mapperPackage, typeSpecBuilder.build()).build();
+        JavaFile javaFile = JavaFile.builder(mapperPackage, typeSpecBuilder.build())
+                .skipJavaLangImports(true)
+                .build();
         return Stream.of(new GeneratorResult.Java(
                 new GeneratorResult.Metadata(javaFile.packageName(), javaFile.typeSpec().name()),
                 javaFile.toString()));

@@ -58,7 +58,9 @@ public class JsonbGenerator implements Generator {
 
         final String packageName = context.generatorPackage(OPTION_GENERATED_PACKAGE, null);
 
-        final JavaFile javaFile = JavaFile.builder(packageName, typeSpec).build();
+        final JavaFile javaFile = JavaFile.builder(packageName, typeSpec)
+                .skipJavaLangImports(true)
+                .build();
         var fileMetadata = new Metadata(javaFile.packageName(), javaFile.typeSpec().name());
 
         var results = Stream.<GeneratorResult>builder();
@@ -69,7 +71,9 @@ public class JsonbGenerator implements Generator {
         boolean register = context.getSetting(OPTION_REGISTER).map(Boolean::parseBoolean).orElse(true);
         if (register && !isQuarkus && context.isOnClasspath(CONTEXT_RESOLVER_FQCN)) {
             var resolverSpec = generateContextResolver(fileMetadata);
-            var resolverFile = JavaFile.builder(packageName, resolverSpec).build();
+            var resolverFile = JavaFile.builder(packageName, resolverSpec)
+                    .skipJavaLangImports(true)
+                    .build();
             var resolverMetadata = new Metadata(resolverFile.packageName(), resolverFile.typeSpec().name());
             results.add(new GeneratorResult.Java(resolverMetadata, resolverFile.toString()));
         }
