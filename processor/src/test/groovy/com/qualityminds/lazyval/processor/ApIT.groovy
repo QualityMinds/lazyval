@@ -100,6 +100,23 @@ class ApIT extends Specification {
         testkitJava.run(projectDir, scenario) == new Testresult.Java.Failure("Lazyval: Only one @LazyvalConfiguration is allowed per compilation unit.")
     }
 
+    void "Warning is issued when @LazyvalConfiguration.externalTypes lists the same type twice"() {
+        given: 'a Quantity driver to ensure generation runs, plus a package-info that lists OptionalInt twice'
+        def scenario = Scenario.Java.of(
+                "package-config-duplicate-external",
+                "scenarios/java/Quantity.java",
+                "scenarios/duplicateexternal/package-info.java")
+                .withDependencies(dependencyMapstruct)
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then: 'the duplicate is reported once; dedup happens at the source so generators see Year only once'
+        result instanceof Testresult.Java.SuccessWithWarnings
+        ((Testresult.Java.SuccessWithWarnings) result).warnings().contains(
+                "Lazyval: Duplicate type 'java.time.Year' in @LazyvalConfiguration.externalTypes. It will only be processed once.")
+    }
+
     void "Error is issued when LazyvalConfiguration marks an local type of the current compilation unit as external" (){
         given:
         def scenario = Scenario.Java.of(
