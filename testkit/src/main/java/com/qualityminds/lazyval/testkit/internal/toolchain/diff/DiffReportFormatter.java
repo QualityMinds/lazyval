@@ -19,8 +19,8 @@ final class DiffReportFormatter {
     private static final String GREEN = "\u001B[32m";
     private static final String DIM = "\u001B[2m";
     // inline (sub-line) highlight: brighter foreground so the exact changed segment stands out
-    private static final String DELETE_HL = "[91m"; // bright red text
-    private static final String INSERT_HL = "[92m"; // bright green text
+    private static final String DELETE_HL = "\u001B[91m"; // bright red text
+    private static final String INSERT_HL = "\u001B[92m"; // bright green text
 
     private DiffReportFormatter() {
     }
