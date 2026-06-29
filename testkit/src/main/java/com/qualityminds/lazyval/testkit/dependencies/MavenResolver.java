@@ -1,7 +1,6 @@
 package com.qualityminds.lazyval.testkit.dependencies;
 
 import com.qualityminds.lazyval.collections.NonEmptySet;
-import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,13 +40,18 @@ class MavenResolver {
     }
 
     static NonEmptySet<File> resolveDependencies(String... coordinates) {
+        // Throw on the first failing coordinate with the coord embedded in the message. The previous
+        // behavior — log-at-WARN and continue, then let NonEmptySet.collector() throw a misleading
+        // "non-empty set required" — buried the actual cause in SLF4J output the test author would
+        // typically not have configured visibly.
         List<File> files = new ArrayList<>();
 
         for (String coord : coordinates) {
             var parts = coord.split(":", -1);
             if (parts.length < 3 || parts[0].isBlank() || parts[1].isBlank() || parts[2].isBlank()) {
-                logger.error("Invalid coordinate format: {} (expected groupId:artifactId:version)", coord);
-                continue;
+                throw new IllegalStateException(
+                        "could not resolve '" + coord + "' — expected coordinate format is "
+                                + "'groupId:artifactId:version'");
             }
 
             var groupId = parts[0];
@@ -61,15 +65,11 @@ class MavenResolver {
                 logger.debug("Found in local Maven repo: {} ({} bytes)", localFile.getName(), localFile.length());
                 files.add(localFile);
             } else {
-                var downloadedFile = downloadToLocalRepository(localRepo, groupId, artifactId, version);
-                if(downloadedFile != null)
-                    files.add(downloadedFile);
+                files.add(downloadToLocalRepository(localRepo, coord, groupId, artifactId, version));
             }
         }
 
-        return files.stream()
-                .filter(file -> file.exists() && file.length() > 0)
-                .collect(NonEmptySet.collector());
+        return NonEmptySet.ofAll(files);
     }
 
     private static File findInLocalRepository(File localRepo, String groupId, String artifactId, String version) {
@@ -80,7 +80,8 @@ class MavenResolver {
         return new File(localRepo, artifactPath);
     }
 
-    private static @Nullable File downloadToLocalRepository(File localRepo, String groupId, String artifactId, String version) {
+    private static File downloadToLocalRepository(File localRepo, String coord,
+                                                  String groupId, String artifactId, String version) {
         var groupPath = groupId.replace('.', '/');
         var jarName = artifactId + "-" + version + ".jar";
         var url = getMavenMirror() + groupPath + "/" + artifactId + "/" + version + "/" + jarName;
@@ -130,11 +131,11 @@ class MavenResolver {
             }
 
         } catch (FileNotFoundException e) {
-            logger.warn("Artifact not found: {}", url);
-            return null;
+            throw new IllegalStateException(
+                    "could not resolve " + coord + " — artifact not found at " + url, e);
         } catch (IOException e) {
-            logger.warn("Download failed for {}:{}:{} - {}", groupId, artifactId, version, e.getMessage());
-            return null;
+            throw new IllegalStateException(
+                    "could not resolve " + coord + " — download failed: " + e.getMessage(), e);
         }
     }
 

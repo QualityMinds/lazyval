@@ -47,4 +47,21 @@ class MavenResolverTest extends Specification {
         resolvedSet.first().toPath().startsWith(tempLocalRepo)
     }
 
+    @RestoreSystemProperties
+    void "Unresolvable dependency surfaces the coordinate and URL in the exception"() {
+        given: 'an artifact that does not exist on Maven Central'
+        System.setProperty(MavenResolver.PROP_RESOLVER_REPO, tempLocalRepo.toAbsolutePath().toString())
+        def bogus = new Dependency("com.example.lazyval.testkit.nonexistent", "bogus-artifact", "999.999.999")
+
+        when:
+        bogus.resolve()
+
+        then: 'the exception carries the coord — not a confusing "non-empty set required"'
+        def ex = thrown(IllegalStateException)
+        ex.message.contains("com.example.lazyval.testkit.nonexistent:bogus-artifact:999.999.999")
+        ex.message.contains("artifact not found")
+        and: 'and the URL the resolver tried, so the user can verify it directly'
+        ex.message.contains("bogus-artifact-999.999.999.jar")
+    }
+
 }
