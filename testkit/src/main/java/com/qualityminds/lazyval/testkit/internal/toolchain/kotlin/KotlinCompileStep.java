@@ -4,7 +4,7 @@ import com.qualityminds.lazyval.collections.NonEmptySet;
 import com.qualityminds.lazyval.testkit.dependencies.Dependency;
 import com.qualityminds.lazyval.testkit.scenarios.Scenario;
 import kotlin.KotlinVersion;
-import ksp.com.google.common.collect.ImmutableList;
+import org.eclipse.collections.api.factory.Lists;
 import org.jetbrains.kotlin.buildtools.api.CompilationService;
 import org.jetbrains.kotlin.buildtools.api.CompilerExecutionStrategyConfiguration;
 import org.jetbrains.kotlin.buildtools.api.ExperimentalBuildToolsApi;
@@ -23,7 +23,7 @@ import java.util.stream.Stream;
  * <p>
  * The Kotlin compiler reads {@code .java} sources only for symbol resolution (so that referenced Java
  * types resolve), it does <em>not</em> emit bytecode for them. That responsibility falls to
- * {@link JavaCompileStep}, which runs afterwards.
+ * {@link JavaCompileStep}, which runs afterward.
  */
 @ExperimentalBuildToolsApi
 record KotlinCompileStep(ProjectLayout layout, CompilationService service,
@@ -107,12 +107,12 @@ record KotlinCompileStep(ProjectLayout layout, CompilationService service,
             ProjectLayout layout,
             Scenario.Descriptor scenarioDescriptor, LogCollector logCollector) {
         try {
-            ImmutableList.Builder<Dependency> builder = ImmutableList.builder();
-            var extended = builder
+            var extended = Lists.mutable.<Dependency>empty()
                     // additional dependencies are needed for the Kotlin compiler
-                    .add(new Dependency("org.jetbrains.kotlin", "kotlin-stdlib", KotlinVersion.CURRENT.toString()))
-                    .add(new Dependency("org.jetbrains.kotlin", "kotlin-reflect", KotlinVersion.CURRENT.toString()))
-                    .addAll(scenarioDescriptor.dependencies()).build();
+                    .with(new Dependency("org.jetbrains.kotlin", "kotlin-stdlib", KotlinVersion.CURRENT.toString()))
+                    .with(new Dependency("org.jetbrains.kotlin", "kotlin-reflect", KotlinVersion.CURRENT.toString()))
+                    .withAll(scenarioDescriptor.dependencies())
+                    .toImmutable();
 
 
             var compilerClasspath = Stream.concat(extended.stream().map(Dependency::resolve).flatMap(NonEmptySet::stream), CoreModuleDependency.RESOLVED_FILE.stream()).toList();
