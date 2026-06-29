@@ -53,21 +53,23 @@ class JavaCompileStep {
 
             var compiler = ToolProvider.getSystemJavaCompiler();
             var diagnostics = new LoggingDiagnosticsCollector(logCollector);
-            var fileManager = compiler.getStandardFileManager(diagnostics, null, null);
+            // try-with-resources releases the file manager's jar handles after the task call;
+            // without it the handles linger until GC and on Windows block subsequent file deletes.
+            try (var fileManager = compiler.getStandardFileManager(diagnostics, null, null)) {
+                // Reuse the same build/classes directory used by kotlinc, both as output and on the classpath,
+                // so generated Java can resolve Kotlin types compiled by the previous step.
+                var classesDir = Files.createDirectories(layout.classes()).toFile();
+                var fullClasspath = new ArrayList<>(classpath);
+                fullClasspath.add(classesDir);
 
-            // Reuse the same build/classes directory used by kotlinc, both as output and on the classpath,
-            // so generated Java can resolve Kotlin types compiled by the previous step.
-            var classesDir = Files.createDirectories(layout.classes()).toFile();
-            var fullClasspath = new ArrayList<>(classpath);
-            fullClasspath.add(classesDir);
+                fileManager.setLocation(StandardLocation.CLASS_OUTPUT, List.of(classesDir));
+                fileManager.setLocation(StandardLocation.CLASS_PATH, fullClasspath);
 
-            fileManager.setLocation(StandardLocation.CLASS_OUTPUT, List.of(classesDir));
-            fileManager.setLocation(StandardLocation.CLASS_PATH, fullClasspath);
-
-            var compilationUnits = fileManager.getJavaFileObjects(javaSources.toArray(File[]::new));
-            var task = compiler.getTask(null, fileManager, diagnostics, null, null, compilationUnits);
-            task.setProcessors(List.of());
-            return task.call() ? StepOutcome.SUCCESS : StepOutcome.COMPILE_ERROR;
+                var compilationUnits = fileManager.getJavaFileObjects(javaSources.toArray(File[]::new));
+                var task = compiler.getTask(null, fileManager, diagnostics, null, null, compilationUnits);
+                task.setProcessors(List.of());
+                return task.call() ? StepOutcome.SUCCESS : StepOutcome.COMPILE_ERROR;
+            }
         } catch (Exception e) {
             throw new RuntimeException("Java compilation of generated sources failed", e);
         }

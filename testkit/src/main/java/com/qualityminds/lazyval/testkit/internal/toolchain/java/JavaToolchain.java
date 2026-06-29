@@ -55,19 +55,23 @@ public class JavaToolchain implements AutoCloseable {
     private final LoggingDiagnosticsCollector diagnostics;
     private final Path sourceOutputDir;
     private final Path classOutputDir;
-    // Owned by this toolchain; released in close(). Built from the URLs handed to the constructor so
-    // that no external caller can supply a borrowed classloader we would then be responsible for closing.
+    // Both owned by this toolchain; released in close(). The file manager holds OS handles to jars
+    // on the classpath; the classloader is built from the URLs handed to the constructor so that no
+    // external caller can supply a borrowed classloader we would then be responsible for closing.
+    private final StandardJavaFileManager fileManager;
     private final URLClassLoader processorClassLoader;
 
     private JavaToolchain(JavaCompiler.CompilationTask task,
                           LoggingDiagnosticsCollector diagnostics,
                           Path sourceOutputDir,
                           Path classOutputDir,
+                          StandardJavaFileManager fileManager,
                           URL[] processorClasspathUrls) {
         this.task = task;
         this.diagnostics = diagnostics;
         this.sourceOutputDir = sourceOutputDir;
         this.classOutputDir = classOutputDir;
+        this.fileManager = fileManager;
         // Load processors dynamically so the testkit doesn't depend on the processor module — that
         // would create a cycle, since the processor's own tests use the testkit.
         this.processorClassLoader = new URLClassLoader(processorClasspathUrls, JavaToolchain.class.getClassLoader());
@@ -100,7 +104,11 @@ public class JavaToolchain implements AutoCloseable {
 
     @Override
     public void close() throws IOException {
-        processorClassLoader.close();
+        // Close the file manager first since it may hold handles to jars also referenced by the
+        // classloader. Use try-with-resources so a failure on one still releases the other.
+        try (fileManager; processorClassLoader) {
+            // resources closed by try-with-resources
+        }
     }
 
     private static TreeSet<Path> walkFiles(Path root, java.util.function.Predicate<Path> filter) throws IOException {
@@ -126,41 +134,57 @@ public class JavaToolchain implements AutoCloseable {
 
         var fileManager = compiler.getStandardFileManager(diagnostics, null, null);
         try {
-            var outputDir = Files.createDirectories(classOutputDir(projectDir));
-            var generatedSourcesDir = Files.createDirectories(sourceOutputDir(projectDir));
-            fileManager.setLocation(StandardLocation.CLASS_OUTPUT, List.of(outputDir.toFile()));
-            fileManager.setLocation(StandardLocation.SOURCE_OUTPUT, List.of(generatedSourcesDir.toFile()));
-
-            if (!additionalClasspath.isEmpty()) {
-                fileManager.setLocation(StandardLocation.CLASS_PATH, additionalClasspath);
-            }
-
-            var compilationUnits = fileManager.getJavaFileObjects(scenarioDescriptor.sources().toArray(new File[]{}));
-
-            var processorOptions = scenarioDescriptor.options()
-                    .keyValuesView()
-                    .collect(pair -> "-A" + pair.getOne() + "=" + pair.getTwo());
-
-            var task = compiler.getTask(null, fileManager, diagnostics, processorOptions, null, compilationUnits);
-
-            URL[] processorClasspathUrls = additionalClasspath.stream()
-                    .map(file -> {
-                        try {
-                            return file.toURI().toURL();
-                        } catch (Exception e) {
-                            throw new RuntimeException(e);
-                        }
-                    })
-                    .toArray(URL[]::new);
-
-            var sourceOutputLocation = fileManager.getLocation(StandardLocation.SOURCE_OUTPUT);
-            var sourceOutputDir = sourceOutputLocation.iterator().next().toPath();
-            var classOutputLocation = fileManager.getLocation(StandardLocation.CLASS_OUTPUT);
-            var classOutputDir = classOutputLocation.iterator().next().toPath();
-            return new JavaToolchain(task, diagnostics, sourceOutputDir, classOutputDir, processorClasspathUrls);
+            return configure(projectDir, scenarioDescriptor, diagnostics, compiler, fileManager, additionalClasspath);
         } catch (Exception e) {
+            // Ownership of the file manager only transfers to JavaToolchain on success; close it
+            // here so a failure during setup doesn't leak file handles.
+            try {
+                fileManager.close();
+            } catch (IOException suppressed) {
+                e.addSuppressed(suppressed);
+            }
             throw new RuntimeException("Failed to setup compiler task", e);
         }
+    }
+
+    private static JavaToolchain configure(Path projectDir,
+                                           Scenario.Descriptor scenarioDescriptor,
+                                           LoggingDiagnosticsCollector diagnostics,
+                                           JavaCompiler compiler,
+                                           StandardJavaFileManager fileManager,
+                                           List<File> additionalClasspath) throws IOException {
+        var outputDir = Files.createDirectories(classOutputDir(projectDir));
+        var generatedSourcesDir = Files.createDirectories(sourceOutputDir(projectDir));
+        fileManager.setLocation(StandardLocation.CLASS_OUTPUT, List.of(outputDir.toFile()));
+        fileManager.setLocation(StandardLocation.SOURCE_OUTPUT, List.of(generatedSourcesDir.toFile()));
+
+        if (!additionalClasspath.isEmpty()) {
+            fileManager.setLocation(StandardLocation.CLASS_PATH, additionalClasspath);
+        }
+
+        var compilationUnits = fileManager.getJavaFileObjects(scenarioDescriptor.sources().toArray(new File[]{}));
+
+        var processorOptions = scenarioDescriptor.options()
+                .keyValuesView()
+                .collect(pair -> "-A" + pair.getOne() + "=" + pair.getTwo());
+
+        var task = compiler.getTask(null, fileManager, diagnostics, processorOptions, null, compilationUnits);
+
+        URL[] processorClasspathUrls = additionalClasspath.stream()
+                .map(file -> {
+                    try {
+                        return file.toURI().toURL();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+                .toArray(URL[]::new);
+
+        var sourceOutputLocation = fileManager.getLocation(StandardLocation.SOURCE_OUTPUT);
+        var sourceOutputDir = sourceOutputLocation.iterator().next().toPath();
+        var classOutputLocation = fileManager.getLocation(StandardLocation.CLASS_OUTPUT);
+        var classOutputDir = classOutputLocation.iterator().next().toPath();
+        return new JavaToolchain(task, diagnostics, sourceOutputDir, classOutputDir, fileManager, processorClasspathUrls);
     }
 
     /**
