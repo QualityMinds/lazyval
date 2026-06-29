@@ -7,6 +7,7 @@ import org.eclipse.collections.api.list.ImmutableList;
 import javax.annotation.processing.Processor;
 import javax.tools.*;
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -29,7 +30,7 @@ import static org.eclipse.collections.impl.collector.Collectors2.toImmutableList
  * collectors and its public path helpers) share one source of truth instead of duplicating string
  * literals.
  */
-public class JavaToolchain {
+public class JavaToolchain implements AutoCloseable {
 
     /**
      * Root for annotation-processor-emitted Java sources ({@code <projectDir>/build/generated/}).
@@ -54,18 +55,26 @@ public class JavaToolchain {
     private final LoggingDiagnosticsCollector diagnostics;
     private final Path sourceOutputDir;
     private final Path classOutputDir;
-    private final ClassLoader processorClassLoader;
+    // Owned by this toolchain; released in close(). Built from the URLs handed to the constructor so
+    // that no external caller can supply a borrowed classloader we would then be responsible for closing.
+    private final URLClassLoader processorClassLoader;
 
     private JavaToolchain(JavaCompiler.CompilationTask task,
                           LoggingDiagnosticsCollector diagnostics,
                           Path sourceOutputDir,
                           Path classOutputDir,
-                          ClassLoader processorClassLoader) {
+                          URL[] processorClasspathUrls) {
         this.task = task;
         this.diagnostics = diagnostics;
         this.sourceOutputDir = sourceOutputDir;
         this.classOutputDir = classOutputDir;
-        this.processorClassLoader = processorClassLoader;
+        // Load processors dynamically so the testkit doesn't depend on the processor module — that
+        // would create a cycle, since the processor's own tests use the testkit.
+        this.processorClassLoader = new URLClassLoader(processorClasspathUrls, JavaToolchain.class.getClassLoader());
+        var processors = ServiceLoader.load(Processor.class, processorClassLoader);
+        var processorList = new ArrayList<Processor>();
+        processors.forEach(processorList::add);
+        task.setProcessors(processorList);
     }
 
     public Result run() {
@@ -89,7 +98,12 @@ public class JavaToolchain {
         }
     }
 
-    private static TreeSet<Path> walkFiles(Path root, java.util.function.Predicate<Path> filter) throws java.io.IOException {
+    @Override
+    public void close() throws IOException {
+        processorClassLoader.close();
+    }
+
+    private static TreeSet<Path> walkFiles(Path root, java.util.function.Predicate<Path> filter) throws IOException {
         if (!Files.isDirectory(root)) {
             return new TreeSet<>();
         }
@@ -129,7 +143,7 @@ public class JavaToolchain {
 
             var task = compiler.getTask(null, fileManager, diagnostics, processorOptions, null, compilationUnits);
 
-            URL[] urls = additionalClasspath.stream()
+            URL[] processorClasspathUrls = additionalClasspath.stream()
                     .map(file -> {
                         try {
                             return file.toURI().toURL();
@@ -138,19 +152,12 @@ public class JavaToolchain {
                         }
                     })
                     .toArray(URL[]::new);
-            // Load the LazyvalProcessor dynamically to avoid a project dependency on the processor because
-            // then we would have a cycle processor <-> testkit (since we want to use the testkit in the processor tests)
-            URLClassLoader processorClassLoader = new URLClassLoader(urls, JavaToolchain.class.getClassLoader());
-            ServiceLoader<Processor> processors = ServiceLoader.load(Processor.class, processorClassLoader);
-            List<Processor> processorList = new ArrayList<>();
-            processors.forEach(processorList::add);
-            task.setProcessors(processorList);
 
             var sourceOutputLocation = fileManager.getLocation(StandardLocation.SOURCE_OUTPUT);
             var sourceOutputDir = sourceOutputLocation.iterator().next().toPath();
             var classOutputLocation = fileManager.getLocation(StandardLocation.CLASS_OUTPUT);
             var classOutputDir = classOutputLocation.iterator().next().toPath();
-            return new JavaToolchain(task, diagnostics, sourceOutputDir, classOutputDir, processorClassLoader);
+            return new JavaToolchain(task, diagnostics, sourceOutputDir, classOutputDir, processorClasspathUrls);
         } catch (Exception e) {
             throw new RuntimeException("Failed to setup compiler task", e);
         }

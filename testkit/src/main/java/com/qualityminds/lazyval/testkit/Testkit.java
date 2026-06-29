@@ -358,9 +358,11 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         @Override
         public Testresult.Java run(Path projectDir, Scenario.Java scenario) {
             cleanProjectDir(projectDir);
-            var toolchain = JavaToolchain.create(projectDir, scenario.desc());
-            var result = toolchain.run();
-            return convertToolchainResult(result);
+            try (var toolchain = JavaToolchain.create(projectDir, scenario.desc())) {
+                return convertToolchainResult(toolchain.run());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }
 
         @Override
@@ -371,15 +373,18 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
             }
             rejectKotlinSourceApprovals(approvals);
             cleanProjectDir(projectDir);
-            var toolchain = JavaToolchain.create(projectDir, scenario.desc());
-            var toolchainResult = toolchain.run();
-            if (!toolchainResult.isSuccessful()) {
-                return new Testresult.Java.Failure(toolchainResult.getErrors());
+            try (var toolchain = JavaToolchain.create(projectDir, scenario.desc())) {
+                var toolchainResult = toolchain.run();
+                if (!toolchainResult.isSuccessful()) {
+                    return new Testresult.Java.Failure(toolchainResult.getErrors());
+                }
+                var outcome = ApprovalEvaluator.evaluate(
+                        collectJavaGeneratedFiles(projectDir, toolchainResult),
+                        approvals);
+                return toJavaTestresult(outcome, toolchainResult.getWarnings());
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
-            var outcome = ApprovalEvaluator.evaluate(
-                    collectJavaGeneratedFiles(projectDir, toolchainResult),
-                    approvals);
-            return toJavaTestresult(outcome, toolchainResult.getWarnings());
         }
 
         /**
