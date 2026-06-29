@@ -14,10 +14,10 @@ import java.util.List;
 final class DiffReportFormatter {
 
     // line-level (foreground) colors
-    private static final String RESET = "[0m";
-    private static final String RED = "[31m";
-    private static final String GREEN = "[32m";
-    private static final String DIM = "[2m";
+    private static final String RESET = "\u001B[0m";
+    private static final String RED = "\u001B[31m";
+    private static final String GREEN = "\u001B[32m";
+    private static final String DIM = "\u001B[2m";
     // inline (sub-line) highlight: brighter foreground so the exact changed segment stands out
     private static final String DELETE_HL = "[91m"; // bright red text
     private static final String INSERT_HL = "[92m"; // bright green text
