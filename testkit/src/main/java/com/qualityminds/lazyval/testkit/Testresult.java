@@ -129,15 +129,19 @@ public sealed interface Testresult {
             }
 
             /**
-             * Builds the expected {@code Approved} from the same {@link Approval}s passed to
+             * Builds the expected {@code Approved} from the same approvals passed to
              * {@code Testkit.run(...)}. The generated-files list is derived directly from the definitions'
              * {@link Approval#generatedPath() generatedPath}s — no duplication needed at the call site.
+             * <p>
+             * Parameter type {@link Approval.ForJava} prevents passing {@link Approval.KotlinSource}:
+             * the Java testkit has no Kotlin output to compare against, and the constraint is enforced
+             * at compile time.
              *
              * @param approvals the approval definitions used in the run
              * @return an {@code Approved} expectation with no warnings; chain {@link #withWarnings(String...)}
              *         when a specific warning is expected
              */
-            public static Approved of(Approval... approvals) {
+            public static Approved of(Approval.ForJava... approvals) {
                 var paths = Arrays.stream(approvals)
                         .map(Approval::generatedPath)
                         .collect(toImmutableList());
@@ -145,14 +149,14 @@ public sealed interface Testresult {
             }
 
             /**
-             * Collection-accepting overload of {@link #of(Approval...)} for Groovy/Kotlin call sites
+             * Collection-accepting overload of {@link #of(Approval.ForJava...)} for Groovy/Kotlin call sites
              * that build their approvals as a {@code List}.
              *
              * @param approvals the approval definitions used in the run
              * @return an {@code Approved} expectation with no warnings
              */
-            public static Approved of(Collection<Approval> approvals) {
-                return of(approvals.toArray(Approval[]::new));
+            public static Approved of(Collection<? extends Approval.ForJava> approvals) {
+                return of(approvals.toArray(Approval.ForJava[]::new));
             }
 
             /**
@@ -338,11 +342,12 @@ public sealed interface Testresult {
             }
 
             /**
-             * See {@link Java.Approved#of(Approval...)}.
+             * See {@link Java.Approved#of(Approval.ForJava...)}.
+             *
              * @param approvals the approval definitions used in the run
              * @return an {@code Approved} expectation with no warnings
              */
-            public static Approved of(Approval... approvals) {
+            public static Approved of(Approval.ForKotlin... approvals) {
                 var paths = Arrays.stream(approvals)
                         .map(Approval::generatedPath)
                         .collect(toImmutableList());
@@ -350,14 +355,14 @@ public sealed interface Testresult {
             }
 
             /**
-             * Collection-accepting overload of {@link #of(Approval...)} for Groovy/Kotlin call sites
+             * Collection-accepting overload of {@link #of(Approval.ForKotlin...)} for Groovy/Kotlin call sites
              * that build their approvals as a {@code List}.
              *
              * @param approvals the approval definitions used in the run
              * @return an {@code Approved} expectation with no warnings
              */
-            public static Kotlin.Approved of(Collection<Approval> approvals) {
-                return of(approvals.toArray(Approval[]::new));
+            public static Approved of(Collection<? extends Approval.ForKotlin> approvals) {
+                return of(approvals.toArray(Approval.ForKotlin[]::new));
             }
 
             /**

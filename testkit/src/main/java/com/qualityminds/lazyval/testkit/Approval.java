@@ -3,7 +3,6 @@ package com.qualityminds.lazyval.testkit;
 import com.qualityminds.lazyval.testkit.internal.ClasspathResources;
 
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.Objects;
 
 /**
@@ -30,7 +29,7 @@ import java.util.Objects;
  *       import blocks before comparing source files.</li>
  * </ul>
  */
-public sealed interface Approval {
+public sealed interface Approval permits Approval.ForJava, Approval.ForKotlin {
 
     /**
      * Slash-separated path of the generated artifact, relative to the toolchain's output root for
@@ -44,6 +43,28 @@ public sealed interface Approval {
      * @return full expected text of the generated artifact
      */
     String expectedContent();
+
+    /**
+     * Marker for approvals the Java testkit can verify. {@link KotlinSource} is excluded because
+     * javac cannot emit Kotlin output; everything else is in. Used in the parameter types of
+     * {@link Testkit.Java} and {@link Testresult.Java.Approved#of} so the constraint is enforced at
+     * compile time rather than via a runtime check.
+     * <p>
+     * Records implementing this marker are <em>also</em> {@link ForKotlin} where applicable — the
+     * two markers form a Venn diagram rather than a partition, and each record's {@code implements}
+     * clause states the testkits it is valid against.
+     */
+    sealed interface ForJava extends Approval permits JavaSource, Resource, ServiceLoader {}
+
+    /**
+     * Marker for approvals the Kotlin testkit can verify. Today every {@code Approval} variant is
+     * valid against the Kotlin testkit (KSP can emit Java sources, Kotlin sources, and resources),
+     * so this marker permits all four records. It is declared explicitly anyway to keep the type
+     * signatures of {@link Testkit.Kotlin} and {@link Testresult.Kotlin.Approved#of} symmetric with
+     * the Java side and forward-compatible: a future Kotlin-incompatible kind would simply be left
+     * off the {@code permits} clause.
+     */
+    sealed interface ForKotlin extends Approval permits JavaSource, KotlinSource, Resource, ServiceLoader {}
 
     /**
      * Loads a classpath resource as UTF-8 text. Used by every {@code at(...)} factory; extracted
@@ -63,7 +84,7 @@ public sealed interface Approval {
      * @param generatedPath slash-separated path of the generated file, relative to the source-output root
      * @param expectedContent full expected text of the generated file
      */
-    record JavaSource(String generatedPath, String expectedContent) implements Approval {
+    record JavaSource(String generatedPath, String expectedContent) implements ForJava, ForKotlin {
 
         /** Canonical constructor; rejects null components. */
         public JavaSource {
@@ -95,15 +116,17 @@ public sealed interface Approval {
     /**
      * Generated Kotlin source — KSP only. Lands under {@code build/generated/ksp/kotlin/}.
      * <p>
-     * Passing a {@code KotlinSource} to {@link Testkit.Java#run(Path, com.qualityminds.lazyval.testkit.scenarios.Scenario.Java, Approval...)}
-     * throws {@link IllegalArgumentException} — the Java testkit has no Kotlin output to compare against.
+     * Unlike the other variants, {@code KotlinSource} implements only {@link ForKotlin} — it is
+     * <em>not</em> a {@link ForJava}, so passing it to {@link Testkit.Java} or to
+     * {@link Testresult.Java.Approved} is a compile-time error rather than a runtime check. The
+     * Java testkit has no Kotlin output to compare against.
      * <p>
      * Example: {@code "test/boundary/persistence/jpa/QuantityAttributeConverter.kt"}.
      *
      * @param generatedPath slash-separated path of the generated file, relative to the source-output root
      * @param expectedContent full expected text of the generated file
      */
-    record KotlinSource(String generatedPath, String expectedContent) implements Approval {
+    record KotlinSource(String generatedPath, String expectedContent) implements ForKotlin {
 
         /** Canonical constructor; rejects null components. */
         public KotlinSource {
@@ -142,7 +165,7 @@ public sealed interface Approval {
      * @param generatedPath slash-separated path of the generated file, relative to the resource-output root
      * @param expectedContent full expected text of the generated file
      */
-    record Resource(String generatedPath, String expectedContent) implements Approval {
+    record Resource(String generatedPath, String expectedContent) implements ForJava, ForKotlin {
 
         /** Canonical constructor; rejects null components. */
         public Resource {
@@ -182,7 +205,7 @@ public sealed interface Approval {
      * @param generatedPath the resolved {@code META-INF/services/<interfaceFqn>} path
      * @param expectedContent full expected text of the services file (one provider FQN per line)
      */
-    record ServiceLoader(String generatedPath, String expectedContent) implements Approval {
+    record ServiceLoader(String generatedPath, String expectedContent) implements ForJava, ForKotlin {
 
         private static final String PREFIX = "META-INF/services/";
 
