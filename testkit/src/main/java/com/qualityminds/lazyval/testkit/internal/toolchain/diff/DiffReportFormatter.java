@@ -19,8 +19,8 @@ final class DiffReportFormatter {
     private static final String GREEN = "\u001B[32m";
     private static final String DIM = "\u001B[2m";
     // inline (sub-line) highlight: brighter foreground so the exact changed segment stands out
-    private static final String DELETE_HL = "\u001B[91m"; // bright red text
-    private static final String INSERT_HL = "\u001B[92m"; // bright green text
+    private static final String MISSING_HL = "\u001B[91m"; // bright red text
+    private static final String UNEXPECTED_HL = "\u001B[92m"; // bright green text
 
     private DiffReportFormatter() {
     }
@@ -70,11 +70,11 @@ final class DiffReportFormatter {
         boolean ansi = opts.ansi();
         return switch (row.tag()) {
             case EQUAL -> List.of("  " + plain(row.oldSegments()));
-            case INSERT -> List.of(color("+ " + plain(row.newSegments()), GREEN, ansi));
-            case DELETE -> List.of(color("- " + plain(row.oldSegments()), RED, ansi));
+            case UNEXPECTED -> List.of(color("+ " + plain(row.newSegments()), GREEN, ansi));
+            case MISSING -> List.of(color("- " + plain(row.oldSegments()), RED, ansi));
             case CHANGE -> List.of(
-                    color("- " + inline(row.oldSegments(), DELETE_HL, ansi), RED, ansi),
-                    color("+ " + inline(row.newSegments(), INSERT_HL, ansi), GREEN, ansi));
+                    color("- " + inline(row.oldSegments(), MISSING_HL, ansi), RED, ansi),
+                    color("+ " + inline(row.newSegments(), UNEXPECTED_HL, ansi), GREEN, ansi));
         };
     }
 

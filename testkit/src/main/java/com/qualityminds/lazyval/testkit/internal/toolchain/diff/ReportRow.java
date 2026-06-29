@@ -10,7 +10,7 @@ import java.util.List;
  */
 record ReportRow(Tag tag, List<Segment> oldSegments, List<Segment> newSegments) {
 
-    enum Tag {EQUAL, INSERT, DELETE, CHANGE}
+    enum Tag {EQUAL, UNEXPECTED, MISSING, CHANGE}
 
     /** A contiguous run of text within a line, optionally marked as inline-changed. */
     record Segment(String text, boolean highlighted) {}
@@ -25,11 +25,11 @@ record ReportRow(Tag tag, List<Segment> oldSegments, List<Segment> newSegments) 
     }
 
     static ReportRow removed(String text) {
-        return new ReportRow(Tag.DELETE, List.of(new Segment(text, false)), List.of());
+        return new ReportRow(Tag.MISSING, List.of(new Segment(text, false)), List.of());
     }
 
     static ReportRow added(String text) {
-        return new ReportRow(Tag.INSERT, List.of(), List.of(new Segment(text, false)));
+        return new ReportRow(Tag.UNEXPECTED, List.of(), List.of(new Segment(text, false)));
     }
 
     static ReportRow changed(List<Segment> oldSegments, List<Segment> newSegments) {
