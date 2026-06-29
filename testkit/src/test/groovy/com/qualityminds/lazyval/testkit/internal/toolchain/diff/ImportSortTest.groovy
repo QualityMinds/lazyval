@@ -181,6 +181,29 @@ class ImportSortTest extends Specification {
         diff == ComparisonResult.match()
     }
 
+    void "CRLF input: sort is symmetric across line endings, downstream Diff handles normalization"() {
+        given: 'an approval fixture checked in on Windows with CRLF line endings'
+        def actual = "import a.A;\nimport b.B;\nclass X {}"
+        def expected = "import b.B;\r\nimport a.A;\r\nclass X {}\r\n"
+
+        when:
+        def diff = Diff.compare(ImportSort.sort(actual), ImportSort.sort(expected))
+
+        then: 'sort puts both sides in the same order despite CRLF on expected; Diff normalizes the rest'
+        diff == ComparisonResult.match()
+    }
+
+    void "CRLF input: sorted output reconstitutes CRLF, no bare CR introduced"() {
+        given:
+        def input = "import b.B;\r\nimport a.A;\r\n"
+
+        when:
+        def sorted = ImportSort.sort(input)
+
+        then: 'each line still ends with CRLF — the \\r rides along as a constant suffix'
+        sorted == "import a.A;\r\nimport b.B;\r\n"
+    }
+
     void "differing imports still report a diff — pure reorder is what matches, not added/removed"() {
         given: 'expected has one more import than actual'
         def actual = "import a.A;\nclass X {}"
