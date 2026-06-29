@@ -52,7 +52,7 @@ class ApJpaIT extends Specification {
         when:
         def result = testkitJava.run(projectDir, scenario)
 
-        then: 'file is generated at '
+        then: 'file is generated in the overridden package'
         result == new Testresult.Java.Success("QuantityAttributeConverter.java")
 
         and: 'file is at correct package'
