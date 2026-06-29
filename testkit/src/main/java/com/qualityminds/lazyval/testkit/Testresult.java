@@ -83,7 +83,7 @@ public sealed interface Testresult {
 
         /**
          * Compilation failed with errors. Usually you don't want to expect this in a test,
-         * but the testkit will return this
+         * but the testkit will return this in case of errors.
          * @param errors list of errors
          */
         record Failure(ImmutableList<String> errors) implements Java {
@@ -109,8 +109,8 @@ public sealed interface Testresult {
          * {@link ApprovalMismatch} carrying one {@link ApprovalMismatch.Failure.UnexpectedFile}
          * per surplus file, not {@code Approved}.
          * <p>
-         * Returned by the testkit only when one or more {@code ApprovalDefinition}s were passed to
-         * {@link Testkit#run(java.nio.file.Path, com.qualityminds.lazyval.testkit.scenarios.Scenario, Approval...)}.
+         * Returned by the testkit only when one or more {@link Approval}s were passed to
+         * {@link Testkit.Java}.
          *
          * @param generatedFiles relative paths of every file produced; in an {@code Approved} result
          *                       this is exactly the set of {@link Approval#generatedPath()}s
@@ -160,11 +160,11 @@ public sealed interface Testresult {
             }
 
             /**
-             * Returns a copy of this expectation that also requires the given warnings. Repeating any
-             * existing warnings is fine; the underlying list is sorted and deduplicated by equality.
+             * Returns a copy of this expectation with the given warnings attached, replacing any
+             * warnings already set on this instance.
              *
              * @param warnings warnings expected to be observed during the run
-             * @return a new {@code Approved} expectation with the warnings attached
+             * @return a new {@code Approved} expectation with the given warnings
              */
             public Approved withWarnings(String... warnings) {
                 return new Approved(generatedFiles, Lists.immutable.of(warnings));
@@ -173,10 +173,12 @@ public sealed interface Testresult {
 
         /**
          * Compilation succeeded but the strict-closed-set contract of {@link Approved} was not
-         * satisfied: at least one approval differed from the generated content
-         * ({@link Failure.ContentDiffers}), targeted a path that was not generated
-         * ({@link Failure.FileNotFound}), or the run produced a file no approval was declared for
-         * ({@link Failure.UnexpectedFile}).
+         * satisfied:
+         * <ul>
+         *     <li>{@link Failure.ContentDiffers} - at least one approval differed from the generated content</li>
+         *     <li>{@link Failure.FileNotFound} - targeted a path that was not generated</li>
+         *     <li>{@link Failure.UnexpectedFile} - the run produced a file no approval was declared for</li>
+         * </ul>
          * <p>
          * {@link #toString()} prints a per-failure description so the assertion error in the test
          * runner is immediately useful, including the rendered diff for content failures.
