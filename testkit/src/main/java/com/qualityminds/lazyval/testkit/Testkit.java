@@ -41,8 +41,12 @@ import static org.eclipse.collections.impl.collector.Collectors2.toImmutableList
  *
  * @param <S> scenario type used by either the Java or Kotlin Testkit
  * @param <R> result type used by either the Java or Kotlin Testkit
+ * @param <A> approval kind accepted by this testkit: {@link Approval.ForJava} for the Java testkit
+ *            (excludes {@link Approval.KotlinSource}), {@link Approval.ForKotlin} for the Kotlin
+ *            testkit (accepts all variants). Enforced at compile time at every {@code run(...)}
+ *            entry point.
  */
-public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
+public sealed abstract class Testkit<S extends Scenario, R extends Testresult, A extends Approval> {
 
     private Testkit(){}
 
@@ -61,13 +65,30 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
      * scenario produced. Returns the corresponding {@code Approved} variant if every approval passed,
      * the {@code ApprovalMismatch} variant if any approval failed, or {@code Failure} if compilation
      * itself failed.
+     * <p>
+     * Takes a {@code Collection} so the abstract method is free of generic-varargs heap-pollution
+     * warnings; callers usually reach for the {@link #run(Path, Scenario, Approval...) varargs}
+     * convenience overload below, which forwards here.
      *
      * @param projectDir          the project directory used to compile the scenario
      * @param scenario            the scenario to run
      * @param approvals one or more approvals to verify after the run
      * @return the test result
      */
-    public abstract R run(Path projectDir, S scenario, Approval... approvals);
+    public abstract R run(Path projectDir, S scenario, Collection<? extends A> approvals);
+
+    /**
+     * Varargs convenience over {@link #run(Path, Scenario, Collection)}.
+     *
+     * @param projectDir the project directory used to compile the scenario
+     * @param scenario   the scenario to run
+     * @param approvals  one or more approvals to verify after the run
+     * @return the test result
+     */
+    @SafeVarargs
+    public final R run(Path projectDir, S scenario, A... approvals) {
+        return run(projectDir, scenario, Arrays.asList(approvals));
+    }
 
     /**
      * Builds the given scenario factory and runs the resulting scenario in the supplied
@@ -95,8 +116,9 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
      * @param approvals one or more approvals to verify after the run
      * @return the test result
      */
-    public R run(Path projectDir, ScenarioFactory<S> scenarioFactory, Approval... approvals){
-        return run(projectDir, scenarioFactory.build(), approvals);
+    @SafeVarargs
+    public final R run(Path projectDir, ScenarioFactory<S> scenarioFactory, A... approvals){
+        return run(projectDir, scenarioFactory.build(), Arrays.asList(approvals));
     }
 
     /**
@@ -108,8 +130,8 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
      * @param approvals approvals to verify after the run
      * @return the test result
      */
-    public R run(Path projectDir, ScenarioFactory<S> scenarioFactory, Collection<Approval> approvals){
-        return run(projectDir, scenarioFactory.build(), approvals.toArray(Approval[]::new));
+    public R run(Path projectDir, ScenarioFactory<S> scenarioFactory, Collection<? extends A> approvals){
+        return run(projectDir, scenarioFactory.build(), approvals);
     }
 
     /**
@@ -204,7 +226,7 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
      * in a separate process before the actual compilation.
      * Hence, the testkit also runs the compiler to check if the generated code is correct.
      */
-    public static final class Kotlin extends Testkit<Scenario.Kotlin, Testresult.Kotlin> {
+    public static final class Kotlin extends Testkit<Scenario.Kotlin, Testresult.Kotlin, Approval.ForKotlin> {
 
         private Kotlin(){}
 
@@ -222,12 +244,11 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         }
 
         @Override
-        public Testresult.Kotlin run(Path projectDir, Scenario.Kotlin scenario, Approval... approvals) {
-            //noinspection ConstantValue
-            if (approvals == null || approvals.length == 0) {
+        public Testresult.Kotlin run(Path projectDir, Scenario.Kotlin scenario,
+                                     Collection<? extends Approval.ForKotlin> approvals) {
+            if (approvals.isEmpty()) {
                 return run(projectDir, scenario);
             }
-            // Kotlin testkit accepts all ApprovalDefinition variants — no pre-flight rejection.
             cleanProjectDir(projectDir);
             try (var toolchain = KotlinToolchain.create(
                     Thread.currentThread().getContextClassLoader(),
@@ -239,7 +260,7 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
                 }
                 var outcome = ApprovalEvaluator.evaluate(
                         collectKotlinGeneratedFiles(projectDir, toolchainResult),
-                        approvals);
+                        approvals.toArray(Approval[]::new));
                 return toKotlinTestresult(outcome, toolchainResult.warnings());
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -351,7 +372,7 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
      *     <li>{@link Testresult.Java.ApprovalMismatch} (when approvals are passed and at least one fails)</li>
      * </ul>
      */
-    public static final class Java extends Testkit<Scenario.Java, Testresult.Java> {
+    public static final class Java extends Testkit<Scenario.Java, Testresult.Java, Approval.ForJava> {
 
         private Java(){}
 
@@ -366,12 +387,12 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
         }
 
         @Override
-        public Testresult.Java run(Path projectDir, Scenario.Java scenario, Approval... approvals) {
-            //noinspection ConstantValue
-            if (approvals == null || approvals.length == 0) {
+        public Testresult.Java run(Path projectDir, Scenario.Java scenario,
+                                   Collection<? extends Approval.ForJava> approvals) {
+            // KotlinSource is excluded by the parameter type (Approval.ForJava), so no runtime check.
+            if (approvals.isEmpty()) {
                 return run(projectDir, scenario);
             }
-            rejectKotlinSourceApprovals(approvals);
             cleanProjectDir(projectDir);
             try (var toolchain = JavaToolchain.create(projectDir, scenario.desc())) {
                 var toolchainResult = toolchain.run();
@@ -380,25 +401,10 @@ public sealed abstract class Testkit<S extends Scenario, R extends Testresult> {
                 }
                 var outcome = ApprovalEvaluator.evaluate(
                         collectJavaGeneratedFiles(projectDir, toolchainResult),
-                        approvals);
+                        approvals.toArray(Approval[]::new));
                 return toJavaTestresult(outcome, toolchainResult.getWarnings());
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
-            }
-        }
-
-        /**
-         * The Java testkit runs javac only — KSP isn't on the pipeline, so {@code .kt} files are
-         * never produced. Fail loudly at the start of the run rather than producing a misleading
-         * {@code FileNotFound} for every {@link Approval.KotlinSource}.
-         */
-        private static void rejectKotlinSourceApprovals(Approval[] approvals) {
-            for (var approval : approvals) {
-                if (approval instanceof Approval.KotlinSource ks) {
-                    throw new IllegalArgumentException(
-                            "KotlinSource approvals are only valid for Testkit.kotlin(); "
-                                    + "use Testkit.kotlin() to verify '" + ks.generatedPath() + "'");
-                }
             }
         }
 
