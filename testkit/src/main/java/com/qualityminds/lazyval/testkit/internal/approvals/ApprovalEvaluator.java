@@ -164,7 +164,7 @@ public final class ApprovalEvaluator {
 
     private static String readFile(Path file) {
         try {
-            return Files.readString(file);
+            return Files.readString(file, java.nio.charset.StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to read generated file: " + file, e);
         }
