@@ -2,7 +2,6 @@ package com.qualityminds.lazyval.testkit.internal.toolchain.kotlin;
 
 import com.qualityminds.lazyval.testkit.dependencies.Dependency;
 import com.qualityminds.lazyval.testkit.scenarios.Scenario;
-import kotlin.KotlinVersion;
 
 import javax.tools.StandardLocation;
 import javax.tools.ToolProvider;
@@ -23,8 +22,6 @@ import java.util.List;
  * Returns {@link StepOutcome#SKIPPED} when KSP produced no Java sources.
  */
 class JavaCompileStep {
-
-    private static final Dependency kotlinStdlib = new Dependency("org.jetbrains.kotlin", "kotlin-stdlib", KotlinVersion.CURRENT.toString());
 
     private final ProjectLayout layout;
     private final List<File> classpath;
@@ -78,7 +75,7 @@ class JavaCompileStep {
 
     public static JavaCompileStep create(ProjectLayout layout, Scenario.Descriptor scenarioDescriptor, LogCollector logCollector) {
         var classpath = new ArrayList<>(CoreModuleDependency.RESOLVED_FILE.toSet());
-        kotlinStdlib.resolve().forEach(classpath::add);
+        KotlinToolchainDependencies.KOTLIN_STDLIB.resolve().forEach(classpath::add);
         scenarioDescriptor.dependencies().stream().map(Dependency::resolve).forEach(deps -> classpath.addAll(deps.toSet()));
         return new JavaCompileStep(layout, List.copyOf(classpath), logCollector);
     }
