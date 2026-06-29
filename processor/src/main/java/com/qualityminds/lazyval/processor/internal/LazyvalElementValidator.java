@@ -13,6 +13,7 @@ import javax.lang.model.util.Types;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -26,6 +27,10 @@ class LazyvalElementValidator {
             "Value Types should not be extendable, hence the class should be final.";
     private static final String NOT_FINAL_VALUE_WARNING =
             "Value Types should be immutable, hence the wrapped field should be final.";
+    // Excluded when scanning for accessor candidates: every class inherits/overrides these from Object
+    // and `hashCode(): int` / `toString(): String` will type-collide with common wrapped types,
+    // causing the first-match logic in findFieldAccessorPairs to pair a field with the wrong getter.
+    private static final Set<String> OBJECT_METHOD_NAMES = Set.of("equals", "hashCode", "toString");
 
     private final Types typeUtils;
     private final LazyvalEnvironment environment;
@@ -135,7 +140,8 @@ class LazyvalElementValidator {
                 .filter(method -> method.getModifiers().contains(Modifier.PUBLIC)
                         && method.getParameters().isEmpty()
                         && method.getReturnType().getKind() != TypeKind.VOID
-                        && !method.getModifiers().contains(Modifier.STATIC))
+                        && !method.getModifiers().contains(Modifier.STATIC)
+                        && !OBJECT_METHOD_NAMES.contains(method.getSimpleName().toString()))
                 .toList();
 
         return lazyvalElement.getEnclosedElements().stream()
