@@ -106,6 +106,23 @@ class KspIT extends Specification {
         testkitKotlin.run(projectDir, scenario) == new Testresult.Kotlin.Failure("Lazyval: Only one @LazyvalConfiguration is allowed per compilation unit.")
     }
 
+    void "Warning is issued when @LazyvalConfiguration.externalTypes lists the same type twice"() {
+        given: 'a Quantity driver to ensure generation runs, plus a config object that lists Year twice'
+        def scenario = Scenario.Kotlin.of(
+                "package-config-duplicate-external",
+                "scenarios/kotlin/Quantity.kt",
+                "scenarios/duplicateexternal/Config.kt")
+                .withDependencies(dependencyMapstruct)
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then: 'the duplicate is reported once; dedup happens at the source so generators see Year only once'
+        result instanceof Testresult.Kotlin.SuccessWithWarnings
+        ((Testresult.Kotlin.SuccessWithWarnings) result).warnings().contains(
+                "Lazyval: Duplicate type 'java.time.Year' in @LazyvalConfiguration.externalTypes. It will only be processed once.")
+    }
+
     void "Error is issued when LazyvalConfiguration marks an local type of the current compilation unit as external" (){
         given:
         def scenario = Scenario.Kotlin.of(

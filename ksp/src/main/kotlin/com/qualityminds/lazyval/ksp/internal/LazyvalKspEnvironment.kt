@@ -138,6 +138,8 @@ internal class LazyvalKspEnvironment(
      * - Reports a compile error and returns an empty list when more than one holder is present.
      * - Skips and reports a compile error for any listed type that belongs to the current
      *   compilation unit (such types must use [com.qualityminds.lazyval.LazyValue]).
+     * - Deduplicates types listed more than once and reports a warning so the user can clean up
+     *   the configuration; the type is still processed once.
      */
     fun configuredValues(): List<KSClassDeclaration> {
         val annotationFqn = LazyvalConfiguration::class.qualifiedName ?: return emptyList()
@@ -169,14 +171,20 @@ internal class LazyvalKspEnvironment(
             .mapNotNull { it.qualifiedName?.asString() }
             .toSet()
 
+        val seenFqns = mutableSetOf<String>()
         return externalTypes.mapNotNull { ksType ->
             val decl = ksType.declaration as? KSClassDeclaration ?: return@mapNotNull null
             val fqn = decl.qualifiedName?.asString()
-            if (fqn != null && fqn in localFqns) {
-                error(holder, "Type '$fqn' listed in @LazyvalConfiguration.externalTypes belongs to the current compilation unit. Annotate it with @LazyValue directly.")
-                null
-            } else {
-                decl
+            when {
+                fqn != null && fqn in localFqns -> {
+                    error(holder, "Type '$fqn' listed in @LazyvalConfiguration.externalTypes belongs to the current compilation unit. Annotate it with @LazyValue directly.")
+                    null
+                }
+                fqn != null && !seenFqns.add(fqn) -> {
+                    warn(holder, "Duplicate type '$fqn' in @LazyvalConfiguration.externalTypes. It will only be processed once.")
+                    null
+                }
+                else -> decl
             }
         }
     }

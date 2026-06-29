@@ -159,6 +159,8 @@ class LazyvalEnvironment {
      *       holder is present.</li>
      *   <li>Skips and reports a compile error for any listed type that belongs to
      *       the current compilation unit (such types must use {@link com.qualityminds.lazyval.LazyValue}).</li>
+     *   <li>Deduplicates types listed more than once and reports a warning so the
+     *       user can clean up the configuration; the type is still processed once.</li>
      * </ul>
      */
     public List<TypeElement> getConfiguredValues(RoundEnvironment roundEnv) {
@@ -193,6 +195,7 @@ class LazyvalEnvironment {
                 .collect(Collectors.toCollection(HashSet::new));
 
         List<TypeElement> result = new ArrayList<>(mirrors.size());
+        Set<String> seenQualifiedNames = new HashSet<>(mirrors.size());
         for (TypeMirror mirror : mirrors) {
             var typeElement = (TypeElement) processingEnvironment.getTypeUtils().asElement(mirror);
             if (typeElement == null) {
@@ -201,6 +204,12 @@ class LazyvalEnvironment {
             if (localTypes.contains(typeElement)) {
                 error(holder, String.format(
                         "Type '%s' listed in @LazyvalConfiguration.externalTypes belongs to the current compilation unit. Annotate it with @LazyValue directly.",
+                        typeElement.getQualifiedName()));
+                continue;
+            }
+            if (!seenQualifiedNames.add(typeElement.getQualifiedName().toString())) {
+                warn(holder, String.format(
+                        "Duplicate type '%s' in @LazyvalConfiguration.externalTypes. It will only be processed once.",
                         typeElement.getQualifiedName()));
                 continue;
             }
