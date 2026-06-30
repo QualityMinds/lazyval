@@ -7,13 +7,11 @@ import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
-import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -27,10 +25,6 @@ class LazyvalElementValidator {
             "Value Types should not be extendable, hence the class should be final.";
     private static final String NOT_FINAL_VALUE_WARNING =
             "Value Types should be immutable, hence the wrapped field should be final.";
-    // Excluded when scanning for accessor candidates: every class inherits/overrides these from Object
-    // and `hashCode(): int` / `toString(): String` will type-collide with common wrapped types,
-    // causing the first-match logic in findFieldAccessorPairs to pair a field with the wrong getter.
-    private static final Set<String> OBJECT_METHOD_NAMES = Set.of("equals", "hashCode", "toString");
 
     private final Types typeUtils;
     private final LazyvalEnvironment environment;
@@ -130,18 +124,14 @@ class LazyvalElementValidator {
     }
 
     /**
-     * Finds fields paired with their public accessor methods.
-     * An accessor is a public, non-static, no-arg method whose return type matches the field type.
+     * Finds fields paired with their public accessor methods. APT-side element discovery happens
+     * here; the actual pairing — including all candidate filtering — is delegated to
+     * {@link AccessorLookup#findAccessor(VariableElement, List)}.
      */
     private List<FieldAccessorPair> findFieldAccessorPairs(TypeElement lazyvalElement) {
-        var accessors = lazyvalElement.getEnclosedElements().stream()
+        var allMethods = lazyvalElement.getEnclosedElements().stream()
                 .filter(element -> element.getKind() == ElementKind.METHOD)
                 .map(element -> (ExecutableElement) element)
-                .filter(method -> method.getModifiers().contains(Modifier.PUBLIC)
-                        && method.getParameters().isEmpty()
-                        && method.getReturnType().getKind() != TypeKind.VOID
-                        && !method.getModifiers().contains(Modifier.STATIC)
-                        && !OBJECT_METHOD_NAMES.contains(method.getSimpleName().toString()))
                 .toList();
 
         return lazyvalElement.getEnclosedElements().stream()
@@ -149,9 +139,7 @@ class LazyvalElementValidator {
                 .map(element -> (VariableElement) element)
                 .filter(field -> !field.getModifiers().contains(Modifier.STATIC)
                         && !field.getModifiers().contains(Modifier.TRANSIENT))
-                .flatMap(field -> accessors.stream()
-                        .filter(accessor -> typeUtils.isSameType(accessor.getReturnType(), field.asType()))
-                        .findFirst()
+                .flatMap(field -> AccessorLookup.findAccessor(field, allMethods)
                         .map(accessor -> new FieldAccessorPair(field, accessor))
                         .stream())
                 .toList();
