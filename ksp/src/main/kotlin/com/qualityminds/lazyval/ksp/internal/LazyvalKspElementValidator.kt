@@ -17,9 +17,6 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
             "Value Types should not be extendable, hence the class should be final."
         const val NOT_FINAL_VALUE_WARNING =
             "Value Types should be immutable, hence the wrapped property should be final (val)."
-        // Excluded when scanning for accessor candidates: every class inherits these from Object
-        // and their return types collide with common wrapped-property types (e.g. Int).
-        val objectMethodNames = setOf("equals", "hashCode", "toString")
     }
 
     fun validate(classDeclaration: KSClassDeclaration): ValidatedKspGeneratorElement? {
@@ -108,51 +105,20 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
             }
             .toList()
 
-        val methods = classDeclaration.getAllFunctions()
-            .filter { function ->
-                !function.isStatic() &&
-                        function.parameters.isEmpty() &&
-                        function.returnType != null &&
-                        function.returnType!!.resolve().toString() != "kotlin.Unit" &&
-                        function.simpleName.asString() !in objectMethodNames
-            }
-            .toList()
-
+        val allMethods = classDeclaration.getAllFunctions().toList()
         // Tier 3 (type-only match) only runs for external Java declarations. Applying it to Kotlin
         // would wrongly pair a data class's property with its synthesized `component1()` accessor
         // and break the JavaBean output Mapstruct/JPA/etc. expect.
         val isExternalJavaType = classDeclaration.origin == Origin.JAVA ||
                 classDeclaration.origin == Origin.JAVA_LIB
+        val isDataClass = classDeclaration.modifiers.contains(Modifier.DATA)
 
         return properties.mapNotNull { property ->
-            val propertyName = property.simpleName.asString()
-            val capitalized = propertyName.replaceFirstChar { it.uppercase() }
-            val propertyType = property.type.resolve()
-
-            // Three-tier lookup, in order of specificity:
-            //   1. Kotlin-style: method named exactly after the property (idiomatic Kotlin).
-            //   2. JavaBean-style: get<PropertyName> / is<PropertyName> (covers Java sources where the
-            //      property name and getter name align by convention).
-            //   3. Type-only fallback: first non-Object method that returns the property type. Mirrors
-            //      the Java APT validator's behavior so external JDK types like java.time.Year — whose
-            //      field is `year` but whose accessor is `getValue()` — can still be paired.
-            val accessor = methods.firstOrNull { method ->
-                method.returnType?.resolve() == propertyType &&
-                        (method.simpleName.asString() == propertyName ||
-                                method.simpleName.asString() == "$propertyName()")
-            } ?: methods.firstOrNull { method ->
-                method.returnType?.resolve() == propertyType &&
-                        (method.simpleName.asString() == "get$capitalized" ||
-                                method.simpleName.asString() == "is$capitalized")
-            } ?: if (isExternalJavaType) {
-                methods.firstOrNull { method ->
-                    method.returnType?.resolve() == propertyType
-                }
-            } else null
+            val accessor = findAccessor(property, allMethods, isExternalJavaType)
 
             // For data classes, the property itself is the accessor; for regular classes an explicit
             // accessor method is required.
-            if (accessor != null || (classDeclaration.modifiers.contains(Modifier.DATA) && !property.isPrivate())) {
+            if (accessor != null || (isDataClass && !property.isPrivate())) {
                 Pair(property, accessor)
             } else {
                 null
@@ -199,10 +165,6 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
     private fun KSPropertyDeclaration.isStatic(): Boolean {
         return Modifier.CONST in modifiers ||
                 parent is KSClassDeclaration && (parent as KSClassDeclaration).isCompanionObject
-    }
-
-    private fun KSFunctionDeclaration.isStatic(): Boolean {
-        return parent is KSClassDeclaration && (parent as KSClassDeclaration).isCompanionObject
     }
 
     private fun KSPropertyDeclaration.isPrivate(): Boolean {
