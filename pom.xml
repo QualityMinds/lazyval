@@ -86,7 +86,7 @@
         <version.it.hibernate-validator>8.0.2.Final</version.it.hibernate-validator>
         <version.it.jakarta-el>4.0.2</version.it.jakarta-el>
         <!-- static analysis -->
-        <version.checks.error-prone>2.49.0</version.checks.error-prone>
+        <version.checks.error-prone>2.50.0</version.checks.error-prone>
         <version.checks.error-prone.nullaway>0.13.6</version.checks.error-prone.nullaway>
         <version.checks.detekt>2.0.0-alpha.3</version.checks.detekt>
     </properties>
