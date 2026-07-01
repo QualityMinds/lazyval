@@ -84,7 +84,7 @@
         <version.it.h2>2.4.240</version.it.h2>
         <version.it.mongodb>5.7.0</version.it.mongodb>
         <!-- static analysis -->
-        <version.checks.error-prone>2.49.0</version.checks.error-prone>
+        <version.checks.error-prone>2.50.0</version.checks.error-prone>
         <version.checks.error-prone.nullaway>0.13.6</version.checks.error-prone.nullaway>
         <version.checks.detekt>2.0.0-alpha.3</version.checks.detekt>
     </properties>
