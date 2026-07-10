@@ -46,6 +46,9 @@ class BeanValidationGenerator : Generator {
 
         private val K_VALUE_RECEIVER =
             ClassName("jakarta.validation.valueextraction", "ValueExtractor", "ValueReceiver")
+        private val UNWRAP_ANNOTATION = AnnotationSpec.builder(
+            ClassName("jakarta.validation.valueextraction", "UnwrapByDefault"))
+            .build()
     }
 
     override fun generatorId(): String = GENERATOR_ID
@@ -154,6 +157,7 @@ class BeanValidationGenerator : Generator {
 
         val typeSpec = TypeSpec.classBuilder(implClassName)
             .addGeneratedAnnotation(BeanValidationGenerator::class, context)
+            .addAnnotation(UNWRAP_ANNOTATION)
             .superclass(baseClassTypeName)
             .addFunction(extractValuesFunction)
             .build()

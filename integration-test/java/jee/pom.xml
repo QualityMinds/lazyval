@@ -130,6 +130,24 @@
             <version>${version.slf4j}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>${version.it.hibernate-validator}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!--
+              Required for Hibernate Validator's default ResourceBundleMessageInterpolator, which loads
+              com.sun.el.ExpressionFactoryImpl eagerly at construction. In production Liberty provides EL;
+              in the test JVM we need to bring it in explicitly so Validation.buildDefaultValidatorFactory()
+              can boot without a custom message interpolator override.
+            -->
+            <groupId>org.glassfish</groupId>
+            <artifactId>jakarta.el</artifactId>
+            <version>${version.it.jakarta-el}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
