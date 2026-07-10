@@ -38,6 +38,10 @@ public class BeanValidationGenerator implements Generator {
             ClassName.get("jakarta.validation.valueextraction", "ExtractedValue");
     private static final ClassName VALUE_RECEIVER =
             ClassName.get("jakarta.validation.valueextraction", "ValueExtractor", "ValueReceiver");
+    private static final AnnotationSpec UNWRAP_ANNOTATION = AnnotationSpec.builder(
+            ClassName.get("jakarta.validation.valueextraction", "UnwrapByDefault"))
+            .build();
+
 
     @Override
     public String generatorId() {
@@ -94,6 +98,7 @@ public class BeanValidationGenerator implements Generator {
 
         TypeSpec extractor = TypeSpec.classBuilder(className)
                 .addAnnotation(GeneratedStamp.forGenerator(BeanValidationGenerator.class))
+                .addAnnotation(UNWRAP_ANNOTATION)
                 .addModifiers(Modifier.PUBLIC)
                 .addSuperinterface(superInterface)
                 .addMethod(extractValues)

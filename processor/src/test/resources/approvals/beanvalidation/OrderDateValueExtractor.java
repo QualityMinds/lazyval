@@ -1,6 +1,7 @@
 package test;
 
 import jakarta.validation.valueextraction.ExtractedValue;
+import jakarta.validation.valueextraction.UnwrapByDefault;
 import jakarta.validation.valueextraction.ValueExtractor;
 import scenarios.java.OrderDate;
 
@@ -8,6 +9,7 @@ import javax.annotation.processing.Generated;
 import java.time.LocalDate;
 
 @Generated("com.qualityminds.lazyval.processor.internal.codegen.beanvalidation.BeanValidationGenerator")
+@UnwrapByDefault
 public class OrderDateValueExtractor implements ValueExtractor<@ExtractedValue(type = LocalDate.class) OrderDate> {
   @Override
   public void extractValues(OrderDate originalValue, ValueExtractor.ValueReceiver receiver) {

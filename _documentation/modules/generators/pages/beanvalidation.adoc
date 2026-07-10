@@ -11,7 +11,7 @@ and their target types. Since domain-primitives introduce new types, validators 
 not work with them out of the box.
 
 This generator creates a `ValueExtractor` for each domain-primitive. A value extractor tells the Bean
-Validation provider how to unwrap the inner value of a domain-primitive so that all of the provider's
+Validation provider how to unwrap the inner value of a domain-primitive so that all the provider's
 built-in constraint validators work transparently — including `@Email` with full RFC-compliant address
 checking, `@Pattern` with correct flag handling, `@Min`/`@Max`, `@Past`/`@Future`, and any other
 constraint the provider supports for the wrapped type.
