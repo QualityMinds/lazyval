@@ -128,7 +128,7 @@ class DiffTest extends Specification {
     def "rendered diff contains the changes and surrounding context"() {
         given:
         def rendered = ((ComparisonResult.Mismatch) Diff.compare(invalidContent, expectedContent))
-                .render(RenderOptions.plain())
+                .render()
 
         expect:
         rendered.contains("if(type == null) {")     // a deleted line
