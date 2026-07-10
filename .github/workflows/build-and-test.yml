@@ -14,6 +14,9 @@ env:
   JAVA_VERSION_BUILD: '25'
   JAVA_VERSION_EXAMPLES: '17'
   JAVA_DISTRIBUTION: 'temurin'
+  MILL_VERSION: '1.1.7'
+  MAVEN_3_VERSION: '3.9.16'
+  MAVEN_4_VERSION: '4.0.0-rc-5'
 
 jobs:
   build:
@@ -103,7 +106,7 @@ jobs:
           cache: maven
       - name: Create Maven 3 wrapper
         working-directory: examples/java
-        run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=3.9.12
+        run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=$MAVEN_3_VERSION
       - name: Run Java-Example with Maven
         working-directory: examples/java
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode -Dversion.lazyval=$VERSION_LAZYVAL compile
@@ -128,7 +131,7 @@ jobs:
           cache: maven
       - name: Create Maven 4 wrapper
         working-directory: examples/java
-        run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=4.0.0-rc-5
+        run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=$MAVEN_4_VERSION
       - name: Run Java-Example with Maven
         working-directory: examples/java
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode -Dversion.lazyval=$VERSION_LAZYVAL compile -f pom-maven-4.xml
@@ -175,8 +178,6 @@ jobs:
       - name: Download Mill Script
         working-directory: examples/java
         run: curl -L -s https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${MILL_VERSION}/mill-dist-${MILL_VERSION}-mill.sh -o mill && chmod +x mill
-        env:
-          MILL_VERSION: 1.1.2
       - name: Run Java-Example with Mill
         working-directory: examples/java
         run: ./mill --no-daemon -Dversion.lazyval=$VERSION_LAZYVAL __.compile
@@ -201,7 +202,7 @@ jobs:
           cache: maven
       - name: Create Maven 3 wrapper
         working-directory: examples/kotlin
-        run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=3.9.12
+        run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=$MAVEN_3_VERSION
       - name: Run Java-Example with Maven
         working-directory: examples/kotlin
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode -Dversion.lazyval=$VERSION_LAZYVAL compile
@@ -227,7 +228,7 @@ jobs:
           cache: maven
       - name: Create Maven 4 wrapper
         working-directory: examples/kotlin
-        run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=4.0.0-rc-5
+        run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=$MAVEN_4_VERSION
       - name: Run Java-Example with Maven
         working-directory: examples/kotlin
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode -Dversion.lazyval=$VERSION_LAZYVAL compile -f pom-maven-4.xml
@@ -274,8 +275,6 @@ jobs:
       - name: Download Mill Script
         working-directory: examples/kotlin
         run: curl -L -s https://repo1.maven.org/maven2/com/lihaoyi/mill-dist/${MILL_VERSION}/mill-dist-${MILL_VERSION}-mill.sh -o mill && chmod +x mill
-        env:
-          MILL_VERSION: 1.1.2
       - name: Run Kotlin-Example with Mill
         working-directory: examples/kotlin
         run: ./mill --no-daemon -Dversion.lazyval=$VERSION_LAZYVAL __.compile
@@ -298,7 +297,7 @@ jobs:
       - uses: ./.github/actions/prepare-example
       - name: Create Maven 3 wrapper
         working-directory: examples/java-spi-dev
-        run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=3.9.12
+        run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=$MAVEN_3_VERSION
       - name: Run Java-Example with Maven
         working-directory: examples/java-spi-dev
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode -Dversion.lazyval=$VERSION_LAZYVAL compile
@@ -314,7 +313,7 @@ jobs:
       - uses: ./.github/actions/prepare-example
       - name: Create Maven 3 wrapper
         working-directory: examples/kotlin-spi-dev
-        run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=3.9.12
+        run: mvn --no-transfer-progress -N wrapper:wrapper -Dmaven=$MAVEN_3_VERSION
       - name: Run Java-Example with Maven
         working-directory: examples/kotlin-spi-dev
         run: ./mvnw --no-snapshot-updates --no-transfer-progress --batch-mode -Dversion.lazyval=$VERSION_LAZYVAL compile
