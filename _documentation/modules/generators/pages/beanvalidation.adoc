@@ -139,3 +139,41 @@ data class CreateOrderRequest(
 
 No additional configuration is required — the extractors are automatically discovered by the Bean
 Validation provider through the service-loader mechanism.
+
+== NonNull
+
+Domain-primitives are expected to enforce non-null of their inner value at construction
+(a factory or constructor guard rejects `null`). `@NotNull` on a wrapper-typed field is
+therefore never about the inner value — it can only be a statement about the *reference*.
+
+Because the generated extractor carries `@UnwrapByDefault`, every constraint on the field,
+including `@NotNull`, is redirected to the extracted value. When the wrapper reference itself
+is `null` the Bean Validation provider skips extraction entirely, so `@NotNull` silently
+matches nothing.
+
+To assert non-null of the reference, opt the `@NotNull` constraint out of unwrapping with
+`payload = Unwrapping.Skip.class`. Other constraints stay unwrapped:
+
+[tabs]
+====
+Java::
++
+[source,java]
+----
+public record CreateOrderRequest(
+    @NotNull(payload = Unwrapping.Skip.class)
+    @Pattern(regexp = "^[0-9]{13}$") Isbn isbn
+) {}
+----
+
+Kotlin::
++
+[source,kotlin]
+----
+data class CreateOrderRequest(
+    @field:NotNull(payload = [Unwrapping.Skip::class])
+    @field:Pattern(regexp = "^[0-9]{13}$")
+    val isbn: Isbn
+)
+----
+====
