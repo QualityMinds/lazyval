@@ -4,7 +4,6 @@ import com.qualityminds.lazyval.testkit.Approval;
 import com.qualityminds.lazyval.testkit.internal.toolchain.diff.ComparisonResult;
 import com.qualityminds.lazyval.testkit.internal.toolchain.diff.Diff;
 import com.qualityminds.lazyval.testkit.internal.toolchain.diff.ImportSort;
-import com.qualityminds.lazyval.testkit.internal.toolchain.diff.RenderOptions;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.list.ImmutableList;
 import org.eclipse.collections.api.list.MutableList;
@@ -116,7 +115,7 @@ public final class ApprovalEvaluator {
                 expected = ImportSort.sort(expected);
             }
             if (Diff.compare(actual, expected) instanceof ComparisonResult.Mismatch mismatch) {
-                failures.add(new Failure.ContentDiffers(path, mismatch.render(RenderOptions.plain())));
+                failures.add(new Failure.ContentDiffers(path, mismatch.render()));
             }
         }
 

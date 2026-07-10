@@ -16,9 +16,9 @@ import java.util.function.UnaryOperator;
  * in the rendered report. Line numbers reported on real differences refer to the original input and
  * remain stable across such suppressed blanks, so failure messages stay navigable in the source.
  * <p>
- * The result carries the structured set of line-level differences used for equality; a rich,
- * context-aware report is available on demand via {@link ComparisonResult.Mismatch#render(RenderOptions)}
- * — this class is purely about the comparison and stays free of display concerns such as ANSI colors.
+ * The result carries the structured set of line-level differences used for equality; a
+ * context-aware report is available on demand via {@link ComparisonResult.Mismatch#render()} —
+ * this class is purely about the comparison and stays free of display concerns.
  */
 public final class Diff {
 
@@ -96,6 +96,7 @@ public final class Diff {
                     // like the corresponding INSERT/DELETE, including the blank-line suppression rule.
                     boolean oldBlank = oldText.isBlank();
                     boolean newBlank = newText.isBlank();
+                    //noinspection StatementWithEmptyBody
                     if (oldBlank && newBlank) {
                         // both sides cosmetic — nothing to report
                     } else if (oldBlank) {
@@ -130,9 +131,9 @@ public final class Diff {
                 .ignoreWhiteSpaces(true)
                 // the default normalizer HTML-escapes <, > and & (e.g. "<" -> "&lt;");
                 // for plain-text/terminal output we want the raw characters preserved
-                .lineNormalizer(NORMALIZER::apply)
-                // emit neutral sentinel markers around inline-diff segments; the renderer turns them
-                // into ANSI codes (or brackets) at display time
+                .lineNormalizer(NORMALIZER)
+                // emit neutral sentinel markers around inline-diff segments; the renderer converts
+                // them into [...] brackets at display time
                 .oldTag(open -> open ? SEGMENT_OPEN_TAG : SEGMENT_CLOSE_TAG)
                 .newTag(open -> open ? SEGMENT_OPEN_TAG : SEGMENT_CLOSE_TAG)
                 .build();
@@ -143,7 +144,7 @@ public final class Diff {
      * Lines without any markers degrade to a single non-highlighted segment.
      */
     private static List<ReportRow.Segment> toSegments(String text) {
-        if (text == null || text.isEmpty()) {
+        if (text.isEmpty()) {
             return List.of();
         }
         var segments = new ArrayList<ReportRow.Segment>();
@@ -166,7 +167,7 @@ public final class Diff {
     }
 
     private static String stripMarkers(String text) {
-        if (text == null || text.isEmpty()) {
+        if (text.isEmpty()) {
             return "";
         }
         if (text.indexOf(SEGMENT_OPEN) < 0 && text.indexOf(SEGMENT_CLOSE) < 0) {

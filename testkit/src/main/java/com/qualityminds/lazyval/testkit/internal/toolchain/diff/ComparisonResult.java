@@ -17,9 +17,9 @@ public sealed interface ComparisonResult {
      * display consistent, {@link #toString()} is derived from those same changes, so two equal mismatches
      * always render identically (which makes side-by-side comparison in IDEs/test runners meaningful).
      * <p>
-     * The colored, context-aware report is intentionally <em>not</em> part of {@code toString} (and not part
-     * of {@code equals}/{@code hashCode}); it is exposed separately via {@link #render(RenderOptions)} so
-     * the caller controls ANSI, context width, and the like at display time.
+     * The context-aware report is intentionally <em>not</em> part of {@code toString} (and not part of
+     * {@code equals}/{@code hashCode}); it is exposed separately via {@link #render()} so the caller
+     * pulls it only at display time.
      */
     final class Mismatch implements ComparisonResult {
 
@@ -41,19 +41,18 @@ public sealed interface ComparisonResult {
         }
 
         /**
-         * Renders the rich, context-aware diff report intended for human consumption: changed lines with
-         * {@code +}/{@code -} prefixes, a configurable window of unchanged context lines around each change,
-         * {@code @@} separators between non-adjacent hunks, and inline word-level highlighting of the changed
-         * sub-string within paired changed lines.
+         * Renders the context-aware diff report intended for human consumption: changed lines with
+         * {@code +}/{@code -} prefixes, a few unchanged context lines around each change, {@code @@}
+         * separators between non-adjacent hunks, and inline {@code [...]}-bracketed highlighting of the
+         * changed sub-string within paired changed lines.
          * <p>
          * For mismatches built via {@link #of(Difference...)} this returns an empty string — the report
          * requires data only the comparison engine can produce.
          *
-         * @param options ANSI, context width, etc. See {@link RenderOptions}.
          * @return the rendered report, or an empty string when no report is attached
          */
-        public String render(RenderOptions options) {
-            return DiffReportFormatter.format(report, options);
+        public String render() {
+            return DiffReportFormatter.format(report);
         }
 
         @Override

@@ -8,29 +8,23 @@ import java.util.List;
  * <p>
  * The layout matches a git-style hunk view: changed lines are prefixed with {@code +} (added) or
  * {@code -} (removed); a few unchanged context lines surround each change; non-adjacent hunks are
- * separated by {@code @@}. Within a {@code CHANGE} pair, the exact changed sub-string is highlighted
- * in a brighter color (ANSI mode) or bracketed with {@code [...]} (plain mode).
+ * separated by {@code @@}. Within a {@code CHANGE} pair, the exact changed sub-string is bracketed
+ * with {@code [...]} so it survives plain-text rendering everywhere the diff might land (CI logs,
+ * IDE test runners, surefire reports).
  */
 final class DiffReportFormatter {
 
-    // line-level (foreground) colors
-    private static final String RESET = "\u001B[0m";
-    private static final String RED = "\u001B[31m";
-    private static final String GREEN = "\u001B[32m";
-    private static final String DIM = "\u001B[2m";
-    // inline (sub-line) highlight: brighter foreground so the exact changed segment stands out
-    private static final String MISSING_HL = "\u001B[91m"; // bright red text
-    private static final String UNEXPECTED_HL = "\u001B[92m"; // bright green text
+    private static final int CONTEXT = 3;
 
     private DiffReportFormatter() {
     }
 
-    static String format(ReportModel model, RenderOptions opts) {
+    static String format(ReportModel model) {
         if (model.isEmpty()) {
             return "";
         }
         var rows = model.rows();
-        boolean[] keep = selectRowsWithinContext(rows, opts.context());
+        boolean[] keep = selectRowsWithinContext(rows, CONTEXT);
 
         var report = new ArrayList<String>();
         boolean previousKept = false;
@@ -40,9 +34,9 @@ final class DiffReportFormatter {
                 continue;
             }
             if (!previousKept && !report.isEmpty()) {
-                report.add(color("@@", DIM, opts.ansi()));
+                report.add("@@");
             }
-            report.addAll(formatRow(rows.get(i), opts));
+            report.addAll(formatRow(rows.get(i)));
             previousKept = true;
         }
         return String.join(System.lineSeparator(), report);
@@ -66,15 +60,14 @@ final class DiffReportFormatter {
         return keep;
     }
 
-    private static List<String> formatRow(ReportRow row, RenderOptions opts) {
-        boolean ansi = opts.ansi();
+    private static List<String> formatRow(ReportRow row) {
         return switch (row.tag()) {
             case EQUAL -> List.of("  " + plain(row.oldSegments()));
-            case UNEXPECTED -> List.of(color("+ " + plain(row.newSegments()), GREEN, ansi));
-            case MISSING -> List.of(color("- " + plain(row.oldSegments()), RED, ansi));
+            case UNEXPECTED -> List.of("+ " + plain(row.newSegments()));
+            case MISSING -> List.of("- " + plain(row.oldSegments()));
             case CHANGE -> List.of(
-                    color("- " + inline(row.oldSegments(), MISSING_HL, ansi), RED, ansi),
-                    color("+ " + inline(row.newSegments(), UNEXPECTED_HL, ansi), GREEN, ansi));
+                    "- " + inline(row.oldSegments()),
+                    "+ " + inline(row.newSegments()));
         };
     }
 
@@ -86,27 +79,16 @@ final class DiffReportFormatter {
         return sb.toString();
     }
 
-    /**
-     * Joins the segments, decorating highlighted runs: ANSI escape codes when {@code ansi}, otherwise
-     * {@code [...]} brackets that survive plain-text rendering.
-     */
-    private static String inline(List<ReportRow.Segment> segments, String ansiCode, boolean ansi) {
+    /** Joins segments, bracketing highlighted runs with {@code [...]} so the changed sub-string stands out. */
+    private static String inline(List<ReportRow.Segment> segments) {
         var sb = new StringBuilder();
         for (var s : segments) {
             if (s.highlighted()) {
-                if (ansi) {
-                    sb.append(ansiCode).append(s.text()).append(RESET);
-                } else {
-                    sb.append('[').append(s.text()).append(']');
-                }
+                sb.append('[').append(s.text()).append(']');
             } else {
                 sb.append(s.text());
             }
         }
         return sb.toString();
-    }
-
-    private static String color(String line, String code, boolean ansi) {
-        return ansi ? code + line + RESET : line;
     }
 }
