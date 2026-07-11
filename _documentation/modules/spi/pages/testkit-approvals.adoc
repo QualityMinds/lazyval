@@ -1,0 +1,113 @@
+= Approval Testing
+
+For generators where the *exact content* of the produced file matters, comparing only file names is too weak.
+The testkit's approval-testing mode pairs each expected artifact with a reference content (the "approval") and asserts
+that the generator produced exactly that, *nothing more, nothing less*.
+
+== The flow
+
+[source, java]
+----
+var scenario = Scenario.Java.combined()
+    .withDependencies(dependencyJakartaPersistence);
+
+var approvals = List.of( // <1>
+    Approval.JavaSource.at("test/boundary/persistence/jpa/QuantityAttributeConverter.java",
+        "approvals/jpa/QuantityAttributeConverter.java"),
+    Approval.JavaSource.at("test/boundary/persistence/jpa/IsbnAttributeConverter.java",
+        "approvals/jpa/IsbnAttributeConverter.java")
+);
+
+var result = Testkit.java().run(tmpDir, scenario, approvals); // <2>
+var expected = Testresult.Java.Approved.of(approvals); // <3>
+assertEquals(expected, result);
+----
+<1> Each `Approval` pairs a *generated path* (package path) with the *expected content* (read from a classpath fixture or supplied literally).
+<2> The same `run(...)` method accepts approvals as the final argument.
+<3> `Approved.of(approvals)` derives the expected file list from the approval definitions — no duplication.
+
+NOTE: As shown below, the Testkit handles all internal file-locations within the project directory,
+so that on the API level the user just needs to care about package/namespace structure.
+
+== Approval variants
+
+The variant must match the kind of artifact the toolchain produced; the testkit dispatches per kind so a `JavaSource` approval never silently matches a `.kt` file at the same path.
+
+`Approval.JavaSource`:: Java source emitted by APT (under `build/generated/`) or KSP (under `build/generated/ksp/java/`).
+
+`Approval.KotlinSource`:: Kotlin source emitted by KSP (under `build/generated/ksp/kotlin/`). Passing one to `Testkit.java()` is a *compile-time* error — the Java testkit has no Kotlin output to compare against.
+
+`Approval.Resource`:: Any non-source artifact, e.g. a generated `.properties` file. APT resources live under `build/classes/`; KSP resources under `build/generated/ksp/resources/`.
+
+`Approval.ServiceLoader`:: Convenience wrapper around `Resource` that derives the `META-INF/services/<interfaceFqn>` path from the service-interface FQN.
+
+== Literal vs resource-backed factories
+
+Every variant exposes two factory styles:
+
+`at(generatedPath, classpathResource)`:: Reads the expected content from `classpathResource` on the test classpath (typically `src/test/resources/approvals/...`). Use this for non-trivial fixtures — checking them into the repo makes diffs reviewable and lets editors do the formatting.
+
+`of(generatedPath, expectedContent)`:: Takes the expected content as a literal `String`. Suitable for short artifacts (e.g. a single-line service-loader file) or test-local content.
+
+[source, java]
+----
+// resource-backed: fixture in src/test/resources/approvals/jpa/QuantityAttributeConverter.java
+Approval.JavaSource.at(
+    "test/boundary/persistence/jpa/QuantityAttributeConverter.java",
+    "approvals/jpa/QuantityAttributeConverter.java");
+
+// literal content
+Approval.JavaSource.of(
+    "test/Foo.java",
+    "package test;\npublic class Foo {}\n");
+----
+
+== ServiceLoader approvals
+
+`META-INF/services/<fqn>` files contain one provider FQN per line. The `ServiceLoader` factory takes the service FQN as its first argument (the `META-INF/services/` prefix is appended internally) and accepts the provider FQNs as varargs, joined with `\n`:
+
+[source, java]
+----
+Approval.ServiceLoader.of("jakarta.validation.valueextraction.ValueExtractor", // <1>
+    "test.IdsProductIdValueExtractor", // <2>
+    "test.IsbnValueExtractor",
+    "test.OrderDateValueExtractor",
+    "test.QuantityValueExtractor");
+----
+1. expected ServiceLoader SPI (file-name)
+2. expected list of provider types (file-content)
+
+== Strict closed-set semantics
+
+`Testresult.X.Approved` is a *strict closed-set* verdict — it only passes when:
+
+. every approval matched a produced file of the right kind, *and*
+. no produced file is left unclaimed.
+
+A surplus file no approval covers surfaces as `ApprovalMismatch` with `UnexpectedFile`. This prevents the silent-pass failure mode where a generator emits an extra artifact nobody asserted against.
+
+If you only want to assert *some* of the produced files, use `Testresult.X.Success(filenames...)` (loose check on file names) instead of approvals.
+
+== Diff tolerances
+
+The diff engine deliberately ignores differences that are visually identical but textually noisy. This keeps approval fixtures stable across formatter drift, IDE auto-edits, and platform line-ending conventions.
+
+* *Whitespace-insensitive at the line level.* Runs of whitespace within a line are treated as equal; trailing/leading whitespace on a line is ignored. Tabs are normalized to four spaces before comparing.
+
+* *Blank-line tolerant.* Extra blank lines on *either* side are not a mismatch. Line numbers in failure diagnostics stay anchored to the original source so they remain navigable.
+
+* *Import-order tolerant for source files.* For `JavaSource` and `KotlinSource` approvals, the import block is sorted on both sides before comparing — generator version drift or hand-edited fixtures with re-sorted imports don't surface as diffs. (`Resource` and `ServiceLoader` are *not* sorted; non-source content is opaque.)
+
+* *Line-ending tolerant.* `\r\n` and `\r` are normalized to `\n` on both sides before splitting, so CRLF approval fixtures (Windows checkouts with git's `core.autocrlf`) and custom generators emitting `System.lineSeparator()` compare equal to LF content.
+
+== `ApprovalMismatch` diagnostics
+
+When approvals don't match, `Testresult.X.ApprovalMismatch` carries one entry per problem and its `toString()` renders a useful diagnostic:
+
+`ContentDiffers(generatedPath, renderedDiff)`:: The file was produced but the content differed. `renderedDiff` is a unified, context-aware diff with line numbers tied to the *expected* fixture. Colored on CI, plain locally — see xref:testkit.adoc#_configuration[Configuration] to override.
+
+`FileNotFound(expectedPath, actualGeneratedPaths)`:: No file at the expected path. The diagnostic lists every path the run actually produced — useful for spotting package-override mistakes.
+
+`UnexpectedFile(generatedPath)`:: The run produced a file no approval was declared for.
+
+Because `ApprovalMismatch.toString()` already renders the diff, no custom matcher is needed — Spock PowerAssert, Kotest `shouldEqual`, and JUnit `assertEquals` all print the rendered failure inline.
