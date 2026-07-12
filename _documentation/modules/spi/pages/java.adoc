@@ -1,6 +1,27 @@
 = Java SPI
 
-TODO
+The Java SPI plugs into Lazyval's JSR‑269 annotation processor. Your generator receives already-validated `@LazyValue` elements as `javax.lang.model` symbols and emits Java source files (or `META-INF/services` entries).
+
+TIP: A complete, runnable example lives at https://github.com/QualityMinds/lazyval/tree/main/examples/java-spi-dev[`examples/java-spi-dev`] — a `custom-lazyval-generator` module implementing the SPI, plus a `using-project` that consumes it.
+
+== Setup
+
+Add `lazyval-processor` as a compile dependency of your generator module:
+
+[source,xml]
+----
+<dependency>
+    <groupId>com.qualityminds.lazyval</groupId>
+    <artifactId>lazyval-processor</artifactId>
+    <version>${version.lazyval}</version>
+</dependency>
+----
+
+NOTE: Your generator module *provides* the SPI — it does not consume `@LazyValue` itself. Disable annotation processing for its own build (`<proc>none</proc>`) unless you use a tool like Google AutoService to write the service file for you.
+
+== Implementing the SPI
+
+Implement `com.qualityminds.lazyval.processor.spi.Generator`:
 
 .SPI type definition
 [source,java]
@@ -8,14 +29,42 @@ TODO
 include::spi:example$Generator.java[tags=generator;!context]
 ----
 
+Each method contributes to a specific stage:
+
+`generatorId()`:: Short id used to disable the generator (`-Alazyval.generators.disable=<id>`) and to namespace configuration options (`lazyval.<id>.<key>`).
+`requiredClasspath()`:: FQCNs your generator needs on the *consumer's* compile classpath. Return an empty list if there are no gating dependencies.
+`supportedOptions()`:: Option keys you read at generation time. All keys must contain `lazyval.` so they route through Lazyval's option handling.
+`generate(elements, ctx)`:: Invoked once per processing round with the set of validated `@LazyValue` elements. Return a stream of `GeneratorResult` — never write files directly.
+
+== The Context
+
+The `Context` gives you the small slice of `ProcessingEnvironment` you actually need, plus classpath introspection:
+
 .Context type definition
 [source,java,indent=0]
 ----
 include::spi:example$Generator.java[tag=context]
 ----
 
+Prefer `ctx.generatorPackage(...)` over hand-rolled package resolution — it applies the same override → basePackage → fallback chain the built-in generators use.
+
+== Emitting output
+
+Return one `GeneratorResult` per file (or service entry). Do not call `Filer` yourself — Lazyval handles originating-element tracking for incremental compilation.
+
 .Result type definition
 [source,java]
 ----
 include::spi:example$GeneratorResult.java[tag=result]
 ----
+
+`GeneratorResult.Java(metadata, contents)`:: A Java source file, written under the package in `metadata`.
+`GeneratorResult.ServiceLoader(spiType, providerType)`:: A `META-INF/services/<spiType>` entry containing `providerType`. Multiple generators contributing to the same SPI file are merged automatically.
+
+== Registration
+
+Register the implementation via `ServiceLoader` — place a file at:
+
+ src/main/resources/META-INF/services/com.qualityminds.lazyval.processor.spi.Generator
+
+with the fully-qualified name of your implementation, one per line.

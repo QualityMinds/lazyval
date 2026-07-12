@@ -1,27 +1,50 @@
 = Using the Lazyval SPI
 
 To support users with the option to add custom code-generators, an SPI (service-provider-interface) has been added for each processor implementation.
-In fact, the internal generators use the same mechanism and act as a reference implementation.
+The internal generators use the same mechanism and act as a reference implementation.
 
-NOTE: the SPI also allows the project to hold new generators in an external incubation phase before shipping them
-as part of the Lazyval bundle.
+CAUTION: The SPI is currently experimental and will change.
 
-CAUTION: the SPI is currently experimental and will change!
+== Choosing the right SPI
 
-First, you have to decide if you need a generator for Java (Annotation Processing) or Kotlin (KSP2). This is necessary
-because the SPI has to leak the underlying processing API to the consumer.
+Lazyval ships two structurally identical SPIs — one per toolchain. Pick the one that matches the source language you want to consume:
 
-Add the chosen processor as a dependency and implement the SPI.
+|===
+|Toolchain |Consumes |SPI package |Maven artifact
 
-.Java SPI
-* https://github.com/QualityMinds/lazyval/blob/main/processor/src/main/java/com/qualityminds/lazyval/processor/spi/Generator.java[com.qualityminds.lazyval.processor.spi.Generator]
+|Java Annotation Processing (JSR‑269)
+|`.java` sources
+|`com.qualityminds.lazyval.processor.spi`
+|`com.qualityminds.lazyval:lazyval-processor`
 
-.Kotlin SPI
-* https://github.com/QualityMinds/lazyval/blob/main/ksp/src/main/kotlin/com/qualityminds/lazyval/ksp/spi/Generator.kt[com.qualityminds.lazyval.ksp.spi.Generator]
+|Kotlin Symbol Processing (KSP2)
+|`.kt` sources
+|`com.qualityminds.lazyval.ksp.spi`
+|`com.qualityminds.lazyval:lazyval-ksp`
+|===
 
-To use a custom generator, it must be located in a separate JAR with a file named after the SPI in `META-INF/services/`
-with the fully qualified name of your implementation. The JAR needs to be added to the compile-classpath (in some tools
-called annotation-processor-classpath)
+IMPORTANT: The SPI has to leak the underlying processing API (`javax.lang.model` vs. KSP `KSClassDeclaration`), so a generator implementation targets exactly one toolchain. If you need to support both, ship two artifacts with the same `generatorId()`.
+
+== Workflow
+
+Regardless of the target toolchain, writing a custom generator follows the same four steps:
+
+. Add the chosen processor artifact as a *compile* dependency.
+. Implement the `Generator` interface (`generatorId`, `requiredClasspath`, `supportedOptions`, `generate`).
+. Register the implementation in `META-INF/services/` under the SPI's fully-qualified name.
+. Add the resulting JAR to the *annotation-processor-classpath* of the consuming project.
+
+Language-specific details, code snippets, and Maven wiring live on the dedicated pages:
+
+* xref:spi:java.adoc[Java SPI]
+* xref:spi:kotlin.adoc[Kotlin SPI]
+
+== Runnable examples
+
+The `examples/` folder in the repository contains two end-to-end sample setups — one per toolchain — each with a *generator module* (the SPI implementation) and a *using-project* (the consumer) so you can see the full wiring:
+
+* https://github.com/QualityMinds/lazyval/tree/main/examples/java-spi-dev[`examples/java-spi-dev`] — a Java generator emitting a `Utils` helper class.
+* https://github.com/QualityMinds/lazyval/tree/main/examples/kotlin-spi-dev[`examples/kotlin-spi-dev`] — the Kotlin/KSP2 counterpart.
 
 == Testing Providers
 

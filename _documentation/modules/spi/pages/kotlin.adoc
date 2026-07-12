@@ -1,10 +1,44 @@
 = Kotlin SPI
 
+The Kotlin SPI plugs into Lazyval's KSP2 `SymbolProcessor`. Your generator receives already-validated `@LazyValue` elements as `KSClassDeclaration` symbols and can emit *either* Kotlin *or* Java source — plus `META-INF/services` entries.
+
+TIP: A complete, runnable example lives at https://github.com/QualityMinds/lazyval/tree/main/examples/kotlin-spi-dev[`examples/kotlin-spi-dev`] — a `custom-lazyval-generator` module implementing the SPI, plus a `using-project` wired through the `ksp-maven-plugin`.
+
+== Setup
+
+Add `lazyval-ksp` as a compile dependency of your generator module:
+
+[source,xml]
+----
+<dependency>
+    <groupId>com.qualityminds.lazyval</groupId>
+    <artifactId>lazyval-ksp</artifactId>
+    <version>${version.lazyval}</version>
+</dependency>
+----
+
+== Implementing the SPI
+
+Implement `com.qualityminds.lazyval.ksp.spi.Generator`:
+
 .SPI type definition
 [source,kotlin]
 ----
 include::spi:example$Generator.kt[tags=generator;!context]
 ----
+
+The four methods behave exactly like their Java counterparts:
+
+`generatorId()`:: Short id — disable via `lazyval.generators.disable=<id>`, namespace options as `lazyval.<id>.<key>`.
+`requiredClasspath()`:: FQCNs required on the consumer's compile classpath. Empty list = always active.
+`supportedOptions()`:: Option keys the generator reads. Every key must contain `lazyval.`.
+`generate(validatedElements, context)`:: Invoked with the set of validated `@LazyValue` elements. Return a `Stream<GeneratorResult>` — file writing is handled by Lazyval.
+
+NOTE: If you ship both a Java (APT) and a Kotlin (KSP) generator, keep `generatorId()`, `requiredClasspath()`, and `supportedOptions()` identical on both sides so consumers configure them the same way.
+
+== The Context
+
+The `Context` mirrors the Java SPI shape but uses `KSNode` for diagnostics:
 
 .Context type definition
 [source,kotlin,indent=0]
@@ -12,11 +46,26 @@ include::spi:example$Generator.kt[tags=generator;!context]
 include::spi:example$Generator.kt[tag=context]
 ----
 
-IMPORTANT: The Kotlin SPI distinguishes the results for Java or Kotlin sources. Depending on what your generator creates,
-you have to return the corresponding result-type.
+`ctx.inspectClass(fqcn)` and `ctx.isOnClasspath(fqcn)` let you probe the consumer's classpath for optional integrations (e.g. detecting Quarkus, Spring, Cassandra drivers) without hard-linking to them.
+
+== Emitting output
 
 .Result type definition
 [source,kotlin]
 ----
 include::spi:example$Generator.kt[tag=result]
 ----
+
+IMPORTANT: The Kotlin SPI distinguishes results for Java or Kotlin sources. Pick the variant matching the language your generator emits.
+
+`GeneratorResult.Kotlin(metadata, contents)`:: A Kotlin source file (`.kt`) — KSP‑only.
+`GeneratorResult.Java(metadata, contents)`:: A Java source file (`.java`) — useful when integrating with libraries that only look at compiled JVM types.
+`GeneratorResult.ServiceLoader(spiType, providerType)`:: A `META-INF/services/<spiType>` entry containing `providerType`. Contributions from multiple generators to the same SPI file are merged automatically.
+
+== Registration
+
+Register the implementation via `ServiceLoader` — place a file at:
+
+ src/main/resources/META-INF/services/com.qualityminds.lazyval.ksp.spi.Generator
+
+with the fully-qualified name of your implementation, one per line.
