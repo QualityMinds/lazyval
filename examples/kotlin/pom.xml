@@ -15,7 +15,7 @@
         <!-- tag::excluded[] -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- end::excluded[] -->
-        <version.kotlin>2.3.0</version.kotlin>
+        <version.kotlin>2.1.21</version.kotlin>
         <version.lazyval>0.3.2</version.lazyval>
         <version.mapstruct>1.6.3</version.mapstruct>
         <version.jakarta-ee>11.0.0</version.jakarta-ee>
