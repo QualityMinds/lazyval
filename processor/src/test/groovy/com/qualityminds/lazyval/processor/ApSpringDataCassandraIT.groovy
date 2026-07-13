@@ -5,7 +5,10 @@ import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
-import spock.lang.*
+import spock.lang.Shared
+import spock.lang.Specification
+import spock.lang.TempDir
+import spock.lang.Title
 
 import java.nio.file.Path
 
@@ -18,6 +21,7 @@ class ApSpringDataCassandraIT extends Specification {
     public static final Dependency dependencySpringCore = new Dependency("org.springframework", "spring-core", "6.2.7")
     public static final Dependency dependencySpringBeans = new Dependency("org.springframework", "spring-beans", "6.2.7")
     public static final Dependency dependencySpringContext = new Dependency("org.springframework", "spring-context", "6.2.7")
+    public static final Dependency dependencyDriverCore = new Dependency("com.datastax.oss", "java-driver-core", "4.17.0")
 
     private static final String GENERATED_FILE_NAME = "LazyvalSpringDataConfiguration.java"
 
@@ -30,10 +34,16 @@ class ApSpringDataCassandraIT extends Specification {
     void "Spring Data Cassandra with combined Scenarios"() {
         given: 'a compiler run with all sources'
         def scenario = Scenario.Java.combined()
-                .withDependencies(dependencySpringDataCassandra, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
+                .withDependencies(
+                        dependencySpringDataCassandra,
+                        dependencySpringDataCommons,
+                        dependencySpringCore,
+                        dependencySpringBeans,
+                        dependencySpringContext
+                )
 
         and: 'a defined approval for the generated configuration'
-        List<Approval> approvals = [
+        List<Approval.ForJava> approvals = [
                 Approval.JavaSource.at("test/boundary/persistence/$GENERATED_FILE_NAME",
                         "approvals/springdata/cassandra/$GENERATED_FILE_NAME")
         ]

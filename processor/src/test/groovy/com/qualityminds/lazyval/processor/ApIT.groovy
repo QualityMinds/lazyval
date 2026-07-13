@@ -13,7 +13,7 @@ import java.nio.file.Path
 @Title("Annotation Processor")
 class ApIT extends Specification {
 
-    public static final Dependency dependencyMapstruct = new Dependency("org.mapstruct", "mapstruct", "1.6.3")
+    private static final Dependency dependencyMapstruct = new Dependency("org.mapstruct", "mapstruct", "1.6.3")
 
     @TempDir()
     Path projectDir

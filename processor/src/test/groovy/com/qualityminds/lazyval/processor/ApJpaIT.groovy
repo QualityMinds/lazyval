@@ -29,7 +29,7 @@ class ApJpaIT extends Specification {
         def scenario = Scenario.Java.combined().withDependencies(dependencyJakartaPersistence)
 
         and: 'a defined approval for each generated file'
-        List<Approval> approvals = [
+        List<Approval.ForJava> approvals = [
                 Approval.JavaSource.at("test/boundary/persistence/jpa/QuantityAttributeConverter.java", "approvals/jpa/QuantityAttributeConverter.java"),
                 Approval.JavaSource.at("test/boundary/persistence/jpa/IsbnAttributeConverter.java", "approvals/jpa/IsbnAttributeConverter.java"),
                 Approval.JavaSource.at("test/boundary/persistence/jpa/OrderDateAttributeConverter.java", "approvals/jpa/OrderDateAttributeConverter.java"),
