@@ -15,11 +15,13 @@
         <!-- tag::excluded[] -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- end::excluded[] -->
+        <!-- newer Kotlin supported as well -->
         <version.kotlin>2.1.21</version.kotlin>
         <version.lazyval>0.3.2</version.lazyval>
         <version.mapstruct>1.6.3</version.mapstruct>
         <version.jakarta-ee>11.0.0</version.jakarta-ee>
         <version.jackson>3.1.4</version.jackson>
+        <version.plugin.ksp>0.4.5</version.plugin.ksp>
     </properties>
 
     <dependencies>
@@ -84,7 +86,7 @@
             <plugin>
                 <groupId>me.kpavlov.ksp.maven</groupId>
                 <artifactId>ksp-maven-plugin</artifactId>
-                <version>0.2.0</version>
+                <version>${version.plugin.ksp}</version>
                 <executions>
                     <execution>
                         <goals>
