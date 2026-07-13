@@ -37,7 +37,7 @@ class ApJacksonIT extends Specification {
         def scenario = Scenario.Java.combined().withDependencies(dependencyJackson_2_Databind, dependencyJackson_2_Core)
 
         and: 'a defined approval for source and service-loader'
-        List<Approval> approvals = [
+        List<Approval.ForJava> approvals = [
                 Approval.JavaSource.at("test/LazyvalJackson2Module.java", "approvals/jackson/LazyvalJackson2Module.java"),
                 Approval.ServiceLoader.of(GENERATED_SERVICELOADER_JACKSON_2, "test.LazyvalJackson2Module")
         ]
@@ -71,7 +71,7 @@ class ApJacksonIT extends Specification {
         def scenario = Scenario.Java.combined().withDependencies(dependencyJackson_3_Databind, dependencyJackson_3_Core)
 
         and: 'a defined approval for source and service-loader'
-        List<Approval> approvals = [
+        List<Approval.ForJava> approvals = [
                 Approval.JavaSource.at("test/LazyvalJacksonModule.java", "approvals/jackson/LazyvalJacksonModule.java"),
                 Approval.ServiceLoader.of(GENERATED_SERVICELOADER_JACKSON_3, "test.LazyvalJacksonModule")
         ]

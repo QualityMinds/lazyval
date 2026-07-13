@@ -5,7 +5,10 @@ import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
-import spock.lang.*
+import spock.lang.Shared
+import spock.lang.Specification
+import spock.lang.TempDir
+import spock.lang.Title
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -37,7 +40,7 @@ class KspCassandraCodecIT extends Specification {
                 .withDependencies(dependencyDriverCore, dependencyJakartaAnnotations)
 
         and: 'a defined approval for the generated codecs file'
-        List<Approval> approvals = [
+        List<Approval.ForKotlin> approvals = [
                 Approval.KotlinSource.at("test/boundary/persistence/cassandra/$GENERATED_FILE_NAME",
                         "approvals/cassandracodec/$GENERATED_FILE_NAME")
         ]

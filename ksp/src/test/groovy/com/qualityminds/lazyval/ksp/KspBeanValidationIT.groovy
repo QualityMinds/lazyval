@@ -5,7 +5,10 @@ import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
-import spock.lang.*
+import spock.lang.Shared
+import spock.lang.Specification
+import spock.lang.TempDir
+import spock.lang.Title
 
 import java.nio.file.Path
 
@@ -27,7 +30,7 @@ class KspBeanValidationIT extends Specification {
                 .withDependencies(dependencyBeanValidation, dependencyJakartaAnnotations)
 
         and: 'a defined approval for each generated Kotlin impl, Java base and the ServiceLoader registration'
-        List<Approval> approvals = [
+        List<Approval.ForKotlin> approvals = [
                 Approval.KotlinSource.at("test/IsbnValueExtractor.kt", "approvals/beanvalidation/IsbnValueExtractor.kt"),
                 Approval.KotlinSource.at("test/IdsProductIdValueExtractor.kt", "approvals/beanvalidation/IdsProductIdValueExtractor.kt"),
                 Approval.KotlinSource.at("test/NullableQuantityValueExtractor.kt", "approvals/beanvalidation/NullableQuantityValueExtractor.kt"),

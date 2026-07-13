@@ -5,7 +5,10 @@ import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
-import spock.lang.*
+import spock.lang.Shared
+import spock.lang.Specification
+import spock.lang.TempDir
+import spock.lang.Title
 
 import java.nio.file.Path
 
@@ -31,7 +34,7 @@ class ApJsonbIT extends Specification {
         def scenario = Scenario.Java.combined().withDependencies(dependencyJsonbApi)
 
         and: 'a defined approval for the generated adapters file'
-        List<Approval> approvals = [
+        List<Approval.ForJava> approvals = [
                 Approval.JavaSource.at("test/$GENERATED_FILE_NAME", "approvals/jsonb/$GENERATED_FILE_NAME")
         ]
 
@@ -76,7 +79,7 @@ class ApJsonbIT extends Specification {
         def scenario = Scenario.Java.combined().withDependencies(dependencyJsonbApi, dependencyJaxRsApi)
 
         and: 'a defined approval for adapters and context resolver'
-        List<Approval> approvals = [
+        List<Approval.ForJava> approvals = [
                 Approval.JavaSource.at("test/$GENERATED_FILE_NAME", "approvals/jsonb/$GENERATED_FILE_NAME"),
                 Approval.JavaSource.at("test/$GENERATED_RESOLVER_FILE_NAME", "approvals/jsonb/$GENERATED_RESOLVER_FILE_NAME")
         ]

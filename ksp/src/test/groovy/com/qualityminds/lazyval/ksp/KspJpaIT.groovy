@@ -29,7 +29,7 @@ class KspJpaIT extends Specification {
         def scenario = Scenario.Kotlin.combined().withDependencies(dependencyJakartaPersistence, dependencyJakartaAnnotations)
 
         and: 'a defined approval for each generated file'
-        List<Approval> approvals = [
+        List<Approval.ForKotlin> approvals = [
                 Approval.KotlinSource.at("test/boundary/persistence/jpa/QuantityAttributeConverter.kt", "approvals/jpa/QuantityAttributeConverter.kt"),
                 Approval.KotlinSource.at("test/boundary/persistence/jpa/NullableQuantityAttributeConverter.kt", "approvals/jpa/NullableQuantityAttributeConverter.kt"),
                 Approval.KotlinSource.at("test/boundary/persistence/jpa/IsbnAttributeConverter.kt", "approvals/jpa/IsbnAttributeConverter.kt"),

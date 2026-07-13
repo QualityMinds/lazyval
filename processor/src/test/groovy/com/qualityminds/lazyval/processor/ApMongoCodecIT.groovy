@@ -5,7 +5,10 @@ import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
-import spock.lang.*
+import spock.lang.Shared
+import spock.lang.Specification
+import spock.lang.TempDir
+import spock.lang.Title
 
 import java.nio.file.Path
 
@@ -32,7 +35,7 @@ class ApMongoCodecIT extends Specification {
         def scenario = Scenario.Java.combined().withDependencies(dependencyBson)
 
         and: 'a defined approval for the generated codecs class'
-        List<Approval> approvals = [
+        List<Approval.ForJava> approvals = [
                 Approval.JavaSource.at("test/boundary/persistence/mongodb/$GENERATED_FILE_NAME",
                         "approvals/mongocodec/$GENERATED_FILE_NAME")
         ]

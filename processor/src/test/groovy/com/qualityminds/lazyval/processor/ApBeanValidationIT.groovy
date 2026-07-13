@@ -28,7 +28,7 @@ class ApBeanValidationIT extends Specification {
         def scenario = Scenario.Java.combined().withDependencies(dependencyBeanValidation)
 
         and: 'a defined approval for each generated ValueExtractor and the ServiceLoader registration'
-        List<Approval> approvals = [
+        List<Approval.ForJava> approvals = [
                 Approval.JavaSource.at("test/IsbnValueExtractor.java", "approvals/beanvalidation/IsbnValueExtractor.java"),
                 Approval.JavaSource.at("test/IdsProductIdValueExtractor.java", "approvals/beanvalidation/IdsProductIdValueExtractor.java"),
                 Approval.JavaSource.at("test/QuantityValueExtractor.java", "approvals/beanvalidation/QuantityValueExtractor.java"),
