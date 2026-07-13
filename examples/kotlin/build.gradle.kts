@@ -1,6 +1,6 @@
 plugins {
-    kotlin("jvm") version "2.1.21"
-    id("com.google.devtools.ksp") version "2.1.21-2.0.2"
+    kotlin("jvm") version "2.1.21" // newer Kotlin supported as well
+    id("com.google.devtools.ksp") version "2.1.21-2.0.2" // use 2.3.6 (or newer) when on Kotlin > 2.3
 }
 
 // tag::docu[]
