@@ -85,7 +85,7 @@ class MongoCodecGenerator : Generator {
 
     override fun generatorId(): String = GENERATOR_ID
 
-    override fun requiredClasspath(): Collection<String> = listOf(CODEC_FQN)
+    override fun requiredClasspath(): Set<String> = setOf(CODEC_FQN)
 
     override fun supportedOptions(): Set<String> =
         setOf(OPTION_GENERATED_PACKAGE, OPTION_USER_CODECS, OPTION_QUARKUS_REGISTER)

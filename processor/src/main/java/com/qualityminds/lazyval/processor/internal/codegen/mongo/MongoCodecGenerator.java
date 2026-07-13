@@ -91,8 +91,8 @@ public class MongoCodecGenerator implements Generator {
     }
 
     @Override
-    public Collection<String> requiredClasspath() {
-        return List.of(CODEC_FQN);
+    public Set<String> requiredClasspath() {
+        return Set.of(CODEC_FQN);
     }
 
     @Override

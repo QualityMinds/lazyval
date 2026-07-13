@@ -72,8 +72,8 @@ class SpringDataGenerator : Generator {
 
     override fun generatorId(): String = GENERATOR_ID
 
-    override fun requiredClasspath(): Collection<String> =
-        listOf("org.springframework.data.convert.ReadingConverter")
+    override fun requiredClasspath(): Set<String> =
+        setOf("org.springframework.data.convert.ReadingConverter")
 
     override fun supportedOptions(): Set<String> =
         setOf(OPTION_GENERATED_PACKAGE, OPTION_CASSANDRA_CONVERTERS, OPTION_MONGO_CONVERTERS)

@@ -53,8 +53,8 @@ class BeanValidationGenerator : Generator {
 
     override fun generatorId(): String = GENERATOR_ID
 
-    override fun requiredClasspath(): Collection<String> =
-        listOf("jakarta.validation.valueextraction.ValueExtractor")
+    override fun requiredClasspath(): Set<String> =
+        setOf("jakarta.validation.valueextraction.ValueExtractor")
 
     override fun supportedOptions(): Set<String> = setOf(OPTION_GENERATED_PACKAGE)
 

@@ -35,7 +35,7 @@ class JpaGenerator : Generator {
 
     override fun generatorId(): String = GENERATOR_ID
 
-    override fun requiredClasspath(): Collection<String> = listOf("jakarta.persistence.AttributeConverter")
+    override fun requiredClasspath(): Set<String> = setOf("jakarta.persistence.AttributeConverter")
 
     override fun supportedOptions(): Set<String> {
         return setOf(OPTION_GENERATED_PACKAGE)

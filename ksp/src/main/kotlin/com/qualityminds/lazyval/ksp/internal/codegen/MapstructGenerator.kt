@@ -19,7 +19,7 @@ class MapstructGenerator : Generator {
 
     override fun generatorId(): String = GENERATOR_ID
 
-    override fun requiredClasspath(): Collection<String> = listOf("org.mapstruct.Mapper")
+    override fun requiredClasspath(): Set<String> = setOf("org.mapstruct.Mapper")
 
     override fun supportedOptions(): Set<String> {
         return setOf(OPTION_GENERATED_PACKAGE)

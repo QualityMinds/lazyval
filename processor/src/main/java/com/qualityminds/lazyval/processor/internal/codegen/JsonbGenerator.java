@@ -8,7 +8,6 @@ import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -39,8 +38,8 @@ public class JsonbGenerator implements Generator {
     }
 
     @Override
-    public Collection<String> requiredClasspath() {
-        return List.of("jakarta.json.bind.adapter.JsonbAdapter");
+    public Set<String> requiredClasspath() {
+        return Set.of("jakarta.json.bind.adapter.JsonbAdapter");
     }
 
     @Override

@@ -88,8 +88,8 @@ public class CassandraCodecGenerator implements Generator {
     }
 
     @Override
-    public Collection<String> requiredClasspath() {
-        return List.of("com.datastax.oss.driver.api.core.type.codec.MappingCodec");
+    public Set<String> requiredClasspath() {
+        return Set.of("com.datastax.oss.driver.api.core.type.codec.MappingCodec");
     }
 
     @Override

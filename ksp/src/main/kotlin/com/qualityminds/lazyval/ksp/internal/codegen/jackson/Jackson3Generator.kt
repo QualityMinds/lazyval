@@ -22,7 +22,7 @@ class Jackson3Generator : Generator {
 
     override fun generatorId(): String = GENERATOR_ID
 
-    override fun requiredClasspath(): Collection<String> = listOf("tools.jackson.databind.JacksonModule")
+    override fun requiredClasspath(): Set<String> = setOf("tools.jackson.databind.JacksonModule")
 
     override fun supportedOptions(): Set<String> = setOf(OPTION_GENERATED_PACKAGE)
 
