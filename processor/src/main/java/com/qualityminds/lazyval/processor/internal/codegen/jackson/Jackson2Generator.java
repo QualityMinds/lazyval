@@ -9,7 +9,6 @@ import com.qualityminds.lazyval.processor.spi.GeneratorResult;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -30,8 +29,8 @@ public class Jackson2Generator implements Generator {
     }
 
     @Override
-    public Collection<String> requiredClasspath() {
-        return List.of("com.fasterxml.jackson.databind.Module");
+    public Set<String> requiredClasspath() {
+        return Set.of("com.fasterxml.jackson.databind.Module");
     }
 
     @Override

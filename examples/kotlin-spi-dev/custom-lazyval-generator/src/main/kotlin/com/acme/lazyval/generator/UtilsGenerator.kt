@@ -4,7 +4,7 @@ import com.qualityminds.lazyval.collections.NonEmptySet
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
-import java.util.Collections.emptyList
+import java.util.Collections.emptySet
 import java.util.stream.Stream
 
 class UtilsGenerator : Generator {
@@ -16,7 +16,7 @@ class UtilsGenerator : Generator {
 
     override fun generatorId(): String = "acme-utils-single"
 
-    override fun requiredClasspath(): Collection<String> = emptyList()
+    override fun requiredClasspath(): Set<String> = emptySet()
 
     override fun supportedOptions(): Set<String> {
         return setOf(OPTION_GENERATED_PACKAGE)

@@ -23,8 +23,8 @@ public class UtilsGenerator implements Generator {
     }
 
     @Override
-    public Collection<String> requiredClasspath() {
-        return List.of();
+    public Set<String> requiredClasspath() {
+        return Set.of();
     }
 
     @Override

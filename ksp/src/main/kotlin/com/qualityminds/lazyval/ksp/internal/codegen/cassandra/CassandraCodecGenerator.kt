@@ -35,8 +35,8 @@ class CassandraCodecGenerator : Generator {
 
     override fun generatorId(): String = GENERATOR_ID
 
-    override fun requiredClasspath(): Collection<String> =
-        listOf("com.datastax.oss.driver.api.core.type.codec.MappingCodec")
+    override fun requiredClasspath(): Set<String> =
+        setOf("com.datastax.oss.driver.api.core.type.codec.MappingCodec")
 
     override fun supportedOptions(): Set<String> = setOf(OPTION_GENERATED_PACKAGE, OPTION_QUARKUS_REGISTER, OPTION_USER_CODECS)
 

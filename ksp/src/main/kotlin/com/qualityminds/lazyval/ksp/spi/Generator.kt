@@ -71,9 +71,9 @@ interface Generator {
     /**
      * If the generator requires additional classes on the classpath, they can be listed here.
      * The processor will check if all required classes are available and only call the generator if this is the case.
-     * @return list containing fully qualified class names.
+     * @return set containing fully qualified class names.
      */
-    fun requiredClasspath(): Collection<String>
+    fun requiredClasspath(): Set<String>
 
     /**
      * Provides the keys supported by this generator. At least an option to specify the target package should be

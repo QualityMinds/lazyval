@@ -6,7 +6,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.Nullable;
 
 import javax.lang.model.element.Element;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -34,9 +34,9 @@ public interface Generator {
     /**
      * If the generator requires additional classes on the classpath, they can be listed here.
      * The processor will check if all required classes are available and only call the generator if this is the case.
-     * @return list containing fully qualified class names.
+     * @return set containing fully qualified class names.
      */
-    Collection<String> requiredClasspath();
+    Set<String> requiredClasspath();
 
     /**
      * Provides the keys supported by this generator. At least an option to specify the target package should be
@@ -45,6 +45,14 @@ public interface Generator {
      * @return set of supported options.
      */
     Set<String> supportedOptions();
+
+    /**
+     *
+     * @return
+     */
+    default Set<String> supersedes() {
+        return Collections.emptySet();
+    }
 
     /**
      * Called only once with a list of all domain primitives annotated with {@link LazyValue}.

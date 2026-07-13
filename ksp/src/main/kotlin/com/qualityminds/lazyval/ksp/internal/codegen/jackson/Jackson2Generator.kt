@@ -22,7 +22,7 @@ class Jackson2Generator : Generator {
 
     override fun generatorId(): String = GENERATOR_ID
 
-    override fun requiredClasspath(): Collection<String> = listOf("com.fasterxml.jackson.databind.Module")
+    override fun requiredClasspath(): Set<String> = setOf("com.fasterxml.jackson.databind.Module")
 
     override fun supportedOptions(): Set<String> = setOf(OPTION_GENERATED_PACKAGE)
 

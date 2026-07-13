@@ -33,7 +33,7 @@ class JsonbGenerator : Generator {
 
     override fun generatorId(): String = GENERATOR_ID
 
-    override fun requiredClasspath(): Collection<String> = listOf("jakarta.json.bind.adapter.JsonbAdapter")
+    override fun requiredClasspath(): Set<String> = setOf("jakarta.json.bind.adapter.JsonbAdapter")
 
     override fun supportedOptions(): Set<String> = setOf(OPTION_GENERATED_PACKAGE, OPTION_REGISTER)
 
