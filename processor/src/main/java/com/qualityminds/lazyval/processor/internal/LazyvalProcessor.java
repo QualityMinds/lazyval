@@ -3,10 +3,9 @@ package com.qualityminds.lazyval.processor.internal;
 import com.qualityminds.lazyval.LazyValue;
 import com.qualityminds.lazyval.LazyvalConfiguration;
 import com.qualityminds.lazyval.collections.NonEmptySet;
-import com.qualityminds.lazyval.processor.internal.codegen.jackson.Jackson2Generator;
-import com.qualityminds.lazyval.processor.internal.codegen.jackson.Jackson3Generator;
 import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
+import com.qualityminds.lazyval.processor.spi.StockGeneratorIds;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.annotation.processing.AbstractProcessor;
@@ -153,38 +152,34 @@ public class LazyvalProcessor extends AbstractProcessor {
 
             var disabledByConfig = lazyvalEnvironment.getDisabledGenerators();
 
-            var generators = allProviderGenerators.stream()
+            var generatorCandidates = allProviderGenerators.stream()
                     .filter(generator -> generator.requiredClasspath().stream().allMatch(fqn -> lazyvalEnvironment.isClassAvailable(fqn)))
                     .filter(generator -> !disabledByConfig.contains(generator.generatorId()))
-                    .toList();
+                    .collect(Collectors.toSet());
 
-            lazyvalEnvironment.info("Active Providers: " + generators.stream().map(Generator::generatorId).collect(Collectors.joining(", ")));
+            var result = GeneratorResolution.resolve(generatorCandidates);
+            result.superseded().forEach(s ->
+                    lazyvalEnvironment.info("Lazyval: '" + s.id() + "' was auto-disabled because '" + s.by() + "' supersedes it"));
 
-            var activeIds = generators.stream().map(Generator::generatorId).collect(Collectors.toSet());
-            if (activeIds.contains("cassandra") && activeIds.contains("cassandra-spring-data")) {
-                lazyvalEnvironment.info("Both 'cassandra' and 'cassandra-spring-data' generators are active. " +
-                        "You can disable one via 'lazyval.generators.disable' if only one integration is needed.");
-            }
-            if (activeIds.contains("mongodb") && activeIds.contains("spring-data")
-                    && lazyvalEnvironment.isClassAvailable("org.springframework.data.mongodb.core.convert.MongoCustomConversions")) {
-                lazyvalEnvironment.info("Both 'mongodb' and 'spring-data' generators are active with spring-data-mongodb on the classpath. " +
-                        "You can disable one via 'lazyval.generators.disable' if only one integration is needed.");
-            }
-            if (activeIds.contains(Jackson3Generator.GENERATOR_ID) && activeIds.contains(Jackson2Generator.GENERATOR_ID)) {
+            lazyvalEnvironment.info("Active Providers: " + result.active().stream().map(Generator::generatorId).collect(Collectors.joining(", ")));
+
+            var activeIds = result.active().stream().map(Generator::generatorId).collect(Collectors.toSet());
+
+            if (activeIds.contains(StockGeneratorIds.JACKSON_3) && activeIds.contains(StockGeneratorIds.JACKSON_2)) {
                 lazyvalEnvironment.warn("""
                         Both 'jackson-2' and 'jackson-3' generators are active (probably due to transitive dependencies). \
                         This might be intentional, then ignore this warning. \
                         Otherwise, disable via one 'lazyval.generators.disable'""");
             }
 
-            if(generators.isEmpty()){
+            if(result.active().isEmpty()){
                 if(!classpathWarningAlreadyIssued){
                     lazyvalEnvironment.warnMissingClasspath();
                     classpathWarningAlreadyIssued = true;
                 }
             }
 
-            return generators.stream();
+            return result.active().stream();
         } finally {
             Thread.currentThread().setContextClassLoader(originalContextClassLoader);
         }

@@ -6,6 +6,7 @@ import com.qualityminds.lazyval.collections.NonEmptySet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
+import com.qualityminds.lazyval.ksp.spi.StockGeneratorIds
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import java.util.stream.Stream
 import javax.lang.model.element.Modifier
@@ -13,11 +14,10 @@ import javax.lang.model.element.Modifier
 class MapstructGenerator : Generator {
 
     companion object {
-        private const val GENERATOR_ID = "mapstruct"
         private const val OPTION_GENERATED_PACKAGE = "lazyval.mapstruct.package"
     }
 
-    override fun generatorId(): String = GENERATOR_ID
+    override fun generatorId(): String = StockGeneratorIds.MAPSTRUCT
 
     override fun requiredClasspath(): Set<String> = setOf("org.mapstruct.Mapper")
 

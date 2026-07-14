@@ -9,10 +9,9 @@ import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFile
 import com.qualityminds.lazyval.LazyValue
 import com.qualityminds.lazyval.collections.NonEmptySet
-import com.qualityminds.lazyval.ksp.internal.codegen.jackson.Jackson2Generator
-import com.qualityminds.lazyval.ksp.internal.codegen.jackson.Jackson3Generator
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
+import com.qualityminds.lazyval.ksp.spi.StockGeneratorIds
 import com.qualityminds.lazyval.ksp.spi.ValidatedElement
 import java.io.IOException
 import java.util.*
@@ -140,36 +139,33 @@ class LazyvalSymbolProcessor(
 
             val disabledByConfig = lazyvalEnvironment.disabledGenerators()
 
-            val generators = allProviderGenerators.stream()
-                // TODO check for ID
-                .filter{generator -> generator.requiredClasspath().stream().allMatch{fqn -> lazyvalEnvironment.isClassAvailable(fqn)}}
-                .filter{generator -> !disabledByConfig.contains(generator.generatorId())}
-                .toList()
+            val candidates = allProviderGenerators
+                .filter { g -> g.requiredClasspath().all { fqn -> lazyvalEnvironment.isClassAvailable(fqn) } }
+                .filter { g -> g.generatorId() !in disabledByConfig }
+                .toSet()
+
+            val resolution = GeneratorResolution.resolve(candidates)
+
+            resolution.superseded.forEach { s ->
+                lazyvalEnvironment.info(
+                    "Lazyval: '${s.id}' was auto-disabled because '${s.by}' supersedes it")
+            }
 
             lazyvalEnvironment.info(
-                "Active Providers: " + generators.joinToString(", ") { it.generatorId() })
+                "Active Providers: " + resolution.active.joinToString(", ") { it.generatorId() })
 
-            val activeIds = generators.map { it.generatorId() }.toSet()
-            if (activeIds.contains("cassandra") && activeIds.contains("cassandra-spring-data")) {
-                lazyvalEnvironment.info("Both 'cassandra' and 'cassandra-spring-data' generators are active. " +
-                    "You can disable one via 'lazyval.generators.disable'.")
-            }
-            if (activeIds.contains("mongodb") && activeIds.contains("spring-data")
-                && lazyvalEnvironment.isClassAvailable("org.springframework.data.mongodb.core.convert.MongoCustomConversions")) {
-                lazyvalEnvironment.info("Both 'mongodb' and 'spring-data' generators are active with spring-data-mongodb on the classpath. " +
-                    "You can disable one via 'lazyval.generators.disable' if only one integration is needed.")
-            }
-            if (activeIds.contains(Jackson3Generator.GENERATOR_ID) && activeIds.contains(Jackson2Generator.GENERATOR_ID)) {
+            val activeIds = resolution.active.map { it.generatorId() }.toSet()
+            if (activeIds.contains(StockGeneratorIds.JACKSON_3) && activeIds.contains(StockGeneratorIds.JACKSON_2)) {
                 lazyvalEnvironment.warn("Both 'jackson-2' and 'jackson-3' generators are active (probably due to transitive dependencies). " +
                         "This might be intentional, then ignore this warning. " +
                         "Otherwise, disable via one 'lazyval.generators.disable'")
             }
 
-            if (generators.isEmpty()) {
+            if (resolution.active.isEmpty()) {
                 lazyvalEnvironment.warnMissingClasspath()
             }
 
-            return generators.stream()
+            return resolution.active.stream()
         } finally {
             Thread.currentThread().contextClassLoader = originalContextClassLoader
         }

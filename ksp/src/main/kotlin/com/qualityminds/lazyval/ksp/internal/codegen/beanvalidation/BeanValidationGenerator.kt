@@ -5,6 +5,7 @@ import com.qualityminds.lazyval.collections.NonEmptySet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
+import com.qualityminds.lazyval.ksp.spi.StockGeneratorIds
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ksp.toClassName
@@ -38,7 +39,6 @@ import com.palantir.javapoet.TypeSpec as JTypeSpec
 class BeanValidationGenerator : Generator {
 
     companion object {
-        private const val GENERATOR_ID = "beanvalidation"
         private const val OPTION_GENERATED_PACKAGE = "lazyval.beanvalidation.package"
 
         private val J_VALUE_EXTRACTOR = JClassName.get("jakarta.validation.valueextraction", "ValueExtractor")
@@ -51,7 +51,7 @@ class BeanValidationGenerator : Generator {
             .build()
     }
 
-    override fun generatorId(): String = GENERATOR_ID
+    override fun generatorId(): String = StockGeneratorIds.BEAN_VALIDATION
 
     override fun requiredClasspath(): Set<String> =
         setOf("jakarta.validation.valueextraction.ValueExtractor")

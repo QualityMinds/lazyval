@@ -4,6 +4,7 @@ import com.palantir.javapoet.*;
 import com.qualityminds.lazyval.collections.NonEmptySet;
 import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
+import com.qualityminds.lazyval.processor.spi.StockGeneratorIds;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
@@ -17,7 +18,6 @@ import static com.qualityminds.lazyval.processor.spi.GeneratorResult.Metadata;
 // must only be public for ServiceLoader, but it is not part of the API
 public class JsonbGenerator implements Generator {
 
-    private static final String GENERATOR_ID = "jsonb";
     private static final String OPTION_GENERATED_PACKAGE = "lazyval.jsonb.package";
     private static final String OPTION_REGISTER = "lazyval.jsonb.register";
 
@@ -34,7 +34,7 @@ public class JsonbGenerator implements Generator {
 
     @Override
     public String generatorId() {
-        return GENERATOR_ID;
+        return StockGeneratorIds.JSONB;
     }
 
     @Override

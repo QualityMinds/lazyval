@@ -30,7 +30,7 @@ IMPORTANT: The SPI has to leak the underlying processing API (`javax.lang.model`
 Regardless of the target toolchain, writing a custom generator follows the same four steps:
 
 . Add the chosen processor artifact as a *compile* dependency.
-. Implement the `Generator` interface (`generatorId`, `requiredClasspath`, `supportedOptions`, `generate`).
+. Implement the `Generator` interface (`generatorId`, `requiredClasspath`, `supportedOptions`, `supersedes`, `generate`).
 . Register the implementation in `META-INF/services/` under the SPI's fully-qualified name.
 . Add the resulting JAR to the *annotation-processor-classpath* of the consuming project.
 
@@ -38,6 +38,24 @@ Language-specific details, code snippets, and Maven wiring live on the dedicated
 
 * xref:spi:java.adoc[Java SPI]
 * xref:spi:kotlin.adoc[Kotlin SPI]
+
+[[superseding-other-generators]]
+== Superseding other generators
+
+A generator can declare via `supersedes()` that it replaces one or more other generators. When two generators would both be active but one supersedes the other, the superseded one is silently dropped from the active set and Lazyval emits an info-level message per dropped generator:
+
+ Lazyval: 'cassandra' was auto-disabled because 'spring-data' supersedes it
+
+The built-in `spring-data` generator supersedes `cassandra` and `mongodb` for this reason — Spring Data's conversion layer runs before the driver's codec layer, so the standalone codecs would be dead code.
+
+Stock generator ids are available as public constants in `StockGeneratorIds` (`processor.spi.StockGeneratorIds` for Java, `ksp.spi.StockGeneratorIds` for Kotlin) so third-party implementations can supersede them without hardcoding string literals.
+
+=== Semantics
+
+* Only *active* generators exert supersession. If A supersedes B but A itself is dropped (classpath not satisfied or disabled by config), then B is not superseded and runs normally.
+* Unknown ids in `supersedes()` are silently ignored — safe when the target may not be present in every deployment.
+* There is currently no way to have both a superseder and its target active in the same build. To swap the winner, disable the superseder with `lazyval.generators.disable=<id>` — the superseded generator then activates in its place.
+* Cycles in the supersedes graph are a configuration error — compilation fails with `IllegalStateException` at processor init.
 
 == Runnable examples
 

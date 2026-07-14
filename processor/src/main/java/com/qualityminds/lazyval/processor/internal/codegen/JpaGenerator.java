@@ -4,6 +4,7 @@ import com.palantir.javapoet.*;
 import com.qualityminds.lazyval.collections.NonEmptySet;
 import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
+import com.qualityminds.lazyval.processor.spi.StockGeneratorIds;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
@@ -25,7 +26,6 @@ import java.util.stream.Stream;
 // tag::docu[]
 public class JpaGenerator implements Generator {
 
-    private static final String GENERATOR_ID = "jpa";
     private static final String OPTION_GENERATED_PACKAGE = "lazyval.jpa.package";
 
     private static final AnnotationSpec CONVERTER_ANNOTATION = AnnotationSpec.builder(ClassName.get("jakarta.persistence", "Converter"))
@@ -34,7 +34,7 @@ public class JpaGenerator implements Generator {
 
     @Override
     public String generatorId() {
-        return GENERATOR_ID;
+        return StockGeneratorIds.JPA;
     }
 
     @Override

@@ -1,10 +1,8 @@
 package com.qualityminds.lazyval.ksp.internal
 
-import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.symbol.KSFunctionDeclaration
-import com.google.devtools.ksp.symbol.KSPropertyDeclaration
-import com.google.devtools.ksp.symbol.KSType
-import com.google.devtools.ksp.symbol.Modifier
+import com.google.devtools.ksp.symbol.*
+import com.qualityminds.lazyval.ksp.internal.AccessorLookup.accessorCandidates
+import com.qualityminds.lazyval.ksp.internal.AccessorLookup.findAccessor
 
 /**
  * Pure, KSP-free heuristic for pairing a value-type's property with the accessor method that exposes
@@ -13,7 +11,7 @@ import com.google.devtools.ksp.symbol.Modifier
  * ([toShape], [matchesShape]) — the only KSP-aware code — live here too so the entire
  * KSP-to-heuristic contract is in one place.
  */
-object AccessorLookup {
+internal object AccessorLookup {
 
     /**
      * Inherited from `Any`/`Object` by every class. `hashCode(): Int` and `toString(): String`
@@ -98,13 +96,13 @@ fun findAccessor(
 }
 
 /** Maps a KSP property declaration to its [AccessorLookup.Property] shape. */
-fun KSPropertyDeclaration.toProperty(): AccessorLookup.Property = AccessorLookup.Property(
+internal fun KSPropertyDeclaration.toProperty(): AccessorLookup.Property = AccessorLookup.Property(
     name = simpleName.asString(),
     typeFqn = type.resolve().toFqn(),
 )
 
 /** Maps a KSP function declaration to its [AccessorLookup.Method] shape. */
-fun KSFunctionDeclaration.toShape(): AccessorLookup.Method = AccessorLookup.Method(
+internal fun KSFunctionDeclaration.toShape(): AccessorLookup.Method = AccessorLookup.Method(
     name = simpleName.asString(),
     returnTypeFqn = returnType?.resolve()?.toFqn(),
     parameterCount = parameters.size,
@@ -112,7 +110,7 @@ fun KSFunctionDeclaration.toShape(): AccessorLookup.Method = AccessorLookup.Meth
 )
 
 /** Whether this KSP function corresponds to the given [AccessorLookup.Method] (used for look-back). */
-fun KSFunctionDeclaration.matchesShape(shape: AccessorLookup.Method): Boolean =
+internal fun KSFunctionDeclaration.matchesShape(shape: AccessorLookup.Method): Boolean =
     simpleName.asString() == shape.name && returnType?.resolve()?.toFqn() == shape.returnTypeFqn
 
 /** FQN of a KSP type; falls back to `toString()` when no qualified name is available. */

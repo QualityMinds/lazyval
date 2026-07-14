@@ -84,6 +84,15 @@ interface Generator {
     fun supportedOptions(): Set<String>
 
     /**
+     * A generator can supersede other generators. For instance, 'spring-data' and 'cassandra' generators share the same
+     * driver classpath which would normally activate both at the same time. Superseding solves that issue.
+     * @return set of generators that this generator supersedes.
+     */
+    fun supersedes(): Set<String?> {
+        return emptySet()
+    }
+
+    /**
      * Called only once with a list of all domain primitives annotated with [com.qualityminds.lazyval.LazyValue].
      * @param validatedElements all elements annotated with [com.qualityminds.lazyval.LazyValue]. Guaranteed to be non-empty.
      * @param context provided [Context]

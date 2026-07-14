@@ -21,7 +21,7 @@ import java.util.Set;
  * to pair field-and-getter consistently — both for {@code @LazyValue}-annotated local classes and
  * for external Java types like {@code java.time.Year} where the field name and getter name differ.
  */
-public final class AccessorLookup {
+final class AccessorLookup {
 
     private AccessorLookup() {}
 

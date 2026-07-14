@@ -23,6 +23,7 @@ class KspSpringDataCassandraIT extends Specification {
     public static final Dependency dependencySpringCore = new Dependency("org.springframework", "spring-core", "6.2.7")
     public static final Dependency dependencySpringBeans = new Dependency("org.springframework", "spring-beans", "6.2.7")
     public static final Dependency dependencySpringContext = new Dependency("org.springframework", "spring-context", "6.2.7")
+    public static final Dependency dependencyDriverCore = new Dependency("com.datastax.oss", "java-driver-core", "4.17.0")
 
     private static final String GENERATED_FILE_NAME = "LazyvalSpringDataConfiguration.kt"
 
@@ -41,7 +42,9 @@ class KspSpringDataCassandraIT extends Specification {
                         dependencySpringCore,
                         dependencySpringBeans,
                         dependencySpringContext,
-                        dependencyJakartaAnnotations)
+                        dependencyJakartaAnnotations,
+                        // test supersedes
+                        dependencyDriverCore)
 
         and: 'a defined approval for the generated configuration'
         List<Approval.ForKotlin> approvals = [

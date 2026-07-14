@@ -4,6 +4,7 @@ import com.qualityminds.lazyval.collections.NonEmptySet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
+import com.qualityminds.lazyval.ksp.spi.StockGeneratorIds
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
@@ -29,11 +30,10 @@ import java.util.stream.Stream
 class JpaGenerator : Generator {
 
     companion object {
-        private const val GENERATOR_ID = "jpa"
         private const val OPTION_GENERATED_PACKAGE = "lazyval.jpa.package"
     }
 
-    override fun generatorId(): String = GENERATOR_ID
+    override fun generatorId(): String = StockGeneratorIds.JPA
 
     override fun requiredClasspath(): Set<String> = setOf("jakarta.persistence.AttributeConverter")
 

@@ -7,6 +7,10 @@ domain-primitives and their underlying CQL types when reading from or writing to
 NOTE: For Spring Data Cassandra projects, see xref:spring-data.adoc[Spring Data] — a separate generator
 produces `@ReadingConverter`/`@WritingConverter` classes and a `CassandraCustomConversions` bean.
 
+IMPORTANT: When `spring-data-cassandra` is on the classpath, the `spring-data` generator supersedes
+`cassandra` and this generator is silently dropped from the active set. Lazyval logs an info message
+in that case. See xref:spi:index.adoc#superseding-other-generators[Superseding other generators] for details.
+
 == Config Options
 
 |===
