@@ -1,6 +1,6 @@
 package com.qualityminds.lazyval.ksp
 
-import com.qualityminds.lazyval.ksp.internal.codegen.MapstructGenerator
+import com.qualityminds.lazyval.ksp.spi.StockGeneratorIds
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
@@ -32,7 +32,7 @@ class KspIT extends Specification {
         given:
         def scenario = Scenario.Kotlin.isbn()
                 .withDependencies(dependencyMapstruct)
-                .withDisabledGenerators(MapstructGenerator.GENERATOR_ID)
+                .withDisabledGenerators(StockGeneratorIds.MAPSTRUCT)
 
         expect:
         testkitKotlin.run(projectDir, scenario) == new Testresult.Kotlin.NothingGenerated()

@@ -1,6 +1,6 @@
 package com.qualityminds.lazyval.processor
 
-import com.qualityminds.lazyval.processor.internal.codegen.MapstructGenerator
+import com.qualityminds.lazyval.processor.spi.StockGeneratorIds
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
@@ -30,7 +30,7 @@ class ApIT extends Specification {
         given:
         def scenario = Scenario.Java.isbn()
                 .withDependencies(dependencyMapstruct)
-                .withDisabledGenerators(MapstructGenerator.GENERATOR_ID)
+                .withDisabledGenerators(StockGeneratorIds.MAPSTRUCT)
 
         expect:
         testkitJava.run(projectDir, scenario) == new Testresult.Java.NothingGenerated()

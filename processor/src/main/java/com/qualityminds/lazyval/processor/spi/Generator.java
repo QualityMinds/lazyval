@@ -47,8 +47,9 @@ public interface Generator {
     Set<String> supportedOptions();
 
     /**
-     *
-     * @return
+     * A generator can supersede other generators. For instance, 'spring-data' and 'cassandra' generators share the same
+     * driver classpath which would normally activate both at the same time. Superseding solves that issue.
+     * @return set of generators that this generator supersedes.
      */
     default Set<String> supersedes() {
         return Collections.emptySet();

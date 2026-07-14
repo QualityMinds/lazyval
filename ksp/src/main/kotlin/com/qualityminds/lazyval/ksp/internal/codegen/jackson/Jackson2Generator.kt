@@ -3,6 +3,7 @@ package com.qualityminds.lazyval.ksp.internal.codegen.jackson
 import com.qualityminds.lazyval.collections.NonEmptySet
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
+import com.qualityminds.lazyval.ksp.spi.StockGeneratorIds
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
@@ -13,14 +14,13 @@ import java.util.stream.Stream
 class Jackson2Generator : Generator {
 
     companion object {
-        const val GENERATOR_ID = "jackson-2"
         private const val OPTION_GENERATED_PACKAGE = "lazyval.jackson.package"
         private val VERSION = GeneratorConfig.JACKSON_2
     }
 
     private val codegen = JacksonCodegen(VERSION)
 
-    override fun generatorId(): String = GENERATOR_ID
+    override fun generatorId(): String = StockGeneratorIds.JACKSON_2
 
     override fun requiredClasspath(): Set<String> = setOf("com.fasterxml.jackson.databind.Module")
 

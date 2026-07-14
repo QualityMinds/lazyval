@@ -4,6 +4,7 @@ import com.palantir.javapoet.*;
 import com.qualityminds.lazyval.collections.NonEmptySet;
 import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
+import com.qualityminds.lazyval.processor.spi.StockGeneratorIds;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
@@ -15,12 +16,11 @@ import java.util.stream.Stream;
 @SuppressWarnings("doclint:accessibility,missing")
 final public class MapstructGenerator implements Generator {
 
-    private static final String GENERATOR_ID = "mapstruct";
     private static final String OPTION_GENERATED_PACKAGE = "lazyval.mapstruct.package";
 
     @Override
     public String generatorId() {
-        return GENERATOR_ID;
+        return StockGeneratorIds.MAPSTRUCT;
     }
 
     @Override

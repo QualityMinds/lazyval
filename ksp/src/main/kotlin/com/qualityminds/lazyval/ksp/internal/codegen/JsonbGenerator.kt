@@ -4,6 +4,7 @@ import com.qualityminds.lazyval.collections.NonEmptySet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
+import com.qualityminds.lazyval.ksp.spi.StockGeneratorIds
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
@@ -14,7 +15,6 @@ import java.util.stream.Stream
 class JsonbGenerator : Generator {
 
     companion object {
-        private const val GENERATOR_ID = "jsonb"
         private const val OPTION_GENERATED_PACKAGE = "lazyval.jsonb.package"
         private const val OPTION_REGISTER = "lazyval.jsonb.register"
 
@@ -31,7 +31,7 @@ class JsonbGenerator : Generator {
         private const val QUARKUS_CUSTOMIZER_FQCN = "io.quarkus.jsonb.JsonbConfigCustomizer"
     }
 
-    override fun generatorId(): String = GENERATOR_ID
+    override fun generatorId(): String = StockGeneratorIds.JSONB
 
     override fun requiredClasspath(): Set<String> = setOf("jakarta.json.bind.adapter.JsonbAdapter")
 

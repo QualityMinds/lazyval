@@ -5,6 +5,7 @@ import com.qualityminds.lazyval.collections.NonEmptySet;
 import com.qualityminds.lazyval.processor.internal.codegen.GeneratedStamp;
 import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
+import com.qualityminds.lazyval.processor.spi.StockGeneratorIds;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
@@ -28,7 +29,6 @@ import java.util.stream.Stream;
  */
 public class BeanValidationGenerator implements Generator {
 
-    private static final String GENERATOR_ID = "beanvalidation";
     private static final String OPTION_GENERATED_PACKAGE = "lazyval.beanvalidation.package";
 
     private static final ClassName VALUE_EXTRACTOR =
@@ -44,7 +44,7 @@ public class BeanValidationGenerator implements Generator {
 
     @Override
     public String generatorId() {
-        return GENERATOR_ID;
+        return StockGeneratorIds.BEAN_VALIDATION;
     }
 
     @Override

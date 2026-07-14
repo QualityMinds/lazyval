@@ -5,6 +5,7 @@ import com.qualityminds.lazyval.collections.NonEmptySet;
 import com.qualityminds.lazyval.processor.internal.codegen.GeneratedStamp;
 import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
+import com.qualityminds.lazyval.processor.spi.StockGeneratorIds;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
@@ -27,7 +28,6 @@ import java.util.stream.Stream;
 // must only be public for ServiceLoader, but it is not part of the API
 public class CassandraCodecGenerator implements Generator {
 
-    private static final String GENERATOR_ID = "cassandra";
     private static final String OPTION_GENERATED_PACKAGE = "lazyval.cassandra.package";
     private static final String OPTION_QUARKUS_REGISTER = "lazyval.cassandra.quarkus.register";
     private static final String OPTION_USER_CODECS = "lazyval.cassandra.codecs";
@@ -84,7 +84,7 @@ public class CassandraCodecGenerator implements Generator {
 
     @Override
     public String generatorId() {
-        return GENERATOR_ID;
+        return StockGeneratorIds.CASSANDRA_CODEC;
     }
 
     @Override

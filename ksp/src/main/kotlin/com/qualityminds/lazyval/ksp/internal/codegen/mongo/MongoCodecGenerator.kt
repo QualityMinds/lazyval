@@ -4,6 +4,7 @@ import com.qualityminds.lazyval.collections.NonEmptySet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
+import com.qualityminds.lazyval.ksp.spi.StockGeneratorIds
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
@@ -56,7 +57,6 @@ import java.util.stream.Stream
 class MongoCodecGenerator : Generator {
 
     companion object {
-        private const val GENERATOR_ID = "mongodb"
         private const val OPTION_GENERATED_PACKAGE = "lazyval.mongodb.package"
         private const val OPTION_USER_CODECS = "lazyval.mongodb.codecs"
         private const val OPTION_QUARKUS_REGISTER = "lazyval.mongodb.quarkus.register"
@@ -83,7 +83,7 @@ class MongoCodecGenerator : Generator {
         private const val REGISTRAR_CLASS_NAME = "LazyvalMongoCodecRegistrar"
     }
 
-    override fun generatorId(): String = GENERATOR_ID
+    override fun generatorId(): String = StockGeneratorIds.MONGODB_CODEC
 
     override fun requiredClasspath(): Set<String> = setOf(CODEC_FQN)
 

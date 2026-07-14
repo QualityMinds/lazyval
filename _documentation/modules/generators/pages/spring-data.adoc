@@ -201,14 +201,17 @@ If a Java factory method can return `null`, the generated converter will propaga
 
 == Notes
 
-=== Recommendation: disable default Cassandra generator
+=== Automatic supersession of `cassandra` and `mongodb`
 
-As the DataStax Java driver is pulled in transitively by `spring-boot-starter-data-cassandra`, Lazyvals `cassandra`
-generator activates as well as each generator is unaware of any other at the moment. This will cause the generation of
-additional Cassandra Codecs which won't interfere with Spring-Data, but they are not necessary.
+`spring-data` supersedes both `cassandra` and `mongodb`. Spring Data's conversion layer runs before
+the driver's codec layer, so the standalone codec generators would produce dead code on the Spring
+Data path — Lazyval therefore drops them from the active set automatically. No manual
+`lazyval.generators.disable` is required in the common Spring Data setup.
 
-Lazyval will emit a warning to give users the upper hand which generator should be disabled or not.
-In general you want to set `lazyval.generators.disable=cassandra`.
+If you'd rather have the driver-level codecs than the Spring Data converters, disable `spring-data`
+with `lazyval.generators.disable=spring-data`; the standalone generators then activate in its place.
+Note that there is currently no way to have both active at the same time — see
+xref:spi:index.adoc#superseding-other-generators[Superseding other generators].
 
 === Jackson 2 conflict with Spring Boot Cassandra
 

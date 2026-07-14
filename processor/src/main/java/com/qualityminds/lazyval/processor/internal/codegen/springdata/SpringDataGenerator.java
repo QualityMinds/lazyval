@@ -5,6 +5,7 @@ import com.qualityminds.lazyval.collections.NonEmptySet;
 import com.qualityminds.lazyval.processor.internal.codegen.GeneratedStamp;
 import com.qualityminds.lazyval.processor.spi.Generator;
 import com.qualityminds.lazyval.processor.spi.GeneratorResult;
+import com.qualityminds.lazyval.processor.spi.StockGeneratorIds;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
@@ -34,7 +35,6 @@ import java.util.stream.Stream;
 // must only be public for ServiceLoader, but it is not part of the API
 public class SpringDataGenerator implements Generator {
 
-    private static final String GENERATOR_ID = "spring-data";
     private static final String OPTION_GENERATED_PACKAGE = "lazyval.springdata.package";
     private static final String OPTION_CASSANDRA_CONVERTERS = "lazyval.springdata.cassandra.converters";
     private static final String OPTION_MONGO_CONVERTERS = "lazyval.springdata.mongo.converters";
@@ -60,7 +60,7 @@ public class SpringDataGenerator implements Generator {
 
     @Override
     public String generatorId() {
-        return GENERATOR_ID;
+        return StockGeneratorIds.SPRING_DATA;
     }
 
     @Override
@@ -71,6 +71,11 @@ public class SpringDataGenerator implements Generator {
     @Override
     public Set<String> supportedOptions() {
         return Set.of(OPTION_GENERATED_PACKAGE, OPTION_CASSANDRA_CONVERTERS, OPTION_MONGO_CONVERTERS);
+    }
+
+    @Override
+    public Set<String> supersedes() {
+        return Set.of(StockGeneratorIds.CASSANDRA_CODEC, StockGeneratorIds.MONGODB_CODEC);
     }
 
     @Override

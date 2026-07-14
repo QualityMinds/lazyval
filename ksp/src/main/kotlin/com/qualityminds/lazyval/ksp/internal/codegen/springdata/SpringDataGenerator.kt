@@ -4,6 +4,7 @@ import com.qualityminds.lazyval.collections.NonEmptySet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
+import com.qualityminds.lazyval.ksp.spi.StockGeneratorIds
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
@@ -43,7 +44,6 @@ import java.util.stream.Stream
 class SpringDataGenerator : Generator {
 
     companion object {
-        private const val GENERATOR_ID = "spring-data"
         private const val OPTION_GENERATED_PACKAGE = "lazyval.springdata.package"
         private const val OPTION_CASSANDRA_CONVERTERS = "lazyval.springdata.cassandra.converters"
         private const val OPTION_MONGO_CONVERTERS = "lazyval.springdata.mongo.converters"
@@ -70,13 +70,16 @@ class SpringDataGenerator : Generator {
         )
     }
 
-    override fun generatorId(): String = GENERATOR_ID
+    override fun generatorId(): String = StockGeneratorIds.SPRING_DATA
 
     override fun requiredClasspath(): Set<String> =
         setOf("org.springframework.data.convert.ReadingConverter")
 
     override fun supportedOptions(): Set<String> =
         setOf(OPTION_GENERATED_PACKAGE, OPTION_CASSANDRA_CONVERTERS, OPTION_MONGO_CONVERTERS)
+
+    override fun supersedes(): Set<String> =
+        setOf(StockGeneratorIds.CASSANDRA_CODEC, StockGeneratorIds.MONGODB_CODEC)
 
     override fun generate(
         validatedElements: NonEmptySet<ValidatedKspGeneratorElement>,

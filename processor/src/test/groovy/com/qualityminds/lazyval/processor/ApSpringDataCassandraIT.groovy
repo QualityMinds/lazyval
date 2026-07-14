@@ -39,7 +39,9 @@ class ApSpringDataCassandraIT extends Specification {
                         dependencySpringDataCommons,
                         dependencySpringCore,
                         dependencySpringBeans,
-                        dependencySpringContext
+                        dependencySpringContext,
+                        // test supersedes
+                        dependencyDriverCore
                 )
 
         and: 'a defined approval for the generated configuration'
