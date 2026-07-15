@@ -111,7 +111,7 @@ public class JavaToolchain implements AutoCloseable {
         }
     }
 
-    private static TreeSet<Path> walkFiles(Path root, java.util.function.Predicate<Path> filter) throws IOException {
+    private static SortedSet<Path> walkFiles(Path root, java.util.function.Predicate<Path> filter) throws IOException {
         if (!Files.isDirectory(root)) {
             return new TreeSet<>();
         }

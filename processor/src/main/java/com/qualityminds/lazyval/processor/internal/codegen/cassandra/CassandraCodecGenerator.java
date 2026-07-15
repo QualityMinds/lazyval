@@ -183,7 +183,9 @@ public class CassandraCodecGenerator implements Generator {
     private static String resolveTypeCodecConstant(ValidatedGeneratorElement element) {
         TypeMirror wrappedMirror = element.wrappedType().typeMirror();
         String typeName = wrappedMirror.toString();
-        return TYPE_CODEC_MAP.get(typeName);
+        return Objects.requireNonNull(
+                TYPE_CODEC_MAP.get(typeName),
+                () -> "No TypeCodecs constant mapping for wrapped type '" + typeName + "'");
     }
 
     private static TypeSpec buildMappingCodec(ValidatedGeneratorElement element, String typeCodecConstant) {

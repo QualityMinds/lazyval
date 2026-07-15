@@ -87,7 +87,7 @@ public class KotlinToolchain implements AutoCloseable {
         }
     }
 
-    private static TreeSet<Path> walkFiles(Path root) throws IOException {
+    private static SortedSet<Path> walkFiles(Path root) throws IOException {
         if (!Files.isDirectory(root)) {
             return new TreeSet<>();
         }

@@ -46,7 +46,12 @@ public final class ImportSort {
     public static String sort(String content) {
         var lines = Arrays.asList(content.split("\n", -1));
         var sorted = sortLines(lines);
-        if (sorted == lines) {
+        // Intentional identity check: sortLines returns the *same* reference
+        // when no import block was found. equals() would be wrong here — an
+        // unrelated content-equal list must still be re-joined below.
+        @SuppressWarnings("ReferenceEquality")
+        boolean unchanged = (sorted == lines);
+        if (unchanged) {
             return content;
         }
         return String.join("\n", sorted);

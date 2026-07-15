@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 
 /**
  * Generates a native MongoDB driver {@code Codec} for each domain-primitive, grouped into a
- * {@code LazyvalMongoCodecs} class that implements {@link
+ * {@code LazyvalMongoCodecs} class that implements {@code
  * org.bson.codecs.configuration.CodecProvider CodecProvider}. The provider resolves each
  * primitive's inner-type codec from the supplied {@code CodecRegistry} on demand and
  * delegates {@code encode}/{@code decode} to it, which transparently picks up whatever
@@ -23,7 +23,7 @@ import java.util.stream.Stream;
  *
  * <h3>Null handling — Mongo driver convention</h3>
  * The generated codecs follow the MongoDB Java driver convention: property-level codecs
- * operate on non-null values and assume the {@link org.bson.BsonReader} is positioned on a
+ * operate on non-null values and assume the {@code org.bson.BsonReader} is positioned on a
  * non-null BSON token. This matches how the driver's own stock codecs
  * ({@code StringCodec}, {@code IntegerCodec}, {@code DateCodec}, ...) behave — none of them
  * null-guard their {@code encode}/{@code decode}.
@@ -114,9 +114,6 @@ public class MongoCodecGenerator implements Generator {
         }
 
         List<GeneratorResult> results = new ArrayList<>();
-        if (codecSpecs.isEmpty()) {
-            return results.stream();
-        }
 
         boolean hasMongoDriverCore = context.isOnClasspath(MONGO_CLIENT_SETTINGS_FQN);
         TypeSpec utilitySpec = buildCodecsUtility(orderedElements, codecSpecs, userCodecFqns, hasMongoDriverCore);
@@ -254,7 +251,7 @@ public class MongoCodecGenerator implements Generator {
 
         FieldSpec userCodecsField = FieldSpec.builder(codecArray, "userCodecs", Modifier.PRIVATE, Modifier.FINAL).build();
 
-        MethodSpec constructor = buildConstructor(elements, userCodecFqns, codecArray);
+        MethodSpec constructor = buildConstructor(elements, userCodecFqns);
 
         MethodSpec getMethod = buildGetMethod(elements, !userCodecFqns.isEmpty());
 
@@ -294,8 +291,7 @@ public class MongoCodecGenerator implements Generator {
     }
 
     private static MethodSpec buildConstructor(List<ValidatedGeneratorElement> elements,
-                                               List<String> userCodecFqns,
-                                               ArrayTypeName codecArray) {
+                                               List<String> userCodecFqns) {
         MethodSpec.Builder ctor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC);
 
