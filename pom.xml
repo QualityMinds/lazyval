@@ -37,6 +37,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <version.java>17</version.java>
+        <!-- skip docs by default (only used in pr and publish) -->
+        <maven.javadoc.skip>true</maven.javadoc.skip>
         <!-- dependencies -->
         <version.eclipse-collections>13.0.0</version.eclipse-collections>
         <version.groovy>5.0.6</version.groovy>
@@ -156,6 +158,9 @@
                     <groupId>org.jetbrains.dokka</groupId>
                     <artifactId>dokka-maven-plugin</artifactId>
                     <version>${version.plugin.dokka}</version>
+                    <configuration>
+                        <skip>${maven.javadoc.skip}</skip>
+                    </configuration>
                     <executions>
                         <execution>
                             <phase>package</phase>
@@ -312,6 +317,22 @@
                         <serverName>lazyvalServer</serverName>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${version.plugin.javadoc}</version>
+                    <configuration>
+                        <excludePackageNames>*.internal:*.internal.*</excludePackageNames>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
             </plugins>
         </pluginManagement>
     </build>
@@ -359,6 +380,9 @@
         </profile>
         <profile>
             <id>publish</id>
+            <properties>
+                <maven.javadoc.skip>false</maven.javadoc.skip>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -370,22 +394,6 @@
                                 <id>attach-sources</id>
                                 <goals>
                                     <goal>jar-no-fork</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>${version.plugin.javadoc}</version>
-                        <configuration>
-                            <excludePackageNames>*.internal:*.internal.*</excludePackageNames>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>attach-javadocs</id>
-                                <goals>
-                                    <goal>jar</goal>
                                 </goals>
                             </execution>
                         </executions>
