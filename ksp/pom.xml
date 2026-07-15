@@ -14,8 +14,6 @@
 
     <properties>
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
-        <!-- use dokka instead of javadoc for this module -->
-        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
     <dependencies>
@@ -103,6 +101,10 @@
                 <artifactId>flatten-maven-plugin</artifactId>
             </plugin>
             <plugin>
+                <groupId>org.jetbrains.dokka</groupId>
+                <artifactId>dokka-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>${version.plugin.shade}</version>
@@ -178,17 +180,6 @@
     </build>
 
     <profiles>
-        <profile>
-            <id>publish</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.jetbrains.dokka</groupId>
-                        <artifactId>dokka-maven-plugin</artifactId>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
         <profile>
             <id>static-analysis</id>
             <build>

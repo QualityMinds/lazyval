@@ -37,7 +37,7 @@ jobs:
           distribution: ${{ env.JAVA_DISTRIBUTION }}
           cache: maven
       - name: Build and Install to Local Repository
-        run: ./mvnw -Pstatic-analysis '-P!with-integration-tests' --no-snapshot-updates --no-transfer-progress --batch-mode install --file pom.xml
+        run: ./mvnw -Pstatic-analysis '-P!with-integration-tests' -Dmaven.javadoc.skip=false --no-snapshot-updates --no-transfer-progress --batch-mode install --file pom.xml
       - name: Upload Lazyval Artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
