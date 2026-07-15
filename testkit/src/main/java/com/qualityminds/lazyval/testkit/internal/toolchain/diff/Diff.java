@@ -5,7 +5,6 @@ import com.github.difflib.text.DiffRowGenerator;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.UnaryOperator;
 
 /**
  * Compares generated content against expected content and produces a {@link ComparisonResult}.
@@ -32,7 +31,9 @@ public final class Diff {
 
     // Tabs render very differently across viewers; normalize to a stable 4-space width before
     // comparing so visually equal content compares equal regardless of indentation style.
-    private static final UnaryOperator<String> NORMALIZER = line -> line.replace("\t", "    ");
+    private static String normalize(String line) {
+        return line.replace("\t", "    ");
+    }
 
     private Diff() {
     }
@@ -131,7 +132,7 @@ public final class Diff {
                 .ignoreWhiteSpaces(true)
                 // the default normalizer HTML-escapes <, > and & (e.g. "<" -> "&lt;");
                 // for plain-text/terminal output we want the raw characters preserved
-                .lineNormalizer(NORMALIZER)
+                .lineNormalizer(Diff::normalize)
                 // emit neutral sentinel markers around inline-diff segments; the renderer converts
                 // them into [...] brackets at display time
                 .oldTag(open -> open ? SEGMENT_OPEN_TAG : SEGMENT_CLOSE_TAG)
