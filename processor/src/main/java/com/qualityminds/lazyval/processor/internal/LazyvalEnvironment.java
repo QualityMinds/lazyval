@@ -7,12 +7,7 @@ import org.jspecify.annotations.Nullable;
 
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.RoundEnvironment;
-import javax.lang.model.element.AnnotationMirror;
-import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Modifier;
-import javax.lang.model.element.TypeElement;
+import javax.lang.model.element.*;
 import javax.lang.model.type.MirroredTypesException;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
@@ -24,6 +19,7 @@ import java.util.stream.Collectors;
 class LazyvalEnvironment {
 
     static final String DISABLED_GENERATORS = "lazyval.generators.disable";
+    static final String SUPERSEDE_ENABLED = "lazyval.generators.supersede";
     static final String BASE_PACKAGE = "lazyval.generators.basePackage";
     private final ProcessingEnvironment processingEnvironment;
 
@@ -224,6 +220,13 @@ class LazyvalEnvironment {
                         .split(",")).map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();
+    }
+
+    public boolean isSupersedeEnabled(){
+        return Optional.ofNullable(processingEnvironment.getOptions()
+                .get(LazyvalEnvironment.SUPERSEDE_ENABLED))
+                .map(Boolean::parseBoolean)
+                .orElse(true);
     }
 
 

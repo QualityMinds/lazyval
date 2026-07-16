@@ -23,6 +23,7 @@ class KspSpringDataMongoIT extends Specification {
     public static final Dependency dependencySpringCore = new Dependency("org.springframework", "spring-core", "6.2.7")
     public static final Dependency dependencySpringBeans = new Dependency("org.springframework", "spring-beans", "6.2.7")
     public static final Dependency dependencySpringContext = new Dependency("org.springframework", "spring-context", "6.2.7")
+    public static final Dependency dependencyBson = new Dependency("org.mongodb", "bson", "5.6.5")
 
     private static final String GENERATED_FILE_NAME = "LazyvalSpringDataConfiguration.kt"
 
@@ -41,7 +42,9 @@ class KspSpringDataMongoIT extends Specification {
                         dependencySpringCore,
                         dependencySpringBeans,
                         dependencySpringContext,
-                        dependencyJakartaAnnotations)
+                        dependencyJakartaAnnotations,
+                        // test supersede
+                        dependencyBson)
 
         and: 'a defined approval for the generated configuration'
         List<Approval.ForKotlin> approvals = [
@@ -54,6 +57,36 @@ class KspSpringDataMongoIT extends Specification {
 
         then:
         result == Testresult.Kotlin.Approved.of(approvals)
+    }
+
+
+    void "Spring Data MongoDB with combined Scenarios and disabled supersede"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Kotlin.combined()
+                .withDependencies(
+                        dependencySpringDataMongo,
+                        dependencySpringDataCommons,
+                        dependencySpringCore,
+                        dependencySpringBeans,
+                        dependencySpringContext,
+                        dependencyJakartaAnnotations,
+                        // test supersede
+                        dependencyBson)
+                .withOption("lazyval.generators.supersede", "false")
+
+        and: 'a defined approval for the generated configuration'
+        List<Approval.ForKotlin> approvals = [
+                Approval.KotlinSource.at("test/boundary/persistence/$GENERATED_FILE_NAME",
+                        "approvals/springdata/mongo/$GENERATED_FILE_NAME")
+        ]
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario, approvals)
+
+        then: 'Mongo Codec was generated as well'
+        result == Testresult.Kotlin.ApprovalMismatch.of([
+                new Testresult.Kotlin.ApprovalMismatch.Failure.UnexpectedFile("test/boundary/persistence/mongodb/LazyvalMongoCodecs.kt")
+        ])
     }
 
     void "single valid user converter is appended to mongoCustomConversions"() {
