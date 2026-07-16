@@ -37,7 +37,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <version.java>17</version.java>
-        <!-- skip docs by default (only used in pr and publish) -->
+        <!-- skip docs by default (only enabled in CI and publish) -->
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <!-- dependencies -->
         <version.eclipse-collections>13.0.0</version.eclipse-collections>
