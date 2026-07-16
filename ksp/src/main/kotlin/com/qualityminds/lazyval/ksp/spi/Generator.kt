@@ -88,9 +88,7 @@ interface Generator {
      * driver classpath which would normally activate both at the same time. Superseding solves that issue.
      * @return set of generators that this generator supersedes.
      */
-    fun supersedes(): Set<String?> {
-        return emptySet()
-    }
+    fun supersedes(): Set<String> = emptySet()
 
     /**
      * Called only once with a list of all domain primitives annotated with [com.qualityminds.lazyval.LazyValue].
