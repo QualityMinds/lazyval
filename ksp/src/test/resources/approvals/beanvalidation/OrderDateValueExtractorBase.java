@@ -1,10 +1,11 @@
-package test;
+package test.domain;
 
 import jakarta.annotation.Generated;
 import jakarta.validation.valueextraction.ExtractedValue;
 import jakarta.validation.valueextraction.ValueExtractor;
-import java.time.LocalDate;
 import scenarios.kotlin.OrderDate;
+
+import java.time.LocalDate;
 
 /**
  * Abstract base class providing the {@code ValueExtractor} superinterface

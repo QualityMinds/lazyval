@@ -59,7 +59,7 @@ public class BeanValidationGenerator implements Generator {
 
     @Override
     public Stream<GeneratorResult> generate(NonEmptySet<ValidatedGeneratorElement> elements, Context context) {
-        final String packageName = context.generatorPackage(OPTION_GENERATED_PACKAGE, null);
+        final String packageName = context.generatorPackage(OPTION_GENERATED_PACKAGE, "domain");
         return elements.stream().flatMap(element -> buildValueExtractor(element, packageName));
     }
 

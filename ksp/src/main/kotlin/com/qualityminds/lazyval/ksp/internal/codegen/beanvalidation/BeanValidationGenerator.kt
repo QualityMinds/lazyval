@@ -62,7 +62,7 @@ class BeanValidationGenerator : Generator {
         validatedElements: NonEmptySet<ValidatedKspGeneratorElement>,
         context: Generator.Context
     ): Stream<GeneratorResult> {
-        val packageName = context.generatorPackage(OPTION_GENERATED_PACKAGE, null)
+        val packageName = context.generatorPackage(OPTION_GENERATED_PACKAGE, "domain")
         return validatedElements.stream().flatMap { buildValueExtractor(context, it, packageName) }
     }
 
