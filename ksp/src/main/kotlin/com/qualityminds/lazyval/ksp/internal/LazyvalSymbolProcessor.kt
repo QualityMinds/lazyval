@@ -151,8 +151,7 @@ class LazyvalSymbolProcessor(
             }
 
             resolution.superseded.forEach { s ->
-                lazyvalEnvironment.info(
-                    "Lazyval: '${s.id}' was auto-disabled because '${s.by}' supersedes it")
+                lazyvalEnvironment.info("'${s.id}' was auto-disabled because '${s.by}' supersedes it")
             }
 
             lazyvalEnvironment.info(
