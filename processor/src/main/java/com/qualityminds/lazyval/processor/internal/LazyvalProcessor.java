@@ -166,7 +166,7 @@ public class LazyvalProcessor extends AbstractProcessor {
             }
 
             result.superseded().forEach(s ->
-                    lazyvalEnvironment.info("Lazyval: '" + s.id() + "' was auto-disabled because '" + s.by() + "' supersedes it"));
+                    lazyvalEnvironment.info("'%s' was auto-disabled because '%s' supersedes it".formatted(s.id(), s.by())));
 
             lazyvalEnvironment.info("Active Providers: " + result.active().stream().map(Generator::generatorId).collect(Collectors.joining(", ")));
 
