@@ -29,15 +29,15 @@ class ApBeanValidationIT extends Specification {
 
         and: 'a defined approval for each generated ValueExtractor and the ServiceLoader registration'
         List<Approval.ForJava> approvals = [
-                Approval.JavaSource.at("test/IsbnValueExtractor.java", "approvals/beanvalidation/IsbnValueExtractor.java"),
-                Approval.JavaSource.at("test/IdsProductIdValueExtractor.java", "approvals/beanvalidation/IdsProductIdValueExtractor.java"),
-                Approval.JavaSource.at("test/QuantityValueExtractor.java", "approvals/beanvalidation/QuantityValueExtractor.java"),
-                Approval.JavaSource.at("test/OrderDateValueExtractor.java", "approvals/beanvalidation/OrderDateValueExtractor.java"),
+                Approval.JavaSource.at("test/domain/IsbnValueExtractor.java", "approvals/beanvalidation/IsbnValueExtractor.java"),
+                Approval.JavaSource.at("test/domain/IdsProductIdValueExtractor.java", "approvals/beanvalidation/IdsProductIdValueExtractor.java"),
+                Approval.JavaSource.at("test/domain/QuantityValueExtractor.java", "approvals/beanvalidation/QuantityValueExtractor.java"),
+                Approval.JavaSource.at("test/domain/OrderDateValueExtractor.java", "approvals/beanvalidation/OrderDateValueExtractor.java"),
                 Approval.ServiceLoader.of("jakarta.validation.valueextraction.ValueExtractor",
-                        "test.IdsProductIdValueExtractor",
-                        "test.IsbnValueExtractor",
-                        "test.OrderDateValueExtractor",
-                        "test.QuantityValueExtractor")
+                        "test.domain.IdsProductIdValueExtractor",
+                        "test.domain.IsbnValueExtractor",
+                        "test.domain.OrderDateValueExtractor",
+                        "test.domain.QuantityValueExtractor")
         ]
 
         when:

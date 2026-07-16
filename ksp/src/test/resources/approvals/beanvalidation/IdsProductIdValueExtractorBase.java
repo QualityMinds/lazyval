@@ -1,4 +1,4 @@
-package test;
+package test.domain;
 
 import jakarta.annotation.Generated;
 import jakarta.validation.valueextraction.ExtractedValue;

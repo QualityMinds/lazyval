@@ -31,22 +31,22 @@ class KspBeanValidationIT extends Specification {
 
         and: 'a defined approval for each generated Kotlin impl, Java base and the ServiceLoader registration'
         List<Approval.ForKotlin> approvals = [
-                Approval.KotlinSource.at("test/IsbnValueExtractor.kt", "approvals/beanvalidation/IsbnValueExtractor.kt"),
-                Approval.KotlinSource.at("test/IdsProductIdValueExtractor.kt", "approvals/beanvalidation/IdsProductIdValueExtractor.kt"),
-                Approval.KotlinSource.at("test/NullableQuantityValueExtractor.kt", "approvals/beanvalidation/NullableQuantityValueExtractor.kt"),
-                Approval.KotlinSource.at("test/QuantityValueExtractor.kt", "approvals/beanvalidation/QuantityValueExtractor.kt"),
-                Approval.KotlinSource.at("test/OrderDateValueExtractor.kt", "approvals/beanvalidation/OrderDateValueExtractor.kt"),
-                Approval.JavaSource.at("test/IsbnValueExtractorBase.java", "approvals/beanvalidation/IsbnValueExtractorBase.java"),
-                Approval.JavaSource.at("test/IdsProductIdValueExtractorBase.java", "approvals/beanvalidation/IdsProductIdValueExtractorBase.java"),
-                Approval.JavaSource.at("test/NullableQuantityValueExtractorBase.java", "approvals/beanvalidation/NullableQuantityValueExtractorBase.java"),
-                Approval.JavaSource.at("test/QuantityValueExtractorBase.java", "approvals/beanvalidation/QuantityValueExtractorBase.java"),
-                Approval.JavaSource.at("test/OrderDateValueExtractorBase.java", "approvals/beanvalidation/OrderDateValueExtractorBase.java"),
+                Approval.KotlinSource.at("test/domain/IsbnValueExtractor.kt", "approvals/beanvalidation/IsbnValueExtractor.kt"),
+                Approval.KotlinSource.at("test/domain/IdsProductIdValueExtractor.kt", "approvals/beanvalidation/IdsProductIdValueExtractor.kt"),
+                Approval.KotlinSource.at("test/domain/NullableQuantityValueExtractor.kt", "approvals/beanvalidation/NullableQuantityValueExtractor.kt"),
+                Approval.KotlinSource.at("test/domain/QuantityValueExtractor.kt", "approvals/beanvalidation/QuantityValueExtractor.kt"),
+                Approval.KotlinSource.at("test/domain/OrderDateValueExtractor.kt", "approvals/beanvalidation/OrderDateValueExtractor.kt"),
+                Approval.JavaSource.at("test/domain/IsbnValueExtractorBase.java", "approvals/beanvalidation/IsbnValueExtractorBase.java"),
+                Approval.JavaSource.at("test/domain/IdsProductIdValueExtractorBase.java", "approvals/beanvalidation/IdsProductIdValueExtractorBase.java"),
+                Approval.JavaSource.at("test/domain/NullableQuantityValueExtractorBase.java", "approvals/beanvalidation/NullableQuantityValueExtractorBase.java"),
+                Approval.JavaSource.at("test/domain/QuantityValueExtractorBase.java", "approvals/beanvalidation/QuantityValueExtractorBase.java"),
+                Approval.JavaSource.at("test/domain/OrderDateValueExtractorBase.java", "approvals/beanvalidation/OrderDateValueExtractorBase.java"),
                 Approval.ServiceLoader.of("jakarta.validation.valueextraction.ValueExtractor",
-                        "test.IdsProductIdValueExtractor",
-                        "test.IsbnValueExtractor",
-                        "test.NullableQuantityValueExtractor",
-                        "test.OrderDateValueExtractor",
-                        "test.QuantityValueExtractor")
+                        "test.domain.IdsProductIdValueExtractor",
+                        "test.domain.IsbnValueExtractor",
+                        "test.domain.NullableQuantityValueExtractor",
+                        "test.domain.OrderDateValueExtractor",
+                        "test.domain.QuantityValueExtractor")
         ]
 
         when:

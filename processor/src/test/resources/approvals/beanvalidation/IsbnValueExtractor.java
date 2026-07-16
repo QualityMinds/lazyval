@@ -1,4 +1,4 @@
-package test;
+package test.domain;
 
 import jakarta.validation.valueextraction.ExtractedValue;
 import jakarta.validation.valueextraction.UnwrapByDefault;
