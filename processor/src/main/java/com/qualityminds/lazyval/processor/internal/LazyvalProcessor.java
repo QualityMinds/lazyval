@@ -156,7 +156,7 @@ public class LazyvalProcessor extends AbstractProcessor {
             var generatorCandidates = allProviderGenerators.stream()
                     .filter(generator -> generator.requiredClasspath().stream().allMatch(fqn -> lazyvalEnvironment.isClassAvailable(fqn)))
                     .filter(generator -> !disabledByConfig.contains(generator.generatorId()))
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toUnmodifiableSet());
 
             GeneratorResolution.Result result;
             if (lazyvalEnvironment.isSupersedeEnabled()) {
