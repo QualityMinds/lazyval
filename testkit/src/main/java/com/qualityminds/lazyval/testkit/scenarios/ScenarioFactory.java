@@ -107,11 +107,12 @@ public class ScenarioFactory<T extends Scenario> {
      * @param key the processor option key
      * @param value the option value
      */
-    public void withOption(String key, String value) {
+    public ScenarioFactory<T> withOption(String key, String value) {
         // null-checks needed for cases where JSpecify is not used.
         Objects.requireNonNull(key, "key must not be null");
         Objects.requireNonNull(value, "value must not be null");
         options.put(key, value);
+        return this;
     }
 
     /**
