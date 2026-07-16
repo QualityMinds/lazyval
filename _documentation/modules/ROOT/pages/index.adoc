@@ -83,7 +83,7 @@ fallback (custom generators might choose a different strategy).
 Active Generator-IDs are printed to the console during compilation.
 
 |_lazyval.generators.supersede_
-|Allows disabling the supersede-feature for generators. Defaults to 'true'.
+|Allows disabling the xref:spi:index.adoc#superseding-other-generators[supersede-feature] for generators. Defaults to 'true'.
 
 |===
 

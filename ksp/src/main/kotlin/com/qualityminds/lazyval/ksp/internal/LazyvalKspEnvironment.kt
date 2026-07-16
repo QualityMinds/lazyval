@@ -132,7 +132,7 @@ internal class LazyvalKspEnvironment(
     }
 
     /**
-     * Reads [LazyvalConfiguration.externalTypes] from the current round's `package-info.java`.
+     * Reads [LazyvalConfiguration.externalTypes] from the current round.
      *
      * - Returns an empty list when no holder is present.
      * - Reports a compile error and returns an empty list when more than one holder is present.
