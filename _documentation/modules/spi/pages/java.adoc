@@ -32,7 +32,7 @@ include::spi:example$Generator.java[tags=generator;!context]
 Each method contributes to a specific stage:
 
 `generatorId()`:: Short id used to disable the generator (`-Alazyval.generators.disable=<id>`) and to namespace configuration options (`lazyval.<id>.<key>`).
-`requiredClasspath()`:: FQCNs your generator needs on the *consumer's* compile classpath. Return an empty list if there are no gating dependencies.
+`requiredClasspath()`:: FQCNs your generator needs on the *consumer's* compile classpath. Return an empty set if there are no gating dependencies.
 `supportedOptions()`:: Option keys you read at generation time. All keys must contain `lazyval.` so they route through Lazyval's option handling.
 `supersedes()`:: Ids of other generators this one renders redundant. See xref:spi:index.adoc#superseding-other-generators[Superseding other generators]. Defaults to an empty set.
 `generate(elements, ctx)`:: Invoked once per processing round with the set of validated `@LazyValue` elements. Return a stream of `GeneratorResult` — never write files directly.

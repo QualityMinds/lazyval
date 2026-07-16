@@ -30,7 +30,7 @@ include::spi:example$Generator.kt[tags=generator;!context]
 The methods behave exactly like their Java counterparts:
 
 `generatorId()`:: Short id — disable via `lazyval.generators.disable=<id>`, namespace options as `lazyval.<id>.<key>`.
-`requiredClasspath()`:: FQCNs required on the consumer's compile classpath. Empty list = always active.
+`requiredClasspath()`:: FQCNs required on the consumer's compile classpath. Empty set = always active.
 `supportedOptions()`:: Option keys the generator reads. Every key must contain `lazyval.`.
 `supersedes()`:: Ids of other generators this one renders redundant. See xref:spi:index.adoc#superseding-other-generators[Superseding other generators]. Defaults to an empty set.
 `generate(validatedElements, context)`:: Invoked with the set of validated `@LazyValue` elements. Return a `Stream<GeneratorResult>` — file writing is handled by Lazyval.
