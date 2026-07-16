@@ -57,6 +57,35 @@ class ApSpringDataCassandraIT extends Specification {
         result == Testresult.Java.Approved.of(approvals)
     }
 
+    void "Spring Data Cassandra with combined Scenarios and disabled supersede"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Java.combined()
+                .withDependencies(
+                        dependencySpringDataCassandra,
+                        dependencySpringDataCommons,
+                        dependencySpringCore,
+                        dependencySpringBeans,
+                        dependencySpringContext,
+                        // test supersedes
+                        dependencyDriverCore
+                )
+                .withOption("lazyval.generators.supersede", "false")
+
+        and: 'a defined approval for the generated configuration'
+        List<Approval.ForJava> approvals = [
+                Approval.JavaSource.at("test/boundary/persistence/$GENERATED_FILE_NAME",
+                        "approvals/springdata/cassandra/$GENERATED_FILE_NAME")
+        ]
+
+        when:
+        def result = testkitJava.run(projectDir, scenario, approvals)
+
+        then: 'Cassandra Codec was generated as well'
+        result == Testresult.Java.ApprovalMismatch.of([
+                new Testresult.Java.ApprovalMismatch.Failure.UnexpectedFile("test/boundary/persistence/cassandra/LazyvalCassandraCodecs.java")
+        ])
+    }
+
     void "Spring Data without database generates Nothing"() {
         given:
         def scenario = Scenario.Java.quantity()

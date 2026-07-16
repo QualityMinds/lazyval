@@ -194,6 +194,11 @@ public sealed interface Testresult {
                 }
             }
 
+            @SuppressWarnings("doclint:accessibility,missing")
+            public static ApprovalMismatch of(List<Failure> failures) {
+                return new ApprovalMismatch(Lists.immutable.ofAll(failures));
+            }
+
             /** A single reason the strict approval contract was not satisfied. */
             public sealed interface Failure {
                 /**
@@ -388,6 +393,11 @@ public sealed interface Testresult {
                 if (failures.isEmpty()) {
                     throw new IllegalArgumentException("ApprovalMismatch requires at least one failure");
                 }
+            }
+
+            @SuppressWarnings("doclint:accessibility,missing")
+            public static Kotlin.ApprovalMismatch of(List<Kotlin.ApprovalMismatch.Failure> failures) {
+                return new Kotlin.ApprovalMismatch(Lists.immutable.ofAll(failures));
             }
 
             /** A single reason the strict approval contract was not satisfied. See {@link Java.ApprovalMismatch.Failure}. */

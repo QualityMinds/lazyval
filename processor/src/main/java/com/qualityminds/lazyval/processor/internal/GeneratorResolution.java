@@ -35,7 +35,7 @@ class GeneratorResolution {
      * describing which candidates were dropped and by whom. Iteration order of both sets follows the
      * iteration order of the {@code candidates} passed to {@code resolve}.
      */
-    record Result(Set<Generator> active, Set<Superseded> superseded) {}
+    record Result(Set<? extends Generator> active, Set<Superseded> superseded) {}
 
     /**
      * Partitions {@code candidates} into active generators and supersession events based on their

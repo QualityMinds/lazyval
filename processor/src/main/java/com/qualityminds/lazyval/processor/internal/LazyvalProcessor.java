@@ -88,6 +88,7 @@ public class LazyvalProcessor extends AbstractProcessor {
                 .collect(Collectors.toCollection(HashSet::new));
         combinedOptions.addAll(Set.of(
                 LazyvalEnvironment.DISABLED_GENERATORS,
+                LazyvalEnvironment.SUPERSEDE_ENABLED,
                 LazyvalEnvironment.BASE_PACKAGE
         ));
         return combinedOptions;
@@ -157,7 +158,13 @@ public class LazyvalProcessor extends AbstractProcessor {
                     .filter(generator -> !disabledByConfig.contains(generator.generatorId()))
                     .collect(Collectors.toSet());
 
-            var result = GeneratorResolution.resolve(generatorCandidates);
+            GeneratorResolution.Result result;
+            if (lazyvalEnvironment.isSupersedeEnabled()) {
+                result = GeneratorResolution.resolve(generatorCandidates);
+            }else{
+                result = new GeneratorResolution.Result(generatorCandidates, Collections.emptySet());
+            }
+
             result.superseded().forEach(s ->
                     lazyvalEnvironment.info("Lazyval: '" + s.id() + "' was auto-disabled because '" + s.by() + "' supersedes it"));
 

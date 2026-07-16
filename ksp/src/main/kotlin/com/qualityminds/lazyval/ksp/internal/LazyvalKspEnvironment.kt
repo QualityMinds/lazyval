@@ -5,12 +5,7 @@ import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
-import com.google.devtools.ksp.symbol.KSClassDeclaration
-import com.google.devtools.ksp.symbol.KSDeclaration
-import com.google.devtools.ksp.symbol.KSNode
-import com.google.devtools.ksp.symbol.KSType
-import com.google.devtools.ksp.symbol.Origin
-import com.google.devtools.ksp.symbol.Visibility
+import com.google.devtools.ksp.symbol.*
 import com.qualityminds.lazyval.LazyvalConfiguration
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
@@ -23,6 +18,7 @@ internal class LazyvalKspEnvironment(
 
     companion object {
         const val DISABLED_GENERATORS: String = "lazyval.generators.disable"
+        const val SUPERSEDE_ENABLED: String = "lazyval.generators.supersede"
         const val BASE_PACKAGE: String = "lazyval.generators.basePackage"
         private const val NO_GENERATION_WARNING = "None of the required classes are available on the classpath! Lazyval will not generate any sources."
     }
@@ -130,6 +126,10 @@ internal class LazyvalKspEnvironment(
         .map { obj: String? -> obj!!.trim { it <= ' ' } }
         .filter { s: String? -> !s!!.isEmpty() }
         .toList()
+
+    fun isSupersedeEnabled(): Boolean {
+        return environment.options[SUPERSEDE_ENABLED]?.toBoolean() ?: true
+    }
 
     /**
      * Reads [LazyvalConfiguration.externalTypes] from the current round's `package-info.java`.

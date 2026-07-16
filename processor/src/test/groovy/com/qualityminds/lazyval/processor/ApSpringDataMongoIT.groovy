@@ -21,6 +21,7 @@ class ApSpringDataMongoIT extends Specification {
     public static final Dependency dependencySpringCore = new Dependency("org.springframework", "spring-core", "6.2.7")
     public static final Dependency dependencySpringBeans = new Dependency("org.springframework", "spring-beans", "6.2.7")
     public static final Dependency dependencySpringContext = new Dependency("org.springframework", "spring-context", "6.2.7")
+    public static final Dependency dependencyBson = new Dependency("org.mongodb", "bson", "5.6.5")
 
     private static final String GENERATED_FILE_NAME = "LazyvalSpringDataConfiguration.java"
 
@@ -33,7 +34,14 @@ class ApSpringDataMongoIT extends Specification {
     void "Spring Data MongoDB with combined Scenarios"() {
         given: 'a compiler run with all sources'
         def scenario = Scenario.Java.combined()
-                .withDependencies(dependencySpringDataMongo, dependencySpringDataCommons, dependencySpringCore, dependencySpringBeans, dependencySpringContext)
+                .withDependencies(
+                        dependencySpringDataMongo,
+                        dependencySpringDataCommons,
+                        dependencySpringCore,
+                        dependencySpringBeans,
+                        dependencySpringContext,
+                        // test supersede
+                        dependencyBson)
 
         and: 'a defined approval for the generated configuration'
         List<Approval.ForJava> approvals = [
@@ -46,6 +54,35 @@ class ApSpringDataMongoIT extends Specification {
 
         then:
         result == Testresult.Java.Approved.of(approvals)
+    }
+
+    void "Spring Data MongoDB with combined Scenarios and disabled supersede"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Java.combined()
+                .withDependencies(
+                        dependencySpringDataMongo,
+                        dependencySpringDataCommons,
+                        dependencySpringCore,
+                        dependencySpringBeans,
+                        dependencySpringContext,
+                        // test supersede
+                        dependencyBson
+                )
+                .withOption("lazyval.generators.supersede", "false")
+
+        and: 'a defined approval for the generated configuration'
+        List<Approval.ForJava> approvals = [
+                Approval.JavaSource.at("test/boundary/persistence/$GENERATED_FILE_NAME",
+                        "approvals/springdata/mongo/$GENERATED_FILE_NAME")
+        ]
+
+        when:
+        def result = testkitJava.run(projectDir, scenario, approvals)
+
+        then: 'Mongo Codec was generated as well'
+        result == Testresult.Java.ApprovalMismatch.of([
+                new Testresult.Java.ApprovalMismatch.Failure.UnexpectedFile("test/boundary/persistence/mongodb/LazyvalMongoCodecs.java")
+        ])
     }
 
     void "single valid user converter is appended to mongoCustomConversions"() {

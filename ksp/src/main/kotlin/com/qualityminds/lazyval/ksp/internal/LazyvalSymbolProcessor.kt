@@ -144,7 +144,11 @@ class LazyvalSymbolProcessor(
                 .filter { g -> g.generatorId() !in disabledByConfig }
                 .toSet()
 
-            val resolution = GeneratorResolution.resolve(candidates)
+            val resolution = if(lazyvalEnvironment.isSupersedeEnabled()){
+                GeneratorResolution.resolve(candidates)
+            } else {
+                GeneratorResolution.Result(candidates, emptySet())
+            }
 
             resolution.superseded.forEach { s ->
                 lazyvalEnvironment.info(
@@ -270,6 +274,7 @@ class LazyvalSymbolProcessor(
     private fun validateOptions() {
         val supportedOptions = setOf(
             LazyvalKspEnvironment.DISABLED_GENERATORS,
+            LazyvalKspEnvironment.SUPERSEDE_ENABLED,
             LazyvalKspEnvironment.BASE_PACKAGE
         ) + allProviderGenerators.flatMap { it.supportedOptions() }.toSet()
 

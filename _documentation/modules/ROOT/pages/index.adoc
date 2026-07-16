@@ -82,6 +82,9 @@ fallback (custom generators might choose a different strategy).
 |Comma separated List of Generator-IDs that should not generate output despite being found on the classpath.
 Active Generator-IDs are printed to the console during compilation.
 
+|_lazyval.generators.supersede_
+|Allows disabling the supersede-feature for generators. Defaults to 'true'.
+
 |===
 
 NOTE: External value types from other modules are declared via the `@LazyvalConfiguration` annotation rather than a

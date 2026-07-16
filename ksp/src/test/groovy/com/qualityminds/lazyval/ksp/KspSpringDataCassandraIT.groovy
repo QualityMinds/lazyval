@@ -59,6 +59,35 @@ class KspSpringDataCassandraIT extends Specification {
         result == Testresult.Kotlin.Approved.of(approvals)
     }
 
+    void "Spring Data Cassandra with combined Scenarios and disabled supersede"() {
+        given: 'a compiler run with all sources'
+        def scenario = Scenario.Kotlin.combined()
+                .withDependencies(
+                        dependencySpringDataCassandra,
+                        dependencySpringDataCommons,
+                        dependencySpringCore,
+                        dependencySpringBeans,
+                        dependencySpringContext,
+                        dependencyJakartaAnnotations,
+                        // test supersedes
+                        dependencyDriverCore)
+                .withOption("lazyval.generators.supersede", "false")
+
+        and: 'a defined approval for the generated configuration'
+        List<Approval.ForKotlin> approvals = [
+                Approval.KotlinSource.at("test/boundary/persistence/$GENERATED_FILE_NAME",
+                        "approvals/springdata/cassandra/$GENERATED_FILE_NAME")
+        ]
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario, approvals)
+
+        then: 'Cassandra Codec was generated as well'
+        result == Testresult.Kotlin.ApprovalMismatch.of([
+                new Testresult.Kotlin.ApprovalMismatch.Failure.UnexpectedFile("test/boundary/persistence/cassandra/LazyvalCassandraCodecs.kt")
+        ])
+    }
+
     void "Nothing generated when no CustomConversions is on classpath"() {
         given:
         def scenario = Scenario.Kotlin.quantity()
