@@ -92,18 +92,20 @@ class LazyvalEnvironment {
 
             @Override
             public String generatorPackage(String overridePackageOptionKey, @Nullable String defaultLayer) {
-                var basePackage = getSetting(BASE_PACKAGE);
-                return getSetting(overridePackageOptionKey)
-                    .orElseGet(() -> basePackage.map(it -> defaultLayer != null ? it + "." + defaultLayer : it)
-                            .orElseGet(() -> {
-                                var fallbackPackage = processingEnvironment.getElementUtils()
-                                        .getPackageOf(fallback.element())
-                                        .getQualifiedName().toString();
-                                warn(String.format("""
+                var config = PackageLookup.DefaultConfig.of(
+                        getSetting(BASE_PACKAGE).orElse(null),
+                        defaultLayer);
+
+                return PackageLookup.computePackage(config, getSetting(overridePackageOptionKey).orElse(null), () -> {
+                    var fallbackPackage = processingEnvironment.getElementUtils()
+                            .getPackageOf(fallback.element())
+                            .getQualifiedName().toString();
+                    warn(String.format("""
                                     Neither configuration for '%s' nor '%s' is set. \
                                     Falling back to package of first element: '%s'""", BASE_PACKAGE, overridePackageOptionKey, fallbackPackage));
-                                return fallbackPackage;
-                            }));
+                    return fallbackPackage;
+                });
+
             }
 
             @Override

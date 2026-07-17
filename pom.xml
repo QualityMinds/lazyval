@@ -52,6 +52,8 @@
         <version.slf4j>2.0.18</version.slf4j>
         <version.spock>2.4-groovy-5.0</version.spock>
         <version.diff-utils>4.15</version.diff-utils>
+        <!-- used by groovy mock to mock final classes -->
+        <version.byte-buddy>1.18.11</version.byte-buddy>
         <!-- plugins -->
         <version.plugin.antrun>3.2.0</version.plugin.antrun>
         <version.plugin.build-helper>3.6.1</version.plugin.build-helper>
