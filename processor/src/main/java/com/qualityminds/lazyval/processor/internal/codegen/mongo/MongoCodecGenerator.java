@@ -256,6 +256,16 @@ public class MongoCodecGenerator implements Generator {
         MethodSpec getMethod = buildGetMethod(elements, !userCodecFqns.isEmpty());
 
         var builder = TypeSpec.classBuilder(CODECS_CLASS_NAME)
+                .addJavadoc("""
+                        A {@link $T} with one native MongoDB {@code Codec} per generated domain-primitive.
+
+                        <p>{@code get} intentionally does not cache generated codecs: for generated types it returns a fresh codec on every call.
+                        The MongoDB registry ({@code ProvidersCodecRegistry}) already memoizes the result per
+                        {@code (Class, typeArguments)}, so it is invoked at most once per type per registry, not per
+                        {@code encode}/{@code decode}. Caching here would be redundant, and since each generated codec is bound
+                        to the {@code registry} it was built from, could return a codec wired to the wrong registry.
+                        <p>User-supplied codecs (via {@code lazyval.mongodb.codecs}) are instantiated once and returned as-is.
+                        """, CODEC_PROVIDER)
                 .addAnnotation(GeneratedStamp.forGenerator(MongoCodecGenerator.class))
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .addSuperinterface(CODEC_PROVIDER)
@@ -398,6 +408,15 @@ public class MongoCodecGenerator implements Generator {
                 .build();
 
         return TypeSpec.classBuilder(REGISTRAR_CLASS_NAME)
+                .addJavadoc("""
+                        A Quarkus {@link $T} CDI bean that delegates to {@link $T}; Quarkus auto-discovers it and
+                        chains it into the default Mongo registry.
+
+                        <p>Like the delegate, {@code get} does not cache generated codecs (for generated types it returns a fresh codec per call).
+                        The driver's registry ({@code ProvidersCodecRegistry}) memoizes the result per
+                        {@code (Class, typeArguments)}, so it is consulted at most once per type per registry, not
+                        per {@code encode}/{@code decode}. User-supplied codecs (via {@code lazyval.mongodb.codecs}) are instantiated once and returned as-is.
+                        """, CODEC_PROVIDER, codecsClass)
                 .addAnnotation(GeneratedStamp.forGenerator(MongoCodecGenerator.class))
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(applicationScoped)

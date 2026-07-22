@@ -68,14 +68,12 @@ class MongoCodecGenerator : Generator {
         private val CODEC = ClassName("org.bson.codecs", "Codec")
         private val BSON_READER = ClassName("org.bson", "BsonReader")
         private val BSON_WRITER = ClassName("org.bson", "BsonWriter")
-        private val BSON_TYPE = ClassName("org.bson", "BsonType")
         private val ENCODER_CONTEXT = ClassName("org.bson.codecs", "EncoderContext")
         private val DECODER_CONTEXT = ClassName("org.bson.codecs", "DecoderContext")
         private val CODEC_REGISTRY = ClassName("org.bson.codecs.configuration", "CodecRegistry")
         private val CODEC_REGISTRIES = ClassName("org.bson.codecs.configuration", "CodecRegistries")
         private val CODEC_PROVIDER = ClassName("org.bson.codecs.configuration", "CodecProvider")
         private val MONGO_CLIENT_SETTINGS = ClassName("com.mongodb", "MongoClientSettings")
-        private val SYSTEM_LOGGER = ClassName("java.lang", "System", "Logger")
         private val SYSTEM_LOGGER_LEVEL = ClassName("java.lang", "System", "Logger", "Level")
         private val JAVA_LANG_SYSTEM = ClassName("java.lang", "System")
 
@@ -280,6 +278,19 @@ class MongoCodecGenerator : Generator {
         val getFun = buildGetFun(elements, userCodecFqns.isNotEmpty())
 
         val builder = TypeSpec.classBuilder(CODECS_CLASS_NAME)
+            .addKdoc(
+                """
+                A [%T] with one native MongoDB `Codec` per generated domain-primitive.
+
+                `get` intentionally does not cache generated codecs: for generated types it returns a fresh codec on every call.
+                The MongoDB registry (`ProvidersCodecRegistry`) already memoizes the result per `(Class, typeArguments)`,
+                so it is invoked at most once per type per registry, not per `encode`/`decode`. Caching here
+                would be redundant, and since each generated codec is bound to the `registry` it was built from, could
+                return a codec wired to the wrong registry. 
+                User-supplied codecs (via `lazyval.mongodb.codecs`) are instantiated once and returned as-is.
+                """.trimIndent(),
+                CODEC_PROVIDER
+            )
             .addGeneratedAnnotation(MongoCodecGenerator::class, context)
             .addSuperinterface(CODEC_PROVIDER)
             .primaryConstructor(constructor)
@@ -422,6 +433,18 @@ class MongoCodecGenerator : Generator {
             .build()
 
         return TypeSpec.classBuilder(REGISTRAR_CLASS_NAME)
+            .addKdoc(
+                """
+                A Quarkus [%T] CDI bean that delegates to [%T]; Quarkus auto-discovers it and chains it
+                into the default Mongo registry.
+
+                Like the delegate, `get` does not cache generated codecs (for generated types it returns a fresh codec per call). The driver's
+                registry (`ProvidersCodecRegistry`) memoizes the result per `(Class, typeArguments)`, so it
+                is consulted at most once per type per registry, not per `encode`/`decode`. 
+                User-supplied codecs (via `lazyval.mongodb.codecs`) are instantiated once and returned as-is.
+                """.trimIndent(),
+                CODEC_PROVIDER, codecsClass
+            )
             .addGeneratedAnnotation(MongoCodecGenerator::class, context)
             .addAnnotation(applicationScoped)
             .addAnnotation(unremovable)

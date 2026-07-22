@@ -30,14 +30,23 @@ class ApMongoCodecIT extends Specification {
     @Shared
     def testkitJava = Testkit.java()
 
-    void "MongoDB Codec with combined Scenarios"() {
-        given: 'a compiler run with all sources'
-        def scenario = Scenario.Java.combined().withDependencies(dependencyBson)
+    void "MongoDB Codec with combined Scenarios, including the Quarkus registrar"() {
+        given: 'a compiler run with all sources and the Quarkus mongo client on the classpath'
+        def scenario = Scenario.Java.combined()
+                .withDependencies(
+                        dependencyBson,
+                        dependencyMongoDriverCore,
+                        dependencyQuarkusMongo,
+                        dependencyCdi,
+                        dependencyInject,
+                        dependencyQuarkusArc)
 
-        and: 'a defined approval for the generated codecs class'
+        and: 'approvals for the generated codecs provider and the auto-registered Quarkus registrar'
         List<Approval.ForJava> approvals = [
                 Approval.JavaSource.at("test/boundary/persistence/mongodb/$GENERATED_FILE_NAME",
-                        "approvals/mongocodec/$GENERATED_FILE_NAME")
+                        "approvals/mongocodec/$GENERATED_FILE_NAME"),
+                Approval.JavaSource.at("test/boundary/persistence/mongodb/LazyvalMongoCodecRegistrar.java",
+                        "approvals/mongocodec/LazyvalMongoCodecRegistrar.java")
         ]
 
         when:
@@ -83,24 +92,6 @@ class ApMongoCodecIT extends Specification {
 
         then:
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
-    }
-
-    void "Quarkus Registrar generated when quarkus-mongodb-client is available"() {
-        given:
-        def scenario = Scenario.Java.quantity()
-                .withDependencies(
-                        dependencyBson,
-                        dependencyMongoDriverCore,
-                        dependencyQuarkusMongo,
-                        dependencyCdi,
-                        dependencyInject,
-                        dependencyQuarkusArc)
-
-        when:
-        def result = testkitJava.run(projectDir, scenario)
-
-        then:
-        result == new Testresult.Java.Success(GENERATED_FILE_NAME, "LazyvalMongoCodecRegistrar.java")
     }
 
     void "Quarkus Registrar can be disabled via option"() {

@@ -106,6 +106,7 @@ public class ScenarioFactory<T extends Scenario> {
      * Appends an additional processor-option to the scenario.
      * @param key the processor option key
      * @param value the option value
+     * @return this scenario factory
      */
     public ScenarioFactory<T> withOption(String key, String value) {
         // null-checks needed for cases where JSpecify is not used.

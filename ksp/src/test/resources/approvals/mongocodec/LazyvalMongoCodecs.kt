@@ -1,5 +1,6 @@
 package test.boundary.persistence.mongodb
 
+import com.mongodb.MongoClientSettings
 import jakarta.`annotation`.Generated
 import java.lang.Class
 import java.time.LocalDate
@@ -13,6 +14,7 @@ import org.bson.codecs.Codec
 import org.bson.codecs.DecoderContext
 import org.bson.codecs.EncoderContext
 import org.bson.codecs.configuration.CodecProvider
+import org.bson.codecs.configuration.CodecRegistries
 import org.bson.codecs.configuration.CodecRegistry
 import scenarios.kotlin.Ids
 import scenarios.kotlin.Isbn
@@ -20,6 +22,16 @@ import scenarios.kotlin.NullableQuantity
 import scenarios.kotlin.OrderDate
 import scenarios.kotlin.Quantity
 
+/**
+ * A [CodecProvider] with one native MongoDB `Codec` per generated domain-primitive.
+ *
+ * `get` intentionally does not cache generated codecs: for generated types it returns a fresh codec on every call.
+ * The MongoDB registry (`ProvidersCodecRegistry`) already memoizes the result per `(Class, typeArguments)`,
+ * so it is invoked at most once per type per registry, not per `encode`/`decode`. Caching here
+ * would be redundant, and since each generated codec is bound to the `registry` it was built from, could
+ * return a codec wired to the wrong registry.
+ * User-supplied codecs (via `lazyval.mongodb.codecs`) are instantiated once and returned as-is.
+ */
 @Generated("com.qualityminds.lazyval.ksp.internal.codegen.mongo.MongoCodecGenerator")
 public class LazyvalMongoCodecs() : CodecProvider {
   private val userCodecs: Array<Codec<*>> = arrayOf()
@@ -42,6 +54,21 @@ public class LazyvalMongoCodecs() : CodecProvider {
         return QuantityCodec(registry.get(Int::class.javaObjectType)) as Codec<T>?
     }
     return null
+  }
+
+  public companion object {
+    /**
+     * Convenience function returning a [CodecRegistry] that combines the default Mongo
+     * registry with this provider. Use it for one-line setup outside of CDI:
+     * ```
+     * val settings = MongoClientSettings.builder()
+     *     .codecRegistry(LazyvalMongoCodecs.asRegistry())
+     *     .build()
+     * ```
+     *
+     * @return a `CodecRegistry` with the default registry and the generated codecs
+     */
+    public fun asRegistry(): CodecRegistry = CodecRegistries.fromRegistries(MongoClientSettings.getDefaultCodecRegistry(), CodecRegistries.fromProviders(LazyvalMongoCodecs()))
   }
 
   /**

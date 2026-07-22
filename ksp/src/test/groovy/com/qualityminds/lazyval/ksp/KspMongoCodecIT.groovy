@@ -31,15 +31,24 @@ class KspMongoCodecIT extends Specification {
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
-    void "MongoDB Codec with combined Scenarios"() {
-        given: 'a compiler run with all sources'
+    void "MongoDB Codec with combined Scenarios, including the Quarkus registrar"() {
+        given: 'a compiler run with all sources and the Quarkus mongo client on the classpath'
         def scenario = Scenario.Kotlin.combined()
-                .withDependencies(dependencyBson, dependencyJakartaAnnotations)
+                .withDependencies(
+                        dependencyBson,
+                        dependencyJakartaAnnotations,
+                        dependencyMongoDriverCore,
+                        dependencyQuarkusMongo,
+                        dependencyCdi,
+                        dependencyInject,
+                        dependencyQuarkusArc)
 
-        and: 'a defined approval for the generated codecs file'
+        and: 'approvals for the generated codecs provider and the auto-registered Quarkus registrar'
         List<Approval.ForKotlin> approvals = [
                 Approval.KotlinSource.at("test/boundary/persistence/mongodb/$GENERATED_FILE_NAME",
-                        "approvals/mongocodec/$GENERATED_FILE_NAME")
+                        "approvals/mongocodec/$GENERATED_FILE_NAME"),
+                Approval.KotlinSource.at("test/boundary/persistence/mongodb/LazyvalMongoCodecRegistrar.kt",
+                        "approvals/mongocodec/LazyvalMongoCodecRegistrar.kt")
         ]
 
         when:
@@ -75,24 +84,6 @@ class KspMongoCodecIT extends Specification {
 
         then:
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
-    }
-
-    void "Quarkus Registrar generated when quarkus-mongodb-client is available"() {
-        given:
-        def scenario = Scenario.Kotlin.orderDate()
-                .withDependencies(
-                        dependencyBson,
-                        dependencyMongoDriverCore,
-                        dependencyQuarkusMongo,
-                        dependencyCdi,
-                        dependencyInject,
-                        dependencyQuarkusArc)
-
-        when:
-        def result = testkitKotlin.run(projectDir, scenario)
-
-        then:
-        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME, "LazyvalMongoCodecRegistrar.kt")
     }
 
     void "Quarkus Registrar can be disabled via option"() {

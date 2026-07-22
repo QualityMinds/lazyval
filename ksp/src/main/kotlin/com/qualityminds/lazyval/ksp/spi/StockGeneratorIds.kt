@@ -12,14 +12,22 @@ import org.jetbrains.annotations.ApiStatus
  */
 @ApiStatus.Experimental
 object StockGeneratorIds {
-
+    /** ID of the stock generator for Bean Validation. */
     const val BEAN_VALIDATION = "beanvalidation"
+    /** ID of the stock generator for Cassandra. */
     const val CASSANDRA_CODEC = "cassandra"
+    /** ID of the stock generator for Jackson 2. */
     const val JACKSON_2 = "jackson-2"
+    /** ID of the stock generator for Jackson 3. */
     const val JACKSON_3 = "jackson-3"
+    /** ID of the stock generator for the Java-Persistence API */
     const val JPA = "jpa"
+    /** ID of the stock generator for JSON-B. */
     const val JSONB = "jsonb"
+    /** ID of the stock generator for Mapstruct. */
     const val MAPSTRUCT = "mapstruct"
+    /** ID of the stock generator for Mongo-DB. */
     const val MONGODB_CODEC = "mongodb"
+    /** ID of the stock generator for Spring-Data. */
     const val SPRING_DATA = "spring-data"
 }

@@ -33,14 +33,26 @@ class ApCassandraCodecIT extends Specification {
     @Shared
     def testkitJava = Testkit.java()
 
-    void "Cassandra Codec with combined Scenarios"() {
-        given: 'a compiler run with all sources'
-        def scenario = Scenario.Java.combined().withDependencies(dependencyDriverCore)
+    void "Cassandra Codec with combined Scenarios, including the Quarkus registrar"() {
+        given: 'a compiler run with all sources and the Cassandra Quarkus extension on the classpath'
+        def scenario = Scenario.Java.combined()
+                .withDependencies(
+                        dependencyDriverCore, dependencyCassandraQuarkusExtension,
+                        // compile dependencies
+                        dependencyCdi,
+                        dependencyInject,
+                        dependencyJakartaAnnotation,
+                        dependencyQuarkus,
+                        dependencyQuarkusArc,
+                        dependencyQuarkusNetty,
+                        dependencyNetty)
 
-        and: 'a defined approval for the generated codecs class'
+        and: 'approvals for the generated codecs class and the auto-registered Quarkus registrar'
         List<Approval.ForJava> approvals = [
                 Approval.JavaSource.at("test/boundary/persistence/cassandra/$GENERATED_FILE_NAME",
-                        "approvals/cassandracodec/$GENERATED_FILE_NAME")
+                        "approvals/cassandracodec/$GENERATED_FILE_NAME"),
+                Approval.JavaSource.at("test/boundary/persistence/cassandra/LazyvalCassandraCodecRegistrar.java",
+                        "approvals/cassandracodec/LazyvalCassandraCodecRegistrar.java")
         ]
 
         when:
@@ -90,7 +102,7 @@ class ApCassandraCodecIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
     }
 
-    void "Quarkus Registration generated when Cassandra-Quarkus-Extension is available"(){
+    void "Quarkus Registrar can be disabled via option"(){
         given:
         def scenario = Scenario.Java.orderDate()
                 .withDependencies(
@@ -103,12 +115,13 @@ class ApCassandraCodecIT extends Specification {
                         dependencyQuarkusArc,
                         dependencyQuarkusNetty,
                         dependencyNetty)
+        scenario.withOption("lazyval.cassandra.quarkus.register", "false")
 
         when:
         def result = testkitJava.run(projectDir, scenario)
 
-        then:
-        result == new Testresult.Java.Success(GENERATED_FILE_NAME, "LazyvalCassandraCodecRegistrar.java")
+        then: 'only the codecs class is generated, no registrar'
+        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
     }
 
     void "single valid user codec is appended to all()"() {
