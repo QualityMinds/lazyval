@@ -34,15 +34,25 @@ class KspCassandraCodecIT extends Specification {
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
-    void "Cassandra Codec with combined Scenarios"() {
-        given: 'a compiler run with all sources'
+    void "Cassandra Codec with combined Scenarios, including the Quarkus registrar"() {
+        given: 'a compiler run with all sources and the Cassandra Quarkus extension on the classpath'
         def scenario = Scenario.Kotlin.combined()
-                .withDependencies(dependencyDriverCore, dependencyJakartaAnnotations)
+                .withDependencies(
+                        dependencyDriverCore, dependencyJakartaAnnotations, dependencyCassandraQuarkusExtension,
+                        // compile dependencies
+                        dependencyCdi,
+                        dependencyInject,
+                        dependencyQuarkus,
+                        dependencyQuarkusArc,
+                        dependencyQuarkusNetty,
+                        dependencyNetty)
 
-        and: 'a defined approval for the generated codecs file'
+        and: 'approvals for the generated codecs file and the auto-registered Quarkus registrar'
         List<Approval.ForKotlin> approvals = [
                 Approval.KotlinSource.at("test/boundary/persistence/cassandra/$GENERATED_FILE_NAME",
-                        "approvals/cassandracodec/$GENERATED_FILE_NAME")
+                        "approvals/cassandracodec/$GENERATED_FILE_NAME"),
+                Approval.KotlinSource.at("test/boundary/persistence/cassandra/LazyvalCassandraCodecRegistrar.kt",
+                        "approvals/cassandracodec/LazyvalCassandraCodecRegistrar.kt")
         ]
 
         when:
@@ -69,7 +79,7 @@ class KspCassandraCodecIT extends Specification {
         testkitKotlin.generatedKotlinSourcePath(projectDir, "test/custom/$GENERATED_FILE_NAME").toFile().exists()
     }
 
-    void "Quarkus Registration generated when Cassandra-Quarkus-Extension is available"(){
+    void "Quarkus Registrar can be disabled via option"(){
         given:
         def scenario = Scenario.Kotlin.orderDate()
                 .withDependencies(
@@ -82,15 +92,13 @@ class KspCassandraCodecIT extends Specification {
                         dependencyQuarkusArc,
                         dependencyQuarkusNetty,
                         dependencyNetty)
+        scenario.withOption("lazyval.cassandra.quarkus.register", "false")
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
 
-        then:
-        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME, "LazyvalCassandraCodecRegistrar.kt")
-
-        and: 'contains @Generated'
-        Files.readString(testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/cassandra/LazyvalCassandraCodecRegistrar.kt")).contains("@Generated")
+        then: 'only the codecs file is generated, no registrar'
+        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
     }
 
     void "Does not add '@Generated' when jakarta.annotations-api not on classpath"(){
