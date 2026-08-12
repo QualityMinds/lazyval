@@ -13,6 +13,21 @@ IMPORTANT: When `spring-data-mongodb` is on the classpath, the `spring-data` gen
 `mongodb` and this generator is silently dropped from the active set. Lazyval logs an info message
 in that case. See xref:spi:index.adoc#superseding-other-generators[Superseding other generators] for details.
 
+== Consulted Classpath
+
+|===
+|Class |JAR Coordinates |Required
+
+|`org.bson.codecs.Codec`
+|`org.mongodb:bson`
+^|YES
+
+|`io.quarkus.mongodb.MongoClientName`
+|`io.quarkus:quarkus-mongodb-client`
+|
+
+|===
+
 == Config Options
 
 |===
@@ -20,7 +35,7 @@ in that case. See xref:spi:index.adoc#superseding-other-generators[Superseding o
 
 |_lazyval.mongodb.package_
 |Specifies the package where the `LazyvalMongoCodecs` class is generated to.
-Overrides `lazyval.generators.basePackage`.
+Overrides default value based on `lazyval.generators.basePackage`.
 
 |_lazyval.mongodb.codecs_
 |Comma-separated list of fully qualified `Codec` class names appended to the generated provider.
@@ -32,7 +47,7 @@ Defaults to `true`. Set to `false` to disable automatic registration.
 
 |===
 
-== Generated Files — Codecs
+== Generated Files
 
 A single `LazyvalMongoCodecs` class is generated that contains one `Codec` inner class per
 domain-primitive. The outer class implements `CodecProvider` so it can be added directly to any

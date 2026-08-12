@@ -7,7 +7,7 @@ The following scenarios are tested for Java with the annotation processor and Ko
 
 |JakartaEE
 a|
-* Mapstruct
+* MapStruct
 * JPA
 * BeanValidation
 * JSONB
@@ -18,7 +18,7 @@ a|
 
 |Quarkus
 a|
-* Mapstruct
+* MapStruct
 * JPA
 * BeanValidation
 * Jackson 2
@@ -32,7 +32,7 @@ a|
 
 |Spring
 a|
-* Mapstruct
+* MapStruct
 * JPA
 * BeanValidation
 * Jackson 3

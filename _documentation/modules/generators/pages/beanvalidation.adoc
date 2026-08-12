@@ -1,6 +1,6 @@
 = Bean Validation
 
-NOTE: From a modeling perspective, external bean-val annotations provide less accurate semantics as it
+NOTE: From a modeling perspective, external bean-val annotations provide less accurate semantics, as it
 means the object is created with a state that might be invalid. Nevertheless, in some cases it is necessary
 to have these validators. A primary use-case is legacy or migration projects, where domain-primitives cannot
 (yet) enforce their invariants during construction and after-the-fact validation is still needed. Another
@@ -12,13 +12,22 @@ not work with them out of the box.
 
 This generator creates a `ValueExtractor` for each domain-primitive. A value extractor tells the Bean
 Validation provider how to unwrap the inner value of a domain-primitive so that all the provider's
-built-in constraint validators work transparently — including `@Email` with full RFC-compliant address
-checking, `@Pattern` with correct flag handling, `@Min`/`@Max`, `@Past`/`@Future`, and any other
-constraint the provider supports for the wrapped type.
+built-in constraint validators work transparently.
 
 The generated extractor is registered via the
 `META-INF/services/jakarta.validation.valueextraction.ValueExtractor` service-loader mechanism and is
 therefore discovered automatically by any compliant Bean Validation provider (like Hibernate Validator).
+
+== Consulted Classpath
+
+|===
+|Class |JAR Coordinates |Required
+
+|`jakarta.validation.valueextraction.ValueExtractor`
+|`jakarta.validation:jakarta.validation-api`
+^|YES
+|===
+
 
 == Config Options
 
@@ -27,60 +36,59 @@ therefore discovered automatically by any compliant Bean Validation provider (li
 
 |_lazyval.beanvalidation.package_
 |Specifies the package where the extractor classes are generated to.
-Overrides `lazyval.generators.basePackage`.
+Overrides default value based on `lazyval.generators.basePackage`.
 
 |===
 
 == Generated Files
 
-For each domain-primitive, two files are generated:
+For each domain-primitive a `<Name>ValueExtractor` is generated and added to the also generated
+`META-INF/services/jakarta.validation.valueextraction.ValueExtractor` service-loader file so the
+implementations are discovered by the provider at runtime.
 
-`*ValueExtractorBase` (Java abstract class)::
-Declares `implements ValueExtractor<@ExtractedValue(type = WrappedType.class) DomainPrimitiveType>`.
-The superinterface declaration must live in Java source — see <<why-java,Why a Java class is required>>.
-
-`*ValueExtractor` (Kotlin class)::
-Extends the abstract base class and provides the `extractValues` body, unwrapping the inner value
-and passing it to the `ValueReceiver`.
-
-Additionally a `META-INF/services/jakarta.validation.valueextraction.ValueExtractor` service-loader
-file is generated that lists the Kotlin extractor class, so it is automatically discovered at runtime.
-
-[#why-java]
-== Why a Java Class is Required (Kotlin KSP Only)
-
-The Java annotation processor generates a single `.java` file and requires no further explanation.
-For the Kotlin KSP processor, however, two files are needed because of a Kotlin compiler limitation.
-
-The Bean Validation specification requires that a `ValueExtractor` implementation declares
-`@ExtractedValue` as a type-use annotation on its generic supertype argument:
-
+[tabs]
+====
+Java::
++
 [source,java]
 ----
-implements ValueExtractor<@ExtractedValue(type = LocalDate.class) OrderDate>
+@UnwrapByDefault
+public class EMailValueExtractor implements ValueExtractor<@ExtractedValue(type = String.class) EMail> {
+  @Override
+  public void extractValues(EMail originalValue, ValueExtractor.ValueReceiver receiver) {
+    if (originalValue == null) {
+      receiver.value(null, null);
+      return;
+    }
+    receiver.value(null, originalValue.value());
+  }
+}
 ----
 
-Compliant providers like Hibernate Validator discover this annotation by inspecting
-`Class.getAnnotatedInterfaces()` at runtime.
-This method reads `RuntimeVisibleTypeAnnotations` — a JVM bytecode attribute that holds
-type-level annotations in a location-aware form.
-
-The Kotlin compiler does *not* emit `RuntimeVisibleTypeAnnotations` for type-use annotations placed
-on generic supertype arguments (https://youtrack.jetbrains.com/issue/KT-19289[KT-19289]).
-The annotation is stored only in Kotlin's own `@Metadata`, which the Bean Validation provider
-does not consult.
-
-To work around this, the KSP generator splits the extractor into two files:
-
-1. **`OrderDateValueExtractorBase.java`** — an abstract Java class compiled by `javac`.
-   `javac` correctly emits `RuntimeVisibleTypeAnnotations`, so the provider's reflection-based
-   discovery works.
-2. **`OrderDateValueExtractor.kt`** — an idiomatic Kotlin class that extends the Java base and
-   provides the implementation.
-
-This split is an internal implementation detail of the generator.
-From a user perspective nothing changes: the extractor is auto-discovered and constraint
-annotations work on domain-primitives just as they do for the Java variant.
+Kotlin::
++
+[source,kotlin]
+----
+@UnwrapByDefault
+public class EMailValueExtractor : EMailValueExtractorBase() {
+  override fun extractValues(originalValue: EMail?, `receiver`: ValueExtractor.ValueReceiver) {
+    if (originalValue == null) {
+      receiver.value(null, null)
+      return
+    }
+    receiver.value(null, originalValue.value)
+  }
+}
+----
++
+IMPORTANT: For Kotlin, a second Java source file is generated — see <<why-java,Why a Java class is required>>.
++
+[source,java]
+----
+public abstract class EMailValueExtractorBase implements ValueExtractor<@ExtractedValue(type = String.class) EMail> {
+}
+----
+====
 
 == Supported Wrapped Types
 
@@ -177,3 +185,40 @@ data class CreateOrderRequest(
 )
 ----
 ====
+
+
+[#why-java]
+== Kotlin: Why a Java Class is Required
+
+The Java annotation processor generates a single `.java` file and requires no further explanation.
+For the Kotlin KSP processor, however, two files are needed because of a Kotlin compiler limitation.
+
+The Bean Validation specification requires that a `ValueExtractor` implementation declares
+`@ExtractedValue` as a type-use annotation on its generic supertype argument:
+
+[source,java]
+----
+implements ValueExtractor<@ExtractedValue(type = LocalDate.class) OrderDate>
+----
+
+Compliant providers like Hibernate Validator discover this annotation by inspecting
+`Class.getAnnotatedInterfaces()` at runtime.
+This method reads `RuntimeVisibleTypeAnnotations` — a JVM bytecode attribute that holds
+type-level annotations in a location-aware form.
+
+The Kotlin compiler does *not* emit `RuntimeVisibleTypeAnnotations` for type-use annotations placed
+on generic supertype arguments (https://youtrack.jetbrains.com/issue/KT-19289[KT-19289]).
+The annotation is stored only in Kotlin's own `@Metadata`, which the Bean Validation provider
+does not consult.
+
+To work around this, the KSP generator splits the extractor into two files:
+
+1. **`OrderDateValueExtractorBase.java`** — an abstract Java class compiled by `javac`.
+`javac` correctly emits `RuntimeVisibleTypeAnnotations`, so the provider's reflection-based
+discovery works.
+2. **`OrderDateValueExtractor.kt`** — an idiomatic Kotlin class that extends the Java base and
+provides the implementation.
+
+This split is an internal implementation detail of the generator.
+From a user perspective nothing changes: the extractor is auto-discovered, and constraint
+annotations work on domain-primitives just as they do for the Java variant.

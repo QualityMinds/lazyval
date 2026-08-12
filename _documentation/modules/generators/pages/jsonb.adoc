@@ -13,6 +13,20 @@ de-/serializers for the inner type — no extra wiring is needed.
 NOTE: JSON-B and Jackson address the same problem from two different ecosystems. If your application uses Jackson
 instead of (or in addition to) JSON-B, see xref:jackson.adoc[Jackson].
 
+== Consulted Classpath
+
+|===
+|Class |JAR Coordinates |Required
+
+|`jakarta.json.bind.adapter.JsonbAdapter`
+|`jakarta.json.bind:jakarta.json.bind-api`
+^|YES
+
+|`io.quarkus.jsonb.JsonbConfigCustomizer`
+|`io.quarkus:quarkus-jsonb`
+|
+|===
+
 == Config Options
 
 |===
@@ -20,7 +34,7 @@ instead of (or in addition to) JSON-B, see xref:jackson.adoc[Jackson].
 
 |_lazyval.jsonb.package_
 |Specifies the package where the `LazyvalJsonbAdapters` (and, when applicable, `LazyvalJsonbContextResolver`) class
-is generated to. Overrides `lazyval.generators.basePackage`.
+is generated to. Overrides default value based on `lazyval.generators.basePackage`.
 
 |_lazyval.jsonb.register_
 |Controls whether the JAX-RS `LazyvalJsonbContextResolver` is generated when `jakarta.ws.rs.ext.ContextResolver` is

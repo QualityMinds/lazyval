@@ -1,8 +1,19 @@
-= Mapstruct
+= MapStruct
 
-This generator will create a single Mapstruct mapper interface with mappings from and to every defined domain-primitive.
+This generator will create a single MapStruct mapper [.underline]#interface# with mappings from and to every defined domain-primitive.
 
-IMPORTANT: the Mapstruct annotation processor must be active because it needs to generate the actual implementation.
+IMPORTANT: the MapStruct annotation processor must be active because it needs to generate the actual implementation from the interface.
+
+== Consulted Classpath
+
+|===
+|Class |JAR Coordinates |Required
+
+|`org.mapstruct.Mapper`
+|`org.mapstruct:mapstruct`
+^|YES
+
+|===
 
 == Config Options
 
@@ -11,7 +22,7 @@ IMPORTANT: the Mapstruct annotation processor must be active because it needs to
 
 |_lazyval.mapstruct.package_
 |Specifies the package where the `LazyvalMapper` interface is generated to.
-Overrides `lazyval.generators.basePackage`.
+Overrides default value based on `lazyval.generators.basePackage`.
 
 |===
 
@@ -42,10 +53,10 @@ public interface LazyvalMapper {
 }
 ----
 
-IMPORTANT: For Kotlin projects the generated Mapstruct interface will still be a Java file because Mapstruct
+IMPORTANT: For Kotlin projects the generated MapStruct interface will still be a Java file because MapStruct
 is a Java Annotation Processor that cannot read Kotlin sources.
 
-Since Mapstruct currently lacks a way to automatically register mappers, the generated LazyvalMapper needs to be
+Since MapStruct currently lacks a way to automatically register mappers, the generated LazyvalMapper needs to be
 "used" in another Mapper or in a default MapperConfig.
 See Mapstructs docu on https://mapstruct.org/documentation/stable/reference/html/#shared-configurations[shared configurations]
 

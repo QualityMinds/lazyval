@@ -34,12 +34,8 @@ factories with other signatures are allowed and ignored by the processor.
 == Setup
 
 The following snippets only contain the relevant parts to set up and configure Lazyval.
-The `jakarta-ee` dependency can be replaced by any that ships `jakarta-persistence`.
 Keep in mind, Lazyval will only activate generators whose required dependencies are
-available.
-
-NOTE: These samples show the full setup, using the smallest dependencies. In case a feature is not needed, just remove
-the dependency.
+available. See xref:generators:index.adoc[Generators] on what is required.
 
 [tabs]
 ====

@@ -22,7 +22,7 @@ often needed when modeling _"Domain Primitives"_, which are simple, domain-speci
 ** Jackson 2 & 3 (scalar serde)
 ** JPA AttributeConverters
 ** JSON-B (scalar serde)
-** Mapstruct mapper
+** MapStruct mapper
 ** MongoDB
 ** Spring-Data (Cassandra & Mongo)
 * Smart

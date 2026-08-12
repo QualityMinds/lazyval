@@ -3,6 +3,7 @@ package test;
 import com.qualityminds.lazyval.LazyValue;
 // tag::docu[]
 @LazyValue()
+// tag::docu-motivation[]
 public record Quantity(int value) {
 
     public Quantity {
@@ -11,4 +12,5 @@ public record Quantity(int value) {
         }
     }
 }
+// end::docu-motivation[]
 // end::docu[]

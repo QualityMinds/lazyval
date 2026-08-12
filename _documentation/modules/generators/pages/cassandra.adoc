@@ -11,6 +11,19 @@ IMPORTANT: When `spring-data-cassandra` is on the classpath, the `spring-data` g
 `cassandra` and this generator is silently dropped from the active set. Lazyval logs an info message
 in that case. See xref:spi:index.adoc#superseding-other-generators[Superseding other generators] for details.
 
+== Consulted Classpath
+
+|===
+|Class |JAR Coordinates |Required
+
+|`com.datastax.oss.driver.api.core.type.codec.MappingCodec`
+|`org.apache.cassandra:java-driver-core`
+^|YES
+
+|===
+
+
+
 == Config Options
 
 |===
@@ -18,7 +31,7 @@ in that case. See xref:spi:index.adoc#superseding-other-generators[Superseding o
 
 |_lazyval.cassandra.package_
 |Specifies the package where the `LazyvalCassandraCodecs` class is generated to.
-Overrides `lazyval.generators.basePackage`.
+Overrides default value based on `lazyval.generators.basePackage`.
 
 |_lazyval.cassandra.quarkus.register_
 |Controls whether the Quarkus codec registrar is generated when Quarkus is detected.
@@ -30,10 +43,10 @@ Only needed when the defaults don't fit — see <<custom-codecs>>.
 
 |===
 
-== Generated Files — Codecs
+== Generated Files
 
-A single `LazyvalCassandraCodecs` utility class is generated that contains one `MappingCodec` inner class
-per domain-primitive. It also exposes an `all()` convenience method to register every codec at once.
+A single `LazyvalCassandraCodecs` utility class is generated that contains one(package-private) `MappingCodec` inner class
+per domain-primitive. It also exposes an `all()` method which is intended to be used for registration.
 
 [tabs]
 ====
@@ -51,28 +64,6 @@ public final class LazyvalCassandraCodecs {
             new QuantityCodec(),
             new IsbnCodec()
         };
-  }
-
-  static class OrderDateCodec extends MappingCodec<LocalDate, OrderDate> {
-    public OrderDateCodec() {
-      super(TypeCodecs.DATE, GenericType.of(OrderDate.class));
-    }
-
-    @Override
-    protected OrderDate innerToOuter(LocalDate value) {
-      if (value == null) {
-        return null;
-      }
-      return new OrderDate(value);
-    }
-
-    @Override
-    protected LocalDate outerToInner(OrderDate value) {
-      if (value == null) {
-        return null;
-      }
-      return value.date();
-    }
   }
 
   static class QuantityCodec extends MappingCodec<Integer, Quantity> {
@@ -111,12 +102,6 @@ public object LazyvalCassandraCodecs {
       QuantityCodec(),
       IsbnCodec()
   )
-
-  internal class OrderDateCodec : MappingCodec<LocalDate, OrderDate>(TypeCodecs.DATE, GenericType.of(OrderDate::class.java)) {
-    override fun innerToOuter(`value`: LocalDate?): OrderDate? = value?.let { OrderDate(it) }
-
-    override fun outerToInner(`value`: OrderDate?): LocalDate? = value?.value
-  }
 
   internal class QuantityCodec : MappingCodec<Int, Quantity>(TypeCodecs.INT, GenericType.of(Quantity::class.java)) {
     override fun innerToOuter(`value`: Int?): Quantity? = value?.let { Quantity(it) }
@@ -166,6 +151,8 @@ Domain-primitives wrapping types not listed above will be skipped by this genera
 == Framework Integration
 
 === Quarkus
+
+NOTE: hopefully not needed anymore when https://github.com/datastax/cassandra-quarkus/pull/274 is merged.
 
 When the Quarkus Cassandra extension (`QuarkusCqlSession`) is detected on the classpath, an additional
 `LazyvalCassandraCodecRegistrar` CDI bean is generated. It acts as an `@Alternative` producer that wraps

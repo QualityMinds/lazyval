@@ -2,6 +2,17 @@
 
 This generator will create a single JPA AttributeConverter class for each defined domain-primitive.
 
+== Consulted Classpath
+
+|===
+|Class |JAR Coordinates |Required
+
+|`jakarta.persistence.AttributeConverter`
+|`jakarta.persistence:jakarta-persistence-api`
+^|YES
+
+|===
+
 == Config Options
 
 |===
@@ -9,7 +20,7 @@ This generator will create a single JPA AttributeConverter class for each define
 
 |_lazyval.jpa.package_
 |Specifies the package where the `AttributeConverter` classes are generated to.
-Overrides `lazyval.generators.basePackage`.
+Overrides default value based on `lazyval.generators.basePackage`.
 
 |===
 

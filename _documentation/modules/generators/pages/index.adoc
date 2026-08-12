@@ -8,7 +8,7 @@ and emits the boilerplate that would otherwise need to be hand-written for every
 |Generator |Purpose
 
 |xref:beanvalidation.adoc[Bean Validation]
-|`ConstraintValidator` implementations so standard Jakarta validators (`@Pattern`, `@Min`, `@Past`, …) work
+|`ValueExtractor` implementations so standard Jakarta validators (`@Pattern`, `@Min`, `@Past`, …) work
 directly on domain-primitive fields.
 
 |xref:cassandra.adoc[Cassandra]
@@ -16,11 +16,10 @@ directly on domain-primitive fields.
 prefer xref:spring-data.adoc[Spring Data] instead.
 
 |xref:jackson.adoc[Jackson 2 & 3]
-|A `Module` (Jackson 2) or `JacksonModule` (Jackson 3) registering serializers and deserializers via the
-ServiceLoader.
+|A `Module` (Jackson 2) or `JacksonModule` (Jackson 3) registering serializers and deserializers.
 
 |xref:jpa.adoc[JPA]
-|One `AttributeConverter` per domain-primitive, picked up automatically by your persistence provider.
+|`AttributeConverter` per domain-primitive, picked up automatically by your persistence provider.
 
 |xref:jsonb.adoc[JSON-B]
 |`JsonbAdapter` implementations bundled into a `LazyvalJsonbAdapters` class with a ready-to-use `JsonbConfig`.
@@ -37,25 +36,3 @@ For Spring Data MongoDB projects, prefer xref:spring-data.adoc[Spring Data] inst
 
 |===
 
-== Extending generated configurations
-
-Some wrapped types or storage representations don't fit the generators' default
-mappings. The two store-oriented generators expose a compile-time hook for
-plugging in user-supplied classes — FQNs are validated by the processor and
-appended to the relevant generated registration list:
-
-* xref:spring-data.adoc#user-supplied-converters[Spring Data] — `Converter`
-  pairs appended to `CustomConversions`. Most commonly needed for
-  date-wrapping primitives on MongoDB, where Spring Data's
-  `MappingMongoConverter` materialises BSON datetime as `java.util.Date`
-  before user converters run, so a `Converter<Date, OrderDate>` (with an
-  explicit `ZoneId`) is required to bridge the read path.
-* xref:mongodb.adoc#custom-codecs[MongoDB] (native driver) — `Codec`
-  implementations added to `LazyvalMongoCodecs`. Less often needed: codec
-  composition runs end-to-end through the driver's `CodecRegistry`, so
-  JSR-310 types and the rest of the default registry work out of the box.
-  Reserve for wrapped types the registry doesn't know or representations
-  that differ from the driver default.
-
-Each generator page covers the full mechanism, validation rules, and worked
-examples in an appendix.

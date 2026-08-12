@@ -4,7 +4,8 @@
 
 Good domain modeling means using dedicated types instead of raw primitives.
 A `Quantity`, an `Isbn`, or an `EmailAddress` each carry their own invariants and make invalid states unrepresentable.
-The book https://www.manning.com/books/secure-by-design[Secure by Design] calls these _"Domain Primitives"_ — the idea was also inspired by Scala's https://www.scala-lang.org/api/current/scala/AnyVal.html[AnyVal].
+The book https://www.manning.com/books/secure-by-design[Secure by Design] calls these _"Domain Primitives"_.
+Another inspiration for this project was Scala's https://www.scala-lang.org/api/current/scala/AnyVal.html[AnyVal].
 
 [tabs]
 ====
@@ -13,16 +14,19 @@ Java::
 .A simple domain primitive
 [source, java]
 ----
-include::ROOT:example$java/src/main/java/test/Quantity.java[tag=docu]
+include::ROOT:example$java/src/main/java/test/Quantity.java[tag=docu-motivation]
 ----
 
 Kotlin::
 +
 .A simple domain primitive
-[source, java]
+[source, kotlin]
 ----
-include::ROOT:example$kotlin/src/main/kotlin/test/Quantity.kt[tag=docu]
+include::ROOT:example$kotlin/src/main/kotlin/test/Quantity.kt[tag=docu-motivation]
 ----
++
+NOTE: A quick word on Kotlin: though Kotlin already has value types, they don't work in all frameworks due to inlining and
+mangling.
 ====
 
 === The Problem

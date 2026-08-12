@@ -8,9 +8,6 @@ the `@LazyValue` annotation on Kotlin classes and data-classes.
 
 First, add the annotation and processor dependencies to your favorite build-tool. See below for <<setup>>.
 
-NOTE: KSP2 only officially supports Gradle. Mill has its own KSP2 support. Maven users need to rely on
-3rd-party plugins.
-
 Mark your domain-primitive with the `@LazyValue` annotation and the processor will figure out the rest.
 
 .Quantity Dataclass
@@ -40,13 +37,12 @@ convenience factories with other signatures are allowed and ignored by the proce
 [#setup]
 == Setup
 
-The following snippets only contain the relevant parts to set up and configure Lazyval.
-The `jakartaee-api` dependency can be replaced by any that ships `jakarta-persistence`.
-Keep in mind, Lazyval will only activate generators whose required dependencies are
-available.
+NOTE: KSP2 only officially supports Gradle. Mill has its own KSP2 support. Maven users need to rely on
+3rd-party plugins.
 
-NOTE: These samples show the full setup, using the smallest dependencies. In case a feature is not needed, just remove
-the dependency.
+The following snippets only contain the relevant parts to set up and configure Lazyval.
+Keep in mind, Lazyval will only activate generators whose required dependencies are
+available. See xref:generators:index.adoc[Generators] on what is required.
 
 [tabs]
 ====

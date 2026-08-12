@@ -5,6 +5,6 @@
 * xref:jackson.adoc[Jackson (2/3)]
 * xref:jpa.adoc[JPA]
 * xref:jsonb.adoc[JSON-B]
-* xref:mapstruct.adoc[Mapstruct]
+* xref:mapstruct.adoc[MapStruct]
 * xref:mongodb.adoc[MongoDB]
 * xref:spring-data.adoc[Spring Data]
