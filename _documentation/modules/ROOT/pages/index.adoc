@@ -48,6 +48,46 @@ It is also smart about it:
 
 In a possible future where Java value types are fully supported by the ecosystem (meaning you can use a value type in a JPA entity without hassle), this project may no longer be needed.
 
+== Design Goals
+
+This section describes the key design goals of this project.
+
+* Generate only source-code: no bytecode manipulation.
+
+* Never require any runtime-dependency: all annotations are erased at compile-time.
+
+* Narrow scope: supports only single-value domain primitives.
+
+* Easy to extend and test.
+
+* Eat your own dogfood: stock generators use SPI & Testkit.
+
+Those goals yield some interesting properties from an end-user perspective. Most notably, no dependency on the project
+and its maintainer when a new generator is needed, an existing generator has a bug or CVE, or you don't like the project
+anymore and want to remove it from your codebase.
+
+
+|===
+|Problem |Solution
+
+|Dont like it
+|Copy & Own generated sources. Delete Lazyval. See you later.
+
+|CVE / Bug in a generated file (hotfix needed asap)
+|Copy & Own relevant file, disable flawed generator via id, fix the bug locally. Report the issue and wait for a fix.
+
+|CVE / Bug / Missing Feature in existing generator
+|Copy the existing generator source as a custom generator module and supersede the existing one. Apply a fix and use Testkit to verify. Add your custom generator to the annotation-processor path. Report the issue.
+
+|New generator needed
+|Use SPI to create a custom generator-module and verify it via Testkit.
+Report a feature request and ideally supply your solution. PRs must cover
+Kotlin & Java if applicable.
+
+|Bug in core processor handling or domain-primitive rules.
+|Report the issue.
+|===
+
 == Getting Started
 
 xref:java.adoc[Getting started with Java]
