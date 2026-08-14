@@ -32,7 +32,7 @@ prefer xref:spring-data.adoc[Spring Data] instead.
 For Spring Data MongoDB projects, prefer xref:spring-data.adoc[Spring Data] instead.
 
 |xref:spring-data.adoc[Spring Data]
-|A `@Configuration` class that registers store-specific `CustomConversions` for Cassandra and MongoDB.
+|A `@Configuration` class that registers store-specific `CustomConversions` for Cassandra, MongoDB, JDBC, and R2DBC.
 
 |===
 
