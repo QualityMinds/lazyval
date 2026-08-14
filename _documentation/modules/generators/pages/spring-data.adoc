@@ -11,6 +11,20 @@ class contains one bean method per store:
 
 * `CassandraCustomConversions` — when `spring-data-cassandra` is on the classpath
 * `MongoCustomConversions` — when `spring-data-mongodb` is on the classpath
+* `JdbcCustomConversions` — when `spring-data-jdbc` is on the classpath
+* `R2dbcCustomConversions` — when `spring-data-r2dbc` is on the classpath
+
+The two relational beans are **dialect-aware**. A `Dialect` contributes its own simple types and
+converters, and neither `JdbcCustomConversions` nor `R2dbcCustomConversions` picks those up from a
+plain `Collection` constructor — so both are built with `of(dialect, converters)`, exactly as Spring
+Data's own configuration does. How the dialect is obtained differs:
+
+* **JDBC** takes the `JdbcDialect` bean directly; Spring Boot publishes one from
+  `DataJdbcRepositoriesAutoConfiguration`.
+* **R2DBC** takes the `ConnectionFactory` and resolves the dialect via `DialectResolver`, because
+  Spring Boot publishes no `R2dbcDialect` bean — `DataR2dbcAutoConfiguration` resolves it in its own
+  constructor and keeps it private. Taking an `R2dbcDialect` parameter compiles, but leaves the bean
+  unsatisfiable at runtime.
 
 == Consulted Classpath
 
@@ -25,8 +39,16 @@ class contains one bean method per store:
 |`org.springframework.data:spring-data-cassandra`
 |
 
+|`org.springframework.data.jdbc.core.convert.JdbcCustomConversions`
+|`org.springframework.data:spring-data-jdbc`
+|
+
 |`org.springframework.data.mongodb.core.convert.MongoCustomConversions`
 |`org.springframework.data:spring-data-mongodb`
+|
+
+|`org.springframework.data.r2dbc.convert.R2dbcCustomConversions`
+|`org.springframework.data:spring-data-r2dbc`
 |
 
 |===
@@ -48,6 +70,16 @@ see <<user-supplied-converters>>.
 |_lazyval.springdata.mongo.converters_
 |Comma-separated list of fully qualified `Converter` class names appended to the
 `MongoCustomConversions` registration. Only needed when the defaults don't fit —
+see <<user-supplied-converters>>.
+
+|_lazyval.springdata.jdbc.converters_
+|Comma-separated list of fully qualified `Converter` class names appended to the
+`JdbcCustomConversions` registration. Only needed when the defaults don't fit —
+see <<user-supplied-converters>>.
+
+|_lazyval.springdata.r2dbc.converters_
+|Comma-separated list of fully qualified `Converter` class names appended to the
+`R2dbcCustomConversions` registration. Only needed when the defaults don't fit —
 see <<user-supplied-converters>>.
 
 |===
@@ -89,6 +121,30 @@ public class LazyvalSpringDataConfiguration {
             new QuantityWriteConverter()
         );
         return new MongoCustomConversions(converters);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public JdbcCustomConversions jdbcCustomConversions(JdbcDialect dialect) {
+        List<Converter<?, ?>> converters = List.of(
+            new IsbnReadConverter(),
+            new IsbnWriteConverter(),
+            new QuantityReadConverter(),
+            new QuantityWriteConverter()
+        );
+        return JdbcCustomConversions.of(dialect, converters);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public R2dbcCustomConversions r2dbcCustomConversions(ConnectionFactory connectionFactory) {
+        List<Converter<?, ?>> converters = List.of(
+            new IsbnReadConverter(),
+            new IsbnWriteConverter(),
+            new QuantityReadConverter(),
+            new QuantityWriteConverter()
+        );
+        return R2dbcCustomConversions.of(DialectResolver.getDialect(connectionFactory), converters);
     }
 
     @ReadingConverter
@@ -140,6 +196,30 @@ class LazyvalSpringDataConfiguration {
             QuantityWriteConverter()
         )
         return MongoCustomConversions(converters)
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    fun jdbcCustomConversions(dialect: JdbcDialect): JdbcCustomConversions {
+        val converters = listOf(
+            IsbnReadConverter(),
+            IsbnWriteConverter(),
+            QuantityReadConverter(),
+            QuantityWriteConverter()
+        )
+        return JdbcCustomConversions.of(dialect, converters)
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    fun r2dbcCustomConversions(connectionFactory: ConnectionFactory): R2dbcCustomConversions {
+        val converters = listOf(
+            IsbnReadConverter(),
+            IsbnWriteConverter(),
+            QuantityReadConverter(),
+            QuantityWriteConverter()
+        )
+        return R2dbcCustomConversions.of(DialectResolver.getDialect(connectionFactory), converters)
     }
 }
 
@@ -277,12 +357,24 @@ is never called on the read path; the read fails with
 Bridging `LocalDate ↔ Date` requires a `ZoneId` — an application decision the
 generator cannot make on the user's behalf.
 
+**The same gotcha on JDBC.** A JDBC driver hands `java.sql.Date` to the converter layer for a
+`DATE` column, so for a primitive wrapping `java.time.LocalDate` the generated
+`Converter<LocalDate, OrderDate>` is never reached and the read fails the same way. Only the read
+direction needs bridging — the generated `OrderDate -> LocalDate` write converter produces a type
+drivers bind natively. Note this is independent of the dialect: the dialect supplies simple types and
+store converters, but the missing hop is `java.sql.Date -> OrderDate`, and Spring's
+`ConversionService` does not chain, so a dialect-aware `CustomConversions` does not remove the need
+for the pair. R2DBC does *not* have this problem: its drivers return `LocalDate` directly,
+so the generated pair matches. What relational stores do need converters for is dialect-specific —
+each `Dialect` declares its own simple types, so a primitive wrapping e.g. `Duration` or a `Boolean`
+on MySQL may still need a pair.
+
 The native xref:mongodb.adoc[MongoDB] generator avoids this problem entirely:
 its codecs run below Spring Data's converter layer and compose with the
 driver's `Jsr310CodecProvider` directly, so no `Date` bridge is needed.
 ====
 
-Supply user converters via `lazyval.springdata.{cassandra,mongo}.converters`
+Supply user converters via `lazyval.springdata.{cassandra,mongo,jdbc,r2dbc}.converters`
 when:
 
 * **a domain-primitive wraps `LocalDate` and the target store is MongoDB** —
@@ -368,7 +460,7 @@ Maven (KSP)::
 
 === Validation rules
 
-Each FQN passed to `lazyval.springdata.{cassandra,mongo}.converters` is checked
+Each FQN passed to `lazyval.springdata.{cassandra,mongo,jdbc,r2dbc}.converters` is checked
 at compile time:
 
 * the class must exist

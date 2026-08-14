@@ -47,9 +47,14 @@ class SpringDataGenerator : Generator {
         private const val OPTION_GENERATED_PACKAGE = "lazyval.springdata.package"
         private const val OPTION_CASSANDRA_CONVERTERS = "lazyval.springdata.cassandra.converters"
         private const val OPTION_MONGO_CONVERTERS = "lazyval.springdata.mongo.converters"
+        private const val OPTION_JDBC_CONVERTERS = "lazyval.springdata.jdbc.converters"
+        private const val OPTION_R2DBC_CONVERTERS = "lazyval.springdata.r2dbc.converters"
+
 
         private const val CASSANDRA_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.cassandra.core.convert.CassandraCustomConversions"
         private const val MONGO_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.mongodb.core.convert.MongoCustomConversions"
+        private const val JDBC_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.jdbc.core.convert.JdbcCustomConversions"
+        private const val R2DBC_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.r2dbc.convert.R2dbcCustomConversions"
         private const val CONVERTER_FQN = "org.springframework.core.convert.converter.Converter"
         private const val READING_CONVERTER_FQN = "org.springframework.data.convert.ReadingConverter"
         private const val WRITING_CONVERTER_FQN = "org.springframework.data.convert.WritingConverter"
@@ -68,6 +73,21 @@ class SpringDataGenerator : Generator {
         private val MONGO_CUSTOM_CONVERSIONS = ClassName(
             "org.springframework.data.mongodb.core.convert", "MongoCustomConversions"
         )
+        private val JDBC_CUSTOM_CONVERSIONS = ClassName(
+            "org.springframework.data.jdbc.core.convert", "JdbcCustomConversions"
+        )
+        private val R2DBC_CUSTOM_CONVERSIONS = ClassName(
+            "org.springframework.data.r2dbc.convert", "R2dbcCustomConversions"
+        )
+        private val R2DBC_DIALECT_RESOLVER = ClassName(
+            "org.springframework.data.r2dbc.dialect", "DialectResolver"
+        )
+        private val CONNECTION_FACTORY = ClassName("io.r2dbc.spi", "ConnectionFactory")
+        private val JDBC_DIALECT = ClassName(
+            "org.springframework.data.jdbc.core.dialect", "JdbcDialect"
+        )
+
+
     }
 
     override fun generatorId(): String = StockGeneratorIds.SPRING_DATA
@@ -76,7 +96,10 @@ class SpringDataGenerator : Generator {
         setOf("org.springframework.data.convert.ReadingConverter")
 
     override fun supportedOptions(): Set<String> =
-        setOf(OPTION_GENERATED_PACKAGE, OPTION_CASSANDRA_CONVERTERS, OPTION_MONGO_CONVERTERS)
+        setOf(
+            OPTION_GENERATED_PACKAGE, OPTION_CASSANDRA_CONVERTERS, OPTION_MONGO_CONVERTERS,
+            OPTION_JDBC_CONVERTERS, OPTION_R2DBC_CONVERTERS
+        )
 
     override fun supersedes(): Set<String> =
         setOf(StockGeneratorIds.CASSANDRA_CODEC, StockGeneratorIds.MONGODB_CODEC)
@@ -87,8 +110,10 @@ class SpringDataGenerator : Generator {
     ): Stream<GeneratorResult> {
         val isCassandra = context.isOnClasspath(CASSANDRA_CUSTOM_CONVERSIONS_FQN)
         val isMongo = context.isOnClasspath(MONGO_CUSTOM_CONVERSIONS_FQN)
+        val isJdbc = context.isOnClasspath(JDBC_CUSTOM_CONVERSIONS_FQN)
+        val isR2dbc = context.isOnClasspath(R2DBC_CUSTOM_CONVERSIONS_FQN)
 
-        if (!isCassandra && !isMongo) {
+        if (!isCassandra && !isMongo && !isJdbc && !isR2dbc) {
             return Stream.empty()
         }
 
@@ -106,6 +131,18 @@ class SpringDataGenerator : Generator {
             warnIfOptionSetForMissingStorage(OPTION_MONGO_CONVERTERS, "MongoDB", context)
             emptyList()
         }
+        val jdbcUserFqns = if (isJdbc) {
+            validateUserConverters(OPTION_JDBC_CONVERTERS, context, converterPackage)
+        } else {
+            warnIfOptionSetForMissingStorage(OPTION_JDBC_CONVERTERS, "JDBC", context)
+            emptyList()
+        }
+        val r2dbcUserFqns = if (isR2dbc) {
+            validateUserConverters(OPTION_R2DBC_CONVERTERS, context, converterPackage)
+        } else {
+            warnIfOptionSetForMissingStorage(OPTION_R2DBC_CONVERTERS, "R2DBC", context)
+            emptyList()
+        }
 
         val converterSpecs = mutableListOf<TypeSpec>()
         for (element in validatedElements) {
@@ -114,7 +151,8 @@ class SpringDataGenerator : Generator {
         }
 
         val configSpec = buildSpringDataConfiguration(
-            converterSpecs, isCassandra, isMongo, cassandraUserFqns, mongoUserFqns, context
+            converterSpecs, isCassandra, isMongo, isJdbc, isR2dbc,
+            cassandraUserFqns, mongoUserFqns, jdbcUserFqns, r2dbcUserFqns, context
         )
 
         val file = FileSpec.builder(converterPackage, "LazyvalSpringDataConfiguration")
@@ -220,8 +258,9 @@ class SpringDataGenerator : Generator {
 
     private fun buildSpringDataConfiguration(
         converterSpecs: List<TypeSpec>,
-        isCassandra: Boolean, isMongo: Boolean,
+        isCassandra: Boolean, isMongo: Boolean, isJdbc: Boolean, isR2dbc: Boolean,
         cassandraUserFqns: List<String>, mongoUserFqns: List<String>,
+        jdbcUserFqns: List<String>, r2dbcUserFqns: List<String>,
         context: Generator.Context
     ): TypeSpec {
         val hasConditionalOnMissingBean = context.isOnClasspath(
@@ -250,6 +289,20 @@ class SpringDataGenerator : Generator {
             configBuilder.addFunction(buildBeanMethod(
                 "mongoCustomConversions", MONGO_CUSTOM_CONVERSIONS,
                 converterSpecs, mongoUserFqns, OPTION_MONGO_CONVERTERS, hasConditionalOnMissingBean
+            ))
+        }
+        if (isJdbc) {
+            configBuilder.addFunction(buildDialectAwareBeanMethod(
+                "jdbcCustomConversions", JDBC_CUSTOM_CONVERSIONS, JDBC_DIALECT, "dialect",
+                CodeBlock.of("dialect"),
+                converterSpecs, jdbcUserFqns, OPTION_JDBC_CONVERTERS, hasConditionalOnMissingBean
+            ))
+        }
+        if (isR2dbc) {
+            configBuilder.addFunction(buildDialectAwareBeanMethod(
+                "r2dbcCustomConversions", R2DBC_CUSTOM_CONVERSIONS, CONNECTION_FACTORY, "connectionFactory",
+                CodeBlock.of("%T.getDialect(connectionFactory)", R2DBC_DIALECT_RESOLVER),
+                converterSpecs, r2dbcUserFqns, OPTION_R2DBC_CONVERTERS, hasConditionalOnMissingBean
             ))
         }
 
@@ -293,4 +346,66 @@ class SpringDataGenerator : Generator {
             .addStatement("return %T(converters)", conversionsType)
             .build()
     }
+
+    /**
+     * Bean method for the relational stores, whose `CustomConversions` need a `Dialect`: it
+     * contributes the store's own simple types and converters, and neither `JdbcCustomConversions`
+     * nor `R2dbcCustomConversions` picks those up from a plain `Collection` constructor. Using one
+     * avoids silently dropping them — Spring Data's own configuration builds these beans the same way.
+     *
+     * How the dialect is obtained differs per store:
+     * - **JDBC** takes the `JdbcDialect` bean directly; Spring Boot publishes one from
+     *   `DataJdbcRepositoriesAutoConfiguration`.
+     * - **R2DBC** resolves it from the `ConnectionFactory`, because Spring Boot publishes no
+     *   `R2dbcDialect` bean — `DataR2dbcAutoConfiguration` resolves it in its own constructor and
+     *   keeps it in a private field. Taking an `R2dbcDialect` parameter compiles, but leaves the
+     *   bean unsatisfiable at runtime.
+     */
+    private fun buildDialectAwareBeanMethod(
+        methodName: String,
+        conversionsType: ClassName,
+        parameterType: ClassName,
+        parameterName: String,
+        dialectExpression: CodeBlock,
+        generated: List<TypeSpec>,
+        userFqns: List<String>,
+        userOptionKey: String,
+        hasConditionalOnMissingBean: Boolean
+    ): FunSpec {
+        val listInit = buildConverterListInit(generated, userFqns, userOptionKey)
+
+        return FunSpec.builder(methodName)
+            .addAnnotation(BEAN)
+            .returns(conversionsType)
+            .apply {
+                if (hasConditionalOnMissingBean) {
+                    addAnnotation(CONDITIONAL_ON_MISSING_BEAN)
+                }
+            }
+            .addParameter(parameterName, parameterType)
+            .addStatement("val converters = listOf(\n%L\n)", listInit)
+            .addStatement("return %T.of(%L, converters)", conversionsType, dialectExpression)
+            .build()
+    }
+
+    private fun buildConverterListInit(
+        generated: List<TypeSpec>,
+        userFqns: List<String>,
+        userOptionKey: String
+    ): String = buildString {
+        generated.forEachIndexed { i, spec ->
+            append("    ").append(spec.name).append("()")
+            val trailingComma = i < generated.size - 1 || userFqns.isNotEmpty()
+            if (trailingComma) append(",")
+            append("\n")
+        }
+        if (userFqns.isNotEmpty()) {
+            append("    // user-supplied via ").append(userOptionKey).append(":\n")
+            userFqns.forEachIndexed { i, fqn ->
+                append("    ").append(fqn).append("()")
+                if (i < userFqns.size - 1) append(",")
+                append("\n")
+            }
+        }
+    }.trimEnd('\n', ',')
 }
