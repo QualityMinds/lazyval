@@ -17,6 +17,7 @@ import spock.lang.Stepwise
 import spock.lang.Title
 import tools.jackson.databind.ObjectMapper
 
+
 @Title("Kotlin - Spring-Data Cassandra")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Stepwise
