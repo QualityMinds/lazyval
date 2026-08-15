@@ -72,10 +72,12 @@ jobs:
           - java/quarkus-app
           - java/quarkus-jsonb-app
           - java/spring-app
+          - java/spring-app-r2dbc
           - kotlin/jee
           - kotlin/quarkus-app
           - kotlin/quarkus-jsonb-app
           - kotlin/spring-app
+          - kotlin/spring-app-r2dbc
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

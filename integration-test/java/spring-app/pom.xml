@@ -51,6 +51,10 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jdbc</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
         </dependency>
@@ -206,6 +210,7 @@
                             <compilerArgs combine.children="append">
                                 <arg>-Alazyval.generators.disable=cassandra,jackson-2</arg>
                                 <arg>-Alazyval.springdata.mongo.converters=com.qualityminds.lazyval.integration.boundary.persistence.DateToOrderDateConverter,com.qualityminds.lazyval.integration.boundary.persistence.OrderDateToDateConverter</arg>
+                                <arg>-Alazyval.springdata.jdbc.converters=com.qualityminds.lazyval.integration.boundary.persistence.SqlDateToOrderDateConverter</arg>
                                 <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
                             </compilerArgs>
                         </configuration>

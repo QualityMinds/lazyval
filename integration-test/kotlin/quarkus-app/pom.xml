@@ -190,6 +190,9 @@
                         <configuration>
                             <sources>
                                 <source>${project.basedir}/src/main/java</source>
+                                <!-- KSP writes LazyvalMapper.java here; without this root javac
+                                     never compiles it and the MapStruct mappers fail to resolve it -->
+                                <source>${project.build.directory}/generated-sources/ksp</source>
                             </sources>
                         </configuration>
                     </execution>

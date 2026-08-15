@@ -6,8 +6,9 @@ import com.qualityminds.lazyval.integration.application.Startup
 import com.qualityminds.lazyval.integration.client.ApiClient
 import com.qualityminds.lazyval.integration.client.ApiException
 import com.qualityminds.lazyval.integration.client.JSON
-import com.qualityminds.lazyval.integration.client.api.OrderJpaApi
+import com.qualityminds.lazyval.integration.client.api.OrderApi
 import com.qualityminds.lazyval.integration.client.model.CreateOrder
+import com.qualityminds.lazyval.integration.client.model.PersistenceType
 import com.qualityminds.lazyval.integration.client.model.ValidationProblem
 import com.qualityminds.lazyval.integration.shared.EMail
 import com.qualityminds.lazyval.integration.shared.Isbn
@@ -35,21 +36,23 @@ class QuarkusJpaIT {
     @Inject
     TestMapper mapper
 
-    OrderJpaApi orderApi
+    static final PersistenceType PERSISTENCE_TYPE = PersistenceType.JPA
+
+    OrderApi orderApi
 
     @BeforeEach
     void beforeTest(){
         def client = new ApiClient()
         client.updateBaseUri(url.toString())
         client.setRequestInterceptor { it.header('Accept-Language', 'en') }
-        orderApi = new OrderJpaApi(client)
+        orderApi = new OrderApi(client)
     }
 
     @Order(1)
     @Test
     @DisplayName("should return all orders")
     void testAllOrders(){
-        def orders = orderApi.getAllOrdersJpa()
+        def orders = orderApi.getAllOrders(PERSISTENCE_TYPE)
 
         assert mapper.toDomainOrder(orders) == [Startup.DefaultOrderA, Startup.DefaultOrderB]
     }
@@ -63,7 +66,7 @@ class QuarkusJpaIT {
                 .quantity(2)
                 .email('test@post.de')
 
-        def createdOrder = mapper.toDomainOrder(orderApi.createOrderJpa(createOrderDto))
+        def createdOrder = mapper.toDomainOrder(orderApi.createOrder(PERSISTENCE_TYPE, createOrderDto))
 
         assert createdOrder.isbn == Isbn.parse(createOrderDto.getIsbn())
         assert createdOrder.quantity == new Quantity(createOrderDto.getQuantity())
@@ -75,7 +78,7 @@ class QuarkusJpaIT {
     @Test
     @DisplayName("should find order by id")
     void findById(){
-        def foundOrder = mapper.toDomainOrder(orderApi.getOrderByIdJpa(Startup.DefaultOrderB.id))
+        def foundOrder = mapper.toDomainOrder(orderApi.getOrderById(PERSISTENCE_TYPE, Startup.DefaultOrderB.id))
 
         assert foundOrder == Startup.DefaultOrderB
     }
@@ -84,7 +87,7 @@ class QuarkusJpaIT {
     @Test
     @DisplayName("should find orders by isbn")
     void findByIsbn(){
-        def foundOrder = mapper.toDomainOrder(orderApi.findOrdersByIsbnJpa(Startup.DefaultOrderB.isbn.value))
+        def foundOrder = mapper.toDomainOrder(orderApi.findOrdersByIsbn(PERSISTENCE_TYPE, Startup.DefaultOrderB.isbn.value))
 
         assert foundOrder == [ Startup.DefaultOrderB ]
     }
@@ -98,7 +101,7 @@ class QuarkusJpaIT {
                 .quantity(-1)
                 .email('invalid')
 
-        def ex = assertThrows(ApiException) { orderApi.createOrderJpa(createOrderDto) }
+        def ex = assertThrows(ApiException) { orderApi.createOrder(PERSISTENCE_TYPE, createOrderDto) }
         assert ex.code == 400
 
         def jsonMapper = new JSON().getMapper()

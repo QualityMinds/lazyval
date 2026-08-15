@@ -51,6 +51,10 @@
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jdbc</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-reflect</artifactId>
         </dependency>
@@ -126,6 +130,9 @@
                         <configuration>
                             <sources>
                                 <source>${project.basedir}/src/main/java</source>
+                                <!-- KSP writes LazyvalMapper.java here; without this root javac
+                                     never compiles it and the MapStruct mappers fail to resolve it -->
+                                <source>${project.build.directory}/generated-sources/ksp</source>
                             </sources>
                         </configuration>
                     </execution>
@@ -166,6 +173,9 @@
                         <lazyval.springdata.mongo.converters>
                             com.qualityminds.lazyval.integration.boundary.persistence.DateToOrderDateConverter,com.qualityminds.lazyval.integration.boundary.persistence.OrderDateToDateConverter
                         </lazyval.springdata.mongo.converters>
+                        <lazyval.springdata.jdbc.converters>
+                            com.qualityminds.lazyval.integration.boundary.persistence.SqlDateToOrderDateConverter
+                        </lazyval.springdata.jdbc.converters>
                     </apOptions>
                 </configuration>
             </plugin>

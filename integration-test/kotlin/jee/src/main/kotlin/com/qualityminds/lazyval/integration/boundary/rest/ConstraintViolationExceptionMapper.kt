@@ -41,7 +41,7 @@ class ConstraintViolationExceptionMapper : ExceptionMapper<ConstraintViolationEx
 
     /**
      * JAX-RS property paths start with the endpoint method node (e.g.
-     * `createOrderJpa.createOrder.isbn`). Strip it so the wire format matches Spring's
+     * `createOrder.createOrder.isbn`). Strip it so the wire format matches Spring's
      * `MethodArgumentNotValidException` output (`createOrder.isbn`).
      */
     private fun fieldPath(v: ConstraintViolation<*>): String =

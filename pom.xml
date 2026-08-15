@@ -86,6 +86,7 @@
         <version.it.cassandra>4.19.2</version.it.cassandra>
         <version.it.jakarta-ee>11.0.0</version.it.jakarta-ee>
         <version.it.h2>2.4.240</version.it.h2>
+        <version.it.r2dbc-postgresql>1.0.7.RELEASE</version.it.r2dbc-postgresql>
         <version.it.mongodb>5.7.0</version.it.mongodb>
         <version.it.hibernate-validator>8.0.2.Final</version.it.hibernate-validator>
         <version.it.jakarta-el>4.0.2</version.it.jakarta-el>

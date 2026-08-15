@@ -242,9 +242,34 @@ When Spring Boot is present, each `CustomConversions` bean is annotated with `@C
 so that it can be replaced by a custom configuration when needed.
 Spring Boot auto-configuration will otherwise pick it up automatically — no additional setup is required.
 
-NOTE: The configuration class is only generated when a supported store module (`spring-data-cassandra`
-or `spring-data-mongodb`) is on the classpath.
+NOTE: The configuration class is only generated when a supported store module (`spring-data-cassandra`,
+`spring-data-mongodb`, `spring-data-jdbc` or `spring-data-r2dbc`) is on the classpath.
 Having only `spring-data-commons` present is not sufficient.
+
+[IMPORTANT]
+====
+**Kotlin: enable the `spring` compiler plugin.** The generated configuration is a plain
+`class LazyvalSpringDataConfiguration` with `fun` bean methods, and both are final in Kotlin. Spring
+CGLIB-proxies `@Configuration` classes (`proxyBeanMethods` defaults to `true`) and cannot subclass a
+final class, so without the plugin the application context fails to start.
+
+[source,xml]
+----
+<plugin>
+    <groupId>org.jetbrains.kotlin</groupId>
+    <artifactId>kotlin-maven-plugin</artifactId>
+    <configuration>
+        <compilerPlugins>
+            <plugin>spring</plugin> <!--1-->
+        </compilerPlugins>
+    </configuration>
+</plugin>
+----
+1. opens `@Configuration`-annotated classes and their methods
+
+Alternatively use `all-open` with `annotation=org.springframework.context.annotation.Configuration`,
+or set `proxyBeanMethods = false` on your own replacement configuration.
+====
 
 == Nullable Factory Methods (Kotlin)
 
