@@ -37,7 +37,27 @@ a|
 * BeanValidation
 * Jackson 3
 * SpringData
-| SpringData covers Cassandra & MongoDB
+| SpringData covers Cassandra, MongoDB & JDBC
+
+|Spring-R2DBC
+a|
+* MapStruct
+* BeanValidation
+* Jackson 3
+* SpringData
+a|
+Reactive scenario: WebFlux with `Mono`/`Flux` controller signatures over Spring Data R2DBC
+(PostgreSQL). Separate from the Spring scenario because two relational Spring Data modules in one
+context make repository detection ambiguous, and because R2DBC is the only store whose
+`CustomConversions` are dialect-dependent — `r2dbcCustomConversions(ConnectionFactory)` is
+consequently the only generated bean that takes an argument, so it is the only one whose DI
+resolution can fail.
+
+**Deliberately no coroutines.** The Kotlin variant implements the Java-generated `Mono`/`Flux`
+interface, as kotlin/jee and kotlin/quarkus-app already do with their Java generators. Coroutines
+would only add Spring's own `suspend`/`Flow`-to-Reactor adapter to the path: `CoroutineCrudRepository`
+lives in spring-data-commons and is served by the same `SimpleR2dbcRepository`/`R2dbcConverter`, so
+the converter path — the part Lazyval generates — is identical either way.
 |===
 
 == Implementation Details
@@ -49,6 +69,29 @@ for more freedom when modeling the domain, it is unnecessary when using Lazyval.
 freedom already by providing the necessary integration so you can use, for instance, a record instead of a JPA Embeddable
 for value types within a JPA entity.
 The scenarios do the split so that multiple database technologies can be tested in the same way.
+
+=== One endpoint per operation, backend chosen by path parameter
+
+`test-api.yaml` declares four operations (`getAllOrders`, `createOrder`, `getOrderById`, `findOrdersByIsbn`)
+and takes the store as the leading path segment: `/order/{persistenceType}/...`. Previously every backend
+had its own path, tag and operation-id, so each new persistence technology multiplied the spec and added
+another controller per scenario. Now one `OrderApi` interface is generated per scenario and one controller
+implements it, dispatching on the parameter.
+
+Two details are load-bearing:
+
+* The `PersistenceType` enum values are upper-case and pinned with `x-enum-varnames`. Spring resolves
+  path-parameter enums through `StringToEnumConverterFactory` and JAX-RS through `valueOf`; neither
+  consults the generated `fromValue` factory, so the constant name must equal the wire value. Without
+  `x-enum-varnames` the generator would sanitize `R2DBC` into the constant `R2_DBC` and every request
+  for it would be rejected.
+* Not every scenario implements every type — JDBC and R2DBC are Spring-only. Those answer
+  *501 Not Implemented* (RFC 9110 §15.6.2) with an RFC 9457 problem body, raised as
+  `UnsupportedPersistenceTypeException` and mapped per framework.
+
+A value outside the enum is rejected by the framework before the controller runs, and the status differs
+by stack: Spring answers *400* while JAX-RS answers *404* for an unconvertible `@PathParam`. The generated
+client only produces valid values, so this shows up only when calling the API by hand.
 
 === Uses domain-primitives in Openapi DTOs
 Furthermore, the scenarios go to the extreme where the DTOs also use the domain-primitives (but only for output DTOs)

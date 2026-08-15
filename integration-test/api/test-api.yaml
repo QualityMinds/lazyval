@@ -2,27 +2,32 @@ openapi: 3.1.0
 info:
   title: Lazyval Integration Test API
   description: >
-    API for testing lazyval domain primitive integration with JPA, Cassandra, and Mapstruct.
+    API for testing lazyval domain primitive integration with JPA, Cassandra, MongoDB,
+    Spring-Data JDBC/R2DBC and Mapstruct.
+    Each operation takes the persistence backend as its leading path segment
+    (`/order/{persistenceType}/...`) so the same contract is exercised against every store
+    instead of duplicating the resource per technology. A backend that a deployment does not
+    implement answers with 501.
     Custom `format` values (isbn, quantity) are used for type-mapping with openapi-generator.
     Generators unaware of these formats will fall back to the base type with the provided
     validation constraints (pattern, minimum, etc.).
   version: 1.0.0
 
 tags:
-  - name: order-jpa
-    description: Order resource backed by JPA/Hibernate
-  - name: order-cassandra
-    description: Order resource backed by Cassandra
-  - name: order-mapstruct
-    description: Order resource backed by Mapstruct mapping
+  - name: order
+    description: >
+      Order resource. The required `persistenceType` path parameter selects the backing store,
+      so one set of operations covers every persistence technology under test.
 
 paths:
-  # ──────────────────── JPA ────────────────────
-  /order/jpa:
+  /order/{persistenceType}:
+    # Declared on the path item so every operation below inherits it.
+    parameters:
+      - $ref: '#/components/parameters/PersistenceType'
     get:
-      tags: [order-jpa]
-      summary: Get all orders (JPA)
-      operationId: getAllOrdersJpa
+      tags: [order]
+      summary: Get all orders
+      operationId: getAllOrders
       responses:
         '200':
           description: List of all orders
@@ -32,10 +37,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Order'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
     post:
-      tags: [order-jpa]
-      summary: Create a new order (JPA)
-      operationId: createOrderJpa
+      tags: [order]
+      summary: Create a new order
+      operationId: createOrder
       requestBody:
         required: true
         content:
@@ -51,14 +58,17 @@ paths:
                 $ref: '#/components/schemas/Order'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
 
-  /order/jpa/{id}:
+  /order/{persistenceType}/{id}:
+    parameters:
+      - $ref: '#/components/parameters/PersistenceType'
+      - $ref: '#/components/parameters/OrderId'
     get:
-      tags: [ order-jpa ]
-      summary: Get a single order by ID (JPA)
-      operationId: getOrderByIdJpa
-      parameters:
-        - $ref: '#/components/parameters/OrderId'
+      tags: [order]
+      summary: Get a single order by ID
+      operationId: getOrderById
       responses:
         '200':
           description: The requested order
@@ -68,14 +78,17 @@ paths:
                 $ref: '#/components/schemas/Order'
         '404':
           description: Order not found
+        '501':
+          $ref: '#/components/responses/NotImplemented'
 
-  /order/jpa/isbn/{isbn}:
+  /order/{persistenceType}/isbn/{isbn}:
+    parameters:
+      - $ref: '#/components/parameters/PersistenceType'
+      - $ref: '#/components/parameters/Isbn'
     get:
-      tags: [ order-jpa ]
-      summary: Find orders by ISBN (JPA)
-      operationId: findOrdersByIsbnJpa
-      parameters:
-        - $ref: '#/components/parameters/Isbn'
+      tags: [order]
+      summary: Find orders by ISBN
+      operationId: findOrdersByIsbn
       responses:
         '200':
           description: List of orders matching the ISBN
@@ -85,145 +98,19 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Order'
-
-  # ──────────────────── Cassandra ────────────────────
-  /order/cassandra:
-    get:
-      tags: [order-cassandra]
-      summary: Get all orders (Cassandra)
-      operationId: getAllOrdersCassandra
-      responses:
-        '200':
-          description: List of all orders
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Order'
-    post:
-      tags: [order-cassandra]
-      summary: Create a new order (Cassandra)
-      operationId: createOrderCassandra
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateOrder'
-      responses:
-        '200':
-          description: The created order
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Order'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-
-  /order/cassandra/{id}:
-    get:
-      tags: [ order-cassandra ]
-      summary: Get a single order by ID (Cassandra)
-      operationId: getOrderByIdCassandra
-      parameters:
-        - $ref: '#/components/parameters/OrderId'
-      responses:
-        '200':
-          description: The requested order
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Order'
-        '404':
-          description: Order not found
-
-  /order/cassandra/isbn/{isbn}:
-    get:
-      tags: [ order-cassandra ]
-      summary: Find orders by ISBN (Cassandra)
-      operationId: findOrdersByIsbnCassandra
-      parameters:
-        - $ref: '#/components/parameters/Isbn'
-      responses:
-        '200':
-          description: List of orders matching the ISBN
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Order'
-
-  # ──────────────────── Mongo-DB ────────────────────
-  /order/mongo:
-    get:
-      tags: [order-mongo]
-      summary: Get all orders (Mongo)
-      operationId: getAllOrdersMongo
-      responses:
-        '200':
-          description: List of all orders
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Order'
-    post:
-      tags: [order-mongo]
-      summary: Create a new order (Mongo)
-      operationId: createOrderMongo
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateOrder'
-      responses:
-        '200':
-          description: The created order
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Order'
-
-  /order/mongo/{id}:
-    get:
-      tags: [ order-mongo ]
-      summary: Get a single order by ID (Mongo)
-      operationId: getOrderByIdMongo
-      parameters:
-        - $ref: '#/components/parameters/OrderId'
-      responses:
-        '200':
-          description: The requested order
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Order'
-        '404':
-          description: Order not found
-
-  /order/mongo/isbn/{isbn}:
-    get:
-      tags: [ order-mongo ]
-      summary: Find orders by ISBN (Mongo)
-      operationId: findOrdersByIsbnMongo
-      parameters:
-        - $ref: '#/components/parameters/Isbn'
-      responses:
-        '200':
-          description: List of orders matching the ISBN
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Order'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
 
 components:
   parameters:
+    PersistenceType:
+      name: persistenceType
+      in: path
+      # Path parameters are required by definition — a missing segment does not match the route.
+      required: true
+      description: Persistence backend that serves this request.
+      schema:
+        $ref: '#/components/schemas/PersistenceType'
     OrderId:
       name: id
       in: path
@@ -251,7 +138,41 @@ components:
           schema:
             $ref: '#/components/schemas/ValidationProblem'
 
+    NotImplemented:
+      description: >
+        The `persistenceType` is a valid value but is not implemented by this deployment —
+        JDBC and R2DBC exist only in the Spring scenario. Body is RFC 9457
+        `application/problem+json`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
   schemas:
+    PersistenceType:
+      type: string
+      description: >
+        Persistence technology serving a request. Values are upper-case so that the constant
+        name of the generated enum equals the wire value: Spring's `StringToEnumConverterFactory`
+        and JAX-RS both resolve path parameters via `Enum.valueOf(name)` and never consult the
+        generated `fromValue` factory.
+      enum:
+        - JPA
+        - CASSANDRA
+        - MONGO
+        - JDBC
+        - R2DBC
+      # Without this the generator would sanitize R2DBC to the constant R2_DBC (it splits on the
+      # digit boundary), so valueOf("R2DBC") would fail while the client keeps sending "R2DBC".
+      x-enum-varnames:
+        - JPA
+        - CASSANDRA
+        - MONGO
+        - JDBC
+        - R2DBC
+      examples:
+        - JPA
+
     CreateOrder:
       # Plain wire-format types so bean validation runs at the boundary instead of failing
       # in the deserializer when domain-primitive constructors reject invalid input.

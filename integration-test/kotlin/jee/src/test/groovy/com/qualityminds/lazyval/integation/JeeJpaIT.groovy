@@ -5,8 +5,9 @@ import com.qualityminds.lazyval.integration.application.StartupBean
 import com.qualityminds.lazyval.integration.client.ApiClient
 import com.qualityminds.lazyval.integration.client.ApiException
 import com.qualityminds.lazyval.integration.client.JSON
-import com.qualityminds.lazyval.integration.client.api.OrderJpaApi
+import com.qualityminds.lazyval.integration.client.api.OrderApi
 import com.qualityminds.lazyval.integration.client.model.CreateOrder
+import com.qualityminds.lazyval.integration.client.model.PersistenceType
 import com.qualityminds.lazyval.integration.client.model.ValidationProblem
 import com.qualityminds.lazyval.integration.shared.EMail
 import com.qualityminds.lazyval.integration.shared.Isbn
@@ -22,18 +23,20 @@ import spock.lang.Title
 class JeeJpaIT extends AbstractLibertyIT {
 
     TestMapper mapper = Mappers.getMapper(TestMapper.class)
-    OrderJpaApi orderApi
+    static final PersistenceType PERSISTENCE_TYPE = PersistenceType.JPA
+
+    OrderApi orderApi
 
     def setup() {
         def client = new ApiClient()
         client.updateBaseUri("http://${liberty.host}:${liberty.getMappedPort(PORT)}")
         client.setRequestInterceptor { it.header('Accept-Language', 'en') }
-        orderApi = new OrderJpaApi(client)
+        orderApi = new OrderApi(client)
     }
 
     def "should return all orders"() {
         when:
-        def orders = orderApi.getAllOrdersJpa()
+        def orders = orderApi.getAllOrders(PERSISTENCE_TYPE)
 
         then:
         mapper.toDomainOrder(orders) == [StartupBean.DefaultOrderA, StartupBean.DefaultOrderB]
@@ -47,7 +50,7 @@ class JeeJpaIT extends AbstractLibertyIT {
                 .email('test@post.de')
 
         when:
-        def createdOrder = mapper.toDomainOrder(orderApi.createOrderJpa(createOrderDto))
+        def createdOrder = mapper.toDomainOrder(orderApi.createOrder(PERSISTENCE_TYPE, createOrderDto))
 
         then:
         createdOrder.isbn == Isbn.parse(createOrderDto.getIsbn())
@@ -58,7 +61,7 @@ class JeeJpaIT extends AbstractLibertyIT {
 
     def "should find order by id"() {
         when:
-        def foundOrder = mapper.toDomainOrder(orderApi.getOrderByIdJpa(StartupBean.DefaultOrderB.id))
+        def foundOrder = mapper.toDomainOrder(orderApi.getOrderById(PERSISTENCE_TYPE, StartupBean.DefaultOrderB.id))
 
         then:
         foundOrder == StartupBean.DefaultOrderB
@@ -66,7 +69,7 @@ class JeeJpaIT extends AbstractLibertyIT {
 
     def "should find orders by isbn"() {
         when:
-        def foundOrders = mapper.toDomainOrder(orderApi.findOrdersByIsbnJpa(StartupBean.DefaultOrderB.isbn.value))
+        def foundOrders = mapper.toDomainOrder(orderApi.findOrdersByIsbn(PERSISTENCE_TYPE, StartupBean.DefaultOrderB.isbn.value))
 
         then:
         foundOrders == [StartupBean.DefaultOrderB]
@@ -81,7 +84,7 @@ class JeeJpaIT extends AbstractLibertyIT {
         def jsonMapper = new JSON().getMapper()
 
         when:
-        orderApi.createOrderJpa(createOrderDto)
+        orderApi.createOrder(PERSISTENCE_TYPE, createOrderDto)
 
         then:
         def ex = thrown(ApiException)

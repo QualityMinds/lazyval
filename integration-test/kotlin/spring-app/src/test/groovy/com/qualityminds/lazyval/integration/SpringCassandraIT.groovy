@@ -3,8 +3,9 @@ package com.qualityminds.lazyval.integration
 import com.qualityminds.lazyval.integration.application.Startup
 import com.qualityminds.lazyval.integration.client.ApiClient
 import com.qualityminds.lazyval.integration.client.ApiException
-import com.qualityminds.lazyval.integration.client.api.OrderCassandraApi
+import com.qualityminds.lazyval.integration.client.api.OrderApi
 import com.qualityminds.lazyval.integration.client.model.CreateOrder
+import com.qualityminds.lazyval.integration.client.model.PersistenceType
 import com.qualityminds.lazyval.integration.client.model.ValidationProblem
 import com.qualityminds.lazyval.integration.shared.EMail
 import com.qualityminds.lazyval.integration.shared.Isbn
@@ -29,18 +30,20 @@ class SpringCassandraIT extends AbstractIT {
     @Autowired
     ObjectMapper jsonMapper
 
-    OrderCassandraApi orderApi
+    static final PersistenceType PERSISTENCE_TYPE = PersistenceType.CASSANDRA
+
+    OrderApi orderApi
 
     def setup() {
         def client = new ApiClient()
         client.updateBaseUri("http://localhost:$port")
         client.setRequestInterceptor { it.header('Accept-Language', 'en') }
-        orderApi = new OrderCassandraApi(client)
+        orderApi = new OrderApi(client)
     }
 
     def "should return all orders"() {
         when:
-        def orders = orderApi.getAllOrdersCassandra()
+        def orders = orderApi.getAllOrders(PERSISTENCE_TYPE)
 
         then:
         mapper.toDomainOrder(orders) == [Startup.DefaultOrderA, Startup.DefaultOrderB]
@@ -54,7 +57,7 @@ class SpringCassandraIT extends AbstractIT {
                 .email('test@post.de')
 
         when:
-        def createdOrder = mapper.toDomainOrder(orderApi.createOrderCassandra(createOrderDto))
+        def createdOrder = mapper.toDomainOrder(orderApi.createOrder(PERSISTENCE_TYPE, createOrderDto))
 
         then:
         createdOrder.isbn == Isbn.parse(createOrderDto.getIsbn())
@@ -72,7 +75,7 @@ class SpringCassandraIT extends AbstractIT {
                 .email('invalid')
 
         when:
-        orderApi.createOrderCassandra(createOrderDto)
+        orderApi.createOrder(PERSISTENCE_TYPE, createOrderDto)
 
         then:
         def ex = thrown(ApiException)
@@ -100,7 +103,7 @@ class SpringCassandraIT extends AbstractIT {
 
     def "should find order by id"() {
         when:
-        def foundOrder = mapper.toDomainOrder(orderApi.getOrderByIdCassandra(Startup.DefaultOrderB.id))
+        def foundOrder = mapper.toDomainOrder(orderApi.getOrderById(PERSISTENCE_TYPE, Startup.DefaultOrderB.id))
 
         then:
         foundOrder == Startup.DefaultOrderB
@@ -108,7 +111,7 @@ class SpringCassandraIT extends AbstractIT {
 
     def "should find orders by isbn"() {
         when:
-        def foundOrder = mapper.toDomainOrder(orderApi.findOrdersByIsbnCassandra(Startup.DefaultOrderB.isbn.value))
+        def foundOrder = mapper.toDomainOrder(orderApi.findOrdersByIsbn(PERSISTENCE_TYPE, Startup.DefaultOrderB.isbn.value))
 
         then:
         foundOrder == [Startup.DefaultOrderB]

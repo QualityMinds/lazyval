@@ -28,8 +28,10 @@
         <module>java/quarkus-app</module>
         <module>java/quarkus-jsonb-app</module>
         <module>java/spring-app</module>
+        <module>java/spring-app-r2dbc</module>
         <module>kotlin/shared</module>
         <module>kotlin/spring-app</module>
+        <module>kotlin/spring-app-r2dbc</module>
         <module>kotlin/jee</module>
         <module>kotlin/quarkus-app</module>
         <module>kotlin/quarkus-jsonb-app</module>

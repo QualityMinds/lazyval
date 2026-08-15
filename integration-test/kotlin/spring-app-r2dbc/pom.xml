@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.qualityminds.lazyval.integration</groupId>
+        <artifactId>integration-test-parent</artifactId>
+        <version>0.3.3-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>integration-test-kotlin-spring-app-r2dbc</artifactId>
+    <name>Integration Test Kotlin Spring-App (R2DBC, reactive)</name>
+    <description>
+        Kotlin counterpart to java/spring-app-r2dbc. Deliberately without coroutines: the API
+        interface comes from the Java `spring` generator with reactive=true (Mono/Flux) and is
+        implemented by a Kotlin controller — the same arrangement kotlin/jee and kotlin/quarkus-app
+        already use with their Java generators. What this scenario adds over kotlin/spring-app is
+        coverage of the one KSP-generated bean that takes an argument
+        (r2dbcCustomConversions(ConnectionFactory)); the other stores' beans are no-arg, so nothing
+        else exercises KSP output through Spring's dependency resolution.
+    </description>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${version.it.spring-boot}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.qualityminds.lazyval.integration</groupId>
+            <artifactId>integration-test-kotlin-shared</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-r2dbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <!-- PostgreSQL rather than r2dbc-h2: real dialect behaviour for uuid/date columns, and
+             r2dbc-h2 has had no release since 2023. -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>r2dbc-postgresql</artifactId>
+            <version>${version.it.r2dbc-postgresql}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-reflect</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>tools.jackson.module</groupId>
+            <artifactId>jackson-module-kotlin</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.qualityminds.lazyval</groupId>
+            <artifactId>lazyval</artifactId>
+            <version>${project.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${version.it.mapstruct}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.qualityminds.lazyval.integration</groupId>
+            <artifactId>integration-test-api-client</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.spockframework</groupId>
+            <artifactId>spock-spring</artifactId>
+            <version>2.4-groovy-5.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <version>${version.it.testcontainers}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>${version.plugin.build-helper}</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <!-- MapStruct is an annotation processor, so the mappers are Java
+                                     even in the Kotlin scenarios -->
+                                <source>${project.basedir}/src/main/java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.gmavenplus</groupId>
+                <artifactId>gmavenplus-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>me.kpavlov.ksp.maven</groupId>
+                <artifactId>ksp-maven-plugin</artifactId>
+                <version>${version.plugin.ksp2-3rd-party}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>process</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>com.qualityminds.lazyval</groupId>
+                        <artifactId>lazyval-ksp</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <apOptions>
+                        <lazyval.generators.basePackage>
+                            com.qualityminds.lazyval.integration
+                        </lazyval.generators.basePackage>
+                        <lazyval.generators.disable>
+                            cassandra,jackson-2
+                        </lazyval.generators.disable>
+                    </apOptions>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.jetbrains.kotlin</groupId>
+                <artifactId>kotlin-maven-plugin</artifactId>
+                <configuration>
+                    <jvmTarget>${version.java}</jvmTarget>
+                    <args>
+                        <arg>-Xjsr305=strict</arg>
+                        <arg>-Xannotation-default-target=param-property</arg>
+                    </args>
+                    <compilerPlugins>
+                        <!-- Required, not optional: KSP emits `public class
+                             LazyvalSpringDataConfiguration` with `public fun` bean methods, which are
+                             final in Kotlin. Spring CGLIB-proxies @Configuration classes
+                             (proxyBeanMethods defaults to true) and cannot subclass a final class,
+                             so without this plugin opening them the context fails to start. -->
+                        <plugin>spring</plugin>
+                    </compilerPlugins>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>compile</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <phase>process-sources</phase>
+                    </execution>
+                    <execution>
+                        <id>test-compile</id>
+                        <goals>
+                            <goal>test-compile</goal>
+                        </goals>
+                        <phase>test-compile</phase>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.jetbrains.kotlin</groupId>
+                        <artifactId>kotlin-maven-allopen</artifactId>
+                        <version>${version.kotlin}</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${version.it.mapstruct}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <compilerArgs>
+                        <arg>-Amapstruct.defaultComponentModel=spring</arg>
+                        <arg>-Amapstruct.defaultInjectionStrategy=constructor</arg>
+                        <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${version.it.spring-boot}</version>
+            </plugin>
+
+            <plugin>
+                <groupId>org.openapitools</groupId>
+                <artifactId>openapi-generator-maven-plugin</artifactId>
+                <version>${version.plugin.openapi-generator}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                        <configuration>
+                            <inputSpec>${project.basedir}/../../api/test-api.yaml</inputSpec>
+                            <!-- The Java generator, not kotlin-spring: kotlin-spring's only reactive
+                                 mode is coroutines, and this scenario is deliberately Mono/Flux.
+                                 kotlin/jee and kotlin/quarkus-app implement Java-generated
+                                 interfaces from Kotlin the same way. -->
+                            <generatorName>spring</generatorName>
+
+                            <!-- Generate API interfaces and models, but no tests -->
+                            <generateApiTests>false</generateApiTests>
+                            <generateModelTests>false</generateModelTests>
+                            <generateSupportingFiles>false</generateSupportingFiles>
+
+                            <configOptions>
+                                <sourceFolder>src/main/java</sourceFolder>
+                                <apiPackage>com.qualityminds.lazyval.integration.boundary.rest.api</apiPackage>
+                                <modelPackage>com.qualityminds.lazyval.integration.boundary.rest.model</modelPackage>
+                                <library>spring-boot</library>
+                                <reactive>true</reactive>
+                                <useSpringBoot4>true</useSpringBoot4>
+                                <useJackson3>true</useJackson3>
+                                <useSwaggerUI>false</useSwaggerUI>
+                                <documentationProvider>none</documentationProvider>
+                                <useBeanValidation>true</useBeanValidation>
+                                <interfaceOnly>true</interfaceOnly>
+                                <skipDefaultInterface>true</skipDefaultInterface>
+                                <returnResponse>false</returnResponse>
+                                <openApiNullable>false</openApiNullable>
+                                <useTags>true</useTags>
+                                <dateLibrary>java8</dateLibrary>
+                            </configOptions>
+
+                            <!-- Type mappings: map type+format to domain primitives -->
+                            <typeMappings>
+                                <typeMapping>string+isbn=Isbn</typeMapping>
+                                <typeMapping>string+email=EMail</typeMapping>
+                                <typeMapping>string+date=OrderDate</typeMapping>
+                                <typeMapping>integer+quantity=Quantity</typeMapping>
+                                <typeMapping>string+couponcode=CouponCode</typeMapping>
+                            </typeMappings>
+                            <!-- Import mappings: fully qualified class names -->
+                            <importMappings>
+                                <!-- From shared module -->
+                                <importMapping>Isbn=com.qualityminds.lazyval.integration.shared.Isbn</importMapping>
+                                <importMapping>Quantity=com.qualityminds.lazyval.integration.shared.Quantity</importMapping>
+                                <importMapping>EMail=com.qualityminds.lazyval.integration.shared.EMail</importMapping>
+                                <importMapping>CouponCode=com.qualityminds.lazyval.integration.shared.CouponCode</importMapping>
+                                <!-- From app domain -->
+                                <importMapping>OrderDate=com.qualityminds.lazyval.integration.domain.OrderDate</importMapping>
+                            </importMappings>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <artifactId>maven-failsafe-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

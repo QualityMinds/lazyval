@@ -52,7 +52,7 @@ public class ConstraintViolationExceptionMapper implements ExceptionMapper<Const
 
     /**
      * JAX-RS property paths start with the endpoint method node (e.g. {@code
-     * createOrderJpa.createOrder.isbn}). Strip it so the wire format matches Spring's
+     * createOrder.createOrder.isbn}). Strip it so the wire format matches Spring's
      * {@code MethodArgumentNotValidException} output ({@code createOrder.isbn}).
      */
     private static String fieldPath(ConstraintViolation<?> v) {

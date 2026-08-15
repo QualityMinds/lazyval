@@ -6,7 +6,7 @@ import org.mapstruct.MappingConstants;
 
 import java.util.List;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.JAKARTA, uses = { LazyvalMapper.class})
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = { LazyvalMapper.class})
 public interface TestMapper {
 
     com.qualityminds.lazyval.integration.client.model.Order toClientOrder(Order domain);

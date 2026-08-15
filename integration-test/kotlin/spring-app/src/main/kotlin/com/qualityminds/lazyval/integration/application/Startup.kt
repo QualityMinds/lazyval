@@ -14,7 +14,8 @@ import org.springframework.transaction.annotation.Transactional
 class Startup(
     @Qualifier("jpa") private val jpaRepository: OrderRepository,
     @Qualifier("cassandra") private val cassandraRepository: OrderRepository,
-    @Qualifier("mongo") private val mongoRepository: OrderRepository
+    @Qualifier("mongo") private val mongoRepository: OrderRepository,
+    @Qualifier("jdbc") private val jdbcRepository: OrderRepository
 ) {
 
     companion object {
@@ -47,6 +48,10 @@ class Startup(
         if (mongoRepository.findAll().isEmpty()) {
             mongoRepository.save(DefaultOrderA)
             mongoRepository.save(DefaultOrderB)
+        }
+        if (jdbcRepository.findAll().isEmpty()) {
+            jdbcRepository.save(DefaultOrderA)
+            jdbcRepository.save(DefaultOrderB)
         }
     }
 }
