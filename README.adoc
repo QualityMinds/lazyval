@@ -24,7 +24,7 @@ often needed when modeling _"Domain Primitives"_, which are simple, domain-speci
 ** JSON-B (scalar serde)
 ** MapStruct mapper
 ** MongoDB
-** Spring-Data (Cassandra & Mongo)
+** Spring-Data (Cassandra, Mongo, Jdbc, R2dbc)
 * Smart
 ** Only generate code when the necessary dependencies are available
 ** Factory-methods can be named arbitrarily, as long as the types match and they are unique
