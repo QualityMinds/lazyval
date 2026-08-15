@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.integration.boundary.persistence.cassandra
 
+import com.qualityminds.lazyval.integration.shared.Isbn
 import org.springframework.data.cassandra.repository.CassandraRepository
 import org.springframework.data.cassandra.repository.Query
 import org.springframework.stereotype.Repository
@@ -9,5 +10,5 @@ import java.util.*
 interface SpringDataCassandraRepository : CassandraRepository<CassandraOrder, UUID> {
 
     @Query("SELECT * FROM orders WHERE isbn = ?0 ALLOW FILTERING")
-    fun findByIsbn(isbn: String): List<CassandraOrder>
+    fun findByIsbn(isbn: Isbn): List<CassandraOrder>
 }

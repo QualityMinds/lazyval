@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.integration.boundary.persistence.jdbc
 
+import com.qualityminds.lazyval.integration.shared.Isbn
 import org.springframework.data.jdbc.repository.query.Query
 import org.springframework.data.repository.CrudRepository
 import org.springframework.stereotype.Repository
@@ -13,5 +14,5 @@ import java.util.*
 interface SpringDataJdbcRepository : CrudRepository<JdbcOrder, UUID> {
 
     @Query("SELECT * FROM JDBC_ORDERS WHERE isbn = :isbn")
-    fun findByIsbn(isbn: String): List<JdbcOrder>
+    fun findByIsbn(isbn: Isbn): List<JdbcOrder>
 }

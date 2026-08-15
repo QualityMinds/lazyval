@@ -43,6 +43,6 @@ public class R2dbcOrderRepository implements OrderRepository {
 
     @Override
     public Flux<Order> findByIsbn(Isbn isbn) {
-        return springDataRepository.findByIsbn(isbn.value()).map(mapper::toDomain);
+        return springDataRepository.findByIsbn(isbn).map(mapper::toDomain);
     }
 }

@@ -1,4 +1,4 @@
-package com.qualityminds.lazyval.integration.boundary.persistence.cassandra;
+package com.qualityminds.lazyval.integration.boundary.persistence.cassandra
 
 import com.qualityminds.lazyval.integration.domain.Order
 import com.qualityminds.lazyval.integration.domain.OrderRepository
@@ -28,6 +28,6 @@ class CassandraOrderRepository(
     }
 
     override fun findByIsbn(isbn: Isbn): List<Order> {
-        return mapper.toDomain(springDataRepository.findByIsbn(isbn.value))
+        return mapper.toDomain(springDataRepository.findByIsbn(isbn))
     }
 }

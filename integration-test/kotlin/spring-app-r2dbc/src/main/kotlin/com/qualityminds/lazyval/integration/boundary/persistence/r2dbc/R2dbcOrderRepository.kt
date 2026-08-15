@@ -29,5 +29,5 @@ class R2dbcOrderRepository(
         springDataRepository.findById(id).map(mapper::toDomain)
 
     override fun findByIsbn(isbn: Isbn): Flux<Order> =
-        springDataRepository.findByIsbn(isbn.value).map(mapper::toDomain)
+        springDataRepository.findByIsbn(isbn).map(mapper::toDomain)
 }

@@ -41,6 +41,6 @@ public class CassandraOrderRepository implements OrderRepository {
 
     @Override
     public List<Order> findByIsbn(Isbn isbn) {
-        return mapper.toDomain(springDataRepository.findByIsbn(isbn.value()));
+        return mapper.toDomain(springDataRepository.findByIsbn(isbn));
     }
 }

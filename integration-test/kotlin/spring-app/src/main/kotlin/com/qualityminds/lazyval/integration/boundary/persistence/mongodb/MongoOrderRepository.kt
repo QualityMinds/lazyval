@@ -27,6 +27,6 @@ class MongoOrderRepository(
     }
 
     override fun findByIsbn(isbn: Isbn): List<Order> {
-        return mapper.toDomain(springDataRepository.findByIsbn(isbn.value))
+        return mapper.toDomain(springDataRepository.findByIsbn(isbn))
     }
 }

@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.integration.boundary.persistence.r2dbc
 
+import com.qualityminds.lazyval.integration.shared.Isbn
 import org.springframework.data.r2dbc.repository.Query
 import org.springframework.data.r2dbc.repository.R2dbcRepository
 import org.springframework.stereotype.Repository
@@ -14,5 +15,5 @@ import java.util.*
 interface SpringDataR2dbcRepository : R2dbcRepository<R2dbcOrder, UUID> {
 
     @Query("SELECT * FROM orders WHERE isbn = :isbn")
-    fun findByIsbn(isbn: String): Flux<R2dbcOrder>
+    fun findByIsbn(isbn: Isbn): Flux<R2dbcOrder>
 }

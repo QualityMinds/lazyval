@@ -25,5 +25,5 @@ class JdbcOrderRepository(
         springDataRepository.findById(id).map { mapper.toDomain(it) }.orElse(null)
 
     override fun findByIsbn(isbn: Isbn): List<Order> =
-        mapper.toDomain(springDataRepository.findByIsbn(isbn.value))
+        mapper.toDomain(springDataRepository.findByIsbn(isbn))
 }
