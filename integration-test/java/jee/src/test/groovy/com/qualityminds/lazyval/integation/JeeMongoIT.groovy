@@ -93,7 +93,7 @@ class JeeMongoIT extends AbstractLibertyIT {
         and: 'problem-json is present'
         ValidationProblem validationProblem = jsonMapper.readValue(ex.responseBody, ValidationProblem)
         validationProblem.status == 400
-        and: 'ibsn is reported'
+        and: 'isbn is reported'
         with(validationProblem.violations.find { it.field == "createOrder.isbn" }) {
             message == /must match "^[\d\-]{10,17}$"/
             invalidValue == "bogus"
