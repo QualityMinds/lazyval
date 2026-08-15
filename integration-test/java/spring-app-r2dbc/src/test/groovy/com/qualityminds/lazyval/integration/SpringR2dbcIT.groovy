@@ -66,11 +66,11 @@ class SpringR2dbcIT extends AbstractIT {
         def createdOrder = mapper.toDomainOrder(orderApi.createOrder(PERSISTENCE_TYPE, createOrderDto))
 
         then:
-        createdOrder.isbn == Isbn.parse(createOrderDto.getIsbn())
-        createdOrder.quantity == new Quantity(createOrderDto.getQuantity())
-        createdOrder.email == new EMail(createOrderDto.getEmail())
-        createdOrder.id != null
-        createdOrder.couponCode == null
+        createdOrder.isbn() == Isbn.parse(createOrderDto.getIsbn())
+        createdOrder.quantity() == new Quantity(createOrderDto.getQuantity())
+        createdOrder.email() == new EMail(createOrderDto.getEmail())
+        createdOrder.id() != null
+        createdOrder.couponCode() == null
     }
 
     def "should handle invalid input"() {
