@@ -36,7 +36,7 @@ a|
 * JPA
 * BeanValidation
 * Jackson 3
-* SpringData
+* SpringData (R2DBC)
 | SpringData covers Cassandra, MongoDB & JDBC
 
 |Spring-R2DBC
@@ -73,9 +73,9 @@ The scenarios do the split so that multiple database technologies can be tested 
 === One endpoint per operation, backend chosen by path parameter
 
 `test-api.yaml` declares four operations (`getAllOrders`, `createOrder`, `getOrderById`, `findOrdersByIsbn`)
-and takes the store as the leading path segment: `/order/{persistenceType}/...`. Previously every backend
+and takes the store as the leading path segment: `/order/+{persistenceType}+/...`.Previously every backend
 had its own path, tag and operation-id, so each new persistence technology multiplied the spec and added
-another controller per scenario. Now one `OrderApi` interface is generated per scenario and one controller
+another controller per scenario.Now one `OrderApi` interface is generated per scenario and one controller
 implements it, dispatching on the parameter.
 
 Two details are load-bearing:

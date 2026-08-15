@@ -78,7 +78,9 @@ public class SpringDataGenerator implements Generator {
 
     @Override
     public Set<String> requiredClasspath() {
-        return Set.of("org.springframework.data.convert.ReadingConverter");
+        return Set.of(
+                "org.springframework.data.convert.ReadingConverter",
+                "org.springframework.data.convert.WritingConverter");
     }
 
     @Override

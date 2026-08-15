@@ -6,7 +6,7 @@ domain-primitives as private nested types, and registers them with the detected 
 It activates whenever `spring-data-commons` is on the classpath, which is always the case when any Spring
 Data store module is present.
 
-The `CustomConversions` registration is store-specific. When both stores are present, the generated
+The `CustomConversions` registration is store-specific. When multiple stores are present, the generated
 class contains one bean method per store:
 
 * `CassandraCustomConversions` — when `spring-data-cassandra` is on the classpath
@@ -32,6 +32,10 @@ Data's own configuration does. How the dialect is obtained differs:
 |Class |JAR Coordinates |Required
 
 |`org.springframework.data.convert.ReadingConverter`
+|`org.springframework.data:spring-data-commons`
+^|YES
+
+|`org.springframework.data.convert.WritingConverter`
 |`org.springframework.data:spring-data-commons`
 ^|YES
 
@@ -357,6 +361,9 @@ which relocates Jackson 2 to an internal package and therefore does not expose i
 </dependency>
 ----
 
+*Option 3 — exclude Jackson 2,*
+but this is not recommended and might cause problems at runtime.
+
 [[user-supplied-converters]]
 [appendix]
 == When the defaults aren't enough
@@ -370,40 +377,74 @@ all you need:
 * **MongoDB**: works the same way for `String`, numeric primitives, `UUID`,
   `BigDecimal`, `byte[]`, and any other type Spring Data MongoDB recognises as
   a simple type.
+* **JDBC and R2DBC**: the rule is different in kind — what counts as natively
+  supported is decided by the `Dialect`, not by the store. Each dialect declares
+  its own `simpleTypes()` and contributes its own converters, so the same
+  domain-primitive can need a user converter on one database and not on another.
+  Consult your dialect rather than a fixed list: `PostgresDialect` handles `UUID`
+  and its geometric and JSON types natively, while `MySqlDialect` ships a
+  `Boolean` bridge because MySQL has no boolean column type.
+
+[[date-column-bridging]]
+=== Does a date-wrapping primitive need a bridge?
+
+The one case that trips people up is a domain-primitive wrapping
+`java.time.LocalDate`, because the type the converter layer hands you is not the
+same everywhere. Spring's `ConversionService` does **not** chain converters, so
+if the store produces something other than the wrapped type, the generated
+`Converter<LocalDate, OrderDate>` is never reached and the read fails with
+`ConverterNotFoundException`.
+
+|===
+|Store |Handed to the converter layer for a date column |Bridge needed
+
+|Cassandra
+|`java.time.LocalDate`
+|no
+
+|MongoDB
+|`java.util.Date`
+|yes — read *and* write, and it forces a `ZoneId` decision
+
+|JDBC
+|`java.sql.Date`
+|read only — `toLocalDate()`, no zone involved
+
+|R2DBC
+|`java.time.LocalDate`
+|no
+
+|===
+
+Each row is exercised by a scenario under `integration-test/`: the Cassandra and
+R2DBC applications run with no converter option configured at all, MongoDB and
+JDBC only pass with theirs.
+
+Note this is independent of the dialect. A dialect-aware `CustomConversions`
+supplies simple types and store converters, but the missing hop on JDBC is
+`java.sql.Date -> OrderDate`, and no dialect provides that.
 
 [NOTE]
 ====
-**The date-on-Mongo gotcha.** Spring Data MongoDB's `MappingMongoConverter`
-materialises BSON datetime as `java.util.Date` in memory before user
-converters are invoked — it doesn't chain converters. So for a domain-primitive
-wrapping `java.time.LocalDate` the generated `Converter<LocalDate, OrderDate>`
-is never called on the read path; the read fails with
-`ConverterNotFoundException` because Spring Data only has a `Date` in hand.
-Bridging `LocalDate ↔ Date` requires a `ZoneId` — an application decision the
-generator cannot make on the user's behalf.
+MongoDB is the awkward one because it needs a *zone*. Spring Data MongoDB's
+`MappingMongoConverter` materialises BSON datetime as `java.util.Date`, an
+instant, so mapping it onto a calendar date means picking a `ZoneId` — an
+application decision the generator cannot make on your behalf. JDBC's
+`java.sql.Date` is already calendar-local, so its bridge is a plain
+`toLocalDate()` with no zone in sight.
 
-**The same gotcha on JDBC.** A JDBC driver hands `java.sql.Date` to the converter layer for a
-`DATE` column, so for a primitive wrapping `java.time.LocalDate` the generated
-`Converter<LocalDate, OrderDate>` is never reached and the read fails the same way. Only the read
-direction needs bridging — the generated `OrderDate -> LocalDate` write converter produces a type
-drivers bind natively. Note this is independent of the dialect: the dialect supplies simple types and
-store converters, but the missing hop is `java.sql.Date -> OrderDate`, and Spring's
-`ConversionService` does not chain, so a dialect-aware `CustomConversions` does not remove the need
-for the pair. R2DBC does *not* have this problem: its drivers return `LocalDate` directly,
-so the generated pair matches. What relational stores do need converters for is dialect-specific —
-each `Dialect` declares its own simple types, so a primitive wrapping e.g. `Duration` or a `Boolean`
-on MySQL may still need a pair.
+Do not copy the MongoDB example below into a JDBC application: the zone
+conversion it performs is wrong there, and it will silently shift dates.
 
-The native xref:mongodb.adoc[MongoDB] generator avoids this problem entirely:
+The native xref:mongodb.adoc[MongoDB] generator avoids the problem entirely:
 its codecs run below Spring Data's converter layer and compose with the
 driver's `Jsr310CodecProvider` directly, so no `Date` bridge is needed.
 ====
 
-Supply user converters via `lazyval.springdata.{cassandra,mongo,jdbc,r2dbc}.converters`
-when:
+Supply user converters via `lazyval.springdata.<store>.converters` when:
 
-* **a domain-primitive wraps `LocalDate` and the target store is MongoDB** —
-  per the note above; this is the common case.
+* **a domain-primitive wraps `LocalDate` and the target store is MongoDB or
+  JDBC** — see <<date-column-bridging>>; this is the common case.
 * **the wrapped type isn't a Spring Data simple type** — e.g. wrapping
   `java.net.URI`, `java.util.Locale`, or a third-party value type. Without a
   converter, Spring Data falls back to nested document mapping or fails
@@ -482,6 +523,49 @@ Maven (KSP)::
 </apOptions>
 ----
 ====
+
+Swap `mongo` for `cassandra`, `jdbc` or `r2dbc` to register against a different
+store; the option is per store and the shape is otherwise identical.
+
+=== Worked example: `java.sql.Date → OrderDate` for JDBC
+
+Shorter than the MongoDB case in two ways: only the read direction needs
+bridging — the generated `OrderDate -> LocalDate` write converter already
+produces a type drivers bind natively — and `java.sql.Date` carries no
+time-of-day or offset, so there is no zone to choose.
+
+[tabs]
+====
+Java::
++
+[source,java]
+----
+@ReadingConverter
+public class SqlDateToOrderDateConverter implements Converter<java.sql.Date, OrderDate> {
+    public SqlDateToOrderDateConverter() {}
+
+    @Override
+    public OrderDate convert(java.sql.Date source) {
+        return new OrderDate(source.toLocalDate());
+    }
+}
+----
+
+Kotlin::
++
+[source,kotlin]
+----
+@ReadingConverter
+class SqlDateToOrderDateConverter : Converter<java.sql.Date, OrderDate> {
+    override fun convert(source: java.sql.Date): OrderDate = OrderDate(source.toLocalDate())
+}
+----
+====
+
+[source,xml]
+----
+<compilerArg>-Alazyval.springdata.jdbc.converters=com.example.SqlDateToOrderDateConverter</compilerArg>
+----
 
 === Validation rules
 
