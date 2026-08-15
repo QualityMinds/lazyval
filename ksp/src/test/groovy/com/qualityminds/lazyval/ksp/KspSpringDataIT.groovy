@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.ksp
 
+import com.qualityminds.lazyval.ksp.internal.codegen.springdata.SpringDataGenerator
 import com.qualityminds.lazyval.testkit.Approval
 import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
@@ -114,6 +115,17 @@ class KspSpringDataIT extends Specification {
 
         and:
         testkitKotlin.generatedKotlinSourcePath(projectDir, "test/custom/$GENERATED_FILE").toFile().exists()
+    }
+
+    void "every store in the test registry has its option declared by the generator"() {
+        given: 'the option keys this spec and the rules spec exercise'
+        def expected = ALL*.optionKey
+
+        expect: 'the generator advertises all of them, so none can be silently ignored'
+        new SpringDataGenerator().supportedOptions().containsAll(expected)
+
+        and: 'sanity — the registry is not empty, which would make the check vacuous'
+        !expected.isEmpty()
     }
 
     /**

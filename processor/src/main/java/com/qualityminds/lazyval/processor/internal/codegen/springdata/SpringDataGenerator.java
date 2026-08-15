@@ -11,6 +11,7 @@ import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -36,15 +37,7 @@ import java.util.stream.Stream;
 public class SpringDataGenerator implements Generator {
 
     private static final String OPTION_GENERATED_PACKAGE = "lazyval.springdata.package";
-    private static final String OPTION_CASSANDRA_CONVERTERS = "lazyval.springdata.cassandra.converters";
-    private static final String OPTION_MONGO_CONVERTERS = "lazyval.springdata.mongo.converters";
-    private static final String OPTION_JDBC_CONVERTERS = "lazyval.springdata.jdbc.converters";
-    private static final String OPTION_R2DBC_CONVERTERS = "lazyval.springdata.r2dbc.converters";
 
-    private static final String CASSANDRA_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.cassandra.core.convert.CassandraCustomConversions";
-    private static final String MONGO_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.mongodb.core.convert.MongoCustomConversions";
-    private static final String JDBC_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.jdbc.core.convert.JdbcCustomConversions";
-    private static final String R2DBC_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.r2dbc.convert.R2dbcCustomConversions";
     private static final String CONVERTER_FQN = "org.springframework.core.convert.converter.Converter";
     private static final String READING_CONVERTER_FQN = "org.springframework.data.convert.ReadingConverter";
     private static final String WRITING_CONVERTER_FQN = "org.springframework.data.convert.WritingConverter";
@@ -54,19 +47,6 @@ public class SpringDataGenerator implements Generator {
     private static final ClassName CONVERTER = ClassName.get("org.springframework.core.convert.converter", "Converter");
     private static final ClassName CONFIGURATION = ClassName.get("org.springframework.context.annotation", "Configuration");
     private static final ClassName BEAN = ClassName.get("org.springframework.context.annotation", "Bean");
-    private static final ClassName CASSANDRA_CUSTOM_CONVERSIONS = ClassName.get(
-            "org.springframework.data.cassandra.core.convert", "CassandraCustomConversions");
-    private static final ClassName MONGO_CUSTOM_CONVERSIONS = ClassName.get(
-            "org.springframework.data.mongodb.core.convert", "MongoCustomConversions");
-    private static final ClassName JDBC_CUSTOM_CONVERSIONS = ClassName.get(
-            "org.springframework.data.jdbc.core.convert", "JdbcCustomConversions");
-    private static final ClassName R2DBC_CUSTOM_CONVERSIONS = ClassName.get(
-            "org.springframework.data.r2dbc.convert", "R2dbcCustomConversions");
-    private static final ClassName R2DBC_DIALECT_RESOLVER = ClassName.get(
-            "org.springframework.data.r2dbc.dialect", "DialectResolver");
-    private static final ClassName CONNECTION_FACTORY = ClassName.get("io.r2dbc.spi", "ConnectionFactory");
-    private static final ClassName JDBC_DIALECT = ClassName.get(
-            "org.springframework.data.jdbc.core.dialect", "JdbcDialect");
 
     private static final AnnotationSpec OVERRIDE_ANNOTATION = AnnotationSpec.builder(
             ClassName.get("java.lang", "Override")).build();
@@ -85,8 +65,12 @@ public class SpringDataGenerator implements Generator {
 
     @Override
     public Set<String> supportedOptions() {
-        return Set.of(OPTION_GENERATED_PACKAGE, OPTION_CASSANDRA_CONVERTERS, OPTION_MONGO_CONVERTERS,
-                OPTION_JDBC_CONVERTERS, OPTION_R2DBC_CONVERTERS);
+        Set<String> options = new LinkedHashSet<>();
+        options.add(OPTION_GENERATED_PACKAGE);
+        for (SpringDataStore store : SpringDataStore.values()) {
+            options.add(store.optionKey());
+        }
+        return options;
     }
 
     @Override
@@ -96,29 +80,20 @@ public class SpringDataGenerator implements Generator {
 
     @Override
     public Stream<GeneratorResult> generate(NonEmptySet<ValidatedGeneratorElement> elements, Context context) {
-        boolean isCassandra = context.isOnClasspath(CASSANDRA_CUSTOM_CONVERSIONS_FQN);
-        boolean isMongo = context.isOnClasspath(MONGO_CUSTOM_CONVERSIONS_FQN);
-        boolean isJdbc = context.isOnClasspath(JDBC_CUSTOM_CONVERSIONS_FQN);
-        boolean isR2dbc = context.isOnClasspath(R2DBC_CUSTOM_CONVERSIONS_FQN);
-
-        if (!isCassandra && !isMongo && !isJdbc && !isR2dbc) {
+        EnumSet<SpringDataStore> activeStores = Arrays.stream(SpringDataStore.values())
+                .filter(store -> context.isOnClasspath(store.conversionsFqn()))
+                .collect(Collectors.toCollection(() -> EnumSet.noneOf(SpringDataStore.class)));
+        if (activeStores.isEmpty()) {
             return Stream.empty();
         }
 
         final String converterPackage = context.generatorPackage(OPTION_GENERATED_PACKAGE, "boundary.persistence");
 
-        List<String> cassandraUserFqns = isCassandra
-                ? validateUserConverters(OPTION_CASSANDRA_CONVERTERS, context, converterPackage)
-                : warnIfOptionSetForMissingStorage(OPTION_CASSANDRA_CONVERTERS, "Cassandra", context);
-        List<String> mongoUserFqns = isMongo
-                ? validateUserConverters(OPTION_MONGO_CONVERTERS, context, converterPackage)
-                : warnIfOptionSetForMissingStorage(OPTION_MONGO_CONVERTERS, "MongoDB", context);
-        List<String> jdbcUserFqns = isJdbc
-                ? validateUserConverters(OPTION_JDBC_CONVERTERS, context, converterPackage)
-                : warnIfOptionSetForMissingStorage(OPTION_JDBC_CONVERTERS, "JDBC", context);
-        List<String> r2dbcUserFqns = isR2dbc
-                ? validateUserConverters(OPTION_R2DBC_CONVERTERS, context, converterPackage)
-                : warnIfOptionSetForMissingStorage(OPTION_R2DBC_CONVERTERS, "R2DBC", context);
+        EnumSet.complementOf(activeStores).forEach(store -> warnIfOptionSetForMissingStore(store, context));
+
+        // EnumMap and EnumSet both iterate in declaration order, which is emission order
+        Map<SpringDataStore, List<String>> userConverters = new EnumMap<>(SpringDataStore.class);
+        activeStores.forEach(store -> userConverters.put(store, validateUserConverters(store, context, converterPackage)));
 
         boolean hasConditionalOnMissingBean = context.isOnClasspath(
                 "org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean");
@@ -130,8 +105,7 @@ public class SpringDataGenerator implements Generator {
         }
 
         TypeSpec configSpec = buildSpringDataConfiguration(
-                converterSpecs, isCassandra, isMongo, isJdbc, isR2dbc,
-                cassandraUserFqns, mongoUserFqns, jdbcUserFqns, r2dbcUserFqns, hasConditionalOnMissingBean);
+                converterSpecs, userConverters, hasConditionalOnMissingBean);
         JavaFile configFile = JavaFile.builder(converterPackage, configSpec)
                 .skipJavaLangImports(true)
                 .build();
@@ -141,7 +115,8 @@ public class SpringDataGenerator implements Generator {
                 configFile.toString()));
     }
 
-    private List<String> validateUserConverters(String optionKey, Context context, String converterPackage) {
+    private List<String> validateUserConverters(SpringDataStore store, Context context, String converterPackage) {
+        String optionKey = store.optionKey();
         String raw = context.getSetting(optionKey).orElse("");
         if (raw.isBlank()) {
             return List.of();
@@ -183,12 +158,11 @@ public class SpringDataGenerator implements Generator {
         return valid;
     }
 
-    private List<String> warnIfOptionSetForMissingStorage(String optionKey, String storageLabel, Context context) {
-        context.getSetting(optionKey)
+    private void warnIfOptionSetForMissingStore(SpringDataStore store, Context context) {
+        context.getSetting(store.optionKey())
                 .filter(v -> !v.isBlank())
-                .ifPresent(v -> context.logWarning(this,
-                        optionKey + " is set but " + storageLabel + " Spring Data is not on the classpath; the option will be ignored"));
-        return List.of();
+                .ifPresent(v -> context.logWarning(this, store.optionKey()
+                        + " is set but " + store.label() + " Spring Data is not on the classpath; the option will be ignored"));
     }
 
     private static TypeSpec buildReadConverter(ValidatedGeneratorElement element) {
@@ -248,10 +222,7 @@ public class SpringDataGenerator implements Generator {
     }
 
     private static TypeSpec buildSpringDataConfiguration(List<TypeSpec> converterSpecs,
-                                                         boolean isCassandra, boolean isMongo,
-                                                         boolean isJdbc, boolean isR2dbc,
-                                                         List<String> cassandraUserFqns, List<String> mongoUserFqns,
-                                                         List<String> jdbcUserFqns, List<String> r2dbcUserFqns,
+                                                         Map<SpringDataStore, List<String>> userConverters,
                                                          boolean hasConditionalOnMissingBean) {
 
         TypeSpec.Builder configBuilder = TypeSpec.classBuilder("LazyvalSpringDataConfiguration")
@@ -267,25 +238,9 @@ public class SpringDataGenerator implements Generator {
                         Generated by the Lazyval annotation processor. Do not modify.
                         """);
 
-        if (isCassandra) {
-            configBuilder.addMethod(buildBeanMethod("cassandraCustomConversions", CASSANDRA_CUSTOM_CONVERSIONS,
-                    converterSpecs, cassandraUserFqns, OPTION_CASSANDRA_CONVERTERS, hasConditionalOnMissingBean));
-        }
-        if (isMongo) {
-            configBuilder.addMethod(buildBeanMethod("mongoCustomConversions", MONGO_CUSTOM_CONVERSIONS,
-                    converterSpecs, mongoUserFqns, OPTION_MONGO_CONVERTERS, hasConditionalOnMissingBean));
-        }
-        if (isJdbc) {
-            configBuilder.addMethod(buildDialectAwareBeanMethod("jdbcCustomConversions",
-                    JDBC_CUSTOM_CONVERSIONS, JDBC_DIALECT, "dialect", CodeBlock.of("dialect"),
-                    converterSpecs, jdbcUserFqns, OPTION_JDBC_CONVERTERS, hasConditionalOnMissingBean));
-        }
-        if (isR2dbc) {
-            configBuilder.addMethod(buildDialectAwareBeanMethod("r2dbcCustomConversions",
-                    R2DBC_CUSTOM_CONVERSIONS, CONNECTION_FACTORY, "connectionFactory",
-                    CodeBlock.of("$T.getDialect(connectionFactory)", R2DBC_DIALECT_RESOLVER),
-                    converterSpecs, r2dbcUserFqns, OPTION_R2DBC_CONVERTERS, hasConditionalOnMissingBean));
-        }
+        userConverters.forEach((store, userFqns) -> configBuilder.addMethod(
+                buildBeanMethod(store, converterSpecs, userFqns, hasConditionalOnMissingBean)));
+
         for (TypeSpec converterSpec : converterSpecs) {
             configBuilder.addType(converterSpec);
         }
@@ -293,86 +248,21 @@ public class SpringDataGenerator implements Generator {
         return configBuilder.build();
     }
 
-    private static MethodSpec buildBeanMethod(String methodName, ClassName conversionsType,
-                                              List<TypeSpec> generated, List<String> userFqns,
-                                              String userOptionKey, boolean hasConditionalOnMissingBean) {
-        ClassName listClass = ClassName.get("java.util", "List");
-        TypeName converterWildcard = ParameterizedTypeName.get(CONVERTER,
-                WildcardTypeName.subtypeOf(Object.class), WildcardTypeName.subtypeOf(Object.class));
-
-        MethodSpec.Builder beanMethod = MethodSpec.methodBuilder(methodName)
+    private static MethodSpec buildBeanMethod(SpringDataStore store, List<TypeSpec> generated,
+                                              List<String> userFqns, boolean hasConditionalOnMissingBean) {
+        MethodSpec.Builder beanMethod = MethodSpec.methodBuilder(store.beanName())
                 .addAnnotation(BEAN)
                 .addModifiers(Modifier.PUBLIC)
-                .returns(conversionsType);
+                .returns(store.conversionsType());
 
         if (hasConditionalOnMissingBean) {
             beanMethod.addAnnotation(ClassName.get(
                     "org.springframework.boot.autoconfigure.condition", "ConditionalOnMissingBean"));
         }
 
-        StringBuilder listInit = new StringBuilder("$T<$T> converters = $T.of(\n");
-        for (int i = 0; i < generated.size(); i++) {
-            listInit.append("    new ").append(generated.get(i).name()).append("()");
-            boolean trailingComma = (i < generated.size() - 1) || !userFqns.isEmpty();
-            if (trailingComma) {
-                listInit.append(",");
-            }
-            listInit.append("\n");
-        }
-        if (!userFqns.isEmpty()) {
-            listInit.append("    // user-supplied via ").append(userOptionKey).append(":\n");
-            for (int i = 0; i < userFqns.size(); i++) {
-                listInit.append("    new ").append(userFqns.get(i)).append("()");
-                if (i < userFqns.size() - 1) {
-                    listInit.append(",");
-                }
-                listInit.append("\n");
-            }
-        }
-        listInit.append(")");
-
-        beanMethod.addStatement(listInit.toString(), listClass, converterWildcard, listClass);
-        beanMethod.addStatement("return new $T(converters)", conversionsType);
-
-        return beanMethod.build();
-    }
-
-    /**
-     * Bean method for the relational stores, whose {@code CustomConversions} need a
-     * {@code Dialect}: it contributes the store's own simple types and converters, and neither
-     * {@code JdbcCustomConversions} nor {@code R2dbcCustomConversions} picks those up from a plain
-     * {@code Collection} constructor. Using one avoids silently dropping them — Spring Data's own
-     * configuration builds these beans the same way.
-     * <p>
-     * How the dialect is obtained differs per store:
-     * <ul>
-     *   <li><b>JDBC</b> takes the {@code JdbcDialect} bean directly; Spring Boot publishes one from
-     *       {@code DataJdbcRepositoriesAutoConfiguration}.</li>
-     *   <li><b>R2DBC</b> resolves it from the {@code ConnectionFactory}, because Spring Boot
-     *       publishes no {@code R2dbcDialect} bean — {@code DataR2dbcAutoConfiguration} resolves it
-     *       in its own constructor and keeps it in a private field. Taking an {@code R2dbcDialect}
-     *       parameter compiles, but leaves the bean unsatisfiable at runtime.</li>
-     * </ul>
-     */
-    private static MethodSpec buildDialectAwareBeanMethod(String methodName, ClassName conversionsType,
-                                                          ClassName parameterType, String parameterName,
-                                                          CodeBlock dialectExpression,
-                                                          List<TypeSpec> generated, List<String> userFqns,
-                                                          String userOptionKey,
-                                                          boolean hasConditionalOnMissingBean) {
-        MethodSpec.Builder beanMethod = MethodSpec.methodBuilder(methodName)
-                .addAnnotation(BEAN)
-                .addModifiers(Modifier.PUBLIC)
-                .addParameter(parameterType, parameterName)
-                .returns(conversionsType);
-
-        if (hasConditionalOnMissingBean) {
-            beanMethod.addAnnotation(ClassName.get(
-                    "org.springframework.boot.autoconfigure.condition", "ConditionalOnMissingBean"));
-        }
-
-        addConverterListStatement(beanMethod, generated, userFqns, userOptionKey);
-        beanMethod.addStatement("return $T.of($L, converters)", conversionsType, dialectExpression);
+        store.construction().parameters().forEach(beanMethod::addParameter);
+        addConverterListStatement(beanMethod, generated, userFqns, store.optionKey());
+        store.construction().addReturnStatement(beanMethod, store.conversionsType());
 
         return beanMethod.build();
     }

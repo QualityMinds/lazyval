@@ -41,54 +41,24 @@ import java.util.stream.Stream
  * wrapped properties at compile time). Write converters therefore always return a non-null
  * value: `Converter<DomainType, InnerType>`.
  */
+// File-level rather than in a companion so the emission functions at the bottom of the file can see
+// them too — a companion's private members are visible to the class only.
+private const val OPTION_GENERATED_PACKAGE = "lazyval.springdata.package"
+
+private const val CONVERTER_FQN = "org.springframework.core.convert.converter.Converter"
+private const val READING_CONVERTER_FQN = "org.springframework.data.convert.ReadingConverter"
+private const val WRITING_CONVERTER_FQN = "org.springframework.data.convert.WritingConverter"
+
+private val READING_CONVERTER = ClassName("org.springframework.data.convert", "ReadingConverter")
+private val WRITING_CONVERTER = ClassName("org.springframework.data.convert", "WritingConverter")
+private val CONVERTER = ClassName("org.springframework.core.convert.converter", "Converter")
+private val CONFIGURATION = ClassName("org.springframework.context.annotation", "Configuration")
+private val BEAN = ClassName("org.springframework.context.annotation", "Bean")
+private val CONDITIONAL_ON_MISSING_BEAN = ClassName(
+    "org.springframework.boot.autoconfigure.condition", "ConditionalOnMissingBean"
+)
+
 class SpringDataGenerator : Generator {
-
-    companion object {
-        private const val OPTION_GENERATED_PACKAGE = "lazyval.springdata.package"
-        private const val OPTION_CASSANDRA_CONVERTERS = "lazyval.springdata.cassandra.converters"
-        private const val OPTION_MONGO_CONVERTERS = "lazyval.springdata.mongo.converters"
-        private const val OPTION_JDBC_CONVERTERS = "lazyval.springdata.jdbc.converters"
-        private const val OPTION_R2DBC_CONVERTERS = "lazyval.springdata.r2dbc.converters"
-
-
-        private const val CASSANDRA_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.cassandra.core.convert.CassandraCustomConversions"
-        private const val MONGO_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.mongodb.core.convert.MongoCustomConversions"
-        private const val JDBC_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.jdbc.core.convert.JdbcCustomConversions"
-        private const val R2DBC_CUSTOM_CONVERSIONS_FQN = "org.springframework.data.r2dbc.convert.R2dbcCustomConversions"
-        private const val CONVERTER_FQN = "org.springframework.core.convert.converter.Converter"
-        private const val READING_CONVERTER_FQN = "org.springframework.data.convert.ReadingConverter"
-        private const val WRITING_CONVERTER_FQN = "org.springframework.data.convert.WritingConverter"
-
-        private val READING_CONVERTER = ClassName("org.springframework.data.convert", "ReadingConverter")
-        private val WRITING_CONVERTER = ClassName("org.springframework.data.convert", "WritingConverter")
-        private val CONVERTER = ClassName("org.springframework.core.convert.converter", "Converter")
-        private val CONFIGURATION = ClassName("org.springframework.context.annotation", "Configuration")
-        private val BEAN = ClassName("org.springframework.context.annotation", "Bean")
-        private val CONDITIONAL_ON_MISSING_BEAN = ClassName(
-            "org.springframework.boot.autoconfigure.condition", "ConditionalOnMissingBean"
-        )
-        private val CASSANDRA_CUSTOM_CONVERSIONS = ClassName(
-            "org.springframework.data.cassandra.core.convert", "CassandraCustomConversions"
-        )
-        private val MONGO_CUSTOM_CONVERSIONS = ClassName(
-            "org.springframework.data.mongodb.core.convert", "MongoCustomConversions"
-        )
-        private val JDBC_CUSTOM_CONVERSIONS = ClassName(
-            "org.springframework.data.jdbc.core.convert", "JdbcCustomConversions"
-        )
-        private val R2DBC_CUSTOM_CONVERSIONS = ClassName(
-            "org.springframework.data.r2dbc.convert", "R2dbcCustomConversions"
-        )
-        private val R2DBC_DIALECT_RESOLVER = ClassName(
-            "org.springframework.data.r2dbc.dialect", "DialectResolver"
-        )
-        private val CONNECTION_FACTORY = ClassName("io.r2dbc.spi", "ConnectionFactory")
-        private val JDBC_DIALECT = ClassName(
-            "org.springframework.data.jdbc.core.dialect", "JdbcDialect"
-        )
-
-
-    }
 
     override fun generatorId(): String = StockGeneratorIds.SPRING_DATA
 
@@ -98,10 +68,7 @@ class SpringDataGenerator : Generator {
             "org.springframework.data.convert.WritingConverter")
 
     override fun supportedOptions(): Set<String> =
-        setOf(
-            OPTION_GENERATED_PACKAGE, OPTION_CASSANDRA_CONVERTERS, OPTION_MONGO_CONVERTERS,
-            OPTION_JDBC_CONVERTERS, OPTION_R2DBC_CONVERTERS
-        )
+        setOf(OPTION_GENERATED_PACKAGE) + SpringDataStore.entries.map { it.optionKey }
 
     override fun supersedes(): Set<String> =
         setOf(StockGeneratorIds.CASSANDRA_CODEC, StockGeneratorIds.MONGODB_CODEC)
@@ -110,41 +77,17 @@ class SpringDataGenerator : Generator {
         validatedElements: NonEmptySet<ValidatedKspGeneratorElement>,
         context: Generator.Context
     ): Stream<GeneratorResult> {
-        val isCassandra = context.isOnClasspath(CASSANDRA_CUSTOM_CONVERSIONS_FQN)
-        val isMongo = context.isOnClasspath(MONGO_CUSTOM_CONVERSIONS_FQN)
-        val isJdbc = context.isOnClasspath(JDBC_CUSTOM_CONVERSIONS_FQN)
-        val isR2dbc = context.isOnClasspath(R2DBC_CUSTOM_CONVERSIONS_FQN)
-
-        if (!isCassandra && !isMongo && !isJdbc && !isR2dbc) {
+        val (activeStores, inactiveStores) = SpringDataStore.entries
+            .partition { context.isOnClasspath(it.conversionsFqn) }
+        if (activeStores.isEmpty()) {
             return Stream.empty()
         }
 
         val converterPackage = context.generatorPackage(OPTION_GENERATED_PACKAGE, "boundary.persistence")
 
-        val cassandraUserFqns = if (isCassandra) {
-            validateUserConverters(OPTION_CASSANDRA_CONVERTERS, context, converterPackage)
-        } else {
-            warnIfOptionSetForMissingStorage(OPTION_CASSANDRA_CONVERTERS, "Cassandra", context)
-            emptyList()
-        }
-        val mongoUserFqns = if (isMongo) {
-            validateUserConverters(OPTION_MONGO_CONVERTERS, context, converterPackage)
-        } else {
-            warnIfOptionSetForMissingStorage(OPTION_MONGO_CONVERTERS, "MongoDB", context)
-            emptyList()
-        }
-        val jdbcUserFqns = if (isJdbc) {
-            validateUserConverters(OPTION_JDBC_CONVERTERS, context, converterPackage)
-        } else {
-            warnIfOptionSetForMissingStorage(OPTION_JDBC_CONVERTERS, "JDBC", context)
-            emptyList()
-        }
-        val r2dbcUserFqns = if (isR2dbc) {
-            validateUserConverters(OPTION_R2DBC_CONVERTERS, context, converterPackage)
-        } else {
-            warnIfOptionSetForMissingStorage(OPTION_R2DBC_CONVERTERS, "R2DBC", context)
-            emptyList()
-        }
+        inactiveStores.forEach { warnIfOptionSetForMissingStore(it, context) }
+        // LinkedHashMap, so bean methods are emitted in SpringDataStore declaration order
+        val userConverters = activeStores.associateWith { validateUserConverters(it, context, converterPackage) }
 
         val converterSpecs = mutableListOf<TypeSpec>()
         for (element in validatedElements) {
@@ -152,10 +95,7 @@ class SpringDataGenerator : Generator {
             converterSpecs += buildWriteConverter(element)
         }
 
-        val configSpec = buildSpringDataConfiguration(
-            converterSpecs, isCassandra, isMongo, isJdbc, isR2dbc,
-            cassandraUserFqns, mongoUserFqns, jdbcUserFqns, r2dbcUserFqns, context
-        )
+        val configSpec = buildSpringDataConfiguration(converterSpecs, userConverters, context)
 
         val file = FileSpec.builder(converterPackage, "LazyvalSpringDataConfiguration")
             .addType(configSpec)
@@ -168,7 +108,12 @@ class SpringDataGenerator : Generator {
         ))
     }
 
-    private fun validateUserConverters(optionKey: String, context: Generator.Context, converterPackage: String): List<String> {
+    private fun validateUserConverters(
+        store: SpringDataStore,
+        context: Generator.Context,
+        converterPackage: String
+    ): List<String> {
+        val optionKey = store.optionKey
         val raw = context.getSetting(optionKey) ?: return emptyList()
         if (raw.isBlank()) return emptyList()
 
@@ -207,207 +152,133 @@ class SpringDataGenerator : Generator {
         return valid
     }
 
-    private fun warnIfOptionSetForMissingStorage(optionKey: String, storageLabel: String, context: Generator.Context) {
-        val raw = context.getSetting(optionKey)
+    private fun warnIfOptionSetForMissingStore(store: SpringDataStore, context: Generator.Context) {
+        val raw = context.getSetting(store.optionKey)
         if (!raw.isNullOrBlank()) {
-            context.logWarning(this, "$optionKey is set but $storageLabel Spring Data is not on the classpath; the option will be ignored")
+            context.logWarning(
+                this,
+                "${store.optionKey} is set but ${store.label} Spring Data is not on the classpath; the option will be ignored"
+            )
         }
     }
+}
 
-    private fun buildReadConverter(element: ValidatedKspGeneratorElement): TypeSpec {
-        val elementClassName = element.element.toClassName()
-        val wrappedTypeName = element.wrappedProperty.type.toTypeName()
-        val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
-        val returnType = elementClassName.copy(nullable = factoryReturnsNullable)
+// ── emission ────────────────────────────────────────────────────────────────────────────────────
+// Top-level rather than members: these need no generator state, and keeping them out of the class
+// keeps SpringDataGenerator focused on deciding *what* to generate.
 
-        return TypeSpec.classBuilder("${element.typeName.name}ReadConverter")
-            .addModifiers(KModifier.PRIVATE)
-            .addAnnotation(READING_CONVERTER)
-            .addSuperinterface(
-                CONVERTER.parameterizedBy(wrappedTypeName.copy(nullable = false), returnType)
-            )
-            .addFunction(
-                FunSpec.builder("convert")
-                    .addModifiers(KModifier.OVERRIDE)
-                    .addParameter("source", wrappedTypeName.copy(nullable = false))
-                    .returns(returnType)
-                    .addStatement("return ${element.objectCreation("source")}")
-                    .build()
-            )
-            .build()
-    }
+private fun buildReadConverter(element: ValidatedKspGeneratorElement): TypeSpec {
+    val elementClassName = element.element.toClassName()
+    val wrappedTypeName = element.wrappedProperty.type.toTypeName()
+    val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
+    val returnType = elementClassName.copy(nullable = factoryReturnsNullable)
 
-    private fun buildWriteConverter(element: ValidatedKspGeneratorElement): TypeSpec {
-        val elementClassName = element.element.toClassName()
-        val wrappedTypeName = element.wrappedProperty.type.toTypeName()
-
-        return TypeSpec.classBuilder("${element.typeName.name}WriteConverter")
-            .addModifiers(KModifier.PRIVATE)
-            .addAnnotation(WRITING_CONVERTER)
-            .addSuperinterface(
-                CONVERTER.parameterizedBy(elementClassName, wrappedTypeName.copy(nullable = false))
-            )
-            .addFunction(
-                FunSpec.builder("convert")
-                    .addModifiers(KModifier.OVERRIDE)
-                    .addParameter("source", elementClassName)
-                    .returns(wrappedTypeName.copy(nullable = false))
-                    .addStatement("return source.${element.kotlinAccessor}")
-                    .build()
-            )
-            .build()
-    }
-
-    private fun buildSpringDataConfiguration(
-        converterSpecs: List<TypeSpec>,
-        isCassandra: Boolean, isMongo: Boolean, isJdbc: Boolean, isR2dbc: Boolean,
-        cassandraUserFqns: List<String>, mongoUserFqns: List<String>,
-        jdbcUserFqns: List<String>, r2dbcUserFqns: List<String>,
-        context: Generator.Context
-    ): TypeSpec {
-        val hasConditionalOnMissingBean = context.isOnClasspath(
-            "org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean"
+    return TypeSpec.classBuilder("${element.typeName.name}ReadConverter")
+        .addModifiers(KModifier.PRIVATE)
+        .addAnnotation(READING_CONVERTER)
+        .addSuperinterface(
+            CONVERTER.parameterizedBy(wrappedTypeName.copy(nullable = false), returnType)
         )
+        .addFunction(
+            FunSpec.builder("convert")
+                .addModifiers(KModifier.OVERRIDE)
+                .addParameter("source", wrappedTypeName.copy(nullable = false))
+                .returns(returnType)
+                .addStatement("return ${element.objectCreation("source")}")
+                .build()
+        )
+        .build()
+}
 
-        val configBuilder = TypeSpec.classBuilder("LazyvalSpringDataConfiguration")
-            .addGeneratedAnnotation(SpringDataGenerator::class, context)
-            .addAnnotation(CONFIGURATION)
-            .addKdoc("""
-                Generated Spring Data converter configuration.
+private fun buildWriteConverter(element: ValidatedKspGeneratorElement): TypeSpec {
+    val elementClassName = element.element.toClassName()
+    val wrappedTypeName = element.wrappedProperty.type.toTypeName()
 
-                Registers all read/write converters for types annotated with `@Lazyval`
-                with the appropriate Spring Data store-specific conversion service.
+    return TypeSpec.classBuilder("${element.typeName.name}WriteConverter")
+        .addModifiers(KModifier.PRIVATE)
+        .addAnnotation(WRITING_CONVERTER)
+        .addSuperinterface(
+            CONVERTER.parameterizedBy(elementClassName, wrappedTypeName.copy(nullable = false))
+        )
+        .addFunction(
+            FunSpec.builder("convert")
+                .addModifiers(KModifier.OVERRIDE)
+                .addParameter("source", elementClassName)
+                .returns(wrappedTypeName.copy(nullable = false))
+                .addStatement("return source.${element.kotlinAccessor}")
+                .build()
+        )
+        .build()
+}
 
-                Generated by the Lazyval annotation processor. Do not modify.
-            """.trimIndent())
+private fun buildSpringDataConfiguration(
+    converterSpecs: List<TypeSpec>,
+    userConverters: Map<SpringDataStore, List<String>>,
+    context: Generator.Context
+): TypeSpec {
+    val hasConditionalOnMissingBean = context.isOnClasspath(
+        "org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean"
+    )
 
-        if (isCassandra) {
-            configBuilder.addFunction(buildBeanMethod(
-                "cassandraCustomConversions", CASSANDRA_CUSTOM_CONVERSIONS,
-                converterSpecs, cassandraUserFqns, OPTION_CASSANDRA_CONVERTERS, hasConditionalOnMissingBean
-            ))
-        }
-        if (isMongo) {
-            configBuilder.addFunction(buildBeanMethod(
-                "mongoCustomConversions", MONGO_CUSTOM_CONVERSIONS,
-                converterSpecs, mongoUserFqns, OPTION_MONGO_CONVERTERS, hasConditionalOnMissingBean
-            ))
-        }
-        if (isJdbc) {
-            configBuilder.addFunction(buildDialectAwareBeanMethod(
-                "jdbcCustomConversions", JDBC_CUSTOM_CONVERSIONS, JDBC_DIALECT, "dialect",
-                CodeBlock.of("dialect"),
-                converterSpecs, jdbcUserFqns, OPTION_JDBC_CONVERTERS, hasConditionalOnMissingBean
-            ))
-        }
-        if (isR2dbc) {
-            configBuilder.addFunction(buildDialectAwareBeanMethod(
-                "r2dbcCustomConversions", R2DBC_CUSTOM_CONVERSIONS, CONNECTION_FACTORY, "connectionFactory",
-                CodeBlock.of("%T.getDialect(connectionFactory)", R2DBC_DIALECT_RESOLVER),
-                converterSpecs, r2dbcUserFqns, OPTION_R2DBC_CONVERTERS, hasConditionalOnMissingBean
-            ))
-        }
+    val configBuilder = TypeSpec.classBuilder("LazyvalSpringDataConfiguration")
+        .addGeneratedAnnotation(SpringDataGenerator::class, context)
+        .addAnnotation(CONFIGURATION)
+        .addKdoc("""
+            Generated Spring Data converter configuration.
 
-        return configBuilder.build()
+            Registers all read/write converters for types annotated with `@Lazyval`
+            with the appropriate Spring Data store-specific conversion service.
+
+            Generated by the Lazyval annotation processor. Do not modify.
+        """.trimIndent())
+
+    userConverters.forEach { (store, userFqns) ->
+        configBuilder.addFunction(
+            buildBeanMethod(store, converterSpecs, userFqns, hasConditionalOnMissingBean)
+        )
     }
 
-    private fun buildBeanMethod(
-        methodName: String,
-        conversionsType: ClassName,
-        generated: List<TypeSpec>,
-        userFqns: List<String>,
-        userOptionKey: String,
-        hasConditionalOnMissingBean: Boolean
-    ): FunSpec {
-        val listInit = buildString {
-            generated.forEachIndexed { i, spec ->
-                append("    ").append(spec.name).append("()")
-                val trailingComma = i < generated.size - 1 || userFqns.isNotEmpty()
-                if (trailingComma) append(",")
-                append("\n")
-            }
-            if (userFqns.isNotEmpty()) {
-                append("    // user-supplied via ").append(userOptionKey).append(":\n")
-                userFqns.forEachIndexed { i, fqn ->
-                    append("    ").append(fqn).append("()")
-                    if (i < userFqns.size - 1) append(",")
-                    append("\n")
-                }
-            }
-        }.trimEnd('\n', ',')
+    return configBuilder.build()
+}
 
-        return FunSpec.builder(methodName)
-            .addAnnotation(BEAN)
-            .returns(conversionsType)
-            .apply {
-                if (hasConditionalOnMissingBean) {
-                    addAnnotation(CONDITIONAL_ON_MISSING_BEAN)
-                }
-            }
-            .addStatement("val converters = listOf(\n%L\n)", listInit)
-            .addStatement("return %T(converters)", conversionsType)
-            .build()
+private fun buildBeanMethod(
+    store: SpringDataStore,
+    generated: List<TypeSpec>,
+    userFqns: List<String>,
+    hasConditionalOnMissingBean: Boolean
+): FunSpec {
+    val builder = FunSpec.builder(store.beanName)
+        .addAnnotation(BEAN)
+        .returns(store.conversionsType)
+    if (hasConditionalOnMissingBean) {
+        builder.addAnnotation(CONDITIONAL_ON_MISSING_BEAN)
     }
+    store.construction.parameters().forEach { builder.addParameter(it) }
+    builder.addStatement(
+        "val converters = listOf(\n%L\n)",
+        buildConverterListInit(generated, userFqns, store.optionKey)
+    )
+    store.construction.addReturnStatement(builder, store.conversionsType)
+    return builder.build()
+}
 
-    /**
-     * Bean method for the relational stores, whose `CustomConversions` need a `Dialect`: it
-     * contributes the store's own simple types and converters, and neither `JdbcCustomConversions`
-     * nor `R2dbcCustomConversions` picks those up from a plain `Collection` constructor. Using one
-     * avoids silently dropping them — Spring Data's own configuration builds these beans the same way.
-     *
-     * How the dialect is obtained differs per store:
-     * - **JDBC** takes the `JdbcDialect` bean directly; Spring Boot publishes one from
-     *   `DataJdbcRepositoriesAutoConfiguration`.
-     * - **R2DBC** resolves it from the `ConnectionFactory`, because Spring Boot publishes no
-     *   `R2dbcDialect` bean — `DataR2dbcAutoConfiguration` resolves it in its own constructor and
-     *   keeps it in a private field. Taking an `R2dbcDialect` parameter compiles, but leaves the
-     *   bean unsatisfiable at runtime.
-     */
-    private fun buildDialectAwareBeanMethod(
-        methodName: String,
-        conversionsType: ClassName,
-        parameterType: ClassName,
-        parameterName: String,
-        dialectExpression: CodeBlock,
-        generated: List<TypeSpec>,
-        userFqns: List<String>,
-        userOptionKey: String,
-        hasConditionalOnMissingBean: Boolean
-    ): FunSpec {
-        val listInit = buildConverterListInit(generated, userFqns, userOptionKey)
-
-        return FunSpec.builder(methodName)
-            .addAnnotation(BEAN)
-            .returns(conversionsType)
-            .apply {
-                if (hasConditionalOnMissingBean) {
-                    addAnnotation(CONDITIONAL_ON_MISSING_BEAN)
-                }
-            }
-            .addParameter(parameterName, parameterType)
-            .addStatement("val converters = listOf(\n%L\n)", listInit)
-            .addStatement("return %T.of(%L, converters)", conversionsType, dialectExpression)
-            .build()
+private fun buildConverterListInit(
+    generated: List<TypeSpec>,
+    userFqns: List<String>,
+    userOptionKey: String
+): String = buildString {
+    generated.forEachIndexed { i, spec ->
+        append("    ").append(spec.name).append("()")
+        val trailingComma = i < generated.size - 1 || userFqns.isNotEmpty()
+        if (trailingComma) append(",")
+        append("\n")
     }
-
-    private fun buildConverterListInit(
-        generated: List<TypeSpec>,
-        userFqns: List<String>,
-        userOptionKey: String
-    ): String = buildString {
-        generated.forEachIndexed { i, spec ->
-            append("    ").append(spec.name).append("()")
-            val trailingComma = i < generated.size - 1 || userFqns.isNotEmpty()
-            if (trailingComma) append(",")
+    if (userFqns.isNotEmpty()) {
+        append("    // user-supplied via ").append(userOptionKey).append(":\n")
+        userFqns.forEachIndexed { i, fqn ->
+            append("    ").append(fqn).append("()")
+            if (i < userFqns.size - 1) append(",")
             append("\n")
         }
-        if (userFqns.isNotEmpty()) {
-            append("    // user-supplied via ").append(userOptionKey).append(":\n")
-            userFqns.forEachIndexed { i, fqn ->
-                append("    ").append(fqn).append("()")
-                if (i < userFqns.size - 1) append(",")
-                append("\n")
-            }
-        }
-    }.trimEnd('\n', ',')
-}
+    }
+}.trimEnd('\n', ',')
