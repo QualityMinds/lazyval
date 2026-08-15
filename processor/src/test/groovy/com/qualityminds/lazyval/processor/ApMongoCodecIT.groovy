@@ -49,10 +49,10 @@ class ApMongoCodecIT extends Specification {
                         "approvals/mongocodec/LazyvalMongoCodecRegistrar.java")
         ]
 
-        when:
+        when: 'the compiler runs'
         def result = testkitJava.run(projectDir, scenario, approvals)
 
-        then:
+        then: 'all output matches the given approvals'
         result == Testresult.Java.Approved.of(approvals)
     }
 
