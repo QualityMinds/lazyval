@@ -9,6 +9,9 @@ endif::[]
 
 _Stop writing database converters, json marshallers, and object mappers for simple domain types — Lazyval generates them at compile time for both Java and Kotlin._
 
+NOTE: The 0.x versioning only reflects that the SPI API is currently experimental and might change on minor
+releases: this only affects users writing custom generators.
+
 == What is Lazyval
 
 Lazyval is a Java annotation processor & Kotlin symbol processor generating integration code,
@@ -17,18 +20,18 @@ often needed when modeling _"Domain Primitives"_, which are simple, domain-speci
 === Features
 
 * Codegenerators
-** Bean-Validation ValueExtractors (useful for legacy/migration projects where after-the-fact validation is still needed)
+** Bean-Validation (useful for legacy/migration projects where after-the-fact validation is still needed)
 ** Cassandra
 ** Jackson 2 & 3 (scalar serde)
 ** JPA AttributeConverters
 ** JSON-B (scalar serde)
-** MapStruct mapper
+** MapStruct
 ** MongoDB
-** Spring-Data (Cassandra, Mongo, Jdbc, R2dbc)
+** Spring-Data (Cassandra, Mongo, JDBC, R2DB)
 * Smart
 ** Only generate code when the necessary dependencies are available
 ** Factory-methods can be named arbitrarily, as long as the types match and they are unique
-** Framework detection
+** Framework detection (Spring-Boot, Quarkus)
 ** Proper feedback during compilation with warnings/error
 * SPI for custom generators
 ** Testkit

@@ -25,8 +25,8 @@ Kotlin::
 include::ROOT:example$kotlin/src/main/kotlin/test/Quantity.kt[tag=docu-motivation]
 ----
 +
-NOTE: A quick word on Kotlin: though Kotlin already has value types, they don't work in all frameworks due to inlining and
-mangling.
+NOTE: A quick word on Kotlin: though Kotlin already has `value class`, this doesn't work in all frameworks due to
+inlining and mangling.
 ====
 
 === The Problem
@@ -104,7 +104,7 @@ xref:multi-module.adoc[Multi-Module Support]
 * xref:generators:jpa.adoc[JPA AttributeConverters]
 * xref:generators:jsonb.adoc[JSON-B]
 * xref:generators:mapstruct.adoc[MapStruct]
-* xref:generators:spring-data.adoc[Spring Data] (Cassandra & MongoDB)
+* xref:generators:spring-data.adoc[Spring Data] (Cassandra, MongoDB, JDBC, R2DBC)
 
 See xref:generators:index.adoc[Generators Overview] for how to plug in user-supplied converters
 where the framework requires application-specific decisions (e.g. timezone for `LocalDate ↔ Date`

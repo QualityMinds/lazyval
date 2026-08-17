@@ -3,6 +3,15 @@
 For Kotlin, the original Java Annotation Processor was migrated to KSP2 (Kotlin Symbol Processing) to make use of
 the `@LazyValue` annotation on Kotlin classes and data-classes.
 
+Kotlin's `value class` looks like the natural fit for domain primitives, but on the JVM it comes with caveats.
+Because the wrapper is inlined, reflection- and bytecode-based tooling (JPA/Hibernate, Spring Data, MapStruct)
+only ever sees the underlying `Int` or `String` and has nothing to attach a converter to; functions taking a
+value class also get mangled JVM names that Java callers cannot invoke.
+
+Lazyval takes the opposite route: keep an ordinary class or data class — a shape every framework already
+understands — and let the processor generate the integration code you would otherwise write by hand. You trade
+the runtime unboxing of `value class` for a wrapper the ecosystem can actually work with.
+
 [#usage]
 == Usage
 
