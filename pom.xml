@@ -362,7 +362,10 @@
                             <compilerArgs>
                                 <arg>-XDcompilePolicy=simple</arg>
                                 <arg>--should-stop=ifError=FLOW</arg>
-                                <arg>-Xplugin:ErrorProne -XepOpt:NullAway:AnnotatedPackages=com.qualityminds.lazyval -XepOpt:NullAway:JSpecifyMode=true -XepDisableWarningsInGeneratedCode</arg>
+                                <!-- javapoet's value types are immutable but carry no @Immutable annotation, so
+                                     error-prone has to be told; without this, every enum or @Immutable type
+                                     holding a ClassName or CodeBlock is reported. -->
+                                <arg>-Xplugin:ErrorProne -XepOpt:NullAway:AnnotatedPackages=com.qualityminds.lazyval -XepOpt:NullAway:JSpecifyMode=true -XepOpt:Immutable:KnownImmutable=com.palantir.javapoet.ClassName,com.palantir.javapoet.CodeBlock -XepDisableWarningsInGeneratedCode</arg>
                             </compilerArgs>
                             <annotationProcessorPaths>
                                 <path>

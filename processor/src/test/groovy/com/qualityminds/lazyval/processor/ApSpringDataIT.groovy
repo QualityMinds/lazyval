@@ -127,6 +127,23 @@ class ApSpringDataIT extends Specification {
         !expected.isEmpty()
     }
 
+    @Unroll("Spring-Data's @Transient on the '#placement' compiles")
+    void "Processor excludes derived state from validation when @Transient is present"() {
+        given: 'a value type whose second, derived value carries the annotation'
+        def scenario = Scenario.Java.ofSingle(source).withDependencies(classpathFor(CASSANDRA))
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then: 'the type is accepted and the configuration is generated for the remaining value'
+        result == new Testresult.Java.Success(GENERATED_FILE)
+
+        where:
+        placement | source
+        "field"   | "scenarios/springdata/SpringDataTransientField.java"
+        "getter"  | "scenarios/springdata/SpringDataTransientGetter.java"
+    }
+
     void "a domain-primitive wrapping LocalDate generates valid converters"() {
         given:
         def scenario = Scenario.Java.orderDate().withDependencies(classpathFor(CASSANDRA))

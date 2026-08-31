@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.processor.internal.codegen.springdata;
 
+import com.google.errorprone.annotations.Immutable;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.CodeBlock;
 import com.palantir.javapoet.MethodSpec;
@@ -116,7 +117,11 @@ enum SpringDataStore {
      * Behaviour lives on the subtypes rather than in a {@code switch}: pattern matching for switch is
      * only standard from Java 21, and this project targets 17, so a switch here could not be checked
      * for exhaustiveness. With abstract methods a new shape cannot compile until it is implemented.
+     * <p>
+     * {@code @Immutable} is what lets the enum hold one of these as a constant field. It is not
+     * decoration: it makes error-prone verify that every implementation stays immutable.
      */
+    @Immutable
     sealed interface Construction {
 
         /** Parameters the generated bean method must declare. */

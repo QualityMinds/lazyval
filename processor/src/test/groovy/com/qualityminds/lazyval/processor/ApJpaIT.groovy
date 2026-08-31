@@ -5,10 +5,7 @@ import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
-import spock.lang.Shared
-import spock.lang.Specification
-import spock.lang.TempDir
-import spock.lang.Title
+import spock.lang.*
 
 import java.nio.file.Path
 
@@ -59,4 +56,20 @@ class ApJpaIT extends Specification {
         testkitJava.generatedSourcePath(projectDir, "test/custom/QuantityAttributeConverter.java").toFile().exists()
     }
 
+    @Unroll("JPA's @Transient on the '#placement' compiles")
+    void "Processor excludes derived state from validation when @Transient is present"() {
+        given: 'a value type whose second, derived value carries the annotation'
+        def scenario = Scenario.Java.ofSingle(source).withDependencies(dependencyJakartaPersistence)
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then: 'the type is accepted and a converter is generated for the remaining value'
+        result == new Testresult.Java.Success(converter)
+
+        where:
+        placement | source                                  | converter
+        "field"   | "scenarios/jpa/JpaTransientField.java"  | "JpaTransientFieldAttributeConverter.java"
+        "getter"  | "scenarios/jpa/JpaTransientGetter.java" | "JpaTransientGetterAttributeConverter.java"
+    }
 }

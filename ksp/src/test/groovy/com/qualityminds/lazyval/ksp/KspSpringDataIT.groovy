@@ -117,6 +117,23 @@ class KspSpringDataIT extends Specification {
         testkitKotlin.generatedKotlinSourcePath(projectDir, "test/custom/$GENERATED_FILE").toFile().exists()
     }
 
+    @Unroll("Spring-Data's @Transient on the '#placement' compiles")
+    void "Processor excludes derived state from validation when @Transient is present"() {
+        given: 'a value type whose second, derived property carries the annotation'
+        def scenario = Scenario.Kotlin.ofSingle(source).withDependencies(classpathFor(CASSANDRA))
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then: 'the type is accepted and the configuration is generated for the remaining property'
+        result == new Testresult.Kotlin.Success(GENERATED_FILE)
+
+        where:
+        placement | source
+        "field"   | "scenarios/springdata/SpringDataTransientProperty.kt"
+        "getter"  | "scenarios/springdata/SpringDataTransientGetter.kt"
+    }
+
     void "every store in the test registry has its option declared by the generator"() {
         given: 'the option keys this spec and the rules spec exercise'
         def expected = ALL*.optionKey
