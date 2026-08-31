@@ -44,13 +44,18 @@ class LazyvalElementValidator {
 
     /**
      * Every rule is evaluated before the first failure is acted on, so an invalid record reports all
-     * of its problems in one compiler run instead of one per fix-and-recompile cycle.
+     * of its problems in one compiler run instead of one per fix-and-recompile cycle. The missing
+     * component is the sole exception: without it there is nothing to look a factory method up by.
      */
     private Optional<ValidatedGeneratorElement> validateRecord(TypeElement lazyvalElement) {
         if (lazyvalElement.getKind() != ElementKind.RECORD) {
             return Optional.empty();
         }
         var components = lazyvalElement.getRecordComponents();
+        if (components.isEmpty()) {
+            environment.error(lazyvalElement, "No record component found. Lazyval requires the ValueType to have exactly one field.");
+            return Optional.empty();
+        }
         boolean payloadValid = components.size() <= 1;
         if (!payloadValid) {
             environment.error(lazyvalElement, "Not a simple ValueType. Lazyval only supports Records with one non-transient field.");

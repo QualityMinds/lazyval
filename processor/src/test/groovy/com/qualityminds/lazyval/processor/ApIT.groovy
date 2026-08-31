@@ -49,6 +49,8 @@ class ApIT extends Specification {
         Scenario.Java.ofSingle("scenarios/failing/ObjectMultipleFactories.java")    | "Lazyval: Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
         Scenario.Java.ofSingle("scenarios/failing/RecordMultipleFactories.java")    | "Lazyval: Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
         Scenario.Java.ofSingle("scenarios/failing/ObjectMissingValueAccessor.java") | "Lazyval: No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation."
+        Scenario.Java.ofSingle("scenarios/failing/RecordWithoutProperty.java")      | "Lazyval: No record component found. Lazyval requires the ValueType to have exactly one field."
+        Scenario.Java.ofSingle("scenarios/failing/ObjectWithoutProperty.java")      | "Lazyval: No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation."
         expected = new Testresult.Java.Failure(error)
     }
 
