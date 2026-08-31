@@ -58,6 +58,7 @@ class KspIT extends Specification {
         Scenario.Kotlin.ofSingle("scenarios/failing/MultiplePropertyClass.kt")    | "Lazyval: Not a simple ValueType. Lazyval only supports classes with one non-transient property."
         Scenario.Kotlin.ofSingle("scenarios/failing/MultiplePropertyDataClass.kt")| "Lazyval: Not a simple ValueType. Lazyval only supports classes with one non-transient property."
         Scenario.Kotlin.ofSingle("scenarios/failing/NullableWrappedType.kt")      | "Lazyval: Wrapped type must not be nullable. Please use a non-nullable type."
+        Scenario.Kotlin.ofSingle("scenarios/failing/ClassWithoutProperty.kt")     | "Lazyval: No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property."
     }
 
     @Unroll("#scenario.name() #message")
