@@ -21,7 +21,7 @@ public final class Birthdate implements Comparable<Birthdate> {
 
     public sealed interface State {
         record Complete(LocalDate date) implements State {}
-        record DayUnknown (int month, int year) implements State {}
+        record DayUnknown (int year, int month) implements State {}
         record DayMonthUnknown (int year) implements State {}
         record Unknown() implements State {
             private static final Unknown INSTANCE = new Unknown();
@@ -51,7 +51,8 @@ public final class Birthdate implements Comparable<Birthdate> {
         }
     }
 
-    public static Birthdate of(String value){
+    @Nullable
+    public static Birthdate of(@Nullable String value){
         if(value == null || value.isBlank()){
             return null;
         }
@@ -64,7 +65,8 @@ public final class Birthdate implements Comparable<Birthdate> {
     }
 
 
-    public static Birthdate of(LocalDate date){
+    @Nullable
+    public static Birthdate of(@Nullable LocalDate date){
         if(date == null){
             return null;
         }
