@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.ksp.spi
 
+import com.google.devtools.ksp.isPublic
 import com.google.devtools.ksp.symbol.*
 import org.jetbrains.annotations.ApiStatus
 
@@ -50,9 +51,12 @@ data class ValidatedKspGeneratorElement(
     }
 
     private fun hasCustomAccessorMethod(): Boolean {
-        // Check if there's a method with the same name as the property
+        // Check if there's a public method with the same name as the property. Non-public ones are
+        // unreachable from generated code, which is emitted into its own package — naming one here
+        // would emit a call that does not compile, and the property's own getter is the right route.
         return element.getAllFunctions().any { function ->
-            function.simpleName.asString() == wrappedProperty.name &&
+            function.isPublic() &&
+                    function.simpleName.asString() == wrappedProperty.name &&
                     function.parameters.isEmpty() &&
                     function.returnType?.resolve() == wrappedProperty.type
         }
@@ -100,6 +104,7 @@ data class TypeName(val value: String){
 }
 
 
+@Suppress("unused") // api-surface
 data class WrappedProperty(val property: KSPropertyDeclaration) {
     val type: KSType = property.type.resolve()
     val name: String = property.simpleName.asString()

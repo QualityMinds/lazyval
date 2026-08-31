@@ -51,6 +51,9 @@ class ApIT extends Specification {
         Scenario.Java.ofSingle("scenarios/failing/ObjectMissingValueAccessor.java") | "Lazyval: No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation."
         Scenario.Java.ofSingle("scenarios/failing/RecordWithoutProperty.java")      | "Lazyval: No record component found. Lazyval requires the ValueType to have exactly one field."
         Scenario.Java.ofSingle("scenarios/failing/ObjectWithoutProperty.java")      | "Lazyval: No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation."
+        // A private accessor is unreachable from the generated code's package, and a private Java
+        // field has no synthesized getter to fall back on, so the type is rejected outright.
+        Scenario.Java.ofSingle("scenarios/failing/ObjectWithPrivateAccessor.java")  | "Lazyval: No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation."
         expected = new Testresult.Java.Failure(error)
     }
 
@@ -70,6 +73,8 @@ class ApIT extends Specification {
         Scenario.Java.ofSingle("scenarios/edge/ObjectValueNotFinal.java")      | "Lazyval: Value Types should be immutable, hence the wrapped field should be final."
         Scenario.Java.ofSingle("scenarios/edge/ObjectNotFinal.java")           | "Lazyval: Value Types should not be extendable, hence the class should be final."
         Scenario.Java.ofSingle("scenarios/edge/ObjectWithTransientField.java") | null
+        // An unreachable second field must not make the type ambiguous.
+        Scenario.Java.ofSingle("scenarios/edge/ObjectWithPrivateExtraField.java") | null
         expected = warning != null
                 ? new Testresult.Java.SuccessWithWarnings(Lists.immutable.of("LazyvalMapper.java"), Lists.immutable.of(warning))
                 : new Testresult.Java.Success("LazyvalMapper.java")

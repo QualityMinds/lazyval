@@ -22,6 +22,14 @@ class AccessorLookupSpec extends Specification {
         ])*.name == ["getOther"]
     }
 
+    void "non-public methods are filtered out"() {
+        expect: 'generated code lives in another package, so only public methods are reachable'
+        AccessorLookup.INSTANCE.accessorCandidates([
+                instance("value", "kotlin.Int", isPublic: false),
+                instance("getValue", "kotlin.Int"),
+        ])*.name == ["getValue"]
+    }
+
     void "methods with parameters are filtered out"() {
         expect:
         AccessorLookup.INSTANCE.accessorCandidates([
@@ -142,7 +150,7 @@ class AccessorLookupSpec extends Specification {
     }
 
     /**
-     * Test factory: returns an instance (non-static, zero-arg) method by default so individual
+     * Test factory: returns a public instance (non-static, zero-arg) method by default so individual
      * tests only declare what's interesting about the shape they're testing. Groovy collects named
      * args into the FIRST parameter, so `opts` comes first.
      */
@@ -151,6 +159,7 @@ class AccessorLookupSpec extends Specification {
                 name,
                 returnTypeFqn,
                 (opts.parameterCount ?: 0) as int,
+                (opts.isPublic == null ? true : opts.isPublic) as boolean,
                 (opts.isStatic == null ? false : opts.isStatic) as boolean)
     }
 

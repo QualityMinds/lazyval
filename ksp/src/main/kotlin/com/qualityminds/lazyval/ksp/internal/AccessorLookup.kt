@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.ksp.internal
 
+import com.google.devtools.ksp.isPublic
 import com.google.devtools.ksp.symbol.*
 import com.qualityminds.lazyval.ksp.internal.AccessorLookup.accessorCandidates
 import com.qualityminds.lazyval.ksp.internal.AccessorLookup.findAccessor
@@ -25,23 +26,30 @@ internal object AccessorLookup {
 
     /**
      * KSP-free identity of a candidate method, carrying the structural flags the candidate filter
-     * needs. [isStatic] is decided at [toShape] time — it captures any form of non-instance
-     * membership (companion-object methods, `JAVA_STATIC` modifier) so the heuristic doesn't need
-     * to know about KSP's specifics.
+     * needs. [isPublic] and [isStatic] are decided at [toShape] time — the latter captures any form
+     * of non-instance membership (companion-object methods, `JAVA_STATIC` modifier) so the
+     * heuristic doesn't need to know about KSP's specifics.
      */
     data class Method(
         val name: String,
         val returnTypeFqn: String?,
         val parameterCount: Int,
+        val isPublic: Boolean,
         val isStatic: Boolean,
     )
 
     /**
-     * Filters [methods] to those plausible as a value-type accessor: instance (non-static),
+     * Filters [methods] to those plausible as a value-type accessor: public, instance (non-static),
      * zero-arg, non-Unit return, not an inherited `Object` method.
+     *
+     * Generated code is emitted into its own package, so a non-public function is not merely poor
+     * style — naming it produces source that does not compile. A `private fun value()` next to a
+     * `val value` would otherwise win the tier-1 name match ahead of the property's own public
+     * getter.
      */
     fun accessorCandidates(methods: List<Method>): List<Method> = methods.filter {
-        !it.isStatic &&
+        it.isPublic &&
+                !it.isStatic &&
                 it.parameterCount == 0 &&
                 it.returnTypeFqn != null &&
                 it.returnTypeFqn != "kotlin.Unit" &&
@@ -90,8 +98,8 @@ fun findAccessor(
     methods: List<KSFunctionDeclaration>,
     isExternalJavaType: Boolean,
 ): KSFunctionDeclaration? {
-    val candidates = AccessorLookup.accessorCandidates(methods.map { it.toShape() })
-    return AccessorLookup.findAccessor(property.toProperty(), candidates, isExternalJavaType)
+    val candidates = accessorCandidates(methods.map { it.toShape() })
+    return findAccessor(property.toProperty(), candidates, isExternalJavaType)
         ?.let { shape -> methods.firstOrNull { it.matchesShape(shape) } }
 }
 
@@ -106,6 +114,7 @@ internal fun KSFunctionDeclaration.toShape(): AccessorLookup.Method = AccessorLo
     name = simpleName.asString(),
     returnTypeFqn = returnType?.resolve()?.toFqn(),
     parameterCount = parameters.size,
+    isPublic = isPublic(),
     isStatic = isStaticForLookup(),
 )
 
