@@ -59,6 +59,11 @@ class KspIT extends Specification {
         Scenario.Kotlin.ofSingle("scenarios/failing/MultiplePropertyDataClass.kt")| "Lazyval: Not a simple ValueType. Lazyval only supports classes with one non-transient property."
         Scenario.Kotlin.ofSingle("scenarios/failing/NullableWrappedType.kt")      | "Lazyval: Wrapped type must not be nullable. Please use a non-nullable type."
         Scenario.Kotlin.ofSingle("scenarios/failing/ClassWithoutProperty.kt")     | "Lazyval: No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property."
+        // Generated code sits in another package, so anything short of public is unreachable: private
+        // and internal properties have no callable getter at all, protected has one javac rejects.
+        Scenario.Kotlin.ofSingle("scenarios/failing/PrivatePropertyClass.kt")     | "Lazyval: No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property."
+        Scenario.Kotlin.ofSingle("scenarios/failing/InternalPropertyClass.kt")    | "Lazyval: No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property."
+        Scenario.Kotlin.ofSingle("scenarios/failing/ProtectedPropertyClass.kt")   | "Lazyval: No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property."
     }
 
     @Unroll("#scenario.name() #message")
@@ -76,6 +81,9 @@ class KspIT extends Specification {
         scenario                                                            | warning
         Scenario.Kotlin.ofSingle("scenarios/edge/IsbnWithAccessor.kt")            | null
         Scenario.Kotlin.ofSingle("scenarios/edge/ClassWithTransientProperty.kt")  | null
+        Scenario.Kotlin.ofSingle("scenarios/edge/ClassWithPrivateAccessor.kt")    | null
+        // Unreachable extra properties must not make the type ambiguous.
+        Scenario.Kotlin.ofSingle("scenarios/edge/ClassWithPrivateExtraProperty.kt")| null
         Scenario.Kotlin.ofSingle("scenarios/edge/IsbnNotFinal.kt")                | "Lazyval: Value Types should not be extendable, hence the class should be final."
         Scenario.Kotlin.ofSingle("scenarios/edge/QuantityMutable.kt")             | "Lazyval: Value Types should be immutable, hence the wrapped property should be final (val)."
         expected = warning != null

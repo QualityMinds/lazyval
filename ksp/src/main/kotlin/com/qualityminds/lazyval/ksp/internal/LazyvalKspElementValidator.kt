@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal
 
 import com.google.devtools.ksp.getDeclaredFunctions
+import com.google.devtools.ksp.isPublic
 import com.google.devtools.ksp.symbol.*
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.qualityminds.lazyval.ksp.spi.WrappedProperty
@@ -145,6 +146,11 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
      * (e.g. java.time.Year's `year`) still get a chance to be paired with a JavaBean accessor. KSP
      * reports `getter=null`/`hasBackingField=false` for those synthesized properties even though a
      * matching bean getter exists as a separate function.
+     *
+     * Pairs generated code could not actually read are dropped, which is what makes the "exactly one
+     * accessible property" contract true rather than aspirational: generated code is emitted into its
+     * own package, so a property reachable neither via a public accessor nor via its own public getter
+     * would yield source that fails to compile.
      */
     private fun findPropertyAccessorPairs(
         classDeclaration: KSClassDeclaration
@@ -161,6 +167,12 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
             .map { property ->
                 PropertyAccessorPair(property, findAccessor(property, allMethods, isExternalJavaType))
             }
+            // A pair that has an accessor is already safe — AccessorLookup.accessorCandidates only
+            // ever offers public functions. Without one, the property is read through the getter
+            // Kotlin synthesizes, and that route exists only for public properties: `private` and
+            // `internal` have no getter under the expected name (internal's is name-mangled), and
+            // `protected` has one the generated source may not call.
+            .filter { it.accessor != null || it.property.isPublic() }
             .filter { !it.property.isTransient(it.accessor) }
             .toList()
     }
