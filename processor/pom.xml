@@ -39,6 +39,15 @@
             <version>${version.jetbrains-annotations}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <!-- @Immutable only. Retention is RUNTIME, but nothing reflects over the annotated type,
+                 and a missing annotation class is silently skipped rather than raising — so provided
+                 scope keeps it off the consumer's processor path. -->
+            <groupId>com.google.errorprone</groupId>
+            <artifactId>error_prone_annotations</artifactId>
+            <version>${version.checks.error-prone}</version>
+            <scope>provided</scope>
+        </dependency>
         <!-- Test dependencies -->
         <dependency>
             <groupId>com.qualityminds.lazyval</groupId>

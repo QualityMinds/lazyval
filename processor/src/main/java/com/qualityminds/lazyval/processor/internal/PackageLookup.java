@@ -5,6 +5,9 @@ import org.jspecify.annotations.Nullable;
 import java.util.function.Supplier;
 
 /**
+ * Resolves the package a generator writes to, preferring its own override over the global
+ * base-package default and falling back to a supplier when neither is configured.
+ *
  * @see com.qualityminds.lazyval.processor.spi.Generator.Context#generatorPackage
  */
 class PackageLookup {

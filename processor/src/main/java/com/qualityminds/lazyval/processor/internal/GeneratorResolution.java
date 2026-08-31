@@ -75,20 +75,25 @@ class GeneratorResolution {
             }
         }
 
+        // isActive memoizes the recursion; activeIds is the flattened answer the loop below reads, so
+        // that a candidate id absent from the memo cannot be silently mistaken for an inactive one.
         Map<String, Boolean> isActive = new HashMap<>();
         Set<String> visiting = new LinkedHashSet<>();
+        Set<String> activeIds = new LinkedHashSet<>();
         for (var g : candidates) {
-            computeActive(g.generatorId(), superseders, isActive, visiting);
+            if (computeActive(g.generatorId(), superseders, isActive, visiting)) {
+                activeIds.add(g.generatorId());
+            }
         }
 
         Set<Generator> active = new LinkedHashSet<>();
         Set<Superseded> superseded = new LinkedHashSet<>();
         for (var g : candidates) {
-            if (isActive.get(g.generatorId())) {
+            if (activeIds.contains(g.generatorId())) {
                 active.add(g);
             } else {
                 for (var supersederId : superseders.getOrDefault(g.generatorId(), Set.of())) {
-                    if (Boolean.TRUE.equals(isActive.get(supersederId))) {
+                    if (activeIds.contains(supersederId)) {
                         superseded.add(new Superseded(g.generatorId(), supersederId));
                     }
                 }

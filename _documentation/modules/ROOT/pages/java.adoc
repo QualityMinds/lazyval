@@ -30,6 +30,17 @@ Lazyval validates that exactly one non-transient instance field is the stored pa
 be marked `transient` to keep it out of the validation. Additional constructors, accessors, or convenience
 factories with other signatures are allowed and ignored by the processor.
 
+The `transient` keyword only carries meaning for types implementing `Serializable`, so static analysis tends to
+flag it everywhere else. Lazyval therefore treats these annotations as equivalent, on either the field or its
+accessor:
+
+* `jakarta.persistence.Transient`
+* `org.springframework.data.annotation.Transient`
+
+These two are supported because of their wide usage.
+On any other stack, use the plain `transient` keyword or map
+the domain-primitive to its wrapped value in a dedicated persistence model.
+
 [#setup]
 == Setup
 

@@ -2,16 +2,13 @@ package com.qualityminds.lazyval.processor.internal;
 
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
-import javax.lang.model.element.ElementKind;
-import javax.lang.model.element.ExecutableElement;
-import javax.lang.model.element.Modifier;
-import javax.lang.model.element.TypeElement;
-import javax.lang.model.element.VariableElement;
+import javax.lang.model.element.*;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -25,6 +22,9 @@ class LazyvalElementValidator {
             "Value Types should not be extendable, hence the class should be final.";
     private static final String NOT_FINAL_VALUE_WARNING =
             "Value Types should be immutable, hence the wrapped field should be final.";
+    private static final Set<String> TRANSIENT_ANNOTATIONS = Set.of(
+            "jakarta.persistence.Transient",
+            "org.springframework.data.annotation.Transient");
 
     private final Types typeUtils;
     private final LazyvalEnvironment environment;
@@ -42,74 +42,91 @@ class LazyvalElementValidator {
         return validateObject(element);
     }
 
+    /**
+     * Every rule is evaluated before the first failure is acted on, so an invalid record reports all
+     * of its problems in one compiler run instead of one per fix-and-recompile cycle.
+     */
     private Optional<ValidatedGeneratorElement> validateRecord(TypeElement lazyvalElement) {
         if (lazyvalElement.getKind() != ElementKind.RECORD) {
             return Optional.empty();
         }
-        boolean valid = true;
-
-        var fields = lazyvalElement.getRecordComponents();
-        if (fields.size() > 1) {
+        var components = lazyvalElement.getRecordComponents();
+        boolean payloadValid = components.size() <= 1;
+        if (!payloadValid) {
             environment.error(lazyvalElement, "Not a simple ValueType. Lazyval only supports Records with one non-transient field.");
-            valid = false;
         }
 
-        var factoryMethods = findFactoryMethods(lazyvalElement, fields.get(0).asType());
-        if (factoryMethods.size() > 1) {
-            environment.error(lazyvalElement, "Multiple matching factory methods with the same signature found. Please check methods:"
-                    + factoryMethods.stream().map(m -> m.getSimpleName().toString()).collect(Collectors.joining(", ")));
-            valid = false;
-        }
+        var factoryMethods = findFactoryMethods(lazyvalElement, components.get(0).asType());
+        boolean factoryValid = validateFactoryMethods(lazyvalElement, factoryMethods);
 
+        if (!(payloadValid && factoryValid)) {
+            return Optional.empty();
+        }
         ExecutableElement factoryMethod = factoryMethods.isEmpty() ? null : factoryMethods.get(0);
-        return valid
-                ? Optional.of(ValidatedGeneratorElement.fromRecord(lazyvalElement, factoryMethod, fields.get(0)))
-                : Optional.empty();
+        return Optional.of(ValidatedGeneratorElement.fromRecord(lazyvalElement, factoryMethod, components.get(0)));
     }
 
+    /**
+     * Every rule is evaluated before the first failure is acted on, so an invalid class reports all
+     * of its problems in one compiler run instead of one per fix-and-recompile cycle. The missing
+     * accessor is the sole exception: without it there is nothing to look a factory method up by.
+     */
     private Optional<ValidatedGeneratorElement> validateObject(TypeElement lazyvalElement) {
         if (lazyvalElement.getKind() != ElementKind.CLASS) {
             return Optional.empty();
         }
-        boolean valid = true;
-
-        if (lazyvalElement.getModifiers().contains(Modifier.ABSTRACT)) {
+        boolean shapeValid = !lazyvalElement.getModifiers().contains(Modifier.ABSTRACT);
+        if (!shapeValid) {
             environment.error(lazyvalElement, "Abstract class is not a valid ValueType.");
-            valid = false;
         }
 
         var fieldAccessorPairs = findFieldAccessorPairs(lazyvalElement);
-        if (fieldAccessorPairs.size() > 1) {
-            environment.error(lazyvalElement, "Not a simple ValueType. Lazyval only supports Objects with one non-transient value.");
-            valid = false;
-        } else if (fieldAccessorPairs.isEmpty()) {
+        if (fieldAccessorPairs.isEmpty()) {
             // FIXME find a way not to stop validation here. Instead of passing accessors, use the field
             environment.error(lazyvalElement, "No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation.");
-            return Optional.empty(); // we have to stop here because we need the value field to look up the factory method
+            return Optional.empty();
         }
-
+        boolean payloadValid = fieldAccessorPairs.size() <= 1;
+        if (!payloadValid) {
+            environment.error(lazyvalElement, "Not a simple ValueType. Lazyval only supports Objects with one non-transient value.");
+        }
         var pair = fieldAccessorPairs.get(0);
+
         var factoryMethods = findFactoryMethods(lazyvalElement, pair.field().asType());
-        if (factoryMethods.size() > 1) {
-            environment.error(lazyvalElement, "Multiple matching factory methods with the same signature found. Please check methods:"
-                    + factoryMethods.stream().map(m -> m.getSimpleName().toString()).collect(Collectors.joining(", ")));
-            valid = false;
+        boolean factoryValid = validateFactoryMethods(lazyvalElement, factoryMethods);
+
+        if (!(shapeValid && payloadValid && factoryValid)) {
+            return Optional.empty();
         }
+        warnOnNonFinal(lazyvalElement, pair.field());
         ExecutableElement factoryMethod = factoryMethods.isEmpty() ? null : factoryMethods.get(0);
+        return Optional.of(ValidatedGeneratorElement.fromClass(lazyvalElement, factoryMethod, pair.field(), pair.accessor()));
+    }
 
-        // Warnings only emit when validation otherwise passes.
-        if (valid) {
-            if (!lazyvalElement.getModifiers().contains(Modifier.FINAL)) {
-                environment.warn(lazyvalElement, NOT_FINAL_OBJECT_WARNING);
-            }
-            if (!pair.field().getModifiers().contains(Modifier.FINAL)) {
-                environment.warn(pair.field(), NOT_FINAL_VALUE_WARNING);
-            }
+    /**
+     * At most one factory method may match the wrapped type; with several, Lazyval cannot tell which
+     * one is meant to reconstruct the value. Having none is fine — the constructor is then used.
+     */
+    private boolean validateFactoryMethods(TypeElement lazyvalElement, List<ExecutableElement> factoryMethods) {
+        if (factoryMethods.size() <= 1) {
+            return true;
         }
+        environment.error(lazyvalElement, "Multiple matching factory methods with the same signature found. Please check methods:"
+                + factoryMethods.stream().map(m -> m.getSimpleName().toString()).collect(Collectors.joining(", ")));
+        return false;
+    }
 
-        return valid
-                ? Optional.of(ValidatedGeneratorElement.fromClass(lazyvalElement, factoryMethod, pair.field(), pair.accessor()))
-                : Optional.empty();
+    /**
+     * Advice rather than a rule, and therefore only emitted once the type is known to be valid: a
+     * class that is being rejected should not also be lectured about style.
+     */
+    private void warnOnNonFinal(TypeElement lazyvalElement, VariableElement valueField) {
+        if (!lazyvalElement.getModifiers().contains(Modifier.FINAL)) {
+            environment.warn(lazyvalElement, NOT_FINAL_OBJECT_WARNING);
+        }
+        if (!valueField.getModifiers().contains(Modifier.FINAL)) {
+            environment.warn(valueField, NOT_FINAL_VALUE_WARNING);
+        }
     }
 
     private List<ExecutableElement> findFactoryMethods(TypeElement lazyvalElement, TypeMirror wrappedType) {
@@ -137,12 +154,29 @@ class LazyvalElementValidator {
         return lazyvalElement.getEnclosedElements().stream()
                 .filter(element -> element.getKind() == ElementKind.FIELD)
                 .map(element -> (VariableElement) element)
-                .filter(field -> !field.getModifiers().contains(Modifier.STATIC)
-                        && !field.getModifiers().contains(Modifier.TRANSIENT))
+                .filter(field -> !field.getModifiers().contains(Modifier.STATIC))
                 .flatMap(field -> AccessorLookup.findAccessor(field, allMethods)
                         .map(accessor -> new FieldAccessorPair(field, accessor))
                         .stream())
+                .filter(pair -> !isTransient(pair))
                 .toList();
+    }
+
+    /**
+     * A value counts as transient when either half of the pair says so. Both placements occur in
+     * practice: with field access the annotation sits on the field, with property access it sits on
+     * the accessor — which is why this runs after the pairing rather than before it.
+     */
+    private boolean isTransient(FieldAccessorPair pair) {
+        return pair.field().getModifiers().contains(Modifier.TRANSIENT)
+                || isTransientAnnotated(pair.field())
+                || isTransientAnnotated(pair.accessor());
+    }
+
+    private boolean isTransientAnnotated(Element element) {
+        return element.getAnnotationMirrors().stream()
+                .map(annotation -> annotation.getAnnotationType().toString())
+                .anyMatch(TRANSIENT_ANNOTATIONS::contains);
     }
 
     private record FieldAccessorPair(VariableElement field, ExecutableElement accessor) {}

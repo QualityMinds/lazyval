@@ -42,6 +42,15 @@ Lazyval validates that exactly one non-transient property is the stored payload,
 be marked `@kotlin.jvm.Transient` to keep it out of the validation. Additional constructors, accessors, or
 convenience factories with other signatures are allowed and ignored by the processor.
 
+Lazyval treats these annotations as equivalent, on either the property or its getter (`@get:Transient`):
+
+* `jakarta.persistence.Transient`
+* `org.springframework.data.annotation.Transient`
+
+
+These two are supported because of their wide usage.
+On any other stack, use `@kotlin.jvm.Transient` or map the
+domain-primitive to its wrapped value in a dedicated persistence model.
 
 [#setup]
 == Setup

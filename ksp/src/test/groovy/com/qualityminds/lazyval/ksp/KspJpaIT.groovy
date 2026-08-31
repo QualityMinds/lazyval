@@ -5,10 +5,7 @@ import com.qualityminds.lazyval.testkit.Testkit
 import com.qualityminds.lazyval.testkit.Testresult
 import com.qualityminds.lazyval.testkit.dependencies.Dependency
 import com.qualityminds.lazyval.testkit.scenarios.Scenario
-import spock.lang.Shared
-import spock.lang.Specification
-import spock.lang.TempDir
-import spock.lang.Title
+import spock.lang.*
 
 import java.nio.file.Path
 
@@ -76,4 +73,20 @@ class KspJpaIT extends Specification {
         result == Testresult.Kotlin.Approved.of(approval)
     }
 
+    @Unroll("JPA's @Transient on the '#placement' compiles")
+    void "Processor excludes derived state from validation when @Transient is present"() {
+        given: 'a value type whose second, derived property carries the annotation'
+        def scenario = Scenario.Kotlin.ofSingle(source).withDependencies(dependencyJakartaPersistence)
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then: 'the type is accepted and a converter is generated for the remaining property'
+        result == new Testresult.Kotlin.Success(converter)
+
+        where:
+        placement  | source                                  | converter
+        "field"    | "scenarios/jpa/JpaTransientProperty.kt" | "JpaTransientPropertyAttributeConverter.kt"
+        "getter"   | "scenarios/jpa/JpaTransientGetter.kt"   | "JpaTransientGetterAttributeConverter.kt"
+    }
 }

@@ -17,6 +17,10 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
             "Value Types should not be extendable, hence the class should be final."
         const val NOT_FINAL_VALUE_WARNING =
             "Value Types should be immutable, hence the wrapped property should be final (val)."
+        val TRANSIENT_ANNOTATIONS = setOf(
+            "kotlin.jvm.Transient",
+            "jakarta.persistence.Transient",
+            "org.springframework.data.annotation.Transient")
     }
 
     fun validate(classDeclaration: KSClassDeclaration): ValidatedKspGeneratorElement? {
@@ -29,101 +33,136 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
         }
     }
 
+    /**
+     * Every rule is evaluated before the first failure is acted on, so an invalid class reports all
+     * of its problems in one compiler run instead of one per fix-and-recompile cycle. The missing
+     * payload is the sole exception: without it there is nothing to look a factory method up by.
+     */
     private fun validateClass(classDeclaration: KSClassDeclaration): ValidatedKspGeneratorElement? {
-        var valid = true
+        val shapeValid = validateShape(classDeclaration)
 
-        if (Modifier.ABSTRACT in classDeclaration.modifiers) {
-            environment.error(classDeclaration, "Abstract class is not a valid ValueType.")
-            valid = false
-        }
-
-        if (Modifier.VALUE in classDeclaration.modifiers) {
-            environment.error(classDeclaration, "value class is not supported by Lazyval.")
-            valid = false
-        }
-
-        // Static and @Transient properties are excluded — only the storage payload counts.
-        val publicProperties = classDeclaration.getAllProperties()
-            .filter { !it.isStatic() && !it.isTransient() }
-            .toList()
-        val propertyAccessorPairs = findPropertyAccessorPairs(classDeclaration)
-
-        if (propertyAccessorPairs.size > 1 || publicProperties.size > 1) {
-            environment.error(classDeclaration,
-                "Not a simple ValueType. Lazyval only supports classes with one non-transient property.")
-            valid = false
-        } else if (propertyAccessorPairs.isEmpty() && publicProperties.isEmpty()) {
+        val pairs = findPropertyAccessorPairs(classDeclaration)
+        if (pairs.isEmpty()) {
             environment.error(classDeclaration,
                 "No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property.")
             return null
         }
+        val payloadValid = validatePayload(classDeclaration, pairs)
+        val (valueProperty, accessorMethod) = pairs.first()
 
-        if (publicProperties.first().type.resolve().isMarkedNullable) {
-            environment.error(publicProperties.first(),
+        val factoryMethods = findFactoryMethods(classDeclaration, valueProperty.type.resolve())
+        val factoryValid = validateFactoryMethods(classDeclaration, factoryMethods)
+
+        if (!(shapeValid && payloadValid && factoryValid)) {
+            return null
+        }
+        warnOnNonFinal(classDeclaration, valueProperty)
+        return ValidatedKspGeneratorElement(
+            classDeclaration,
+            WrappedProperty(valueProperty),
+            factoryMethods.firstOrNull(),
+            accessorMethod)
+    }
+
+    /** Rules about the class itself, independent of what it wraps. */
+    private fun validateShape(classDeclaration: KSClassDeclaration): Boolean {
+        var valid = true
+        if (Modifier.ABSTRACT in classDeclaration.modifiers) {
+            environment.error(classDeclaration, "Abstract class is not a valid ValueType.")
+            valid = false
+        }
+        if (Modifier.VALUE in classDeclaration.modifiers) {
+            environment.error(classDeclaration, "value class is not supported by Lazyval.")
+            valid = false
+        }
+        return valid
+    }
+
+    /**
+     * Rules about the wrapped payload: exactly one property, of a non-nullable type. Both describe
+     * the same thing, so a class that gets both wrong hears about both.
+     */
+    private fun validatePayload(
+        classDeclaration: KSClassDeclaration,
+        pairs: List<PropertyAccessorPair>
+    ): Boolean {
+        var valid = true
+        if (pairs.size > 1) {
+            environment.error(classDeclaration,
+                "Not a simple ValueType. Lazyval only supports classes with one non-transient property.")
+            valid = false
+        }
+        val valueProperty = pairs.first().property
+        if (valueProperty.type.resolve().isMarkedNullable) {
+            environment.error(valueProperty,
                 "Wrapped type must not be nullable. Please use a non-nullable type.")
             valid = false
         }
+        return valid
+    }
 
-        val valueProperty = publicProperties.firstOrNull() ?: propertyAccessorPairs.first().first
-        val accessorMethod = propertyAccessorPairs.firstOrNull()?.second
-
-        val factoryMethods = findFactoryMethods(classDeclaration, valueProperty.type.resolve())
-        if (factoryMethods.size > 1) {
-            val functionNames = factoryMethods.joinToString(", ") { it.simpleName.asString() }
-            environment.error(classDeclaration,
-                "Multiple matching factory methods with the same signature found. Please check functions $functionNames")
-            valid = false
+    /**
+     * At most one factory method may match the wrapped type; with several, Lazyval cannot tell which
+     * one is meant to reconstruct the value. Having none is fine — the constructor is then used.
+     */
+    private fun validateFactoryMethods(
+        classDeclaration: KSClassDeclaration,
+        factoryMethods: List<KSFunctionDeclaration>
+    ): Boolean {
+        if (factoryMethods.size <= 1) {
+            return true
         }
-        val factoryMethod = factoryMethods.firstOrNull()
+        val functionNames = factoryMethods.joinToString(", ") { it.simpleName.asString() }
+        environment.error(classDeclaration,
+            "Multiple matching factory methods with the same signature found. Please check functions $functionNames")
+        return false
+    }
 
-        if (!valid) {
-            return null
-        }
+    /**
+     * Advice rather than a rule, and therefore only emitted once the type is known to be valid: a
+     * class that is being rejected should not also be lectured about style.
+     */
+    private fun warnOnNonFinal(
+        classDeclaration: KSClassDeclaration,
+        valueProperty: KSPropertyDeclaration
+    ) {
         if (Modifier.OPEN in classDeclaration.modifiers) {
             environment.warn(classDeclaration, NOT_FINAL_CLASS_WARNING)
         }
         if (valueProperty.isMutable) {
             environment.warn(valueProperty, NOT_FINAL_VALUE_WARNING)
         }
-        return ValidatedKspGeneratorElement(
-            classDeclaration,
-            WrappedProperty(valueProperty),
-            factoryMethod,
-            accessorMethod)
     }
 
+    /**
+     * Non-static, non-transient properties paired with their accessor — the candidates for being the
+     * wrapped payload. Static and transient state is excluded because only the storage payload counts.
+     *
+     * Accessors are resolved before the transient filter runs, because a framework `@Transient` may
+     * sit on the accessor instead of on the property.
+     *
+     * The accessor is deliberately allowed to be `null` so that properties of external Java types
+     * (e.g. java.time.Year's `year`) still get a chance to be paired with a JavaBean accessor. KSP
+     * reports `getter=null`/`hasBackingField=false` for those synthesized properties even though a
+     * matching bean getter exists as a separate function.
+     */
     private fun findPropertyAccessorPairs(
         classDeclaration: KSClassDeclaration
-    ): List<Pair<KSPropertyDeclaration, KSFunctionDeclaration?>> {
-        // Match the looser filter used by `validateClass` for `publicProperties` so we get a chance
-        // to pair properties of external Java types (e.g. java.time.Year's `year`) with a JavaBean
-        // accessor. KSP reports `getter=null`/`hasBackingField=false` for those synthesized properties
-        // even though a matching bean getter exists as a separate function.
-        val properties = classDeclaration.getAllProperties()
-            .filter { property ->
-                !property.isStatic() && !property.isTransient()
-            }
-            .toList()
-
+    ): List<PropertyAccessorPair> {
         val allMethods = classDeclaration.getAllFunctions().toList()
         // Tier 3 (type-only match) only runs for external Java declarations. Applying it to Kotlin
         // would wrongly pair a data class's property with its synthesized `component1()` accessor
         // and break the JavaBean output Mapstruct/JPA/etc. expect.
         val isExternalJavaType = classDeclaration.origin == Origin.JAVA ||
                 classDeclaration.origin == Origin.JAVA_LIB
-        val isDataClass = classDeclaration.modifiers.contains(Modifier.DATA)
 
-        return properties.mapNotNull { property ->
-            val accessor = findAccessor(property, allMethods, isExternalJavaType)
-
-            // For data classes, the property itself is the accessor; for regular classes an explicit
-            // accessor method is required.
-            if (accessor != null || (isDataClass && !property.isPrivate())) {
-                Pair(property, accessor)
-            } else {
-                null
+        return classDeclaration.getAllProperties()
+            .filter { !it.isStatic() }
+            .map { property ->
+                PropertyAccessorPair(property, findAccessor(property, allMethods, isExternalJavaType))
             }
-        }
+            .filter { !it.property.isTransient(it.accessor) }
+            .toList()
     }
 
     private fun findFactoryMethods(
@@ -167,15 +206,30 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
                 parent is KSClassDeclaration && (parent as KSClassDeclaration).isCompanionObject
     }
 
-    private fun KSPropertyDeclaration.isPrivate(): Boolean {
-        return Modifier.PRIVATE in modifiers
+    /**
+     * True when the property, its getter, or a separately declared bean accessor is marked transient.
+     * Kotlin routes an annotation written `@get:Transient` — and any Java annotation whose only
+     * applicable target is `METHOD` — onto the getter, while for external Java types the accessor is
+     * a standalone function, so all three sites have to be consulted.
+     */
+    private fun KSPropertyDeclaration.isTransient(accessor: KSFunctionDeclaration?): Boolean {
+        return annotations.hasTransientMarker() ||
+                getter?.annotations?.hasTransientMarker() == true ||
+                accessor?.annotations?.hasTransientMarker() == true
     }
 
-    private fun KSPropertyDeclaration.isTransient(): Boolean {
-        return annotations.any { annotation ->
+    private fun Sequence<KSAnnotation>.hasTransientMarker(): Boolean {
+        return any { annotation ->
             if (annotation.shortName.asString() != "Transient") return@any false
-            val fqn = annotation.annotationType.resolve().declaration.qualifiedName?.asString()
-            fqn == "kotlin.jvm.Transient" || fqn == "java.beans.Transient"
+            annotation.annotationType.resolve().declaration.qualifiedName?.asString() in TRANSIENT_ANNOTATIONS
         }
     }
+
+    /**
+     * A candidate payload property together with the accessor generated code should call, which is
+     * `null` when the property is read directly. Mirrors the APT validator's `FieldAccessorPair`.
+     */
+    private data class PropertyAccessorPair(
+        val property: KSPropertyDeclaration,
+        val accessor: KSFunctionDeclaration?)
 }
