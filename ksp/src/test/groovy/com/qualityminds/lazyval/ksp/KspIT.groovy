@@ -125,6 +125,11 @@ class KspIT extends Specification {
         // The escape hatch the Kotlin docs point at: a non-public property stays valid as long as a
         // public accessor function offers a way in. Keeps that documented advice honest.
         Scenario.Kotlin.ofSingle("scenarios/edge/ClassWithPrivatePropertyAndAccessor.kt")| null
+        // The two halves of the `internal` rule that are accepted rather than rejected, kept honest by
+        // compiling the output: neither a constructor nor a class name is JVM name-mangled, unlike the
+        // property and factory function that KspIT rejects above.
+        Scenario.Kotlin.ofSingle("scenarios/edge/InternalConstructorClass.kt")    | null
+        Scenario.Kotlin.ofSingle("scenarios/edge/InternalDomainPrimitive.kt")     | null
         Scenario.Kotlin.ofSingle("scenarios/edge/IsbnNotFinal.kt")                | "Lazyval: Value Types should not be extendable, hence the class should be final."
         Scenario.Kotlin.ofSingle("scenarios/edge/QuantityMutable.kt")             | "Lazyval: Value Types should be immutable, hence the wrapped property should be final (val)."
         expected = warning != null
