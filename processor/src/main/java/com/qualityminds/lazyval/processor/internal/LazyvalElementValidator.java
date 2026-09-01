@@ -15,6 +15,11 @@ import java.util.stream.Collectors;
  * Validates a {@link TypeElement} against Lazyval's value-type contract and returns a
  * {@link ValidatedGeneratorElement} ready for code generation. Errors and warnings are
  * reported via the supplied {@link LazyvalEnvironment}.
+ * <p>
+ * Only the rules live here; pairing a field with its accessor is delegated to {@link AccessorLookup},
+ * and the wording of every diagnostic to {@link LazyvalElementValidatorMessages}, because that wording answers to
+ * {@code ApIT} and to the KSP validator rather than to the rules. Mirrors the same three-way split on
+ * the KSP side.
  */
 class LazyvalElementValidator {
 
@@ -163,36 +168,8 @@ class LazyvalElementValidator {
         }
         var allMethods = declaredMethods(lazyvalElement);
         fields.forEach(field -> AccessorLookup.findNonPublicAccessor(field, allMethods).ifPresentOrElse(
-                accessor -> environment.error(accessor, nonPublicAccessorMessage(field, accessor)),
-                () -> environment.error(field, missingAccessorMessage(field))));
-    }
-
-    private static String nonPublicAccessorMessage(VariableElement field, ExecutableElement accessor) {
-        return "Accessor '" + accessor.getSimpleName() + "()' for field '" + field.getSimpleName()
-                + "' is " + visibilityOf(accessor) + " and cannot be called from generated code, which is"
-                + " emitted into another package. Make the accessor public.";
-    }
-
-    private static String missingAccessorMessage(VariableElement field) {
-        return "Field '" + field.getSimpleName() + "' has no public accessor. Lazyval reads the payload"
-                + " through its accessor, which has to be public because generated code is emitted into"
-                + " another package. Add a public accessor returning " + field.asType() + ".";
-    }
-
-    /**
-     * Mirrors the wording of the KSP validator's visibility diagnostics so that the same mistake reads
-     * the same in both languages. Java has no keyword for the default, so it is spelled out the way the
-     * language specification's readers name it.
-     */
-    private static String visibilityOf(ExecutableElement accessor) {
-        var modifiers = accessor.getModifiers();
-        if (modifiers.contains(Modifier.PRIVATE)) {
-            return "private";
-        }
-        if (modifiers.contains(Modifier.PROTECTED)) {
-            return "protected";
-        }
-        return "package-private";
+                accessor -> environment.error(accessor, LazyvalElementValidatorMessages.nonPublicAccessorMessage(field, accessor)),
+                () -> environment.error(field, LazyvalElementValidatorMessages.missingAccessorMessage(field))));
     }
 
     /**
@@ -221,13 +198,23 @@ class LazyvalElementValidator {
                                            TypeMirror payloadType,
                                            List<ExecutableElement> factoryMethods,
                                            List<? extends Element> transientComponents) {
-        if (!factoryMethods.isEmpty()) {
+        if (factoryMethods.size() > 1) {
+            // Ambiguity is already reported by validateFactoryMethods, and until it is resolved there is
+            // no single factory whose reachability could be judged.
+            return true;
+        }
+        if (factoryMethods.size() == 1) {
+            var factory = factoryMethods.get(0);
+            if (!factory.getModifiers().contains(Modifier.PUBLIC)) {
+                environment.error(factory, LazyvalElementValidatorMessages.nonPublicFactoryMessage(factory));
+                return false;
+            }
             return true;
         }
         var constructor = findPayloadConstructor(lazyvalElement, payloadType);
         if (constructor.isEmpty()) {
             environment.error(lazyvalElement,
-                    missingReconstructionMessage(lazyvalElement, payloadType, transientComponents));
+                    LazyvalElementValidatorMessages.missingReconstructionMessage(lazyvalElement, payloadType, transientComponents));
             return false;
         }
         // A non-public type is already out of reach as a whole, and a record's canonical constructor
@@ -237,7 +224,8 @@ class LazyvalElementValidator {
             return true;
         }
         if (!constructor.get().getModifiers().contains(Modifier.PUBLIC)) {
-            environment.error(constructor.get(), nonPublicConstructorMessage(lazyvalElement, constructor.get()));
+            environment.error(constructor.get(),
+                    LazyvalElementValidatorMessages.nonPublicConstructorMessage(lazyvalElement, constructor.get()));
             return false;
         }
         return true;
@@ -250,39 +238,6 @@ class LazyvalElementValidator {
                 .filter(constructor -> constructor.getParameters().size() == 1
                         && typeUtils.isSameType(constructor.getParameters().get(0).asType(), payloadType))
                 .findFirst();
-    }
-
-    /**
-     * Mirrors {@link #nonPublicAccessorMessage}, down to the naming of the visibility: the same
-     * package boundary is at fault, so the same sentence should explain it.
-     */
-    private static String nonPublicConstructorMessage(TypeElement lazyvalElement, ExecutableElement constructor) {
-        return "Constructor '" + lazyvalElement.getSimpleName() + "("
-                + constructor.getParameters().get(0).asType() + ")' is " + visibilityOf(constructor)
-                + " and cannot be called from generated code, which is emitted into another package."
-                + " Make the constructor public, or add a public static factory method.";
-    }
-
-    /**
-     * A record with derived state is the case worth spelling out: the transient components are the
-     * reason the canonical constructor no longer matches, and naming them says why a record that
-     * looks like it wraps one value cannot be rebuilt from that value.
-     */
-    private static String missingReconstructionMessage(TypeElement lazyvalElement,
-                                                       TypeMirror payloadType,
-                                                       List<? extends Element> transientComponents) {
-        if (lazyvalElement.getKind() == ElementKind.RECORD && !transientComponents.isEmpty()) {
-            var names = transientComponents.stream()
-                    .map(component -> "'" + component.getSimpleName() + "'")
-                    .collect(Collectors.joining(", "));
-            return "Record '" + lazyvalElement.getSimpleName() + "' cannot be reconstructed from its payload"
-                    + " alone: the canonical constructor also takes the transient "
-                    + (transientComponents.size() == 1 ? "component " : "components ") + names
-                    + ". Add a constructor taking only " + payloadType + ", or a public static factory method.";
-        }
-        return (lazyvalElement.getKind() == ElementKind.RECORD ? "Record '" : "Class '")
-                + lazyvalElement.getSimpleName() + "' cannot be reconstructed from its payload: no constructor"
-                + " takes a single " + payloadType + ". Add one, or a public static factory method.";
     }
 
     /**

@@ -30,6 +30,15 @@ class KspIT extends Specification {
             "'IsbnMissingFactory(String)' is private and cannot be called from generated code, " +
             "which is emitted into another package. " +
             "Make the constructor public, or add a factory function in the companion object."
+    public static final String ERROR_NON_PUBLIC_FACTORY = "Lazyval: Factory function " +
+            "'of(String)' is private and cannot be called from generated code, " +
+            "which is emitted into another package. " +
+            "Make the factory function public, or add a public constructor."
+    public static final String ERROR_INTERNAL_FACTORY = "Lazyval: Factory function " +
+            "'of(String)' is internal and cannot be called from generated code, " +
+            "which is emitted into another package. Part of that output is Java, which cannot " +
+            "call the name-mangled function Kotlin emits for an internal function. " +
+            "Make the factory function public, or add a public constructor."
     public static final Dependency dependencyMapstruct = new Dependency("org.mapstruct", "mapstruct", "1.6.3")
     public static final Dependency dependencyJakartaPersistence = new Dependency("jakarta.persistence", "jakarta.persistence-api", "3.2.0")
 
@@ -72,6 +81,13 @@ class KspIT extends Specification {
         // used to assert the kotlinc error that the emitted call provoked downstream — which meant
         // Lazyval was shipping sources it knew would not compile. The rejection belongs at the source.
         Scenario.Kotlin.ofSingle("scenarios/failing/IsbnMissingFactory.kt")       | ERROR_NON_PUBLIC_CONSTRUCTOR
+        // A factory only discharges the reconstruction rule if generated code can reach it, so the
+        // same package boundary applies to it as to the constructor it stands in for.
+        Scenario.Kotlin.ofSingle("scenarios/failing/PrivateFactoryClass.kt")      | ERROR_NON_PUBLIC_FACTORY
+        // `internal` is the surprising one for a factory too, and for the same reason it is for a
+        // property: the JVM name is mangled, so the Java half of the output cannot call it. An
+        // internal *constructor* is not mangled, which is why that one stays accepted.
+        Scenario.Kotlin.ofSingle("scenarios/failing/InternalFactoryClass.kt")     | ERROR_INTERNAL_FACTORY
         Scenario.Kotlin.ofSingle("scenarios/failing/ValueClass.kt")               | "Lazyval: value class is not supported by Lazyval."
         Scenario.Kotlin.ofSingle("scenarios/failing/MultipleFactoriesClass.kt")   | "Lazyval: Multiple matching factory methods with the same signature found. Please check functions ofNullable, of"
         Scenario.Kotlin.ofSingle("scenarios/failing/MultiplePropertyClass.kt")    | "Lazyval: Not a simple ValueType. Lazyval only supports classes with one non-transient property."

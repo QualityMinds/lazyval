@@ -31,6 +31,10 @@ class ApIT extends Specification {
             "'ObjectWithPrivateConstructor(java.lang.String)' is private and cannot be called from generated code, " +
             "which is emitted into another package. " +
             "Make the constructor public, or add a public static factory method."
+    public static final String ERROR_NON_PUBLIC_FACTORY = "Lazyval: Factory method " +
+            "'of(java.lang.String)' is private and cannot be called from generated code, " +
+            "which is emitted into another package. " +
+            "Make the factory method public, or add a public constructor."
     public static final String ERROR_RECORD_NO_RECONSTRUCTION = "Lazyval: Record " +
             "'RecordTransientWithoutFactory' cannot be reconstructed from its payload alone: the canonical " +
             "constructor also takes the transient component 'derivedLength'. " +
@@ -83,6 +87,9 @@ class ApIT extends Specification {
         // the constructor unreachable and no factory standing in for it, generated code has no call to
         // make, so the error lands on the constructor the author has to open up.
         Scenario.Java.ofSingle("scenarios/failing/ObjectWithPrivateConstructor.java") | ERROR_NON_PUBLIC_CONSTRUCTOR
+        // A factory only discharges the reconstruction rule if generated code can reach it, so the
+        // same package boundary applies to it as to the constructor it stands in for.
+        Scenario.Java.ofSingle("scenarios/failing/ObjectWithPrivateFactory.java")   | ERROR_NON_PUBLIC_FACTORY
         // The other half of the same contract: here the constructor is reachable but takes the transient
         // component alongside the payload, so it is still not a call generated code can make. Needs the
         // JPA dependency because @Transient is a record's only way to declare derived state.

@@ -8,23 +8,27 @@ import com.google.devtools.ksp.symbol.*
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.qualityminds.lazyval.ksp.spi.WrappedProperty
 
+private const val NOT_FINAL_CLASS_WARNING =
+    "Value Types should not be extendable, hence the class should be final."
+private const val NOT_FINAL_VALUE_WARNING =
+    "Value Types should be immutable, hence the wrapped property should be final (val)."
+private val TRANSIENT_ANNOTATIONS = setOf(
+    "kotlin.jvm.Transient",
+    "jakarta.persistence.Transient",
+    "org.springframework.data.annotation.Transient")
+
 /**
  * Validates a [KSClassDeclaration] against Lazyval's value-type contract and returns a
  * [ValidatedKspGeneratorElement] ready for code generation. Errors and warnings are reported
  * via the supplied [LazyvalKspEnvironment].
+ *
+ * Only the rules live in the class; finding and matching the symbols they judge sits as file-private
+ * helpers below, following the same split [AccessorLookup] uses. The wording of every diagnostic is
+ * one step further out, in `LazyvalKspElementValidatorMessages.kt`, because it answers to KspIT and to the APT validator
+ * rather than to the rules. What that buys: whatever is in the class reports to the compiler and
+ * therefore needs a test that reads the message back, and whatever is below it does not.
  */
 internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnvironment) {
-
-    private companion object {
-        const val NOT_FINAL_CLASS_WARNING =
-            "Value Types should not be extendable, hence the class should be final."
-        const val NOT_FINAL_VALUE_WARNING =
-            "Value Types should be immutable, hence the wrapped property should be final (val)."
-        val TRANSIENT_ANNOTATIONS = setOf(
-            "kotlin.jvm.Transient",
-            "jakarta.persistence.Transient",
-            "org.springframework.data.annotation.Transient")
-    }
 
     fun validate(classDeclaration: KSClassDeclaration): ValidatedKspGeneratorElement? {
         return when (classDeclaration.classKind) {
@@ -70,7 +74,10 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
         val reconstructionValid = !payloadValid ||
                 validateReconstruction(classDeclaration, payloadType, factoryMethods)
 
-        if (!(shapeValid && payloadValid && factoryValid && reconstructionValid)) {
+        // Listed rather than and-ed so that adding a rule is one line and reads as one more entry in
+        // the contract, instead of lengthening a condition nobody can take in at a glance.
+        val everyRulePassed = listOf(shapeValid, payloadValid, factoryValid, reconstructionValid).all { it }
+        if (!everyRulePassed) {
             return null
         }
         warnOnNonFinal(classDeclaration, valueProperty)
@@ -138,8 +145,8 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
     /**
      * Reading the payload is only half the contract — the value also has to be reconstructible from
      * it. Generated code calls either a factory function or a constructor, both from another package,
-     * so a constructor it cannot reach is no better than one that does not exist. A factory settles
-     * the question on its own; only in its absence does the constructor have to carry the weight.
+     * so one it cannot reach is no better than one that does not exist. A factory settles the question
+     * on its own; only in its absence does the constructor have to carry the weight.
      *
      * Left unchecked, either mistake surfaces as a kotlinc error inside generated sources, which is
      * exactly what Lazyval promises never to emit.
@@ -149,15 +156,21 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
         payloadType: KSType,
         factoryMethods: List<KSFunctionDeclaration>
     ): Boolean {
-        if (factoryMethods.isNotEmpty()) {
+        if (factoryMethods.size > 1) {
+            // Ambiguity is already reported by validateFactoryMethods, and until it is resolved there is
+            // no single factory whose reachability could be judged.
             return true
+        }
+        factoryMethods.singleOrNull()?.let { factory ->
+            if (factory.isPublic()) {
+                return true
+            }
+            environment.error(factory, nonPublicFactoryMessage(factory))
+            return false
         }
         val constructor = findPayloadConstructor(classDeclaration, payloadType)
         if (constructor == null) {
-            environment.error(classDeclaration,
-                "Class '${classDeclaration.simpleName.asString()}' cannot be reconstructed from its payload: " +
-                        "no constructor takes a single ${payloadType.shortName()}. " +
-                        "Add one, or a factory function in the companion object.")
+            environment.error(classDeclaration, missingConstructorMessage(classDeclaration, payloadType))
             return false
         }
         // `private` and `protected` are out of reach from another package whatever the module layout.
@@ -170,39 +183,6 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
         }
         return true
     }
-
-    private fun findPayloadConstructor(
-        classDeclaration: KSClassDeclaration,
-        payloadType: KSType
-    ): KSFunctionDeclaration? {
-        return classDeclaration.getConstructors().firstOrNull { constructor ->
-            if (constructor.parameters.size != 1) return@firstOrNull false
-            // Nullability is ignored the same way findFactoryMethods ignores it: a constructor taking
-            // `String?` still reconstructs a `String` payload.
-            val parameterType = constructor.parameters[0].type.resolve()
-            parameterType == payloadType ||
-                    (parameterType.isMarkedNullable && parameterType.makeNotNullable() == payloadType)
-        }
-    }
-
-    /**
-     * Mirrors [PropertyAccessorPair.unreachableReason], down to the naming of the visibility: the same
-     * package boundary is at fault, so the same sentence should explain it.
-     */
-    private fun nonPublicConstructorMessage(
-        classDeclaration: KSClassDeclaration,
-        constructor: KSFunctionDeclaration,
-        visibility: Visibility
-    ): String {
-        val keyword = if (visibility == Visibility.PRIVATE) "private" else "protected"
-        val parameterType = constructor.parameters[0].type.resolve().shortName()
-        return "Constructor '${classDeclaration.simpleName.asString()}($parameterType)' is $keyword and " +
-                "cannot be called from generated code, which is emitted into another package. " +
-                "Make the constructor public, or add a factory function in the companion object."
-    }
-
-    /** Types read better unqualified in Kotlin diagnostics, the way the language itself writes them. */
-    private fun KSType.shortName(): String = declaration.simpleName.asString()
 
     /**
      * Advice rather than a rule, and therefore only emitted once the type is known to be valid: a
@@ -219,151 +199,141 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
             environment.warn(valueProperty, NOT_FINAL_VALUE_WARNING)
         }
     }
+}
+
+/**
+ * A candidate payload property together with the accessor generated code should call, which is
+ * `null` when the property is read directly. Mirrors the APT validator's `FieldAccessorPair`.
+ */
+private data class PropertyAccessorPair(
+    val property: KSPropertyDeclaration,
+    val accessor: KSFunctionDeclaration?) {
 
     /**
-     * Non-static, non-transient properties paired with their accessor — the candidates for being the
-     * wrapped payload. Static and transient state is excluded because only the storage payload counts.
+     * Whether generated code can actually read this property, which is what makes the "exactly one
+     * accessible property" contract true rather than aspirational.
      *
-     * Accessors are resolved before the transient filter runs, because a framework `@Transient` may
-     * sit on the accessor instead of on the property.
-     *
-     * The accessor is deliberately allowed to be `null` so that properties of external Java types
-     * (e.g. java.time.Year's `year`) still get a chance to be paired with a JavaBean accessor. KSP
-     * reports `getter=null`/`hasBackingField=false` for those synthesized properties even though a
-     * matching bean getter exists as a separate function.
-     *
-     * Pairs generated code cannot read are returned as well rather than filtered out here, because the
-     * caller needs them to tell "this class has nothing to wrap" apart from "this class hides what it
-     * wraps" — and the second case is worth naming the offending property for. Select the ones eligible
-     * as payload with [PropertyAccessorPair.isReadable].
+     * A pair that found an accessor is always readable — [AccessorLookup.accessorCandidates] only
+     * ever offers public functions. Without one the property is read through the getter Kotlin
+     * synthesizes, and that route exists only for public properties. Generated code is emitted into
+     * its own package, so a property reachable neither way would yield source that does not compile.
      */
-    private fun findPropertyAccessorPairs(
-        classDeclaration: KSClassDeclaration
-    ): List<PropertyAccessorPair> {
-        val allMethods = classDeclaration.getAllFunctions().toList()
-        // Tier 3 (type-only match) only runs for external Java declarations. Applying it to Kotlin
-        // would wrongly pair a data class's property with its synthesized `component1()` accessor
-        // and break the JavaBean output Mapstruct/JPA/etc. expect.
-        val isExternalJavaType = classDeclaration.origin == Origin.JAVA ||
-                classDeclaration.origin == Origin.JAVA_LIB
+    val isReadable: Boolean
+        get() = accessor != null || property.isPublic()
 
-        return classDeclaration.getAllProperties()
-            .filter { !it.isStatic() }
-            .map { property ->
-                PropertyAccessorPair(property, findAccessor(property, allMethods, isExternalJavaType))
-            }
-            .filter { !it.property.isTransient(it.accessor) }
-            .toList()
-    }
+    /** Why [isReadable] is `false`, phrased as the change the author has to make. */
+    val unreachableReason: String
+        get() = unreachablePropertyMessage(property)
+}
 
-    private fun findFactoryMethods(
-        classDeclaration: KSClassDeclaration,
-        wrappedType: KSType
-    ): List<KSFunctionDeclaration> {
-        // Kotlin classes expose factories via companion objects. Java classes (e.g. java.time.Year.of)
-        // expose them as JAVA_STATIC methods declared on the class itself. Scan both so external Java
-        // types can be used as @LazyvalConfiguration.externalTypes — mirrors the APT validator, which
-        // simply scans static methods on the TypeElement.
-        val companionFactories = classDeclaration.declarations
-            .filterIsInstance<KSClassDeclaration>()
-            .firstOrNull { it.isCompanionObject }
-            ?.declarations
-            ?.filterIsInstance<KSFunctionDeclaration>()
-            ?.toList()
-            .orEmpty()
+/**
+ * Non-static, non-transient properties paired with their accessor — the candidates for being the
+ * wrapped payload. Static and transient state is excluded because only the storage payload counts.
+ *
+ * Accessors are resolved before the transient filter runs, because a framework `@Transient` may
+ * sit on the accessor instead of on the property.
+ *
+ * The accessor is deliberately allowed to be `null` so that properties of external Java types
+ * (e.g. java.time.Year's `year`) still get a chance to be paired with a JavaBean accessor. KSP
+ * reports `getter=null`/`hasBackingField=false` for those synthesized properties even though a
+ * matching bean getter exists as a separate function.
+ *
+ * Pairs generated code cannot read are returned as well rather than filtered out here, because the
+ * caller needs them to tell "this class has nothing to wrap" apart from "this class hides what it
+ * wraps" — and the second case is worth naming the offending property for. Select the ones eligible
+ * as payload with [PropertyAccessorPair.isReadable].
+ */
+private fun findPropertyAccessorPairs(
+    classDeclaration: KSClassDeclaration
+): List<PropertyAccessorPair> {
+    val allMethods = classDeclaration.getAllFunctions().toList()
+    // Tier 3 (type-only match) only runs for external Java declarations. Applying it to Kotlin
+    // would wrongly pair a data class's property with its synthesized `component1()` accessor
+    // and break the JavaBean output Mapstruct/JPA/etc. expect.
+    val isExternalJavaType = classDeclaration.origin == Origin.JAVA ||
+            classDeclaration.origin == Origin.JAVA_LIB
 
-        val staticFactories = classDeclaration.getDeclaredFunctions()
-            .filter { Modifier.JAVA_STATIC in it.modifiers }
-            .toList()
-
-        return (companionFactories + staticFactories)
-            .filter { function ->
-                if (function.parameters.size != 1) return@filter false
-
-                val returnType = function.returnType?.resolve() ?: return@filter false
-                val returnTypeMatches = returnType == classDeclaration.asStarProjectedType() ||
-                        (returnType.isMarkedNullable && returnType.makeNotNullable() == classDeclaration.asStarProjectedType())
-                if (!returnTypeMatches) return@filter false
-
-                val paramType = function.parameters[0].type.resolve()
-                paramType == wrappedType ||
-                        (paramType.isMarkedNullable && paramType.makeNotNullable() == wrappedType)
-            }
-            .toList()
-    }
-
-    private fun KSPropertyDeclaration.isStatic(): Boolean {
-        return Modifier.CONST in modifiers ||
-                parent is KSClassDeclaration && (parent as KSClassDeclaration).isCompanionObject
-    }
-
-    /**
-     * True when the property, its getter, or a separately declared bean accessor is marked transient.
-     * Kotlin routes an annotation written `@get:Transient` — and any Java annotation whose only
-     * applicable target is `METHOD` — onto the getter, while for external Java types the accessor is
-     * a standalone function, so all three sites have to be consulted.
-     */
-    private fun KSPropertyDeclaration.isTransient(accessor: KSFunctionDeclaration?): Boolean {
-        return annotations.hasTransientMarker() ||
-                getter?.annotations?.hasTransientMarker() == true ||
-                accessor?.annotations?.hasTransientMarker() == true
-    }
-
-    private fun Sequence<KSAnnotation>.hasTransientMarker(): Boolean {
-        return any { annotation ->
-            if (annotation.shortName.asString() != "Transient") return@any false
-            annotation.annotationType.resolve().declaration.qualifiedName?.asString() in TRANSIENT_ANNOTATIONS
+    return classDeclaration.getAllProperties()
+        .filter { !it.isStatic() }
+        .map { property ->
+            PropertyAccessorPair(property, findAccessor(property, allMethods, isExternalJavaType))
         }
+        .filter { !it.property.isTransient(it.accessor) }
+        .toList()
+}
+
+private fun findFactoryMethods(
+    classDeclaration: KSClassDeclaration,
+    wrappedType: KSType
+): List<KSFunctionDeclaration> {
+    // Kotlin classes expose factories via companion objects. Java classes (e.g. java.time.Year.of)
+    // expose them as JAVA_STATIC methods declared on the class itself. Scan both so external Java
+    // types can be used as @LazyvalConfiguration.externalTypes — mirrors the APT validator, which
+    // simply scans static methods on the TypeElement.
+    val companionFactories = classDeclaration.declarations
+        .filterIsInstance<KSClassDeclaration>()
+        .firstOrNull { it.isCompanionObject }
+        ?.declarations
+        ?.filterIsInstance<KSFunctionDeclaration>()
+        ?.toList()
+        .orEmpty()
+
+    val staticFactories = classDeclaration.getDeclaredFunctions()
+        .filter { Modifier.JAVA_STATIC in it.modifiers }
+        .toList()
+
+    return (companionFactories + staticFactories)
+        .filter { function ->
+            if (function.parameters.size != 1) return@filter false
+
+            val returnType = function.returnType?.resolve() ?: return@filter false
+            val returnTypeMatches = returnType == classDeclaration.asStarProjectedType() ||
+                    (returnType.isMarkedNullable && returnType.makeNotNullable() == classDeclaration.asStarProjectedType())
+            if (!returnTypeMatches) return@filter false
+
+            function.parameters[0].type.resolve().reconstructs(wrappedType)
+        }
+        .toList()
+}
+
+private fun findPayloadConstructor(
+    classDeclaration: KSClassDeclaration,
+    payloadType: KSType
+): KSFunctionDeclaration? {
+    return classDeclaration.getConstructors().firstOrNull { constructor ->
+        constructor.parameters.size == 1 &&
+                constructor.parameters[0].type.resolve().reconstructs(payloadType)
     }
+}
 
-    /**
-     * A candidate payload property together with the accessor generated code should call, which is
-     * `null` when the property is read directly. Mirrors the APT validator's `FieldAccessorPair`.
-     */
-    private data class PropertyAccessorPair(
-        val property: KSPropertyDeclaration,
-        val accessor: KSFunctionDeclaration?) {
+/**
+ * Whether a parameter of this type can carry the [payload] back into the value type. Nullability is
+ * ignored on purpose and in one place, so that a factory and a constructor cannot disagree about it:
+ * a parameter of `String?` still reconstructs a `String` payload.
+ */
+private fun KSType.reconstructs(payload: KSType): Boolean =
+    this == payload || (isMarkedNullable && makeNotNullable() == payload)
 
-        /**
-         * Whether generated code can actually read this property, which is what makes the "exactly one
-         * accessible property" contract true rather than aspirational.
-         *
-         * A pair that found an accessor is always readable — [AccessorLookup.accessorCandidates] only
-         * ever offers public functions. Without one the property is read through the getter Kotlin
-         * synthesizes, and that route exists only for public properties. Generated code is emitted into
-         * its own package, so a property reachable neither way would yield source that does not compile.
-         */
-        val isReadable: Boolean
-            get() = accessor != null || property.isPublic()
+private fun KSPropertyDeclaration.isStatic(): Boolean {
+    return Modifier.CONST in modifiers ||
+            parent is KSClassDeclaration && (parent as KSClassDeclaration).isCompanionObject
+}
 
-        /**
-         * Why [isReadable] is `false`, phrased as the change the author has to make. Naming the property
-         * is the point: the author can see it in their editor, so a message claiming nothing was found
-         * reads as a bug in Lazyval rather than as a rule of Lazyval.
-         */
-        val unreachableReason: String
-            get() {
-                val visibility = property.getVisibility()
-                val keyword = when (visibility) {
-                    Visibility.PRIVATE -> "private"
-                    Visibility.PROTECTED -> "protected"
-                    Visibility.INTERNAL -> "internal"
-                    Visibility.JAVA_PACKAGE -> "package-private"
-                    else -> "not public"
-                }
-                // `internal` is the case that looks like it should work, so it is worth saying why it
-                // does not: it is visible to the whole module, generated sources included, and only the
-                // mangled JVM name gives it away. Contrast an internal *class*, which Java can use
-                // because class names are not mangled — see KspClassInspection.isAccessible.
-                val mangling = if (visibility == Visibility.INTERNAL) {
-                    " Part of that output is Java, which cannot call the name-mangled getter Kotlin " +
-                            "emits for an internal property."
-                } else {
-                    ""
-                }
-                return "Property '${property.simpleName.asString()}' is $keyword and cannot be read " +
-                        "from generated code, which is emitted into another package.$mangling" +
-                        " Make the property public, or add a public accessor function."
-            }
+/**
+ * True when the property, its getter, or a separately declared bean accessor is marked transient.
+ * Kotlin routes an annotation written `@get:Transient` — and any Java annotation whose only
+ * applicable target is `METHOD` — onto the getter, while for external Java types the accessor is
+ * a standalone function, so all three sites have to be consulted.
+ */
+private fun KSPropertyDeclaration.isTransient(accessor: KSFunctionDeclaration?): Boolean {
+    return annotations.hasTransientMarker() ||
+            getter?.annotations?.hasTransientMarker() == true ||
+            accessor?.annotations?.hasTransientMarker() == true
+}
+
+private fun Sequence<KSAnnotation>.hasTransientMarker(): Boolean {
+    return any { annotation ->
+        if (annotation.shortName.asString() != "Transient") return@any false
+        annotation.annotationType.resolve().declaration.qualifiedName?.asString() in TRANSIENT_ANNOTATIONS
     }
 }
