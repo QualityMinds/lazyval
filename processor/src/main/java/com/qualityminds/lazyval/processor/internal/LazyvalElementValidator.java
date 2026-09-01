@@ -56,19 +56,43 @@ class LazyvalElementValidator {
             environment.error(lazyvalElement, "No record component found. Lazyval requires the ValueType to have exactly one field.");
             return Optional.empty();
         }
-        boolean payloadValid = components.size() <= 1;
+        var payloadComponents = components.stream()
+                .filter(component -> !isTransientComponent(lazyvalElement, component))
+                .toList();
+        if (payloadComponents.isEmpty()) {
+            environment.error(lazyvalElement, "No non-transient record component found. Lazyval requires the"
+                    + " ValueType to have exactly one non-transient record component.");
+            return Optional.empty();
+        }
+        boolean payloadValid = payloadComponents.size() <= 1;
         if (!payloadValid) {
             environment.error(lazyvalElement, "Not a simple ValueType. Lazyval only supports Records with one non-transient field.");
         }
 
-        var factoryMethods = findFactoryMethods(lazyvalElement, components.get(0).asType());
+        var factoryMethods = findFactoryMethods(lazyvalElement, payloadComponents.get(0).asType());
         boolean factoryValid = validateFactoryMethods(lazyvalElement, factoryMethods);
 
         if (!(payloadValid && factoryValid)) {
             return Optional.empty();
         }
         ExecutableElement factoryMethod = factoryMethods.isEmpty() ? null : factoryMethods.get(0);
-        return Optional.of(ValidatedGeneratorElement.fromRecord(lazyvalElement, factoryMethod, components.get(0)));
+        return Optional.of(ValidatedGeneratorElement.fromRecord(lazyvalElement, factoryMethod, payloadComponents.get(0)));
+    }
+
+    /**
+     * A record component counts as transient when the annotation reached any of its mandated
+     * members. Neither supported annotation targets RECORD_COMPONENT, so javac propagates a
+     * component annotation onto the generated field and accessor (JLS 8.10.3) — those are the
+     * elements that have to be consulted; the component element itself is checked for the day an
+     * annotation does declare that target.
+     */
+    private boolean isTransientComponent(TypeElement recordElement, RecordComponentElement component) {
+        if (isTransientAnnotated(component) || isTransientAnnotated(component.getAccessor())) {
+            return true;
+        }
+        return instanceFields(recordElement).stream()
+                .filter(field -> field.getSimpleName().contentEquals(component.getSimpleName()))
+                .anyMatch(this::isTransientAnnotated);
     }
 
     /**

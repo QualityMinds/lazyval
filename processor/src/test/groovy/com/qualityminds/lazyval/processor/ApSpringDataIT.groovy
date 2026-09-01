@@ -139,9 +139,10 @@ class ApSpringDataIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE)
 
         where:
-        placement | source
-        "field"   | "scenarios/springdata/SpringDataTransientField.java"
-        "getter"  | "scenarios/springdata/SpringDataTransientGetter.java"
+        placement           | source
+        "field"             | "scenarios/springdata/SpringDataTransientField.java"
+        "getter"            | "scenarios/springdata/SpringDataTransientGetter.java"
+        "record component"  | "scenarios/springdata/SpringDataTransientRecordComponent.java"
     }
 
     void "a domain-primitive wrapping LocalDate generates valid converters"() {

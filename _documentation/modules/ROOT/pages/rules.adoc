@@ -61,7 +61,11 @@ These two are supported because of their wide usage. On any other stack, use the
 keyword (`@kotlin.jvm.Transient` in Kotlin) or map the domain-primitive to its wrapped value in a
 dedicated persistence model.
 
-Additional constructors, accessors, and convenience factories with other signatures are allowed and
+For records, place the annotation directly on the derived record component. Since the canonical
+constructor then takes more than the payload, provide a single-argument constructor or a factory-method,
+so generated code can reconstruct the value from the payload alone.
+
+Additional constructors, accessors, and convenience factories with other signatures are allowed and don't
 break the rules.
 
 [#visibility]

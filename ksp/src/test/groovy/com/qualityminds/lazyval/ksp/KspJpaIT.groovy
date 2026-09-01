@@ -21,7 +21,7 @@ class KspJpaIT extends Specification {
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
-    void "JPA with combined Scenarios"(){
+    void "JPA with combined Scenarios"() {
         given: 'a compiler run with all sources'
         def scenario = Scenario.Kotlin.combined().withDependencies(dependencyJakartaPersistence, dependencyJakartaAnnotations)
 
@@ -41,7 +41,7 @@ class KspJpaIT extends Specification {
         result == Testresult.Kotlin.Approved.of(approvals)
     }
 
-    void "Package override by Generator works as expected"(){
+    void "Package override by Generator works as expected"() {
         given:
         def scenario = Scenario.Kotlin.quantity().withDependencies(dependencyJakartaPersistence)
         and: 'generator-package is overridden'
@@ -57,7 +57,7 @@ class KspJpaIT extends Specification {
         testkitKotlin.generatedKotlinSourcePath(projectDir, "test/custom/QuantityAttributeConverter.kt").toFile().exists()
     }
 
-    void "Does not add '@Generated' when jakarta.annotations-api not on classpath"(){
+    void "Does not add '@Generated' when jakarta.annotations-api not on classpath"() {
         given:
         def scenario = Scenario.Kotlin.quantity().withDependencies(dependencyJakartaPersistence)
 
@@ -85,8 +85,9 @@ class KspJpaIT extends Specification {
         result == new Testresult.Kotlin.Success(converter)
 
         where:
-        placement  | source                                  | converter
-        "field"    | "scenarios/jpa/JpaTransientProperty.kt" | "JpaTransientPropertyAttributeConverter.kt"
-        "getter"   | "scenarios/jpa/JpaTransientGetter.kt"   | "JpaTransientGetterAttributeConverter.kt"
+        placement              | source                                             | converter
+        "field"                | "scenarios/jpa/JpaTransientProperty.kt"            | "JpaTransientPropertyAttributeConverter.kt"
+        "getter"               | "scenarios/jpa/JpaTransientGetter.kt"              | "JpaTransientGetterAttributeConverter.kt"
+        "constructor property" | "scenarios/jpa/JpaTransientConstructorProperty.kt" | "JpaTransientConstructorPropertyAttributeConverter.kt"
     }
 }
