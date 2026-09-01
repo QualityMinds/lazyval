@@ -91,6 +91,13 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
     /** Rules about the class itself, independent of what it wraps. */
     private fun validateShape(classDeclaration: KSClassDeclaration): Boolean {
         var valid = true
+        // Generated code has to name the type before it can read or rebuild it, and it lands in another
+        // package. `internal` clears that bar — class names are not mangled — so only the rest do not.
+        val visibility = classDeclaration.getVisibility()
+        if (visibility != Visibility.PUBLIC && visibility != Visibility.INTERNAL) {
+            environment.error(classDeclaration, nonPublicTypeMessage(classDeclaration))
+            valid = false
+        }
         if (Modifier.ABSTRACT in classDeclaration.modifiers) {
             environment.error(classDeclaration, "Abstract class is not a valid ValueType.")
             valid = false

@@ -16,6 +16,17 @@ final class LazyvalElementValidatorMessages {
     private LazyvalElementValidatorMessages() {}
 
     /**
+     * The type itself rather than a member of it, and the first thing generated code needs: it has to
+     * be able to name the domain-primitive before any accessor or constructor matters. Java has no
+     * equivalent of Kotlin's {@code internal}, so {@code public} is the only way out.
+     */
+    static String nonPublicTypeMessage(TypeElement lazyvalElement) {
+        return "Type '" + lazyvalElement.getSimpleName() + "' is " + visibilityOf(lazyvalElement)
+                + " and cannot be referenced from generated code, which is emitted into another package."
+                + " Make the type public.";
+    }
+
+    /**
      * Why generated code cannot read a field, phrased as the change the author has to make. Naming
      * the accessor is the point: the author can see it in their editor, so a message claiming
      * nothing was found reads as a bug in Lazyval rather than as a rule of Lazyval.
@@ -87,7 +98,7 @@ final class LazyvalElementValidatorMessages {
      * How every diagnostic here names a visibility. Java has no keyword for the default, so it is
      * spelled out the way the language specification's readers name it.
      */
-    private static String visibilityOf(ExecutableElement element) {
+    private static String visibilityOf(Element element) {
         var modifiers = element.getModifiers();
         if (modifiers.contains(Modifier.PRIVATE)) {
             return "private";
