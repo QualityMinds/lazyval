@@ -27,19 +27,14 @@ include::ROOT:example$java/src/main/java/test/Birthdate.java[tag=docu]
 
 A value type may carry derived fields that are computed from the stored payload (here `parsed` from `value`).
 Lazyval validates that exactly one non-transient instance field is the stored payload, so any derived field must
-be marked `transient` to keep it out of the validation. Additional constructors, accessors, or convenience
-factories with other signatures are allowed and ignored by the processor.
+be marked `transient` to keep it out of the validation.
 
-The `transient` keyword only carries meaning for types implementing `Serializable`, so static analysis tends to
-flag it everywhere else. Lazyval therefore treats these annotations as equivalent, on either the field or its
-accessor:
+Note that the payload is read through its accessor and never through the field, which is why `value()` is
+`public` in all three examples while the field stays `private`.
 
-* `jakarta.persistence.Transient`
-* `org.springframework.data.annotation.Transient`
-
-These two are supported because of their wide usage.
-On any other stack, use the plain `transient` keyword or map
-the domain-primitive to its wrapped value in a dedicated persistence model.
+TIP: xref:rules.adoc[Rules] is the complete reference: shape, payload,
+visibility, factory methods, and what `transient` accepts besides the
+keyword.
 
 [#setup]
 == Setup

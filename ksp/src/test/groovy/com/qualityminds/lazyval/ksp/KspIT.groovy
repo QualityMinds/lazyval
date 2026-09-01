@@ -14,6 +14,18 @@ import java.nio.file.Path
 class KspIT extends Specification {
 
     public static final String GENERATED_MAPSTRUCT_MAPPER_NAME = "LazyvalMapper.java"
+    // Spelled out rather than built from a template: reconstructing the message here would let a
+    // wrong template pass its own test.
+    public static final String ERROR_PRIVATE_PROPERTY = "Lazyval: Property 'value' is private and cannot be read " +
+            "from generated code, which is emitted into another package. " +
+            "Make the property public, or add a public accessor function."
+    public static final String ERROR_PROTECTED_PROPERTY = "Lazyval: Property 'value' is protected and cannot be read " +
+            "from generated code, which is emitted into another package. " +
+            "Make the property public, or add a public accessor function."
+    public static final String ERROR_INTERNAL_PROPERTY = "Lazyval: Property 'value' is internal and cannot be read " +
+            "from generated code, which is emitted into another package. Part of that output is Java, which cannot " +
+            "call the name-mangled getter Kotlin emits for an internal property. " +
+            "Make the property public, or add a public accessor function."
     public static final Dependency dependencyMapstruct = new Dependency("org.mapstruct", "mapstruct", "1.6.3")
     public static final Dependency dependencyJakartaPersistence = new Dependency("jakarta.persistence", "jakarta.persistence-api", "3.2.0")
 
@@ -59,11 +71,14 @@ class KspIT extends Specification {
         Scenario.Kotlin.ofSingle("scenarios/failing/MultiplePropertyDataClass.kt")| "Lazyval: Not a simple ValueType. Lazyval only supports classes with one non-transient property."
         Scenario.Kotlin.ofSingle("scenarios/failing/NullableWrappedType.kt")      | "Lazyval: Wrapped type must not be nullable. Please use a non-nullable type."
         Scenario.Kotlin.ofSingle("scenarios/failing/ClassWithoutProperty.kt")     | "Lazyval: No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property."
-        // Generated code sits in another package, so anything short of public is unreachable: private
-        // and internal properties have no callable getter at all, protected has one javac rejects.
-        Scenario.Kotlin.ofSingle("scenarios/failing/PrivatePropertyClass.kt")     | "Lazyval: No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property."
-        Scenario.Kotlin.ofSingle("scenarios/failing/InternalPropertyClass.kt")    | "Lazyval: No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property."
-        Scenario.Kotlin.ofSingle("scenarios/failing/ProtectedPropertyClass.kt")   | "Lazyval: No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property."
+        // Generated code sits in another package, so anything short of public is unreachable. Unlike
+        // ClassWithoutProperty above, the property is right there in the source, so the error names it
+        // and is reported on the property rather than on the class.
+        Scenario.Kotlin.ofSingle("scenarios/failing/PrivatePropertyClass.kt")     | ERROR_PRIVATE_PROPERTY
+        Scenario.Kotlin.ofSingle("scenarios/failing/ProtectedPropertyClass.kt")   | ERROR_PROTECTED_PROPERTY
+        // `internal` is the one that looks like it should work — it is visible to the whole module,
+        // generated sources included — so its message explains the name mangling that actually breaks it.
+        Scenario.Kotlin.ofSingle("scenarios/failing/InternalPropertyClass.kt")    | ERROR_INTERNAL_PROPERTY
     }
 
     @Unroll("#scenario.name() #message")
@@ -84,6 +99,9 @@ class KspIT extends Specification {
         Scenario.Kotlin.ofSingle("scenarios/edge/ClassWithPrivateAccessor.kt")    | null
         // Unreachable extra properties must not make the type ambiguous.
         Scenario.Kotlin.ofSingle("scenarios/edge/ClassWithPrivateExtraProperty.kt")| null
+        // The escape hatch the Kotlin docs point at: a non-public property stays valid as long as a
+        // public accessor function offers a way in. Keeps that documented advice honest.
+        Scenario.Kotlin.ofSingle("scenarios/edge/ClassWithPrivatePropertyAndAccessor.kt")| null
         Scenario.Kotlin.ofSingle("scenarios/edge/IsbnNotFinal.kt")                | "Lazyval: Value Types should not be extendable, hence the class should be final."
         Scenario.Kotlin.ofSingle("scenarios/edge/QuantityMutable.kt")             | "Lazyval: Value Types should be immutable, hence the wrapped property should be final (val)."
         expected = warning != null

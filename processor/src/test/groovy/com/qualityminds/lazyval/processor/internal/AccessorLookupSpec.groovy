@@ -2,6 +2,7 @@ package com.qualityminds.lazyval.processor.internal
 
 import spock.lang.Specification
 import spock.lang.Title
+import spock.lang.Unroll
 
 /**
  * Pure-data unit tests for the Java-side accessor-pairing heuristic. The APT integration tests still
@@ -53,6 +54,37 @@ class AccessorLookupSpec extends Specification {
                 instance("toString", "java.lang.String"),
                 instance("getValue", "int"),
         ])*.name() == ["getValue"]
+    }
+
+    // ---- candidate filtering, inverted on visibility (diagnostics) ------------------------
+
+    void "non-public candidates select exactly what the public filter rejects"() {
+        given:
+        def methods = [
+                instance("getSecret", "int", isPublic: false),
+                instance("getValue", "int"),
+        ]
+
+        expect:
+        AccessorLookup.nonPublicAccessorCandidates(methods)*.name() == ["getSecret"]
+    }
+
+    @Unroll("non-public candidates still drop #shape")
+    void "the shape filters apply to non-public candidates too"() {
+        expect:
+        AccessorLookup.nonPublicAccessorCandidates([method, instance("getValue", "int", isPublic: false)])*.name() == ["getValue"]
+
+        where:
+        shape                    | method
+        "static methods"         | instance("getStatic", "int", isPublic: false, isStatic: true)
+        "methods with arguments" | instance("compute", "int", isPublic: false, parameterCount: 1)
+        "void-returning methods" | instance("doStuff", "void", isPublic: false)
+        "Object methods"         | instance("hashCode", "int", isPublic: false)
+    }
+
+    void "a type with only public methods has no non-public candidates"() {
+        expect:
+        AccessorLookup.nonPublicAccessorCandidates([instance("getValue", "int")]).isEmpty()
     }
 
     // ---- matching ------------------------------------------------------------------------

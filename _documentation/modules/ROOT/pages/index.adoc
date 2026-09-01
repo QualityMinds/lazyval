@@ -63,7 +63,7 @@ This section describes the key design goals of this project.
 * Eat your own dogfood: stock generators use SPI & Testkit.
 
 Those goals yield some interesting properties from an end-user perspective. Most notably, no dependency on the project
-and its maintainer when a new generator is needed, an existing generator has a bug or CVE, or you don't like the project
+and its maintainer when a new generator is needed, an existing generator has a bug or a CVE, or you don't like the project
 anymore and want to remove it from your codebase.
 
 
@@ -71,13 +71,13 @@ anymore and want to remove it from your codebase.
 |Problem |Solution
 
 |Dont like it
-|Copy & Own generated sources. Delete Lazyval. See you later.
+|Copy & Own generated sources. Delete Lazyval.
 
 |CVE / Bug in a generated file (hotfix needed asap)
-|Copy & Own relevant file, disable flawed generator via id, fix the bug locally. Report the issue and wait for a fix.
+|Copy & Own relevant generated source, disable flawed generator via id, fix the bug locally. Report the issue.
 
 |CVE / Bug / Missing Feature in existing generator
-|Copy the existing generator source as a custom generator module and supersede the existing one. Apply a fix and use Testkit to verify. Add your custom generator to the annotation-processor path. Report the issue.
+|Copy the existing generator SPI-implementation sources as a custom generator module and supersede the existing one. Apply a fix and use Testkit to verify. Add your custom generator to the annotation-processor path. Report the issue.
 
 |New generator needed
 |Use SPI to create a custom generator-module and verify it via Testkit.
@@ -85,7 +85,7 @@ Report a feature request and ideally supply your solution. PRs must cover
 Kotlin & Java if applicable.
 
 |Bug in core processor handling or domain-primitive rules.
-|Report the issue.
+|Report the issue and ideally provide a PR with a fix.
 |===
 
 == Getting Started

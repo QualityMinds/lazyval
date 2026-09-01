@@ -8,3 +8,4 @@
 ** xref:kotlin.adoc#usage[Usage]
 ** xref:kotlin.adoc#setup[Setup]
 * xref:multi-module.adoc[Multi-Modules]
+* xref:rules.adoc[Rules]

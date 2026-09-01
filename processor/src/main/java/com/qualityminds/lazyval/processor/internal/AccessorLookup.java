@@ -78,8 +78,22 @@ final class AccessorLookup {
      * zero-arg, non-void return, not one of {@link #OBJECT_METHOD_NAMES}.
      */
     public static List<Method> accessorCandidates(List<Method> methods) {
+        return candidates(methods, true);
+    }
+
+    /**
+     * The same filter as {@link #accessorCandidates}, inverted on visibility: the methods that would
+     * have been accessors if only they were public. Serves diagnostics rather than code generation —
+     * a field nobody exposes and a field exposed only by a private method are different mistakes, and
+     * "add an accessor" is the wrong advice for the second one.
+     */
+    public static List<Method> nonPublicAccessorCandidates(List<Method> methods) {
+        return candidates(methods, false);
+    }
+
+    private static List<Method> candidates(List<Method> methods, boolean requirePublic) {
         return methods.stream()
-                .filter(m -> m.isPublic()
+                .filter(m -> m.isPublic() == requirePublic
                         && !m.isStatic()
                         && m.parameterCount() == 0
                         && !"void".equals(m.returnTypeFqn())
@@ -106,7 +120,23 @@ final class AccessorLookup {
      */
     public static Optional<ExecutableElement> findAccessor(
             VariableElement field, List<ExecutableElement> methods) {
-        var candidates = accessorCandidates(methods.stream().map(AccessorLookup::toShape).toList());
+        return findAccessor(field, methods, true);
+    }
+
+    /**
+     * The non-public method that would have exposed {@code field}, or empty if there is none. Used to
+     * tell the author to widen the accessor they already wrote instead of asking for another one; see
+     * {@link #nonPublicAccessorCandidates}.
+     */
+    public static Optional<ExecutableElement> findNonPublicAccessor(
+            VariableElement field, List<ExecutableElement> methods) {
+        return findAccessor(field, methods, false);
+    }
+
+    private static Optional<ExecutableElement> findAccessor(
+            VariableElement field, List<ExecutableElement> methods, boolean requirePublic) {
+        var shapes = methods.stream().map(AccessorLookup::toShape).toList();
+        var candidates = requirePublic ? accessorCandidates(shapes) : nonPublicAccessorCandidates(shapes);
         return findAccessor(toProperty(field), candidates)
                 .flatMap(shape -> methods.stream()
                         .filter(m -> matchesShape(m, shape))
