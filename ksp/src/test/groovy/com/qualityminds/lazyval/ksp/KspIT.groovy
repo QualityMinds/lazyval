@@ -26,6 +26,10 @@ class KspIT extends Specification {
             "from generated code, which is emitted into another package. Part of that output is Java, which cannot " +
             "call the name-mangled getter Kotlin emits for an internal property. " +
             "Make the property public, or add a public accessor function."
+    public static final String ERROR_NON_PUBLIC_CONSTRUCTOR = "Lazyval: Constructor " +
+            "'IsbnMissingFactory(String)' is private and cannot be called from generated code, " +
+            "which is emitted into another package. " +
+            "Make the constructor public, or add a factory function in the companion object."
     public static final Dependency dependencyMapstruct = new Dependency("org.mapstruct", "mapstruct", "1.6.3")
     public static final Dependency dependencyJakartaPersistence = new Dependency("jakarta.persistence", "jakarta.persistence-api", "3.2.0")
 
@@ -64,7 +68,10 @@ class KspIT extends Specification {
         where:
         scenario                                                             | error
         Scenario.Kotlin.ofSingle("scenarios/failing/AbstractClass.kt")            | "Lazyval: Abstract class is not a valid ValueType."
-        Scenario.Kotlin.ofSingle("scenarios/failing/IsbnMissingFactory.kt")       | "Cannot access 'constructor(value: String): IsbnMissingFactory': it is private in 'scenarios.failing.IsbnMissingFactory'." // kotlin-compiler warning, so no Lazyval message prefix
+        // Reading the payload is only half the contract: the value also has to be reconstructible. This
+        // used to assert the kotlinc error that the emitted call provoked downstream — which meant
+        // Lazyval was shipping sources it knew would not compile. The rejection belongs at the source.
+        Scenario.Kotlin.ofSingle("scenarios/failing/IsbnMissingFactory.kt")       | ERROR_NON_PUBLIC_CONSTRUCTOR
         Scenario.Kotlin.ofSingle("scenarios/failing/ValueClass.kt")               | "Lazyval: value class is not supported by Lazyval."
         Scenario.Kotlin.ofSingle("scenarios/failing/MultipleFactoriesClass.kt")   | "Lazyval: Multiple matching factory methods with the same signature found. Please check functions ofNullable, of"
         Scenario.Kotlin.ofSingle("scenarios/failing/MultiplePropertyClass.kt")    | "Lazyval: Not a simple ValueType. Lazyval only supports classes with one non-transient property."
