@@ -68,8 +68,9 @@ class ApJpaIT extends Specification {
         result == new Testresult.Java.Success(converter)
 
         where:
-        placement | source                                  | converter
-        "field"   | "scenarios/jpa/JpaTransientField.java"  | "JpaTransientFieldAttributeConverter.java"
-        "getter"  | "scenarios/jpa/JpaTransientGetter.java" | "JpaTransientGetterAttributeConverter.java"
+        placement           | source                                            | converter
+        "field"             | "scenarios/jpa/JpaTransientField.java"            | "JpaTransientFieldAttributeConverter.java"
+        "getter"            | "scenarios/jpa/JpaTransientGetter.java"           | "JpaTransientGetterAttributeConverter.java"
+        "record component"  | "scenarios/jpa/JpaTransientRecordComponent.java"  | "JpaTransientRecordComponentAttributeConverter.java"
     }
 }

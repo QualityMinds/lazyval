@@ -129,9 +129,10 @@ class KspSpringDataIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE)
 
         where:
-        placement | source
-        "field"   | "scenarios/springdata/SpringDataTransientProperty.kt"
-        "getter"  | "scenarios/springdata/SpringDataTransientGetter.kt"
+        placement               | source
+        "field"                 | "scenarios/springdata/SpringDataTransientProperty.kt"
+        "getter"                | "scenarios/springdata/SpringDataTransientGetter.kt"
+        "constructor property"  | "scenarios/springdata/SpringDataTransientConstructorProperty.kt"
     }
 
     void "every store in the test registry has its option declared by the generator"() {
