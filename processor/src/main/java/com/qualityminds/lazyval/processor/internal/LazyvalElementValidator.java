@@ -87,8 +87,7 @@ class LazyvalElementValidator {
 
         var fieldAccessorPairs = findFieldAccessorPairs(lazyvalElement);
         if (fieldAccessorPairs.isEmpty()) {
-            // FIXME find a way not to stop validation here. Instead of passing accessors, use the field
-            environment.error(lazyvalElement, "No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation.");
+            reportUnreachablePayload(lazyvalElement);
             return Optional.empty();
         }
         boolean payloadValid = fieldAccessorPairs.size() <= 1;
@@ -106,6 +105,58 @@ class LazyvalElementValidator {
         warnOnNonFinal(lazyvalElement, pair.field());
         ExecutableElement factoryMethod = factoryMethods.isEmpty() ? null : factoryMethods.get(0);
         return Optional.of(ValidatedGeneratorElement.fromClass(lazyvalElement, factoryMethod, pair.field(), pair.accessor()));
+    }
+
+    /**
+     * Three mistakes look alike from the outside — a class with no state, a field nobody exposes, and
+     * a field exposed only by a non-public method — yet each calls for different advice, and the last
+     * two belong on the element the author has to change rather than on the class: someone looking
+     * straight at their field is not helped by being told that nothing was found.
+     * <p>
+     * Validation still stops after this, because without an accessor there is no payload type to look
+     * a factory method up by. Reading the payload off the field instead would lift that restriction.
+     */
+    private void reportUnreachablePayload(TypeElement lazyvalElement) {
+        var fields = instanceFields(lazyvalElement).stream()
+                .filter(field -> !isTransientField(field))
+                .toList();
+        if (fields.isEmpty()) {
+            environment.error(lazyvalElement, "No non-transient field found. Lazyval requires the ValueType"
+                    + " to have exactly one non-transient field exposed by a public accessor.");
+            return;
+        }
+        var allMethods = declaredMethods(lazyvalElement);
+        fields.forEach(field -> AccessorLookup.findNonPublicAccessor(field, allMethods).ifPresentOrElse(
+                accessor -> environment.error(accessor, nonPublicAccessorMessage(field, accessor)),
+                () -> environment.error(field, missingAccessorMessage(field))));
+    }
+
+    private static String nonPublicAccessorMessage(VariableElement field, ExecutableElement accessor) {
+        return "Accessor '" + accessor.getSimpleName() + "()' for field '" + field.getSimpleName()
+                + "' is " + visibilityOf(accessor) + " and cannot be called from generated code, which is"
+                + " emitted into another package. Make the accessor public.";
+    }
+
+    private static String missingAccessorMessage(VariableElement field) {
+        return "Field '" + field.getSimpleName() + "' has no public accessor. Lazyval reads the payload"
+                + " through its accessor, which has to be public because generated code is emitted into"
+                + " another package. Add a public accessor returning " + field.asType() + ".";
+    }
+
+    /**
+     * Mirrors the wording of the KSP validator's visibility diagnostics so that the same mistake reads
+     * the same in both languages. Java has no keyword for the default, so it is spelled out the way the
+     * language specification's readers name it.
+     */
+    private static String visibilityOf(ExecutableElement accessor) {
+        var modifiers = accessor.getModifiers();
+        if (modifiers.contains(Modifier.PRIVATE)) {
+            return "private";
+        }
+        if (modifiers.contains(Modifier.PROTECTED)) {
+            return "protected";
+        }
+        return "package-private";
     }
 
     /**
@@ -151,19 +202,29 @@ class LazyvalElementValidator {
      * {@link AccessorLookup#findAccessor(VariableElement, List)}.
      */
     private List<FieldAccessorPair> findFieldAccessorPairs(TypeElement lazyvalElement) {
-        var allMethods = lazyvalElement.getEnclosedElements().stream()
-                .filter(element -> element.getKind() == ElementKind.METHOD)
-                .map(element -> (ExecutableElement) element)
-                .toList();
+        var allMethods = declaredMethods(lazyvalElement);
 
-        return lazyvalElement.getEnclosedElements().stream()
-                .filter(element -> element.getKind() == ElementKind.FIELD)
-                .map(element -> (VariableElement) element)
-                .filter(field -> !field.getModifiers().contains(Modifier.STATIC))
+        return instanceFields(lazyvalElement).stream()
                 .flatMap(field -> AccessorLookup.findAccessor(field, allMethods)
                         .map(accessor -> new FieldAccessorPair(field, accessor))
                         .stream())
                 .filter(pair -> !isTransient(pair))
+                .toList();
+    }
+
+    private static List<ExecutableElement> declaredMethods(TypeElement lazyvalElement) {
+        return lazyvalElement.getEnclosedElements().stream()
+                .filter(element -> element.getKind() == ElementKind.METHOD)
+                .map(element -> (ExecutableElement) element)
+                .toList();
+    }
+
+    /** Static fields hold no per-instance payload, so they are none of Lazyval's business. */
+    private static List<VariableElement> instanceFields(TypeElement lazyvalElement) {
+        return lazyvalElement.getEnclosedElements().stream()
+                .filter(element -> element.getKind() == ElementKind.FIELD)
+                .map(element -> (VariableElement) element)
+                .filter(field -> !field.getModifiers().contains(Modifier.STATIC))
                 .toList();
     }
 
@@ -173,9 +234,15 @@ class LazyvalElementValidator {
      * the accessor — which is why this runs after the pairing rather than before it.
      */
     private boolean isTransient(FieldAccessorPair pair) {
-        return pair.field().getModifiers().contains(Modifier.TRANSIENT)
-                || isTransientAnnotated(pair.field())
-                || isTransientAnnotated(pair.accessor());
+        return isTransientField(pair.field()) || isTransientAnnotated(pair.accessor());
+    }
+
+    /**
+     * The half of {@link #isTransient} that can be answered without an accessor, which is what the
+     * diagnostics need: a field excluded by the author is not a field that is missing its accessor.
+     */
+    private boolean isTransientField(VariableElement field) {
+        return field.getModifiers().contains(Modifier.TRANSIENT) || isTransientAnnotated(field);
     }
 
     private boolean isTransientAnnotated(Element element) {

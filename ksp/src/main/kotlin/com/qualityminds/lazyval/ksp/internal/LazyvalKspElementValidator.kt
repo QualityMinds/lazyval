@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal
 
 import com.google.devtools.ksp.getDeclaredFunctions
+import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.isPublic
 import com.google.devtools.ksp.symbol.*
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
@@ -43,13 +44,22 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
         val shapeValid = validateShape(classDeclaration)
 
         val pairs = findPropertyAccessorPairs(classDeclaration)
-        if (pairs.isEmpty()) {
-            environment.error(classDeclaration,
-                "No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property.")
+        val payloadCandidates = pairs.filter { it.isReadable }
+        if (payloadCandidates.isEmpty()) {
+            // Two situations that look alike from the outside but call for different advice: a class
+            // with nothing to wrap, versus one whose properties exist but sit behind a visibility the
+            // generated code cannot pass. Reporting the latter on the class would tell the author that
+            // nothing was found while they are looking straight at the property.
+            if (pairs.isEmpty()) {
+                environment.error(classDeclaration,
+                    "No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property.")
+            } else {
+                pairs.forEach { environment.error(it.property, it.unreachableReason) }
+            }
             return null
         }
-        val payloadValid = validatePayload(classDeclaration, pairs)
-        val (valueProperty, accessorMethod) = pairs.first()
+        val payloadValid = validatePayload(classDeclaration, payloadCandidates)
+        val (valueProperty, accessorMethod) = payloadCandidates.first()
 
         val factoryMethods = findFactoryMethods(classDeclaration, valueProperty.type.resolve())
         val factoryValid = validateFactoryMethods(classDeclaration, factoryMethods)
@@ -147,10 +157,10 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
      * reports `getter=null`/`hasBackingField=false` for those synthesized properties even though a
      * matching bean getter exists as a separate function.
      *
-     * Pairs generated code could not actually read are dropped, which is what makes the "exactly one
-     * accessible property" contract true rather than aspirational: generated code is emitted into its
-     * own package, so a property reachable neither via a public accessor nor via its own public getter
-     * would yield source that fails to compile.
+     * Pairs generated code cannot read are returned as well rather than filtered out here, because the
+     * caller needs them to tell "this class has nothing to wrap" apart from "this class hides what it
+     * wraps" — and the second case is worth naming the offending property for. Select the ones eligible
+     * as payload with [PropertyAccessorPair.isReadable].
      */
     private fun findPropertyAccessorPairs(
         classDeclaration: KSClassDeclaration
@@ -167,12 +177,6 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
             .map { property ->
                 PropertyAccessorPair(property, findAccessor(property, allMethods, isExternalJavaType))
             }
-            // A pair that has an accessor is already safe — AccessorLookup.accessorCandidates only
-            // ever offers public functions. Without one, the property is read through the getter
-            // Kotlin synthesizes, and that route exists only for public properties: `private` and
-            // `internal` have no getter under the expected name (internal's is name-mangled), and
-            // `protected` has one the generated source may not call.
-            .filter { it.accessor != null || it.property.isPublic() }
             .filter { !it.property.isTransient(it.accessor) }
             .toList()
     }
@@ -243,5 +247,48 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
      */
     private data class PropertyAccessorPair(
         val property: KSPropertyDeclaration,
-        val accessor: KSFunctionDeclaration?)
+        val accessor: KSFunctionDeclaration?) {
+
+        /**
+         * Whether generated code can actually read this property, which is what makes the "exactly one
+         * accessible property" contract true rather than aspirational.
+         *
+         * A pair that found an accessor is always readable — [AccessorLookup.accessorCandidates] only
+         * ever offers public functions. Without one the property is read through the getter Kotlin
+         * synthesizes, and that route exists only for public properties. Generated code is emitted into
+         * its own package, so a property reachable neither way would yield source that does not compile.
+         */
+        val isReadable: Boolean
+            get() = accessor != null || property.isPublic()
+
+        /**
+         * Why [isReadable] is `false`, phrased as the change the author has to make. Naming the property
+         * is the point: the author can see it in their editor, so a message claiming nothing was found
+         * reads as a bug in Lazyval rather than as a rule of Lazyval.
+         */
+        val unreachableReason: String
+            get() {
+                val visibility = property.getVisibility()
+                val keyword = when (visibility) {
+                    Visibility.PRIVATE -> "private"
+                    Visibility.PROTECTED -> "protected"
+                    Visibility.INTERNAL -> "internal"
+                    Visibility.JAVA_PACKAGE -> "package-private"
+                    else -> "not public"
+                }
+                // `internal` is the case that looks like it should work, so it is worth saying why it
+                // does not: it is visible to the whole module, generated sources included, and only the
+                // mangled JVM name gives it away. Contrast an internal *class*, which Java can use
+                // because class names are not mangled — see KspClassInspection.isAccessible.
+                val mangling = if (visibility == Visibility.INTERNAL) {
+                    " Part of that output is Java, which cannot call the name-mangled getter Kotlin " +
+                            "emits for an internal property."
+                } else {
+                    ""
+                }
+                return "Property '${property.simpleName.asString()}' is $keyword and cannot be read " +
+                        "from generated code, which is emitted into another package.$mangling" +
+                        " Make the property public, or add a public accessor function."
+            }
+    }
 }

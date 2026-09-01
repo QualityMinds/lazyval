@@ -1,0 +1,159 @@
+= Rules
+
+Everything Lazyval requires of a `@LazyValue`-annotated type, in one place. The getting-started pages
+(xref:java.adoc[Java], xref:kotlin.adoc[Kotlin]) show what a domain primitive looks like; this page is the
+rulebook behind those examples.
+
+Every rule here is checked at compile time. A violation is a compile error naming the element that has
+to change — Lazyval never emits sources that fail to compile later. The two exceptions are marked as
+warnings below: they are advice about immutability, not requirements.
+
+[#shape]
+== Shape
+
+[tabs]
+====
+Java::
++
+A `record` or a `class`. An `abstract` class is rejected — there is nothing to instantiate.
++
+A non-`final` class is accepted with a warning: a domain-primitive that can be subclassed is no longer a
+value, but the decision is yours.
+
+Kotlin::
++
+A `class` or a `data class`. An `abstract` class is rejected, and so is a `value class`.
++
+An `open` class is accepted with a warning, for the same reason as in Java.
++
+`value class` is unsupported by design rather than by omission — see the
+xref:kotlin.adoc[rationale on the Kotlin page].
+====
+
+[#payload]
+== Exactly one payload
+
+A domain-primitive wraps exactly one thing. Lazyval requires exactly one non-transient instance
+field (Java) or property (Kotlin), and rejects a type that has none or more than one.
+
+Derived state does not count against that rule, but it has to be declared as such, because from the
+outside a cached computation looks exactly like a second payload:
+
+[tabs]
+====
+Java::
++
+Mark derived fields `transient`.
+
+Kotlin::
++
+Mark derived properties `@kotlin.jvm.Transient`.
+====
+
+Since the `transient` keyword only carries meaning for types implementing `Serializable`, static
+analysis tends to flag it everywhere else. Lazyval therefore accepts these annotations as equivalent,
+on either the field/property or its accessor (in Kotlin: `@get:Transient`):
+
+* `jakarta.persistence.Transient`
+* `org.springframework.data.annotation.Transient`
+
+These two are supported because of their wide usage. On any other stack, use the plain `transient`
+keyword (`@kotlin.jvm.Transient` in Kotlin) or map the domain-primitive to its wrapped value in a
+dedicated persistence model.
+
+Additional constructors, accessors, and convenience factories with other signatures are allowed and
+break the rules.
+
+[#visibility]
+== Visibility
+
+Generated code is emitted into its own package. Anything the generated code has to touch at runtime therefore has
+to be reachable from outside the domain-primitive's package — which in practice means `public`. Part of the
+generated output is Java even for a Kotlin project, which is what makes this stricter than it first
+looks.
+
+[tabs]
+====
+Java::
++
+The *accessor* has to be `public`. The field itself is free to stay `private`, which is the idiomatic
+shape and the one the xref:java.adoc#usage[Java examples] use.
++
+A field with no public accessor is invisible to Lazyval, so it needs no `transient` to be excluded. The
+derived field in the `Birthdate` example does need it, precisely because its accessor is public.
+
+Kotlin::
++
+The *property* has to be `public`; `private`, `protected` and `internal` are each rejected with an
+error reported on the property.
++
+`internal` is the surprising one, because it _looks_ like it should work: it is visible to the whole
+module, and the generated sources are part of that module. What breaks it is the JVM name — Kotlin
+mangles an internal property's getter to `getValue$module`, and the Java half of Lazyval's output then
+finds no `getValue()` to call.
++
+This applies to the property, not to the type: an `internal` class is fine, because class names are
+not mangled.
++
+If you would rather not widen the property, expose a `public` accessor function instead. Lazyval calls
+that function and leaves the property alone — the Kotlin counterpart of the Java rule in the other tab:
++
+[source,kotlin]
+----
+@LazyValue
+class Reference(private val value: String) {
+
+    fun value(): String = value
+}
+----
+====
+
+[#immutability]
+== Immutability
+
+Advice, not a rule. Lazyval warns when the class is not `final` (`open` in Kotlin) or the payload is
+not `final` (`var` in Kotlin), and generates anyway.
+
+[#factory]
+== Factory methods
+
+Lazyval reconstructs a value either through a factory method or through the constructor. A factory
+method is one that returns the domain-primitive and takes a single parameter of the payload type. Its name is
+free — `of`, `parse`, `valueOf`, anything. In Java it has to be `static`; in Kotlin it is a
+companion-object function.
+
+At most one method may match that signature. With several, Lazyval cannot tell which one is meant to
+reconstruct the value and reports an error listing the candidates. With none, the constructor is used —
+which then has to be reachable, so a type with a `private` constructor needs a factory method.
+
+In Kotlin, nullability is ignored when matching: a `fun ofNullable(value: String?): Isbn?` counts as a
+factory for a `String` payload, and counts towards the at-most-one limit alongside a
+`fun of(value: String): Isbn`.
+
+[#payload-type]
+== Payload type
+
+[tabs]
+====
+Java::
++
+Any type the active generators can handle. See xref:generators:index.adoc[Generators] for what each
+one supports, and for how to plug in a converter for a type it does not.
+
+Kotlin::
++
+Must not be nullable. `String?` is rejected — a domain-primitive whose payload may be absent is not a value.
++
+Beyond that, the same generator-side considerations as for Java apply.
+====
+
+[#external]
+== Shared types from other modules
+
+Types pulled in via `@LazyvalConfiguration(externalTypes = ...)` follow every rule above, read from the
+classpath rather than from source. Since the consuming module is a different compilation unit, the
+reachability bar applies to the whole chain: the type, its factory method or constructor, and the
+accessor for the payload.
+
+For Kotlin that additionally rules out `internal` for a second, simpler reason than the name mangling
+above — `internal` is scoped to the module that declares it, and no configuration widens that scope.

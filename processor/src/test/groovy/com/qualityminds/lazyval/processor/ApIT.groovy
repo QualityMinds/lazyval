@@ -14,6 +14,16 @@ import java.nio.file.Path
 class ApIT extends Specification {
 
     private static final Dependency dependencyMapstruct = new Dependency("org.mapstruct", "mapstruct", "1.6.3")
+    // Spelled out rather than built from a template: reconstructing the message here would let a
+    // wrong template pass its own test.
+    public static final String ERROR_NO_FIELD = "Lazyval: No non-transient field found. " +
+            "Lazyval requires the ValueType to have exactly one non-transient field exposed by a public accessor."
+    public static final String ERROR_FIELD_WITHOUT_ACCESSOR = "Lazyval: Field 'value' has no public accessor. " +
+            "Lazyval reads the payload through its accessor, which has to be public because generated code " +
+            "is emitted into another package. Add a public accessor returning java.lang.String."
+    public static final String ERROR_NON_PUBLIC_ACCESSOR = "Lazyval: Accessor 'value()' for field 'value' is " +
+            "private and cannot be called from generated code, which is emitted into another package. " +
+            "Make the accessor public."
 
     @TempDir()
     Path projectDir
@@ -48,12 +58,16 @@ class ApIT extends Specification {
         Scenario.Java.ofSingle("scenarios/failing/ObjectMoreThanOneProperty.java")  | "Lazyval: Not a simple ValueType. Lazyval only supports Objects with one non-transient value."
         Scenario.Java.ofSingle("scenarios/failing/ObjectMultipleFactories.java")    | "Lazyval: Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
         Scenario.Java.ofSingle("scenarios/failing/RecordMultipleFactories.java")    | "Lazyval: Multiple matching factory methods with the same signature found. Please check methods:of, accidental"
-        Scenario.Java.ofSingle("scenarios/failing/ObjectMissingValueAccessor.java") | "Lazyval: No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation."
+        // The field is right there in the source, so the error names it and is reported on the field
+        // rather than on the class.
+        Scenario.Java.ofSingle("scenarios/failing/ObjectMissingValueAccessor.java") | ERROR_FIELD_WITHOUT_ACCESSOR
         Scenario.Java.ofSingle("scenarios/failing/RecordWithoutProperty.java")      | "Lazyval: No record component found. Lazyval requires the ValueType to have exactly one field."
-        Scenario.Java.ofSingle("scenarios/failing/ObjectWithoutProperty.java")      | "Lazyval: No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation."
+        // No state at all — nothing to name, so this one stays on the class.
+        Scenario.Java.ofSingle("scenarios/failing/ObjectWithoutProperty.java")      | ERROR_NO_FIELD
         // A private accessor is unreachable from the generated code's package, and a private Java
-        // field has no synthesized getter to fall back on, so the type is rejected outright.
-        Scenario.Java.ofSingle("scenarios/failing/ObjectWithPrivateAccessor.java")  | "Lazyval: No public accessor found. Lazyval requires the ValueType to have one accessor. Stopping further validation."
+        // field has no synthesized getter to fall back on, so the type is rejected outright. Asking
+        // for another accessor would be the wrong advice, so the error lands on the one already there.
+        Scenario.Java.ofSingle("scenarios/failing/ObjectWithPrivateAccessor.java")  | ERROR_NON_PUBLIC_ACCESSOR
         expected = new Testresult.Java.Failure(error)
     }
 

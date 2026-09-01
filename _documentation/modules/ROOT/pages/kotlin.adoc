@@ -39,18 +39,14 @@ include::ROOT:example$kotlin/src/main/kotlin/test/Birthdate.kt[tag=docu]
 
 A value type may carry derived properties that are computed from the stored payload (here `asLocalDate` from `value`).
 Lazyval validates that exactly one non-transient property is the stored payload, so any derived property must
-be marked `@kotlin.jvm.Transient` to keep it out of the validation. Additional constructors, accessors, or
-convenience factories with other signatures are allowed and ignored by the processor.
+be marked `@kotlin.jvm.Transient` to keep it out of the validation.
 
-Lazyval treats these annotations as equivalent, on either the property or its getter (`@get:Transient`):
+Note that the payload is read through the property's getter, which is why `value` is `public` in all three
+examples. `internal` does not qualify either, even though the generated sources live in the same module.
 
-* `jakarta.persistence.Transient`
-* `org.springframework.data.annotation.Transient`
-
-
-These two are supported because of their wide usage.
-On any other stack, use `@kotlin.jvm.Transient` or map the
-domain-primitive to its wrapped value in a dedicated persistence model.
+TIP: xref:rules.adoc[Rules] is the complete reference: shape, payload,
+visibility — including why `internal` is rejected and how to keep a
+property non-public anyway — factory methods, and what `transient` accepts besides the annotation.
 
 [#setup]
 == Setup
