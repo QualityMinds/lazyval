@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.ksp.internal
 
+import com.google.devtools.ksp.getConstructors
 import com.google.devtools.ksp.getDeclaredFunctions
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.isPublic
@@ -61,10 +62,15 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
         val payloadValid = validatePayload(classDeclaration, payloadCandidates)
         val (valueProperty, accessorMethod) = payloadCandidates.first()
 
-        val factoryMethods = findFactoryMethods(classDeclaration, valueProperty.type.resolve())
+        val payloadType = valueProperty.type.resolve()
+        val factoryMethods = findFactoryMethods(classDeclaration, payloadType)
         val factoryValid = validateFactoryMethods(classDeclaration, factoryMethods)
+        // Only answerable once the payload is: with several candidates there is no single type to match
+        // a constructor against, and the first property is a guess that would misname the fix.
+        val reconstructionValid = !payloadValid ||
+                validateReconstruction(classDeclaration, payloadType, factoryMethods)
 
-        if (!(shapeValid && payloadValid && factoryValid)) {
+        if (!(shapeValid && payloadValid && factoryValid && reconstructionValid)) {
             return null
         }
         warnOnNonFinal(classDeclaration, valueProperty)
@@ -128,6 +134,75 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
             "Multiple matching factory methods with the same signature found. Please check functions $functionNames")
         return false
     }
+
+    /**
+     * Reading the payload is only half the contract — the value also has to be reconstructible from
+     * it. Generated code calls either a factory function or a constructor, both from another package,
+     * so a constructor it cannot reach is no better than one that does not exist. A factory settles
+     * the question on its own; only in its absence does the constructor have to carry the weight.
+     *
+     * Left unchecked, either mistake surfaces as a kotlinc error inside generated sources, which is
+     * exactly what Lazyval promises never to emit.
+     */
+    private fun validateReconstruction(
+        classDeclaration: KSClassDeclaration,
+        payloadType: KSType,
+        factoryMethods: List<KSFunctionDeclaration>
+    ): Boolean {
+        if (factoryMethods.isNotEmpty()) {
+            return true
+        }
+        val constructor = findPayloadConstructor(classDeclaration, payloadType)
+        if (constructor == null) {
+            environment.error(classDeclaration,
+                "Class '${classDeclaration.simpleName.asString()}' cannot be reconstructed from its payload: " +
+                        "no constructor takes a single ${payloadType.shortName()}. " +
+                        "Add one, or a factory function in the companion object.")
+            return false
+        }
+        // `private` and `protected` are out of reach from another package whatever the module layout.
+        // `internal` is deliberately left alone: an internal *class* is supported because class names
+        // are not mangled the way an internal property's getter is — see PropertyAccessorPair.
+        val visibility = constructor.getVisibility()
+        if (visibility == Visibility.PRIVATE || visibility == Visibility.PROTECTED) {
+            environment.error(constructor, nonPublicConstructorMessage(classDeclaration, constructor, visibility))
+            return false
+        }
+        return true
+    }
+
+    private fun findPayloadConstructor(
+        classDeclaration: KSClassDeclaration,
+        payloadType: KSType
+    ): KSFunctionDeclaration? {
+        return classDeclaration.getConstructors().firstOrNull { constructor ->
+            if (constructor.parameters.size != 1) return@firstOrNull false
+            // Nullability is ignored the same way findFactoryMethods ignores it: a constructor taking
+            // `String?` still reconstructs a `String` payload.
+            val parameterType = constructor.parameters[0].type.resolve()
+            parameterType == payloadType ||
+                    (parameterType.isMarkedNullable && parameterType.makeNotNullable() == payloadType)
+        }
+    }
+
+    /**
+     * Mirrors [PropertyAccessorPair.unreachableReason], down to the naming of the visibility: the same
+     * package boundary is at fault, so the same sentence should explain it.
+     */
+    private fun nonPublicConstructorMessage(
+        classDeclaration: KSClassDeclaration,
+        constructor: KSFunctionDeclaration,
+        visibility: Visibility
+    ): String {
+        val keyword = if (visibility == Visibility.PRIVATE) "private" else "protected"
+        val parameterType = constructor.parameters[0].type.resolve().shortName()
+        return "Constructor '${classDeclaration.simpleName.asString()}($parameterType)' is $keyword and " +
+                "cannot be called from generated code, which is emitted into another package. " +
+                "Make the constructor public, or add a factory function in the companion object."
+    }
+
+    /** Types read better unqualified in Kotlin diagnostics, the way the language itself writes them. */
+    private fun KSType.shortName(): String = declaration.simpleName.asString()
 
     /**
      * Advice rather than a rule, and therefore only emitted once the type is known to be valid: a

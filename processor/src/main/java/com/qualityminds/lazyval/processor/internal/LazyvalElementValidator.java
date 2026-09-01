@@ -69,10 +69,18 @@ class LazyvalElementValidator {
             environment.error(lazyvalElement, "Not a simple ValueType. Lazyval only supports Records with one non-transient field.");
         }
 
-        var factoryMethods = findFactoryMethods(lazyvalElement, payloadComponents.get(0).asType());
+        var payloadType = payloadComponents.get(0).asType();
+        var factoryMethods = findFactoryMethods(lazyvalElement, payloadType);
         boolean factoryValid = validateFactoryMethods(lazyvalElement, factoryMethods);
+        var transientComponents = components.stream()
+                .filter(component -> isTransientComponent(lazyvalElement, component))
+                .toList();
+        // Only answerable once the payload is: with several candidates there is no single type to match
+        // a constructor against, and the first component is a guess that would misname the fix.
+        boolean reconstructionValid = !payloadValid
+                || validateReconstruction(lazyvalElement, payloadType, factoryMethods, transientComponents);
 
-        if (!(payloadValid && factoryValid)) {
+        if (!(payloadValid && factoryValid && reconstructionValid)) {
             return Optional.empty();
         }
         ExecutableElement factoryMethod = factoryMethods.isEmpty() ? null : factoryMethods.get(0);
@@ -120,10 +128,14 @@ class LazyvalElementValidator {
         }
         var pair = fieldAccessorPairs.get(0);
 
-        var factoryMethods = findFactoryMethods(lazyvalElement, pair.field().asType());
+        var payloadType = pair.field().asType();
+        var factoryMethods = findFactoryMethods(lazyvalElement, payloadType);
         boolean factoryValid = validateFactoryMethods(lazyvalElement, factoryMethods);
+        // See the note in validateRecord: an ambiguous payload leaves nothing to match against.
+        boolean reconstructionValid = !payloadValid
+                || validateReconstruction(lazyvalElement, payloadType, factoryMethods, List.of());
 
-        if (!(shapeValid && payloadValid && factoryValid)) {
+        if (!(shapeValid && payloadValid && factoryValid && reconstructionValid)) {
             return Optional.empty();
         }
         warnOnNonFinal(lazyvalElement, pair.field());
@@ -194,6 +206,83 @@ class LazyvalElementValidator {
         environment.error(lazyvalElement, "Multiple matching factory methods with the same signature found. Please check methods:"
                 + factoryMethods.stream().map(m -> m.getSimpleName().toString()).collect(Collectors.joining(", ")));
         return false;
+    }
+
+    /**
+     * Reading the payload is only half the contract — the value also has to be reconstructible from
+     * it. Generated code calls either a factory method or a constructor, both from another package,
+     * so a constructor it cannot reach is no better than one that does not exist. A factory settles
+     * the question on its own; only in its absence does the constructor have to carry the weight.
+     * <p>
+     * Left unchecked, either mistake surfaces as a compiler error inside generated sources, which is
+     * exactly what Lazyval promises never to emit.
+     */
+    private boolean validateReconstruction(TypeElement lazyvalElement,
+                                           TypeMirror payloadType,
+                                           List<ExecutableElement> factoryMethods,
+                                           List<? extends Element> transientComponents) {
+        if (!factoryMethods.isEmpty()) {
+            return true;
+        }
+        var constructor = findPayloadConstructor(lazyvalElement, payloadType);
+        if (constructor.isEmpty()) {
+            environment.error(lazyvalElement,
+                    missingReconstructionMessage(lazyvalElement, payloadType, transientComponents));
+            return false;
+        }
+        // A non-public type is already out of reach as a whole, and a record's canonical constructor
+        // simply inherits that visibility — pointing at the constructor would send the author to fix
+        // the wrong declaration. Widening the type is a rule of its own, and not one checked here yet.
+        if (!lazyvalElement.getModifiers().contains(Modifier.PUBLIC)) {
+            return true;
+        }
+        if (!constructor.get().getModifiers().contains(Modifier.PUBLIC)) {
+            environment.error(constructor.get(), nonPublicConstructorMessage(lazyvalElement, constructor.get()));
+            return false;
+        }
+        return true;
+    }
+
+    private Optional<ExecutableElement> findPayloadConstructor(TypeElement lazyvalElement, TypeMirror payloadType) {
+        return lazyvalElement.getEnclosedElements().stream()
+                .filter(element -> element.getKind() == ElementKind.CONSTRUCTOR)
+                .map(element -> (ExecutableElement) element)
+                .filter(constructor -> constructor.getParameters().size() == 1
+                        && typeUtils.isSameType(constructor.getParameters().get(0).asType(), payloadType))
+                .findFirst();
+    }
+
+    /**
+     * Mirrors {@link #nonPublicAccessorMessage}, down to the naming of the visibility: the same
+     * package boundary is at fault, so the same sentence should explain it.
+     */
+    private static String nonPublicConstructorMessage(TypeElement lazyvalElement, ExecutableElement constructor) {
+        return "Constructor '" + lazyvalElement.getSimpleName() + "("
+                + constructor.getParameters().get(0).asType() + ")' is " + visibilityOf(constructor)
+                + " and cannot be called from generated code, which is emitted into another package."
+                + " Make the constructor public, or add a public static factory method.";
+    }
+
+    /**
+     * A record with derived state is the case worth spelling out: the transient components are the
+     * reason the canonical constructor no longer matches, and naming them says why a record that
+     * looks like it wraps one value cannot be rebuilt from that value.
+     */
+    private static String missingReconstructionMessage(TypeElement lazyvalElement,
+                                                       TypeMirror payloadType,
+                                                       List<? extends Element> transientComponents) {
+        if (lazyvalElement.getKind() == ElementKind.RECORD && !transientComponents.isEmpty()) {
+            var names = transientComponents.stream()
+                    .map(component -> "'" + component.getSimpleName() + "'")
+                    .collect(Collectors.joining(", "));
+            return "Record '" + lazyvalElement.getSimpleName() + "' cannot be reconstructed from its payload"
+                    + " alone: the canonical constructor also takes the transient "
+                    + (transientComponents.size() == 1 ? "component " : "components ") + names
+                    + ". Add a constructor taking only " + payloadType + ", or a public static factory method.";
+        }
+        return (lazyvalElement.getKind() == ElementKind.RECORD ? "Record '" : "Class '")
+                + lazyvalElement.getSimpleName() + "' cannot be reconstructed from its payload: no constructor"
+                + " takes a single " + payloadType + ". Add one, or a public static factory method.";
     }
 
     /**
