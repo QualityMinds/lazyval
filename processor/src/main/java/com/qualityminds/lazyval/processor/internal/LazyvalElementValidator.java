@@ -40,11 +40,28 @@ class LazyvalElementValidator {
     }
 
     Optional<ValidatedGeneratorElement> validate(TypeElement element) {
+        boolean typeReachable = validateTypeVisibility(element);
         var result = validateRecord(element);
-        if (result.isPresent()) {
-            return result;
+        if (result.isEmpty()) {
+            result = validateObject(element);
         }
-        return validateObject(element);
+        // Evaluated alongside the shape rules rather than short-circuiting them, so that a type which
+        // is both unreachable and malformed reports everything in one run.
+        return typeReachable ? result : Optional.empty();
+    }
+
+    /**
+     * Generated code has to name the domain-primitive before it can read or rebuild it, and it is
+     * emitted into another package — so a type that is not public is out of reach however reachable
+     * its members are. Records inherit this on their canonical constructor, which is why
+     * {@link #validateReconstruction} defers to this rule rather than reporting there.
+     */
+    private boolean validateTypeVisibility(TypeElement lazyvalElement) {
+        if (lazyvalElement.getModifiers().contains(Modifier.PUBLIC)) {
+            return true;
+        }
+        environment.error(lazyvalElement, LazyvalElementValidatorMessages.nonPublicTypeMessage(lazyvalElement));
+        return false;
     }
 
     /**
@@ -219,7 +236,7 @@ class LazyvalElementValidator {
         }
         // A non-public type is already out of reach as a whole, and a record's canonical constructor
         // simply inherits that visibility — pointing at the constructor would send the author to fix
-        // the wrong declaration. Widening the type is a rule of its own, and not one checked here yet.
+        // the wrong declaration. validateTypeVisibility owns that diagnostic and has already made it.
         if (!lazyvalElement.getModifiers().contains(Modifier.PUBLIC)) {
             return true;
         }

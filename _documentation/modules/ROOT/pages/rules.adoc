@@ -5,8 +5,8 @@ Everything Lazyval requires of a `@LazyValue`-annotated type, in one place. The 
 rulebook behind those examples.
 
 Every rule here is checked at compile time. A violation is a compile error naming the element that has
-to change — Lazyval never emits sources that fail to compile later. The two exceptions are marked as
-warnings below: they are advice about immutability, not requirements.
+to change, rather than something you find out about from the generated sources later. The two
+exceptions are marked as warnings below: they are advice about immutability, not requirements.
 
 [#shape]
 == Shape
@@ -63,7 +63,7 @@ dedicated persistence model.
 
 For records, place the annotation directly on the derived record component. Since the canonical
 constructor then takes more than the payload, provide a single-argument constructor or a factory-method,
-so generated code can reconstruct the value from the payload alone.
+so generated code can reconstruct the value from the payload alone — see <<factory>>.
 
 Additional constructors, accessors, and convenience factories with other signatures are allowed and don't
 break the rules.
@@ -91,6 +91,10 @@ Kotlin::
 The *property* has to be `public`; `private`, `protected` and `internal` are each rejected with an
 error reported on the property.
 +
+As in Java, a property generated code cannot reach is invisible rather than illegal: an extra
+`private` or `internal` helper property alongside the payload neither counts towards the one-payload
+rule nor needs a `@Transient`. Only when _no_ property is readable does each one get an error.
++
 `internal` is the surprising one, because it _looks_ like it should work: it is visible to the whole
 module, and the generated sources are part of that module. What breaks it is the JVM name — Kotlin
 mangles an internal property's getter to `getValue$module`, and the Java half of Lazyval's output then
@@ -112,6 +116,15 @@ class Reference(private val value: String) {
 ----
 ====
 
+The same bar applies to the way back in — the constructor or factory method Lazyval calls to rebuild
+the value from its payload. That half is covered under <<factory>>.
+
+It applies to the domain-primitive itself as well, since generated code has to name the type before it
+can read or rebuild it. A Java type that is not `public`, and a Kotlin type that is neither `public`
+nor `internal`, are rejected for the same reason a hidden accessor is. An `internal` Kotlin class
+stays fine, as above, which is why the Kotlin error names both ways out. Types pulled in from another
+module are held to the same bar — see <<external>>.
+
 [#immutability]
 == Immutability
 
@@ -127,12 +140,22 @@ free — `of`, `parse`, `valueOf`, anything. In Java it has to be `static`; in K
 companion-object function.
 
 At most one method may match that signature. With several, Lazyval cannot tell which one is meant to
-reconstruct the value and reports an error listing the candidates. With none, the constructor is used —
-which then has to be reachable, so a type with a `private` constructor needs a factory method.
+reconstruct the value and reports an error listing the candidates. With none, the constructor is used
+instead, and it then has to take the payload and nothing else.
+
+Whichever of the two carries the value back has to be reachable from the generated package, for the
+reason given under <<visibility>>. Being `static` does not make a `private` factory a way in, so a
+type with a `private` constructor needs a `public` factory rather than merely any factory. The error
+lands on whichever of the two Lazyval would have called.
+
+NOTE: In Kotlin the two part ways on `internal`. An `internal` factory function is rejected, because
+Kotlin mangles its JVM name and the Java half of the generated output has no unmangled name to call —
+the same mechanism that rules out an `internal` property under <<visibility>>. An `internal`
+constructor is accepted, because constructors are not name-mangled, just as an `internal` class is.
 
 In Kotlin, nullability is ignored when matching: a `fun ofNullable(value: String?): Isbn?` counts as a
 factory for a `String` payload, and counts towards the at-most-one limit alongside a
-`fun of(value: String): Isbn`.
+`fun of(value: String): Isbn`. A constructor parameter is matched the same way.
 
 [#payload-type]
 == Payload type
@@ -159,5 +182,7 @@ classpath rather than from source. Since the consuming module is a different com
 reachability bar applies to the whole chain: the type, its factory method or constructor, and the
 accessor for the payload.
 
-For Kotlin that additionally rules out `internal` for a second, simpler reason than the name mangling
-above — `internal` is scoped to the module that declares it, and no configuration widens that scope.
+For Kotlin that additionally rules out `internal` *members* for a second, simpler reason than the name
+mangling above — `internal` is scoped to the module that declares it, and no configuration widens that
+scope. The type itself needs no rule of its own here: an `internal` class in another module cannot be
+named in `externalTypes` to begin with.

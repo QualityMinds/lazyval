@@ -35,6 +35,12 @@ class ApIT extends Specification {
             "'of(java.lang.String)' is private and cannot be called from generated code, " +
             "which is emitted into another package. " +
             "Make the factory method public, or add a public constructor."
+    public static final String ERROR_NON_PUBLIC_CLASS = "Lazyval: Type 'PackagePrivateObject' is " +
+            "package-private and cannot be referenced from generated code, " +
+            "which is emitted into another package. Make the type public."
+    public static final String ERROR_NON_PUBLIC_RECORD = "Lazyval: Type 'PackagePrivateRecord' is " +
+            "package-private and cannot be referenced from generated code, " +
+            "which is emitted into another package. Make the type public."
     public static final String ERROR_RECORD_NO_RECONSTRUCTION = "Lazyval: Record " +
             "'RecordTransientWithoutFactory' cannot be reconstructed from its payload alone: the canonical " +
             "constructor also takes the transient component 'derivedLength'. " +
@@ -79,20 +85,13 @@ class ApIT extends Specification {
         Scenario.Java.ofSingle("scenarios/failing/RecordWithoutProperty.java")      | "Lazyval: No record component found. Lazyval requires the ValueType to have exactly one field."
         // No state at all — nothing to name, so this one stays on the class.
         Scenario.Java.ofSingle("scenarios/failing/ObjectWithoutProperty.java")      | ERROR_NO_FIELD
-        // A private accessor is unreachable from the generated code's package, and a private Java
-        // field has no synthesized getter to fall back on, so the type is rejected outright. Asking
-        // for another accessor would be the wrong advice, so the error lands on the one already there.
         Scenario.Java.ofSingle("scenarios/failing/ObjectWithPrivateAccessor.java")  | ERROR_NON_PUBLIC_ACCESSOR
-        // Reading the payload is only half the contract: the value also has to be reconstructible. With
-        // the constructor unreachable and no factory standing in for it, generated code has no call to
-        // make, so the error lands on the constructor the author has to open up.
         Scenario.Java.ofSingle("scenarios/failing/ObjectWithPrivateConstructor.java") | ERROR_NON_PUBLIC_CONSTRUCTOR
-        // A factory only discharges the reconstruction rule if generated code can reach it, so the
-        // same package boundary applies to it as to the constructor it stands in for.
         Scenario.Java.ofSingle("scenarios/failing/ObjectWithPrivateFactory.java")   | ERROR_NON_PUBLIC_FACTORY
-        // The other half of the same contract: here the constructor is reachable but takes the transient
-        // component alongside the payload, so it is still not a call generated code can make. Needs the
-        // JPA dependency because @Transient is a record's only way to declare derived state.
+        Scenario.Java.ofSingle("scenarios/failing/PackagePrivateObject.java")
+                .withDependencies(dependencyMapstruct)                              | ERROR_NON_PUBLIC_CLASS
+        Scenario.Java.ofSingle("scenarios/failing/PackagePrivateRecord.java")
+                .withDependencies(dependencyMapstruct)                              | ERROR_NON_PUBLIC_RECORD
         Scenario.Java.ofSingle("scenarios/failing/RecordTransientWithoutFactory.java")
                 .withDependencies(dependencyJakartaPersistence)                     | ERROR_RECORD_NO_RECONSTRUCTION
         expected = new Testresult.Java.Failure(error)

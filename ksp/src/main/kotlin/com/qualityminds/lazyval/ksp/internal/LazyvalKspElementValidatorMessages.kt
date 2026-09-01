@@ -5,6 +5,19 @@ import com.google.devtools.ksp.symbol.*
 
 
 /**
+ * The type itself rather than a member of it, and the first thing generated code needs: it has to be
+ * able to name the domain-primitive before any property or constructor matters.
+ *
+ * `internal` is named as a fix because a class name is not mangled — the opposite of the property in
+ * [unreachablePropertyMessage] and the function in [nonPublicFactoryMessage], where `internal` is the
+ * problem rather than the answer.
+ */
+internal fun nonPublicTypeMessage(classDeclaration: KSClassDeclaration): String =
+    "Type '${classDeclaration.simpleName.asString()}' is ${classDeclaration.getVisibility().keyword()} " +
+            "and cannot be referenced from generated code, which is emitted into another package. " +
+            "Make the type public or internal."
+
+/**
  * Why generated code cannot read a property, phrased as the change the author has to make. Naming
  * the property is the point: the author can see it in their editor, so a message claiming nothing
  * was found reads as a bug in Lazyval rather than as a rule of Lazyval.

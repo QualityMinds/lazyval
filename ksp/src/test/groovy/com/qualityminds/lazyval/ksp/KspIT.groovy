@@ -39,6 +39,9 @@ class KspIT extends Specification {
             "which is emitted into another package. Part of that output is Java, which cannot " +
             "call the name-mangled function Kotlin emits for an internal function. " +
             "Make the factory function public, or add a public constructor."
+    public static final String ERROR_NON_PUBLIC_TYPE = "Lazyval: Type 'PrivateClass' is private and " +
+            "cannot be referenced from generated code, which is emitted into another package. " +
+            "Make the type public or internal."
     public static final Dependency dependencyMapstruct = new Dependency("org.mapstruct", "mapstruct", "1.6.3")
     public static final Dependency dependencyJakartaPersistence = new Dependency("jakarta.persistence", "jakarta.persistence-api", "3.2.0")
 
@@ -77,17 +80,10 @@ class KspIT extends Specification {
         where:
         scenario                                                             | error
         Scenario.Kotlin.ofSingle("scenarios/failing/AbstractClass.kt")            | "Lazyval: Abstract class is not a valid ValueType."
-        // Reading the payload is only half the contract: the value also has to be reconstructible. This
-        // used to assert the kotlinc error that the emitted call provoked downstream — which meant
-        // Lazyval was shipping sources it knew would not compile. The rejection belongs at the source.
         Scenario.Kotlin.ofSingle("scenarios/failing/IsbnMissingFactory.kt")       | ERROR_NON_PUBLIC_CONSTRUCTOR
-        // A factory only discharges the reconstruction rule if generated code can reach it, so the
-        // same package boundary applies to it as to the constructor it stands in for.
         Scenario.Kotlin.ofSingle("scenarios/failing/PrivateFactoryClass.kt")      | ERROR_NON_PUBLIC_FACTORY
-        // `internal` is the surprising one for a factory too, and for the same reason it is for a
-        // property: the JVM name is mangled, so the Java half of the output cannot call it. An
-        // internal *constructor* is not mangled, which is why that one stays accepted.
         Scenario.Kotlin.ofSingle("scenarios/failing/InternalFactoryClass.kt")     | ERROR_INTERNAL_FACTORY
+        Scenario.Kotlin.ofSingle("scenarios/failing/PrivateClass.kt")             | ERROR_NON_PUBLIC_TYPE
         Scenario.Kotlin.ofSingle("scenarios/failing/ValueClass.kt")               | "Lazyval: value class is not supported by Lazyval."
         Scenario.Kotlin.ofSingle("scenarios/failing/MultipleFactoriesClass.kt")   | "Lazyval: Multiple matching factory methods with the same signature found. Please check functions ofNullable, of"
         Scenario.Kotlin.ofSingle("scenarios/failing/MultiplePropertyClass.kt")    | "Lazyval: Not a simple ValueType. Lazyval only supports classes with one non-transient property."
@@ -99,8 +95,6 @@ class KspIT extends Specification {
         // and is reported on the property rather than on the class.
         Scenario.Kotlin.ofSingle("scenarios/failing/PrivatePropertyClass.kt")     | ERROR_PRIVATE_PROPERTY
         Scenario.Kotlin.ofSingle("scenarios/failing/ProtectedPropertyClass.kt")   | ERROR_PROTECTED_PROPERTY
-        // `internal` is the one that looks like it should work — it is visible to the whole module,
-        // generated sources included — so its message explains the name mangling that actually breaks it.
         Scenario.Kotlin.ofSingle("scenarios/failing/InternalPropertyClass.kt")    | ERROR_INTERNAL_PROPERTY
     }
 
@@ -125,9 +119,6 @@ class KspIT extends Specification {
         // The escape hatch the Kotlin docs point at: a non-public property stays valid as long as a
         // public accessor function offers a way in. Keeps that documented advice honest.
         Scenario.Kotlin.ofSingle("scenarios/edge/ClassWithPrivatePropertyAndAccessor.kt")| null
-        // The two halves of the `internal` rule that are accepted rather than rejected, kept honest by
-        // compiling the output: neither a constructor nor a class name is JVM name-mangled, unlike the
-        // property and factory function that KspIT rejects above.
         Scenario.Kotlin.ofSingle("scenarios/edge/InternalConstructorClass.kt")    | null
         Scenario.Kotlin.ofSingle("scenarios/edge/InternalDomainPrimitive.kt")     | null
         Scenario.Kotlin.ofSingle("scenarios/edge/IsbnNotFinal.kt")                | "Lazyval: Value Types should not be extendable, hence the class should be final."
