@@ -85,17 +85,12 @@ class MapstructGenerator : Generator {
         val lazyvalTypeClassName = nestedAwareClassName(element)
         val wrappedTypeName = getJavaTypeName(element.wrappedProperty.type)
 
-        // Store factory method in local variable to avoid smart cast issues
-        val factoryMethod = element.factoryMethod
-        val creationFormat: String
-        val creationArgs: Array<Any>
-        if (factoryMethod != null) {
-            creationFormat = "\$T.${factoryMethod.simpleName.asString()}(value)"
-            creationArgs = arrayOf(lazyvalTypeClassName)
-        } else {
-            creationFormat = "new \$T(value)"
-            creationArgs = arrayOf(lazyvalTypeClassName)
-        }
+        // The path is resolved during validation rather than spelled from the Kotlin name: `@JvmName`
+        // renames the function, and a companion function without `@JvmStatic` is not on the type at all.
+        val creationFormat = element.javaFactoryPath
+            ?.let { "\$T.$it(value)" }
+            ?: "new \$T(value)"
+        val creationArgs: Array<Any> = arrayOf(lazyvalTypeClassName)
 
         val methodBuilder = MethodSpec.methodBuilder("map${wrappedTypeName.asMethodName()}To$className")
             .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)

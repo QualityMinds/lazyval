@@ -1,21 +1,43 @@
 package com.qualityminds.lazyval.ksp.spi
 
-import com.google.devtools.ksp.isPublic
 import com.google.devtools.ksp.symbol.*
 import org.jetbrains.annotations.ApiStatus
 
 
+/**
+ * A domain-primitive that passed validation, together with everything a generator needs to read its
+ * payload and rebuild it.
+ *
+ * Accessors come in a Kotlin and a Java flavour because the two languages see different names. Kotlin
+ * output reads the declaration as written; Java output has to use the name the member actually carries
+ * in the bytecode, which `@JvmName` and `internal` both move. Those JVM names are resolved once during
+ * validation and handed over as [javaAccessorName] and [javaFactoryPath], so no generator has to guess
+ * them from the Kotlin declaration — guessing is what used to make `@JvmName` emit Java that could not
+ * compile.
+ *
+ * @param javaAccessorName bytecode name of the getter or accessor function Java output should call
+ * @param javaFactoryPath the dot-path from the Java type down to the factory method, for Java output to
+ *                        append to the type name — `"of"` for a `@JvmStatic` function,
+ *                        `"Companion.of"` (or the companion's own name) for one without, since Kotlin
+ *                        then compiles it onto the companion class rather than onto the type. `null`
+ *                        when there is no factory and Java output should call the constructor. Kotlin
+ *                        output has no use for it and should call [objectCreation] instead: in Kotlin a
+ *                        companion function is reachable through the type either way.
+ */
 @ApiStatus.Experimental()
 data class ValidatedKspGeneratorElement(
     val element: KSClassDeclaration,
     val wrappedProperty: WrappedProperty,
     val factoryMethod: KSFunctionDeclaration?,
-    private val accessorMethod: KSFunctionDeclaration?
+    private val accessorMethod: KSFunctionDeclaration?,
+    private val javaAccessorName: String,
+    val javaFactoryPath: String?
 ){
     /**
      * A type name
      */
     val typeName: TypeName = TypeName.from(element)
+
     /**
      * For Kotlin sources, this will yield the type accessor (being it a property or a function)
      */
@@ -30,37 +52,12 @@ data class ValidatedKspGeneratorElement(
     }
 
     /**
-     * In case Java sources need to be generated, this will yield the accessors' getter.
+     * In case Java sources need to be generated, the call that reads the payload — the JavaBean getter
+     * Kotlin synthesizes, an explicit accessor function, or whatever name `@JvmName` gave either of
+     * them. Always a method invocation; a payload with no getter at all is rejected during validation
+     * rather than described here.
      */
-    val javaAccessor: String by lazy {
-        when {
-            // If there's an explicit accessor method, use it
-            accessorMethod != null -> "${accessorMethod.simpleName.asString()}()"
-            // For data classes, use Java-style getter (getValue())
-            element.modifiers.contains(Modifier.DATA) -> "get${wrappedProperty.name.replaceFirstChar { it.uppercase() }}()"
-            // For regular classes, check if it's a custom method or use Java getter style
-            else -> {
-                val propertyName = wrappedProperty.name
-                if (hasCustomAccessorMethod()) {
-                    "${propertyName}()"
-                } else {
-                    "get${propertyName.replaceFirstChar { it.uppercase() }}()"
-                }
-            }
-        }
-    }
-
-    private fun hasCustomAccessorMethod(): Boolean {
-        // Check if there's a public method with the same name as the property. Non-public ones are
-        // unreachable from generated code, which is emitted into its own package — naming one here
-        // would emit a call that does not compile, and the property's own getter is the right route.
-        return element.getAllFunctions().any { function ->
-            function.isPublic() &&
-                    function.simpleName.asString() == wrappedProperty.name &&
-                    function.parameters.isEmpty() &&
-                    function.returnType?.resolve() == wrappedProperty.type
-        }
-    }
+    val javaAccessor: String = "$javaAccessorName()"
 
     fun objectCreation(parameterName: String): String {
         return if (factoryMethod != null) {

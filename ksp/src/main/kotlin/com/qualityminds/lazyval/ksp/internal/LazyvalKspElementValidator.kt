@@ -12,6 +12,10 @@ private const val NOT_FINAL_CLASS_WARNING =
     "Value Types should not be extendable, hence the class should be final."
 private const val NOT_FINAL_VALUE_WARNING =
     "Value Types should be immutable, hence the wrapped property should be final (val)."
+private const val JVM_STATIC_ANNOTATION = "kotlin.jvm.JvmStatic"
+private const val JVM_FIELD_ANNOTATION = "kotlin.jvm.JvmField"
+private const val JVM_INLINE_ANNOTATION = "kotlin.jvm.JvmInline"
+private const val JVM_NAME_ANNOTATION = "kotlin.jvm.JvmName"
 private val TRANSIENT_ANNOTATIONS = setOf(
     "kotlin.jvm.Transient",
     "jakarta.persistence.Transient",
@@ -81,18 +85,22 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
             return null
         }
         warnOnNonFinal(classDeclaration, valueProperty)
+        val factoryMethod = factoryMethods.firstOrNull()
         return ValidatedKspGeneratorElement(
             classDeclaration,
             WrappedProperty(valueProperty),
-            factoryMethods.firstOrNull(),
-            accessorMethod)
+            factoryMethod,
+            accessorMethod,
+            javaAccessorName(environment, valueProperty, accessorMethod),
+            javaFactoryPath(environment, factoryMethod))
     }
 
     /** Rules about the class itself, independent of what it wraps. */
     private fun validateShape(classDeclaration: KSClassDeclaration): Boolean {
         var valid = true
         // Generated code has to name the type before it can read or rebuild it, and it lands in another
-        // package. `internal` clears that bar — class names are not mangled — so only the rest do not.
+        // package. `internal` clears that bar and leaks nothing by doing so: a caller outside the module
+        // cannot name the type either, so the API generated around it keeps what the author kept.
         val visibility = classDeclaration.getVisibility()
         if (visibility != Visibility.PUBLIC && visibility != Visibility.INTERNAL) {
             environment.error(classDeclaration, nonPublicTypeMessage(classDeclaration))
@@ -110,8 +118,9 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
     }
 
     /**
-     * Rules about the wrapped payload: exactly one property, of a non-nullable type. Both describe
-     * the same thing, so a class that gets both wrong hears about both.
+     * Rules about the wrapped payload: exactly one property, of a non-nullable type that is not a value
+     * class, readable through an accessor. All four describe the same thing, so a class that gets
+     * several wrong hears about each of them.
      */
     private fun validatePayload(
         classDeclaration: KSClassDeclaration,
@@ -123,10 +132,24 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
                 "Not a simple ValueType. Lazyval only supports classes with one non-transient property.")
             valid = false
         }
-        val valueProperty = pairs.first().property
-        if (valueProperty.type.resolve().isMarkedNullable) {
+        val (valueProperty, accessor) = pairs.first()
+        val payloadType = valueProperty.type.resolve()
+        if (payloadType.isMarkedNullable) {
             environment.error(valueProperty,
                 "Wrapped type must not be nullable. Please use a non-nullable type.")
+            valid = false
+        }
+        // Reported on the payload rather than the class because the type is the author's choice to
+        // change. Covers Kotlin's unsigned types too, which are value classes and mangle the same way.
+        if (payloadType.isValueClass()) {
+            environment.error(valueProperty, valueClassPayloadMessage(payloadType))
+            valid = false
+        }
+        // Generated Java reads the payload through a method and has no field path, so a property whose
+        // getter was suppressed leaves it nothing to call. Only fatal without an accessor function:
+        // with one, that function is the route and `@JvmField` is beside the point.
+        if (accessor == null && valueProperty.annotations.hasMarker(JVM_FIELD_ANNOTATION)) {
+            environment.error(valueProperty, jvmFieldPropertyMessage(valueProperty))
             valid = false
         }
         return valid
@@ -169,11 +192,7 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
             return true
         }
         factoryMethods.singleOrNull()?.let { factory ->
-            if (factory.isPublic()) {
-                return true
-            }
-            environment.error(factory, nonPublicFactoryMessage(factory))
-            return false
+            return validateFactoryVisibility(factory)
         }
         val constructor = findPayloadConstructor(classDeclaration, payloadType)
         if (constructor == null) {
@@ -181,11 +200,43 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
             return false
         }
         // `private` and `protected` are out of reach from another package whatever the module layout.
-        // `internal` is deliberately left alone: an internal *class* is supported because class names
-        // are not mangled the way an internal property's getter is — see PropertyAccessorPair.
+        // `internal` is deliberately left alone: a constructor is `<init>` in the bytecode, so there is
+        // no name for Kotlin to mangle a module suffix onto and generated Java can call it.
         val visibility = constructor.getVisibility()
         if (visibility == Visibility.PRIVATE || visibility == Visibility.PROTECTED) {
             environment.error(constructor, nonPublicConstructorMessage(classDeclaration, constructor, visibility))
+            return false
+        }
+        return true
+    }
+
+    /**
+     * Whether generated code may call [factory].
+     *
+     * `internal` is allowed, which puts a factory on the same footing as the `internal` constructor
+     * accepted below: restricting construction to the declaring module is a coherent thing to ask for,
+     * and unlike the payload property it does not oblige Lazyval to publish anything the author hid —
+     * the value still reads through a public accessor either way.
+     *
+     * Two conditions attach to it, and both are about the name rather than the intent. It has to carry
+     * `@JvmName`, because otherwise the JVM name ends in a module suffix that generated Java would have
+     * to hard-code. And it has to be declared here: across a module boundary `internal` is genuinely
+     * unreachable from the Kotlin half of the output, whatever the bytecode permits.
+     */
+    private fun validateFactoryVisibility(factory: KSFunctionDeclaration): Boolean {
+        if (factory.isPublic()) {
+            return true
+        }
+        if (factory.getVisibility() != Visibility.INTERNAL) {
+            environment.error(factory, nonPublicFactoryMessage(factory))
+            return false
+        }
+        if (!factory.isFromCurrentModule()) {
+            environment.error(factory, internalFactoryFromOtherModuleMessage(factory))
+            return false
+        }
+        if (!factory.annotations.hasMarker(JVM_NAME_ANNOTATION)) {
+            environment.error(factory, internalFactoryWithoutJvmNameMessage(factory))
             return false
         }
         return true
@@ -269,6 +320,55 @@ private fun findPropertyAccessorPairs(
         .toList()
 }
 
+/**
+ * The bytecode name generated Java has to call to read the payload, which is the one thing about an
+ * accessor that Java output cannot infer from the Kotlin declaration: `@JvmName` moves it, and so does
+ * Kotlin's own convention of keeping an `is`-prefixed property's name as its getter.
+ *
+ * Falls back to the JavaBean spelling when the name cannot be resolved. [LazyvalKspEnvironment.jvmName]
+ * returns `null` only on a resolution failure, and that spelling is what Lazyval assumed before it
+ * started asking — no worse than it used to be, rather than empty.
+ */
+private fun javaAccessorName(
+    environment: LazyvalKspEnvironment,
+    property: KSPropertyDeclaration,
+    accessor: KSFunctionDeclaration?
+): String {
+    if (accessor != null) {
+        return environment.jvmName(accessor) ?: accessor.simpleName.asString()
+    }
+    property.getter?.let { getter -> environment.jvmName(getter)?.let { return it } }
+    return "get" + property.simpleName.asString().replaceFirstChar { it.uppercase() }
+}
+
+/**
+ * Where generated Java finds the factory, relative to the domain-primitive's type.
+ *
+ * `@JvmStatic` (and a Java `static`) put the function on the type itself, so its JVM name is the whole
+ * path. Without it Kotlin compiles a companion function onto the companion class alone, reachable from
+ * Java through the companion's field — which is what an author writing a plain
+ * `companion object { fun of(..) }` gets, instead of a call to a method that is not there.
+ */
+private fun javaFactoryPath(
+    environment: LazyvalKspEnvironment,
+    factory: KSFunctionDeclaration?
+): String? {
+    if (factory == null) {
+        return null
+    }
+    val jvmName = environment.jvmName(factory) ?: factory.simpleName.asString()
+    if (factory.annotations.hasMarker(JVM_STATIC_ANNOTATION) ||
+        Modifier.JAVA_STATIC in factory.modifiers) {
+        return jvmName
+    }
+    val companion = factory.parentDeclaration as? KSClassDeclaration
+    return if (companion?.isCompanionObject == true) {
+        "${companion.simpleName.asString()}.$jvmName"
+    } else {
+        jvmName
+    }
+}
+
 private fun findFactoryMethods(
     classDeclaration: KSClassDeclaration,
     wrappedType: KSType
@@ -321,6 +421,26 @@ private fun findPayloadConstructor(
 private fun KSType.reconstructs(payload: KSType): Boolean =
     this == payload || (isMarkedNullable && makeNotNullable() == payload)
 
+/**
+ * Whether this type is a Kotlin `value class`, and therefore has no form generated Java can call.
+ *
+ * Two signals because one is not enough: `Modifier.VALUE` is reported for a declaration in the
+ * compilation unit, but not for one read off the classpath — `kotlin.UInt` arrives with neither the
+ * modifier nor anything else naming it a value class except `@JvmInline`, which is retained.
+ */
+private fun KSType.isValueClass(): Boolean =
+    Modifier.VALUE in declaration.modifiers ||
+            declaration.annotations.hasMarker(JVM_INLINE_ANNOTATION)
+
+/**
+ * Whether this declaration is compiled by the run that is processing it, rather than read from a jar.
+ * Decides what `internal` means for it: a members-of-this-module question, or an unreachable one.
+ *
+ * Mirrors the discriminator `KspClassInspection.isFromCurrentModule` already uses.
+ */
+private fun KSDeclaration.isFromCurrentModule(): Boolean =
+    origin == Origin.KOTLIN || origin == Origin.JAVA
+
 private fun KSPropertyDeclaration.isStatic(): Boolean {
     return Modifier.CONST in modifiers ||
             parent is KSClassDeclaration && (parent as KSClassDeclaration).isCompanionObject
@@ -342,5 +462,17 @@ private fun Sequence<KSAnnotation>.hasTransientMarker(): Boolean {
     return any { annotation ->
         if (annotation.shortName.asString() != "Transient") return@any false
         annotation.annotationType.resolve().declaration.qualifiedName?.asString() in TRANSIENT_ANNOTATIONS
+    }
+}
+
+/**
+ * Whether this annotation list carries [qualifiedName]. The short name is compared first so the common
+ * case costs no type resolution, the way [hasTransientMarker] does it.
+ */
+private fun Sequence<KSAnnotation>.hasMarker(qualifiedName: String): Boolean {
+    val shortName = qualifiedName.substringAfterLast('.')
+    return any { annotation ->
+        if (annotation.shortName.asString() != shortName) return@any false
+        annotation.annotationType.resolve().declaration.qualifiedName?.asString() == qualifiedName
     }
 }
