@@ -8,7 +8,6 @@ class Isbn private constructor(val value: String) {
 
     companion object {
         // will be used by the annotation processor (factory methods have higher precedence)
-        @JvmStatic
         @Throws(IllegalArgumentException::class)
         fun parse(value: String): Isbn {
             requireNotNull(value) { "ISBN cannot be null" }

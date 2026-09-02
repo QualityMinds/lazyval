@@ -12,7 +12,7 @@ class Birthdate private constructor(val value: String) {
     val asLocalDate: LocalDate = LocalDate.parse(value)
 
     companion object {
-        @JvmStatic
+        @JvmName("fromString") // Lazyval can handle JvmName as well
         fun of(isoDate: String): Birthdate {
             return Birthdate(isoDate)
         }
