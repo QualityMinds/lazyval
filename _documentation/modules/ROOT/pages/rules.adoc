@@ -95,13 +95,15 @@ As in Java, a property generated code cannot reach is invisible rather than ille
 `private` or `internal` helper property alongside the payload neither counts towards the one-payload
 rule nor needs a `@Transient`. Only when _no_ property is readable does each one get an error.
 +
-`internal` is the surprising one, because it _looks_ like it should work: it is visible to the whole
-module, and the generated sources are part of that module. What breaks it is the JVM name — Kotlin
-mangles an internal property's getter to `getValue$module`, and the Java half of Lazyval's output then
-finds no `getValue()` to call.
+`internal` is the surprising one, and the only one rejected for a reason other than reachability:
+generated sources are part of the same module and can read an internal property perfectly well. What
+they cannot do is keep it to themselves. Everything Lazyval generates — a mapper, a codec, a converter —
+is public API that reads the payload out, so accepting an internal payload would publish the very value
+`internal` withholds. An annotation such as `@get:JvmName` does not change that; it only settles the
+JVM name, which was never the objection.
 +
-This applies to the property, not to the type: an `internal` class is fine, because class names are
-not mangled.
+This applies to the property, not to the type: an `internal` class is fine, because a caller outside the
+module cannot name it in the first place, so the generated API around it leaks nothing that was hidden.
 +
 If you would rather not widen the property, expose a `public` accessor function instead. Lazyval calls
 that function and leaves the property alone — the Kotlin counterpart of the Java rule in the other tab:
@@ -114,6 +116,17 @@ class Reference(private val value: String) {
     fun value(): String = value
 }
 ----
++
+What Lazyval calls is the *JVM* name of the accessor, not the name you wrote, so anything that moves
+that name is honored rather than tripped over: `@get:JvmName` on the property, `@JvmName` on an
+accessor function, and Kotlin's own convention of keeping an `is`-prefixed `Boolean` property's name as
+its getter (`val isActive: Boolean` becomes `isActive()`, not `getIsActive()`). The generated Java calls
+whatever ends up in the bytecode.
++
+`@JvmField` is the exception, because it does not move the accessor but removes it: the annotation
+exposes the backing field and suppresses the getter, while Lazyval reads through an accessor. It is
+rejected with an error on the property. Drop the annotation, or add an accessor function as above —
+widening the property would not help, since visibility is not what is wrong.
 ====
 
 The same bar applies to the way back in — the constructor or factory method Lazyval calls to rebuild
@@ -143,15 +156,47 @@ At most one method may match that signature. With several, Lazyval cannot tell w
 reconstruct the value and reports an error listing the candidates. With none, the constructor is used
 instead, and it then has to take the payload and nothing else.
 
+In Kotlin, `@JvmStatic` on the factory is not required. Without it Kotlin compiles a companion function
+onto the companion class alone, and the generated Java reaches it through the companion field —
+`Isbn.Companion.of(..)`, or the companion's own name where you gave it one. `@JvmName` on the factory is
+honored the same way it is on an accessor, for the reason given under <<visibility>>.
+
 Whichever of the two carries the value back has to be reachable from the generated package, for the
 reason given under <<visibility>>. Being `static` does not make a `private` factory a way in, so a
 type with a `private` constructor needs a `public` factory rather than merely any factory. The error
 lands on whichever of the two Lazyval would have called.
 
-NOTE: In Kotlin the two part ways on `internal`. An `internal` factory function is rejected, because
-Kotlin mangles its JVM name and the Java half of the generated output has no unmangled name to call —
-the same mechanism that rules out an `internal` property under <<visibility>>. An `internal`
-constructor is accepted, because constructors are not name-mangled, just as an `internal` class is.
+`internal` is accepted for both, which is a different concession as for a property: restricting
+construction to the declaring module hides nothing that Lazyval then publishes, since the payload still
+reads through a public accessor. The two differ only in what has to be added.
+
+An `internal` *constructor* needs nothing: a constructor is `<init>` in the bytecode, so there is no
+name for Kotlin to mangle a module suffix onto.
+
+An `internal` *factory function* has a name, and needs `@JvmName` on it:
+
+[source,kotlin]
+----
+@LazyValue
+class Isbn private constructor(val value: String) {
+
+    companion object {
+
+        @JvmName("of")
+        internal fun of(value: String): Isbn = Isbn(value)
+    }
+}
+----
+
+Lazyval asks for the annotation rather than emitting the mangled `of$module` itself, even though Java
+can call that name. The suffix is the module name, which the build supplies to KSP and to `kotlinc`
+separately; if the two ever disagreed, the generated call would name a method that does not exist and
+nothing in the processor could have caught it. An annotation you wrote is verifiable, a name the build
+supplies is not.
+
+A factory that is `internal` in *another* module stays rejected; however, it is annotated. `@JvmName`
+would make it callable from the generated Java, because `internal` is public in the bytecode — but most
+of what Lazyval generates is Kotlin, and there `internal` means what it says.
 
 In Kotlin, nullability is ignored when matching: a `fun ofNullable(value: String?): Isbn?` counts as a
 factory for a `String` payload, and counts towards the at-most-one limit alongside a
@@ -171,6 +216,17 @@ Kotlin::
 +
 Must not be nullable. `String?` is rejected — a domain-primitive whose payload may be absent is not a value.
 +
+Must not be a `value class`. Kotlin does not merely rename such a payload, it compiles the wrapper away:
+the accessor's JVM name gains a signature hash (`getMoney-cgdmosI()`), its type erases to the underlying
+one, and the constructor becomes private behind a synthetic overload. Generated Java can express none of
+the three, and an accessor function is no way around it — a function returning a value class is mangled
+identically. Wrap the underlying type instead.
++
+This includes Kotlin's *unsigned* types, which are value classes: `UInt`, `ULong`, `UShort` and `UByte`
+are rejected as payloads, as are stdlib value classes such as `kotlin.time.Duration`. Nothing in the
+source hints at the mangling, so Lazyval reports it on the property rather than letting it surface as a
+compile error in generated code.
++
 Beyond that, the same generator-side considerations as for Java apply.
 ====
 
@@ -182,7 +238,8 @@ classpath rather than from source. Since the consuming module is a different com
 reachability bar applies to the whole chain: the type, its factory method or constructor, and the
 accessor for the payload.
 
-For Kotlin that additionally rules out `internal` *members* for a second, simpler reason than the name
-mangling above — `internal` is scoped to the module that declares it, and no configuration widens that
-scope. The type itself needs no rule of its own here: an `internal` class in another module cannot be
-named in `externalTypes` to begin with.
+For Kotlin that rules out `internal` *members* twice over. Beyond the objection under <<visibility>>,
+`internal` is scoped to the module that declares it. No configuration widens that scope, so the
+generated Kotlin cannot call such a member at all — reachability really is the problem here, unlike for
+a member of the module being compiled. The type itself needs no rule of its own: an `internal` class in
+another module cannot be named in `externalTypes` to begin with.

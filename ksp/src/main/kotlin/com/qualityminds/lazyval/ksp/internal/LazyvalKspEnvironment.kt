@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.ksp.internal
 
+import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.getConstructors
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.processing.KSPLogger
@@ -110,6 +111,24 @@ internal class LazyvalKspEnvironment(
             }
         }
     }
+
+    /**
+     * The name [function] actually carries in the bytecode, which is what generated Java has to spell.
+     * Differs from the Kotlin name whenever `@JvmName` renames it, and carries a `$module` suffix when
+     * the function is `internal`.
+     *
+     * `null` signals a resolution failure rather than "no JVM name" — callers fall back to the Kotlin
+     * name, which is what Lazyval assumed before the JVM name was consulted at all.
+     */
+    @OptIn(KspExperimental::class)
+    fun jvmName(function: KSFunctionDeclaration): String? = resolver.getJvmName(function)
+
+    /**
+     * The name [accessor] actually carries in the bytecode. Mirrors [jvmName] for a property's getter,
+     * where `@get:JvmName` plays the same role `@JvmName` does on a function.
+     */
+    @OptIn(KspExperimental::class)
+    fun jvmName(accessor: KSPropertyAccessor): String? = resolver.getJvmName(accessor)
 
     /**
      * Checks whether a class with the given [fqn] is available on the classpath.

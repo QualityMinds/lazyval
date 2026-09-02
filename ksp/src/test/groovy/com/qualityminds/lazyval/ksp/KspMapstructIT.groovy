@@ -44,6 +44,39 @@ class KspMapstructIT extends Specification {
         result == Testresult.Kotlin.Approved.of(approvals)
     }
 
+    /**
+     * Pins the four ways a member's JVM name can part company with its Kotlin declaration, since only
+     * the Java half of the output has to care: `@JvmName` on a getter or on a factory renames it, and a
+     * companion factory without `@JvmStatic` is not on the type at all — it is reached through the
+     * companion field, under the companion's own name when it has one. The last two are `internal` as
+     * well, so the fixture is also where a leaked `$module` suffix would show up.
+     *
+     * KspIT already proves these compile. What an approval adds is that they compile for the right
+     * reason: a wrong-but-resolvable name would satisfy javac just as well.
+     */
+    void "Mapstruct resolves JVM names that differ from the Kotlin declaration"() {
+        given: 'one domain-primitive per way a JVM name can be moved'
+        def scenario = Scenario.Kotlin.of("mapstruct-jvm-names",
+                "scenarios/edge/PropertyWithRenamedJvmName.kt",
+                "scenarios/edge/FactoryWithRenamedJvmName.kt",
+                "scenarios/edge/FactoryWithoutJvmStatic.kt",
+                "scenarios/edge/FactoryOnNamedCompanion.kt",
+                "scenarios/edge/InternalFactoryWithJvmName.kt",
+                "scenarios/edge/InternalFactoryOnCompanion.kt")
+                .withDependencies(dependencyMapstruct, dependencyJakartaAnnotations)
+
+        and: 'a defined approval for the generated mapper'
+        List<Approval.ForKotlin> approvals = [
+                Approval.JavaSource.at("test/$GENERATED_FILE_NAME", "approvals/mapstruct/LazyvalMapperJvmNames.java")
+        ]
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario, approvals)
+
+        then:
+        result == Testresult.Kotlin.Approved.of(approvals)
+    }
+
     void "Warning is issued when package is not configured in any way"(){
         given:
         def scenario = Scenario.Kotlin.quantity().withDependencies(dependencyMapstruct)
