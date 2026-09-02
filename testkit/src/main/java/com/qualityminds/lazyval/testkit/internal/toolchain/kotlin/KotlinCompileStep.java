@@ -78,6 +78,8 @@ record KotlinCompileStep(ProjectLayout layout, CompilationService service,
                     "-classpath", classpathString,
                     // needed to resolve Java types like LocalDate
                     "-jdk-home", System.getProperty("java.home"),
+                    // must match what KSP was told; see KotlinToolchain.MODULE_NAME
+                    "-module-name", KotlinToolchain.MODULE_NAME,
                     // std-lib and kotlin-reflect will be added to classpath manually
                     // because the kotlin compiler otherwise expects a kotlin-stdlib on the filesystem
                     "-no-stdlib", "-no-reflect"

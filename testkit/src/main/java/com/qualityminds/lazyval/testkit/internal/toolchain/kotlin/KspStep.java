@@ -116,7 +116,7 @@ class KspStep implements AutoCloseable {
             builder.setJvmTarget("17");
             builder.setLanguageVersion(kotlinVersion.toString());
             builder.setApiVersion(kotlinVersion.getMajor() + "." + kotlinVersion.getMinor());
-            builder.setModuleName("test");
+            builder.setModuleName(KotlinToolchain.MODULE_NAME);
             builder.setJdkHome(Path.of(System.getProperty("java.home")).toFile());
             builder.setProjectBaseDir(layout.projectDir().toFile());
             builder.setOutputBaseDir(Files.createDirectories(layout.buildDir()).toFile());
