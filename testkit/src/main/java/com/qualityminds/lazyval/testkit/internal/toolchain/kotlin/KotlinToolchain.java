@@ -42,6 +42,15 @@ public class KotlinToolchain implements AutoCloseable {
         return new ProjectLayout(projectDir).kspResourceOutput();
     }
 
+    /**
+     * Module name handed to both KSP and kotlinc. The two have to agree: Kotlin mangles the JVM name of
+     * an {@code internal} member to {@code name$module}, so a KSP step that believes the module is called
+     * something else than kotlinc does would report JVM names that never appear in the bytecode. KSP takes
+     * it via {@code KSPJvmConfig.setModuleName}, kotlinc via {@code -module-name} — which defaults to
+     * {@code main} when left out, silently disagreeing with whatever KSP was told.
+     */
+    static final String MODULE_NAME = "test";
+
     private final KspStep kspStep;
     private final KotlinCompileStep kotlinStep;
     private final JavaCompileStep javaStep;
