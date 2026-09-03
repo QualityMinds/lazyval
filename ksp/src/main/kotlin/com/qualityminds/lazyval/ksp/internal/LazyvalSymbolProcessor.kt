@@ -70,7 +70,7 @@ class LazyvalSymbolProcessor(
     override fun process(resolver: Resolver): List<KSAnnotated> {
         try {
             lazyvalEnvironment = LazyvalKspEnvironment(environment, resolver)
-            elementValidator = LazyvalKspElementValidator(lazyvalEnvironment)
+            elementValidator = LazyvalKspElementValidator(lazyvalEnvironment, JvmNameLookup(resolver))
         } catch (_: IllegalArgumentException) {
             return emptyList()
         }
