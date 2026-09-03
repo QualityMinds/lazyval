@@ -12,7 +12,6 @@ private const val NOT_FINAL_CLASS_WARNING =
     "Value Types should not be extendable, hence the class should be final."
 private const val NOT_FINAL_VALUE_WARNING =
     "Value Types should be immutable, hence the wrapped property should be final (val)."
-private const val JVM_STATIC_ANNOTATION = "kotlin.jvm.JvmStatic"
 private const val JVM_FIELD_ANNOTATION = "kotlin.jvm.JvmField"
 private const val JVM_INLINE_ANNOTATION = "kotlin.jvm.JvmInline"
 private const val JVM_NAME_ANNOTATION = "kotlin.jvm.JvmName"
@@ -31,8 +30,15 @@ private val TRANSIENT_ANNOTATIONS = setOf(
  * one step further out, in `LazyvalKspElementValidatorMessages.kt`, because it answers to KspIT and to the APT validator
  * rather than to the rules. What that buys: whatever is in the class reports to the compiler and
  * therefore needs a test that reads the message back, and whatever is below it does not.
+ *
+ * The names generated Java has to call are a [JvmNameLookup] rather than a helper below, because they
+ * are not a rule and not a judgement: they answer to the Kotlin compiler's naming, which no diagnostic
+ * here has an opinion about. It is a collaborator rather than a member of [LazyvalKspEnvironment] so
+ * that the environment keeps to reporting and configuration.
  */
-internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnvironment) {
+internal class LazyvalKspElementValidator(
+    private val environment: LazyvalKspEnvironment,
+    private val jvmNames: JvmNameLookup) {
 
     fun validate(classDeclaration: KSClassDeclaration): ValidatedKspGeneratorElement? {
         return when (classDeclaration.classKind) {
@@ -91,8 +97,8 @@ internal class LazyvalKspElementValidator(private val environment: LazyvalKspEnv
             WrappedProperty(valueProperty),
             factoryMethod,
             accessorMethod,
-            javaAccessorName(environment, valueProperty, accessorMethod),
-            javaFactoryPath(environment, factoryMethod))
+            jvmNames.javaAccessorName(valueProperty, accessorMethod),
+            jvmNames.javaFactoryPath(factoryMethod))
     }
 
     /** Rules about the class itself, independent of what it wraps. */
@@ -320,55 +326,6 @@ private fun findPropertyAccessorPairs(
         .toList()
 }
 
-/**
- * The bytecode name generated Java has to call to read the payload, which is the one thing about an
- * accessor that Java output cannot infer from the Kotlin declaration: `@JvmName` moves it, and so does
- * Kotlin's own convention of keeping an `is`-prefixed property's name as its getter.
- *
- * Falls back to the JavaBean spelling when the name cannot be resolved. [LazyvalKspEnvironment.jvmName]
- * returns `null` only on a resolution failure, and that spelling is what Lazyval assumed before it
- * started asking — no worse than it used to be, rather than empty.
- */
-private fun javaAccessorName(
-    environment: LazyvalKspEnvironment,
-    property: KSPropertyDeclaration,
-    accessor: KSFunctionDeclaration?
-): String {
-    if (accessor != null) {
-        return environment.jvmName(accessor) ?: accessor.simpleName.asString()
-    }
-    property.getter?.let { getter -> environment.jvmName(getter)?.let { return it } }
-    return "get" + property.simpleName.asString().replaceFirstChar { it.uppercase() }
-}
-
-/**
- * Where generated Java finds the factory, relative to the domain-primitive's type.
- *
- * `@JvmStatic` (and a Java `static`) put the function on the type itself, so its JVM name is the whole
- * path. Without it Kotlin compiles a companion function onto the companion class alone, reachable from
- * Java through the companion's field — which is what an author writing a plain
- * `companion object { fun of(..) }` gets, instead of a call to a method that is not there.
- */
-private fun javaFactoryPath(
-    environment: LazyvalKspEnvironment,
-    factory: KSFunctionDeclaration?
-): String? {
-    if (factory == null) {
-        return null
-    }
-    val jvmName = environment.jvmName(factory) ?: factory.simpleName.asString()
-    if (factory.annotations.hasMarker(JVM_STATIC_ANNOTATION) ||
-        Modifier.JAVA_STATIC in factory.modifiers) {
-        return jvmName
-    }
-    val companion = factory.parentDeclaration as? KSClassDeclaration
-    return if (companion?.isCompanionObject == true) {
-        "${companion.simpleName.asString()}.$jvmName"
-    } else {
-        jvmName
-    }
-}
-
 private fun findFactoryMethods(
     classDeclaration: KSClassDeclaration,
     wrappedType: KSType
@@ -468,8 +425,11 @@ private fun Sequence<KSAnnotation>.hasTransientMarker(): Boolean {
 /**
  * Whether this annotation list carries [qualifiedName]. The short name is compared first so the common
  * case costs no type resolution, the way [hasTransientMarker] does it.
+ *
+ * `internal` rather than file-private because [JvmNameLookup] asks the same question of `@JvmStatic`,
+ * and one spelling of the check beats two.
  */
-private fun Sequence<KSAnnotation>.hasMarker(qualifiedName: String): Boolean {
+internal fun Sequence<KSAnnotation>.hasMarker(qualifiedName: String): Boolean {
     val shortName = qualifiedName.substringAfterLast('.')
     return any { annotation ->
         if (annotation.shortName.asString() != shortName) return@any false

@@ -1,3 +1,4 @@
+@file:Suppress("TooManyFunctions")
 package com.qualityminds.lazyval.ksp.internal
 
 import com.google.devtools.ksp.getVisibility
