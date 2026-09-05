@@ -126,21 +126,21 @@ class CassandraCodecGenerator : Generator {
     }
 
     private fun resolveTypeCodecConstant(element: ValidatedKspGeneratorElement): String? {
-        val qualifiedName = element.wrappedProperty.type.declaration.qualifiedName?.asString() ?: return null
+        val qualifiedName = element.payloadType.declaration.qualifiedName?.asString() ?: return null
         return TYPE_CODEC_MAP[qualifiedName]
     }
 
     private fun buildMappingCodec(element: ValidatedKspGeneratorElement, typeCodecConstant: String): TypeSpec {
         val elementClassName = element.element.toClassName()
-        val wrappedTypeName = element.wrappedProperty.type.toTypeName()
+        val payloadTypeName = element.payloadType.toTypeName()
 
-        val codecClassName = "${element.typeName.name}Codec"
+        val codecClassName = "${element.name.flatName()}Codec"
 
         val nullableElementClassName = elementClassName.copy(nullable = true)
 
         return TypeSpec.classBuilder(codecClassName)
             .superclass(
-                MAPPING_CODEC.parameterizedBy(wrappedTypeName.copy(nullable = false), nullableElementClassName)
+                MAPPING_CODEC.parameterizedBy(payloadTypeName.copy(nullable = false), nullableElementClassName)
             )
             .addSuperclassConstructorParameter(
                 CodeBlock.of("%T.%L, object : %T() {}", TYPE_CODECS, typeCodecConstant, GENERIC_TYPE.parameterizedBy(nullableElementClassName))
@@ -148,17 +148,17 @@ class CassandraCodecGenerator : Generator {
             .addFunction(
                 FunSpec.builder("innerToOuter")
                     .addModifiers(KModifier.OVERRIDE)
-                    .addParameter("value", wrappedTypeName.copy(nullable = true))
+                    .addParameter("value", payloadTypeName.copy(nullable = true))
                     .returns(nullableElementClassName)
-                    .addStatement("return value?.let { ${element.objectCreation("it")} }")
+                    .addStatement("return ${element.kotlin.createOrNull("value")}")
                     .build()
             )
             .addFunction(
                 FunSpec.builder("outerToInner")
                     .addModifiers(KModifier.OVERRIDE)
                     .addParameter("value", nullableElementClassName)
-                    .returns(wrappedTypeName.copy(nullable = true))
-                    .addStatement("return value?.${element.kotlinAccessor}")
+                    .returns(payloadTypeName.copy(nullable = true))
+                    .addStatement("return ${element.kotlin.readOrNull("value")}")
                     .build()
             )
             .build()

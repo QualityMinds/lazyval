@@ -2,6 +2,7 @@ package com.qualityminds.lazyval.ksp.internal
 
 import com.google.devtools.ksp.getConstructors
 import com.google.devtools.ksp.getVisibility
+import com.google.devtools.ksp.processing.KSBuiltIns
 import com.google.devtools.ksp.processing.KSPLogger
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
@@ -110,6 +111,12 @@ internal class LazyvalKspEnvironment(
             }
         }
     }
+
+    /**
+     * The compiler's built-in types, for a payload whose underlying type is not named in any signature
+     * Lazyval can reach — Kotlin's unsigned types keep theirs `internal` to the standard library.
+     */
+    val builtIns: KSBuiltIns get() = resolver.builtIns
 
     /**
      * Checks whether a class with the given [fqn] is available on the classpath.

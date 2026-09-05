@@ -19,7 +19,7 @@ class QuarkusBeanValidationIT {
 
     @Test
     void "domain-primitive is unwrapped for default constraints"(){
-        def some = new SomeClass(new Quantity(11))
+        def some = new SomeClass(Quantity.of(11))
         def violations = validator.validate(some)
         assert violations.size() == 1
         def v = violations.first()

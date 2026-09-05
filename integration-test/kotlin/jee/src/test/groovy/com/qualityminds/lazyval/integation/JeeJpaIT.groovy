@@ -54,7 +54,7 @@ class JeeJpaIT extends AbstractLibertyIT {
 
         then:
         createdOrder.isbn == Isbn.parse(createOrderDto.getIsbn())
-        createdOrder.quantity == new Quantity(createOrderDto.getQuantity())
+        createdOrder.quantity == Quantity.of(createOrderDto.getQuantity())
         createdOrder.email == new EMail(createOrderDto.getEmail())
         createdOrder.id != null
     }

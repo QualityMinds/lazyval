@@ -3,10 +3,12 @@ package com.qualityminds.lazyval.processor.internal.codegen.jackson;
 import com.palantir.javapoet.*;
 import com.qualityminds.lazyval.processor.internal.codegen.GeneratedStamp;
 import com.qualityminds.lazyval.processor.spi.Generator;
+import com.qualityminds.lazyval.naming.Payload;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
 import java.util.List;
+import static com.qualityminds.lazyval.processor.internal.codegen.JavaPoetExprs.code;
 
 /**
  * Shared code-generation logic for Jackson serializer/deserializer modules.
@@ -38,8 +40,7 @@ final class JacksonCodegen {
 
     TypeSpec generateSerializer(ValidatedGeneratorElement element) {
         var elementType = TypeName.get(element.element().asType());
-        var wrappedType = element.wrappedType();
-        var serializerName = element.typeName().name() + "Serializer";
+        var serializerName = element.name().flatName() + "Serializer";
 
         var serializeMethod = MethodSpec.methodBuilder("serialize")
                 .addAnnotation(OVERRIDE_ANNOTATION)
@@ -54,20 +55,19 @@ final class JacksonCodegen {
         }
 
         boolean needsCachedSerializer = false;
-        if (wrappedType.isPrimitive()) {
-            String wrappedTypeName = wrappedType.typeName().simpleName();
-            String writeStatement = switch (wrappedTypeName) {
-                case "int", "long", "short" -> "gen.writeNumber(value.$L)";
-                case "float", "double" -> "gen.writeNumber(value.$L)";
-                case "boolean" -> "gen.writeBoolean(value.$L)";
-                case "char", "byte" -> "gen.writeString(String.valueOf(value.$L))";
-                default -> "gen.writeString(String.valueOf(value.$L))";
+        if (element.payload() instanceof Payload.Primitive primitive) {
+            // Exhaustive over Kind on purpose: no default arm, so adding a primitive kind is a
+            // compile error here rather than a silent fall-through to writeString.
+            String writeStatement = switch (primitive.kind()) {
+                case INT, LONG, SHORT, FLOAT, DOUBLE -> "gen.writeNumber($L)";
+                case BOOLEAN -> "gen.writeBoolean($L)";
+                case CHAR, BYTE -> "gen.writeString(String.valueOf($L))";
             };
-            serializeMethod.addStatement(writeStatement, element.accessor());
-        } else if (isStringType(wrappedType)) {
+            serializeMethod.addStatement(writeStatement, code(element.java().read("value")));
+        } else if (isStringPayload(element)) {
             // Direct write — avoids per-call serializer lookup. Bypasses any user-customized
             // String serializer; acceptable for scalar wrapper payloads.
-            serializeMethod.addStatement("gen.writeString(value.$L)", element.accessor());
+            serializeMethod.addStatement("gen.writeString($L)", code(element.java().read("value")));
         } else {
             // Resolve the delegate serializer (e.g. JavaTimeModule for DateTime types) once
             // and cache it. Benign data race on assignment: redundant resolution yields an
@@ -77,10 +77,10 @@ final class JacksonCodegen {
             serializeMethod
                     .addStatement("$T ser = this.innerSerializer", cachedFieldType)
                     .beginControlFlow("if (ser == null)")
-                    .addStatement("ser = provider.findValueSerializer($T.class)", TypeName.get(wrappedType.typeMirror()))
+                    .addStatement("ser = provider.findValueSerializer($T.class)", TypeName.get(element.payloadType()))
                     .addStatement("this.innerSerializer = ser")
                     .endControlFlow()
-                    .addStatement("ser.serialize(value.$L, gen, provider)", element.accessor());
+                    .addStatement("ser.serialize($L, gen, provider)", code(element.java().read("value")));
         }
 
         var builder = TypeSpec.classBuilder(serializerName)
@@ -107,8 +107,7 @@ final class JacksonCodegen {
 
     TypeSpec generateDeserializer(ValidatedGeneratorElement element) {
         var elementType = TypeName.get(element.element().asType());
-        var wrappedType = element.wrappedType();
-        var deserializerName = element.typeName().name() + "Deserializer";
+        var deserializerName = element.name().flatName() + "Deserializer";
 
         var deserializeMethod = MethodSpec.methodBuilder("deserialize")
                 .addAnnotation(OVERRIDE_ANNOTATION)
@@ -124,21 +123,19 @@ final class JacksonCodegen {
         }
 
         boolean needsCachedDeserializer = false;
-        if (wrappedType.isPrimitive()) {
-            String wrappedTypeName = wrappedType.typeName().simpleName();
-            String readValueStatement = switch (wrappedTypeName) {
-                case "int" -> "var value = p.getValueAsInt()";
-                case "long" -> "var value = p.getValueAsLong()";
-                case "double" -> "var value = p.getValueAsDouble()";
-                case "boolean" -> "var value = p.getValueAsBoolean()";
-                case "float" -> "var value = (float) p.getValueAsDouble()";
-                case "short" -> "var value = (short) p.getValueAsInt()";
-                case "byte" -> "var value = (byte) p.getValueAsInt()";
-                case "char" -> "var value = p.getValueAsString().charAt(0)";
-                default -> "var value = p.getValueAsString()";
+        if (element.payload() instanceof Payload.Primitive primitive) {
+            String readValueStatement = switch (primitive.kind()) {
+                case INT -> "var value = p.getValueAsInt()";
+                case LONG -> "var value = p.getValueAsLong()";
+                case DOUBLE -> "var value = p.getValueAsDouble()";
+                case BOOLEAN -> "var value = p.getValueAsBoolean()";
+                case FLOAT -> "var value = (float) p.getValueAsDouble()";
+                case SHORT -> "var value = (short) p.getValueAsInt()";
+                case BYTE -> "var value = (byte) p.getValueAsInt()";
+                case CHAR -> "var value = p.getValueAsString().charAt(0)";
             };
             deserializeMethod.addStatement(readValueStatement);
-        } else if (isStringType(wrappedType)) {
+        } else if (isStringPayload(element)) {
             // Direct read — avoids per-call deserializer lookup. Bypasses any user-customized
             // String deserializer; acceptable for scalar wrapper payloads.
             deserializeMethod.addStatement("var value = p.getValueAsString()");
@@ -152,15 +149,15 @@ final class JacksonCodegen {
                     .addStatement("$T deser = this.innerDeserializer", cachedFieldType)
                     .beginControlFlow("if (deser == null)")
                     .addStatement("deser = ctxt.findContextualValueDeserializer(ctxt.constructType($T.class), null)",
-                            TypeName.get(wrappedType.typeMirror()))
+                            TypeName.get(element.payloadType()))
                     .addStatement("this.innerDeserializer = deser")
                     .endControlFlow()
                     .addStatement("var value = ($T) deser.deserialize(p, ctxt)",
-                            TypeName.get(wrappedType.typeMirror()));
+                            TypeName.get(element.payloadType()));
         }
 
         deserializeMethod
-                .addStatement("return $L", element.objectCreation("value"));
+                .addStatement("return $L", code(element.java().create("value")));
 
         var builder = TypeSpec.classBuilder(deserializerName)
                 .superclass(ParameterizedTypeName.get(generatorConfig.stdDeserializer(), elementType))
@@ -184,8 +181,8 @@ final class JacksonCodegen {
         return builder.build();
     }
 
-    private static boolean isStringType(ValidatedGeneratorElement.WrappedType wrappedType) {
-        return "java.lang.String".equals(wrappedType.typeMirror().toString());
+    private static boolean isStringPayload(ValidatedGeneratorElement element) {
+        return "java.lang.String".equals(element.payloadType().toString());
     }
 
     TypeSpec generateModule(List<TypeSpec> serializers, List<TypeSpec> deserializers,

@@ -64,38 +64,73 @@ internal fun jvmFieldPropertyMessage(property: KSPropertyDeclaration): String =
             "Remove @JvmField, or add a public accessor function."
 
 /**
- * A `value class` payload is compiled away rather than merely renamed, and in three ways at once: the
- * accessor's JVM name gains a signature hash, its type erases to the underlying one, and the primary
- * constructor becomes private behind a synthetic marker overload. Generated Java can express none of
- * them.
+ * Why a `value class` payload cannot be unwrapped. Every one of these is a shape Kotlin permits, and
+ * each would otherwise surface as an error inside the generated shim — a Kotlin error, since the shim
+ * is Kotlin, which makes it no less of a broken build.
  *
- * The accessor function that rescues every other unreadable payload is no help here — a function
- * returning a value class is mangled just the same (`money-cgdmosI()`), so the message does not offer
- * it. Wrapping the underlying type directly is the only way out, which is why the advice names that
- * type where it can be resolved.
+ * The advice points at the value class rather than at the domain-primitive: it is the value class's own
+ * contract that is in the way, and saying otherwise would send the author to edit the wrong file.
  */
-internal fun valueClassPayloadMessage(payloadType: KSType): String {
-    val advice = payloadType.underlyingValueClassType()
-        ?.let { "Use $it as the payload instead." }
-        ?: "Use its underlying type as the payload instead."
-    return "Payload type '${payloadType.shortName()}' is a value class, which Kotlin compiles away: " +
-            "the accessor's JVM name carries a signature hash, its type erases to the underlying one, " +
-            "and the constructor becomes private. Generated Java can call none of them. $advice"
-}
+internal fun valueClassPrivatePropertyMessage(payloadType: KSType, propertyName: String): String =
+    "Payload type '${payloadType.shortName()}' is a value class whose property '$propertyName' is not " +
+            "public, so nothing can read the value it wraps. " +
+            "Make the property public, or use a different payload type."
 
 /**
- * The single property a value class wraps, which is what the author has to use instead. `null` when the
- * declaration cannot be read that way — an aliased or malformed value class — so the advice degrades to
- * naming no type rather than naming a wrong one.
+ * The same obstacle in a declaration this compilation does not hold the source of — a standard-library
+ * value class such as `kotlin.time.Duration`, whose `rawValue` is private. Widening it is not among the
+ * author's options, so the advice cannot be to widen it; the only honest move left is a payload type
+ * they can shape.
  */
-private fun KSType.underlyingValueClassType(): String? =
-    (declaration as? KSClassDeclaration)
-        ?.primaryConstructor
-        ?.parameters
-        ?.singleOrNull()
-        ?.type
-        ?.resolve()
-        ?.shortName()
+internal fun valueClassForeignPropertyMessage(payloadType: KSType, propertyName: String): String =
+    "Payload type '${payloadType.shortName()}' is a value class from outside this compilation whose " +
+            "property '$propertyName' is not public, so nothing can read the value it wraps and the " +
+            "declaration cannot be widened from here. " +
+            "Use a payload type this project declares, or the plain type " +
+            "${payloadType.shortName()} converts to."
+
+/**
+ * A nullable underlying type is refused rather than unwrapped. Generated code carries what the value
+ * class wraps *in place of* the value class, so a nullable one would hand it a nullable payload — the
+ * very thing the payload rule above forbids, for the same reason: a value whose payload may be absent
+ * is not a value. Absence belongs to the reference the caller holds, not inside the wrapper.
+ */
+internal fun valueClassNullablePayloadMessage(payloadType: KSType, propertyName: String): String =
+    "Payload type '${payloadType.shortName()}' is a value class whose property '$propertyName' is " +
+            "nullable, and generated code carries that value in place of the value class. " +
+            "Make the property non-nullable; a value that may be absent belongs to the reference at " +
+            "the call site, not inside the value class."
+
+/** No factory and no reachable constructor, so the value cannot be rebuilt from its payload. */
+internal fun valueClassUnconstructableMessage(payloadType: KSType): String =
+    "Payload type '${payloadType.shortName()}' is a value class that can neither be constructed nor " +
+            "built through a factory: its constructor is not accessible and it declares no public " +
+            "single-argument factory returning ${payloadType.shortName()}. " +
+            "Widen the constructor, or add a factory function in its companion object."
+
+/**
+ * A nullable result is allowed for the domain-primitive's own factory and refused for a value class's,
+ * because the two are called in different places. The domain-primitive's answers a caller who can hold
+ * the `null`; this one is called from inside the wrapping expression, where the enclosing constructor
+ * wants the value class and a `null` has nowhere to go.
+ */
+internal fun valueClassNullableFactoryMessage(payloadType: KSType, name: String): String =
+    "Payload type '${payloadType.shortName()}' is a value class whose factory function '$name' " +
+            "returns ${payloadType.shortName()}?, but generated code has to rebuild a non-null " +
+            "${payloadType.shortName()} from the payload it carries. " +
+            "Make the factory return ${payloadType.shortName()}, or throw instead of returning null."
+
+/** Mirrors the domain-primitive rule: with several candidates there is no single one to pick. */
+internal fun valueClassAmbiguousFactoryMessage(payloadType: KSType, names: List<String>): String =
+    "Payload type '${payloadType.shortName()}' is a value class with multiple matching factory " +
+            "functions, so Lazyval cannot tell which one rebuilds it. " +
+            "Please check functions ${names.joinToString(", ")}."
+
+/** The value class is shaped in a way KSP cannot describe; nothing more specific can be said. */
+internal fun valueClassUnreadableMessage(payloadType: KSType): String =
+    "Payload type '${payloadType.shortName()}' is a value class Lazyval cannot inspect: it exposes no " +
+            "single-property primary constructor. " +
+            "Use a different payload type."
 
 /**
  * The advice is the mirror image of [nonPublicConstructorMessage]: an author who wrote a factory

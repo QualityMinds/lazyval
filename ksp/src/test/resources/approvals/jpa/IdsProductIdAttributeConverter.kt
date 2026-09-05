@@ -11,5 +11,5 @@ import scenarios.kotlin.Ids
 public class IdsProductIdAttributeConverter : AttributeConverter<Ids.ProductId?, String?> {
   override fun convertToDatabaseColumn(type: Ids.ProductId?): String? = type?.value
 
-  override fun convertToEntityAttribute(dbValue: String?): Ids.ProductId? = dbValue?.let { Ids.ProductId.of(dbValue) }
+  override fun convertToEntityAttribute(dbValue: String?): Ids.ProductId? = dbValue?.let { Ids.ProductId.of(it) }
 }

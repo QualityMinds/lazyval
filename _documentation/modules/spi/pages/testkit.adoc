@@ -55,7 +55,27 @@ The testkit ships a collection of valid scenarios for both Java and Kotlin so SP
 
 |`nullableQuantity()` _(Kotlin only)_
 |Factory that can return `null` — exercises nullability propagation.
+
+|`valueClassPayload()` _(Kotlin only)_
+|Payload is a `value class`, so it is unwrapped and the Java half of the output has to go through a
+generated access shim. Run this if your generator emits Java — see below.
 |===
+
+[#value-class-interop]
+=== Value-class interop
+
+`Scenario.Kotlin.valueClassPayload()` is the one predefined scenario with no `Scenario.Java` twin, since
+Java has no value classes. It exists because a `value class` payload is the shape most likely to break a
+generator that emits Java: Kotlin compiles the wrapper away, so the payload accessor's JVM name carries a
+signature hash and the enclosing constructor is private in the bytecode — neither nameable from Java.
+
+Lazyval handles it by unwrapping the payload and generating an `internal object` to reach it. A generator
+that maps to `payloadType` and asks `element.java` for its expressions passes this scenario without any
+change of its own — see xref:kotlin.adoc#java-output[if you emit Java]. One that spells the accessor from
+the Kotlin declaration will not.
+
+It is deliberately *not* part of `combined()` or `all()`, so adopting it is a choice rather than a
+surprise on upgrade.
 
 IMPORTANT: Predefined scenarios still need the generator's required `Dependency`. Without it, Lazyval skips generation for that SPI by design.
 

@@ -62,6 +62,125 @@ include::spi:example$GeneratorResult.java[tag=result]
 `GeneratorResult.Java(metadata, contents)`:: A Java source file, written under the package in `metadata`.
 `GeneratorResult.ServiceLoader(spiType, providerType)`:: A `META-INF/services/<spiType>` entry containing `providerType`. Multiple generators contributing to the same SPI file are merged automatically.
 
+[#naming]
+== Naming things
+
+`ValidatedGeneratorElement.name()` hands out a `com.qualityminds.lazyval.naming.DotName`: a package
+plus the simple names, already separated. A generator needs one name in several spellings, and the wrong
+one produces source that does not compile — so `DotName` offers each instead of a string to re-split.
+
+[source,java]
+----
+DotName name = element.name();    // ProductId, declared inside Ids
+
+name.canonicalName();   // "com.acme.order.Ids.ProductId" - naming the type in full
+name.nestedName();      // "Ids.ProductId"                - naming it once it is imported
+name.simpleName();      // "ProductId"                    - the declaration's own name
+name.flatName();        // "IdsProductId"                 - deriving a new identifier from it
+----
+
+Derive generated names from `flatName()`. It is the one that is easy to get wrong: a class or file name
+must not contain a dot, and two nested types called `ProductId` under different enclosing classes would
+otherwise generate the same file, the second silently overwriting the first.
+
+[source,java]
+----
+String codecName = element.name().flatName() + "Codec";   // "IdsProductIdCodec"
+----
+
+There is deliberately no `parse(String)`: splitting a qualified name back into a package and its simple
+names cannot be done from the string alone — JavaPoet's `ClassName.bestGuess` assumes the first
+capitalised segment starts the type, which is a convention rather than a rule. Lazyval learns the split
+from the compiler once, where the answer is authoritative, and passes it on. JavaPoet takes the parts
+directly: `ClassName.get(pkg, first, rest...)`.
+
+NOTE: `name()` describes the *domain-primitive*. The payload has a name of its own — see
+<<payload-description>> — and it is a different type, because a primitive payload is a keyword rather than a
+declaration.
+
+[#payload]
+== Reading and rebuilding the payload
+
+Whatever it emits, a generator does two things with a `@LazyValue` type: read the payload out of an
+instance, and rebuild an instance from a payload. `element.java()` hands you both as complete
+expressions, so nothing is assembled from an accessor name and a type name by hand.
+
+[source,java]
+----
+element.java().read("source")     // source.value()
+element.java().create("value")    // new Ids.ProductId(value), or Ids.ProductId.of(value)
+----
+
+Whether the accessor is a record component or a getter, and whether to call a factory or the
+constructor, are resolved during validation — a generator never branches on it. Everything that
+produces generator *output* sits behind `java()`; everything else on the element merely describes the
+domain-primitive, which is the whole reason for the split.
+
+The Kotlin SPI has the same two methods under `element.java`, plus `element.kotlin` for Kotlin output.
+A generator shipped for both processors reads the same way on each.
+
+=== Working with an expression
+
+Both methods return a `PayloadExpr`, which keeps the type names an expression mentions apart from its
+text — a generator managing its own imports has to know which types it names and where, and handing
+them back as text would leave it to guess.
+
+`asSource()`:: The expression as source text, every type spelled out canonically, so it compiles with no
+import at all. Also what `toString()` returns, which is why an expression can go straight into a
+template.
+`asFormat(typeSlot)`:: The expression with `typeSlot` written where each type belongs, plus those types
+in the order they appear — the two things JavaPoet's `$T` needs in order to add the imports itself.
+
+[source,java]
+----
+var formatted = element.java().create("value").asFormat("$T");
+Object[] args = formatted.types().stream()
+        .map(n -> ClassName.get(n.packageName(), n.simpleNames().get(0),
+                                n.simpleNames().subList(1, n.simpleNames().size()).toArray(String[]::new)))
+        .toArray();
+method.addStatement("return " + formatted.format(), args);
+----
+
+[#payload-description]
+== The payload
+
+`payloadType()`:: The low-level `TypeMirror`, to hand straight to JavaPoet or to analyse further. Note
+that `TypeName.get(element.payloadType()).box()` is safe to call unconditionally — JavaPoet returns a
+reference type unchanged, so a nullable slot needs no primitive branch.
+`isPayloadPrimitive()`:: Whether generated code can skip a null check — the only place that boolean
+lives. `Payload` deliberately offers no `isPrimitive()`: on a sealed pair the type system already answers
+it, and a boolean beside it would be a second way to ask one thing. This one is read off the
+`TypeMirror`, so it stays total even for a payload `Payload` could not name.
+`payload()`:: What the domain-primitive carries, described as the JVM sees it — the two answers a code
+writer cannot give you.
+
+`Payload` is a sealed pair rather than one type with a flag, because the JVM really has two cases: a
+reference payload is a declaration and so carries a `DotName`, while `int` has no package, no enclosing
+type and no canonical name at all.
+
+`payload()` and `payloadType()` both exist because `Payload` lives in `utils`, shared by both
+processors, and so cannot hold a `TypeMirror` or a `KSType`. Ask `payloadType()` when you need a type to
+hand to a code writer; ask `payload()` when you need a name to spell.
+
+[source,java]
+----
+String method = "map" + element.payload().identifier() + "To" + element.name().flatName();
+
+if (element.payload() instanceof Payload.Primitive primitive) {
+    writeNumberOrBoolean(primitive.kind());       // int, long, boolean, ...
+}
+----
+
+`identifier()`:: A fragment safe to build a generated identifier from — `"Int"`, `"String"`,
+`"IdsProductId"`. Never contains a dot, which is the trap it closes: a nested payload spelled
+`Ids.ProductId` turns `map<Payload>To<Domain>` into a method name that does not compile.
+`boxed()`:: The name where only a reference type will do — `java.lang.Integer` for `int`, unchanged for
+a reference payload. Boxing runs one way only; unboxing narrows a signature to one that can no longer
+carry `null`, which is the opposite of what a generator wants.
+
+`Payload` lives in `com.qualityminds.lazyval.naming` beside `DotName`, and both SPIs hand out the
+same type — so a Kotlin generator emitting Java derives the same identifier from the same payload.
+
 == Registration
 
 Register the implementation via `ServiceLoader` — place a file at:

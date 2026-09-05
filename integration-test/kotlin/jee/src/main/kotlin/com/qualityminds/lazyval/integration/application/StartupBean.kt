@@ -53,7 +53,7 @@ class StartupBean @Inject constructor(
         val DefaultOrderA: Order = Order(
             UUID.fromString("a1a1a1a1-b2b2-c3c3-d4d4-e5e5e5e5e5e5"),
             Isbn.parse("3-86680-192-0"),
-            Quantity(1),
+            Quantity.of(1),
             EMail("a@b.de"),
             OrderDate.now()
         )
@@ -62,7 +62,7 @@ class StartupBean @Inject constructor(
         val DefaultOrderB: Order = Order(
             UUID.fromString("f6f6f6f6-a7a7-b8b8-c9c9-d0d0d0d0d0d0"),
             Isbn.parse("978-3-86680-192-9"),
-            Quantity(1),
+            Quantity.of(1),
             EMail("x@y.de"),
             OrderDate.now(),
             CouponCode.ofNullable("FRESH12")
