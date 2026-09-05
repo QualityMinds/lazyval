@@ -362,10 +362,17 @@
                             <compilerArgs>
                                 <arg>-XDcompilePolicy=simple</arg>
                                 <arg>--should-stop=ifError=FLOW</arg>
-                                <!-- javapoet's value types are immutable but carry no @Immutable annotation, so
-                                     error-prone has to be told; without this, every enum or @Immutable type
-                                     holding a ClassName or CodeBlock is reported. -->
-                                <arg>-Xplugin:ErrorProne -XepOpt:NullAway:AnnotatedPackages=com.qualityminds.lazyval -XepOpt:NullAway:JSpecifyMode=true -XepOpt:Immutable:KnownImmutable=com.palantir.javapoet.ClassName,com.palantir.javapoet.CodeBlock -XepDisableWarningsInGeneratedCode</arg>
+                                <!--
+                                  Value types that are immutable but cannot be proven so, listed here because
+                                  otherwise every enum or @Immutable type holding one is reported.
+
+                                  javapoet's ClassName and CodeBlock carry no @Immutable annotation and are not
+                                  ours to annotate. Our own DotName is a record whose only non-String component
+                                  is defensively copied with List.copyOf, which error-prone cannot see through:
+                                  it judges java.util.List mutable by its interface, and the alternative would
+                                  be a Guava ImmutableList that utils has no business depending on.
+                                -->
+                                <arg>-Xplugin:ErrorProne -XepOpt:NullAway:AnnotatedPackages=com.qualityminds.lazyval -XepOpt:NullAway:JSpecifyMode=true -XepOpt:Immutable:KnownImmutable=com.palantir.javapoet.ClassName,com.palantir.javapoet.CodeBlock,com.qualityminds.lazyval.naming.DotName -XepDisableWarningsInGeneratedCode</arg>
                             </compilerArgs>
                             <annotationProcessorPaths>
                                 <path>

@@ -11,5 +11,5 @@ import scenarios.kotlin.Isbn
 public class IsbnAttributeConverter : AttributeConverter<Isbn?, String?> {
   override fun convertToDatabaseColumn(type: Isbn?): String? = type?.value
 
-  override fun convertToEntityAttribute(dbValue: String?): Isbn? = dbValue?.let { Isbn.parse(dbValue) }
+  override fun convertToEntityAttribute(dbValue: String?): Isbn? = dbValue?.let { Isbn.parse(it) }
 }

@@ -11,5 +11,5 @@ import scenarios.kotlin.NullableQuantity
 public class NullableQuantityAttributeConverter : AttributeConverter<NullableQuantity?, Int?> {
   override fun convertToDatabaseColumn(type: NullableQuantity?): Int? = type?.value
 
-  override fun convertToEntityAttribute(dbValue: Int?): NullableQuantity? = dbValue?.let { NullableQuantity.ofNullable(dbValue) }
+  override fun convertToEntityAttribute(dbValue: Int?): NullableQuantity? = dbValue?.let { NullableQuantity.ofNullable(it) }
 }

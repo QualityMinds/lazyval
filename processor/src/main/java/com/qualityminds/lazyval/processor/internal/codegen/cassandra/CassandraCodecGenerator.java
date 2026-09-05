@@ -12,6 +12,7 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.stream.Stream;
+import static com.qualityminds.lazyval.processor.internal.codegen.JavaPoetExprs.code;
 
 /**
  * Generates a DataStax {@code MappingCodec} for each domain-primitive, grouped into a
@@ -181,26 +182,19 @@ public class CassandraCodecGenerator implements Generator {
     }
 
     private static String resolveTypeCodecConstant(ValidatedGeneratorElement element) {
-        TypeMirror wrappedMirror = element.wrappedType().typeMirror();
-        String typeName = wrappedMirror.toString();
+        String typeName = element.payloadType().toString();
         return Objects.requireNonNull(
                 TYPE_CODEC_MAP.get(typeName),
-                () -> "No TypeCodecs constant mapping for wrapped type '" + typeName + "'");
+                () -> "No TypeCodecs constant mapping for payload type '" + typeName + "'");
     }
 
     private static TypeSpec buildMappingCodec(ValidatedGeneratorElement element, String typeCodecConstant) {
         TypeMirror type = element.element().asType();
-        var wrappedType = element.wrappedType();
-
-        TypeName wrappedTypeName;
-        if (wrappedType.isPrimitive()) {
-            wrappedTypeName = TypeName.get(wrappedType.typeMirror()).box();
-        } else {
-            wrappedTypeName = TypeName.get(wrappedType.typeMirror());
-        }
+        // box() returns a reference type unchanged, so no primitive branch is needed here.
+        TypeName payloadTypeName = TypeName.get(element.payloadType()).box();
         TypeName elementTypeName = TypeName.get(type);
 
-        String codecClassName = element.typeName().name() + "Codec";
+        String codecClassName = element.name().flatName() + "Codec";
 
         MethodSpec constructor = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
@@ -211,26 +205,26 @@ public class CassandraCodecGenerator implements Generator {
                 .addAnnotation(OVERRIDE_ANNOTATION)
                 .addModifiers(Modifier.PROTECTED)
                 .returns(elementTypeName)
-                .addParameter(ParameterSpec.builder(wrappedTypeName, "value").build())
+                .addParameter(ParameterSpec.builder(payloadTypeName, "value").build())
                 .beginControlFlow("if (value == null)")
                 .addStatement("return null")
                 .endControlFlow()
-                .addStatement("return $L", element.objectCreation("value"))
+                .addStatement("return $L", code(element.java().create("value")))
                 .build();
 
         MethodSpec outerToInner = MethodSpec.methodBuilder("outerToInner")
                 .addAnnotation(OVERRIDE_ANNOTATION)
                 .addModifiers(Modifier.PROTECTED)
-                .returns(wrappedTypeName)
+                .returns(payloadTypeName)
                 .addParameter(ParameterSpec.builder(elementTypeName, "value").build())
                 .beginControlFlow("if (value == null)")
                 .addStatement("return null")
                 .endControlFlow()
-                .addStatement("return value.$L", element.accessor())
+                .addStatement("return $L", code(element.java().read("value")))
                 .build();
 
         return TypeSpec.classBuilder(codecClassName)
-                .superclass(ParameterizedTypeName.get(MAPPING_CODEC, wrappedTypeName, elementTypeName))
+                .superclass(ParameterizedTypeName.get(MAPPING_CODEC, payloadTypeName, elementTypeName))
                 .addMethod(constructor)
                 .addMethod(innerToOuter)
                 .addMethod(outerToInner)
@@ -305,7 +299,7 @@ public class CassandraCodecGenerator implements Generator {
 
         StringBuilder generatedSetInit = new StringBuilder("$T<$T<?>> generatedTypes = $T.of(\n");
         for (int i = 0; i < elements.size(); i++) {
-            generatedSetInit.append("    ").append(elements.get(i).typeName()).append(".class");
+            generatedSetInit.append("    ").append(elements.get(i).name().nestedName()).append(".class");
             if (i < elements.size() - 1) {
                 generatedSetInit.append(",");
             }

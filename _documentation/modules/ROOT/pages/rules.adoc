@@ -27,7 +27,9 @@ A `class` or a `data class`. An `abstract` class is rejected, and so is a `value
 An `open` class is accepted with a warning, for the same reason as in Java.
 +
 `value class` is unsupported by design rather than by omission — see the
-xref:kotlin.adoc[rationale on the Kotlin page].
+xref:kotlin.adoc[rationale on the Kotlin page]. That is the domain-primitive itself; a `value class`
+as the *payload* of an ordinary class is a different question and a supported one — see
+<<value-class>>.
 ====
 
 [#payload]
@@ -216,19 +218,251 @@ Kotlin::
 +
 Must not be nullable. `String?` is rejected — a domain-primitive whose payload may be absent is not a value.
 +
-Must not be a `value class`. Kotlin does not merely rename such a payload, it compiles the wrapper away:
-the accessor's JVM name gains a signature hash (`getMoney-cgdmosI()`), its type erases to the underlying
-one, and the constructor becomes private behind a synthetic overload. Generated Java can express none of
-the three, and an accessor function is no way around it — a function returning a value class is mangled
-identically. Wrap the underlying type instead.
-+
-This includes Kotlin's *unsigned* types, which are value classes: `UInt`, `ULong`, `UShort` and `UByte`
-are rejected as payloads, as are stdlib value classes such as `kotlin.time.Duration`. Nothing in the
-source hints at the mangling, so Lazyval reports it on the property rather than letting it surface as a
-compile error in generated code.
+A `value class` is supported, and is *unwrapped* rather than carried: Kotlin compiles the wrapper
+away, so generated code trades in the type the value class wraps. There is enough to that to warrant
+its own section — see <<value-class>>.
 +
 Beyond that, the same generator-side considerations as for Java apply.
 ====
+
+[#value-class]
+== Value class payloads
+
+A Kotlin-only rule set, and a long one, because the platform decides most of it.
+
+Two questions are easy to confuse and have opposite answers. A `value class` *as* the
+domain-primitive is rejected — see <<shape>>, and xref:kotlin.adoc[the Kotlin page] for why. A
+`value class` as the *payload* of an ordinary domain-primitive is supported, and is what this section
+is about.
+
+[#value-class-mangling]
+=== What Kotlin compiles a value class into
+
+A value class is not a wrapper with a cheaper representation; it is compiled away, and the erasure
+spreads outwards into whatever holds it. Take a domain-primitive whose payload is one:
+
+[source,kotlin]
+----
+data class Quantity(val value: Amount)
+
+@JvmInline
+value class Amount private constructor(val value: Int) {
+
+    companion object {
+        fun of(value: Int): Amount {
+            require(value > 0) { "An amount must be positive" }
+            return Amount(value)
+        }
+    }
+}
+----
+
+`Amount` erases to `int`, so what `javap` reports of *`Quantity`* is this:
+
+[source,java]
+----
+private final int value;
+private Quantity(int);                                              // the primary constructor
+public Quantity(int, kotlin.jvm.internal.DefaultConstructorMarker); // a synthetic overload
+public final int getValue-O3GLiTk();
+----
+
+The accessor's return type has become `int`, its JVM name has grown a signature hash, and the
+constructor has gone private behind a marker-argument overload. `Amount`'s own way in is no better
+placed: its factory compiles to `public final int of-j9on9dg(int)` on the companion, and its
+constructor to `private static int constructor-impl(int)`.
+
+The hash is the whole problem, and a peculiar sort of problem. `-` is not legal in a Java identifier,
+so javac cannot write these names at all — it does not fail an access check, it lexes the hyphen as a
+minus sign. Java is locked out of members that are `public` in the bytecode, at the level of the
+lexer, where no permission can be granted.
+
+`kotlin.time.Duration` shows how complete that lockout can be. Of everything the standard library puts
+on it, this is what Java can name:
+
+[source,java]
+----
+public static final kotlin.time.Duration$Companion Companion;   // a field, not a Duration
+public static final long INVALID_RAW_VALUE;                     // a sentinel constant
+public java.lang.String toString();
+public int hashCode();
+public boolean equals(java.lang.Object);
+public int compareTo(java.lang.Object);
+----
+
+Plus a few `$annotations` and `access$…$cp` compiler artifacts. Nothing that constructs a `Duration`,
+reads one, or parses one — `inWholeNanoseconds`, `toIsoString` and `Companion.parse` are all `public`
+at the JVM level and all unnameable from Java source. (Lazyval nevertheless refuses `Duration` for a
+*different* reason, which is the point of <<value-class-limits>>.)
+
+[#value-class-shim]
+=== How Lazyval gets past it
+
+Lazyval treats the payload as the type the value class wraps, and routes the Java half of its output
+through a generated Kotlin object:
+
+[source,kotlin]
+----
+internal object QuantityJvmAccess {
+
+  @JvmStatic
+  public fun `value`(instance: Quantity): Int = instance.value.value
+
+  @JvmStatic
+  public fun of(payload: Int): Quantity = Quantity(Amount.of(payload))
+}
+----
+
+The load-bearing detail is that the object is *Kotlin*. Written in Kotlin, `instance.value.value` is
+an ordinary property read; kotlinc resolves the Kotlin name and emits the mangled call itself. The
+object then re-exposes the result under a name Java can type, so the generated Java calls
+`QuantityJvmAccess.value(quantity)` and `QuantityJvmAccess.of(5)` and never learns that a value class
+was involved.
+
+It is `internal`, so it does not become part of your module's API, and nothing is allocated for it —
+the wrapper never materialises. What the bytecode holds is
+`public static final int value(Quantity)` and `public static final Quantity of(int)`: `internal` on an
+object does not mangle its `public` members, unlike `internal` on a function, which is the distinction
+behind the `@JvmName` requirement under <<factory>>.
+
+Three consequences follow from unwrapping rather than adapting:
+
+* Everything downstream sees the underlying type. A JPA converter for `Quantity` is an
+  `AttributeConverter<Quantity?, Int?>`, the JSON-B adapter a `JsonbAdapter<Quantity, Int>`.
+  That is the same type the platform was going to see anyway.
+* Kotlin's *unsigned* types come along with it. `UInt`, `ULong`, `UShort` and `UByte` are value
+  classes that keep their property and constructor `internal` to the standard library, so they are
+  reached through their `toInt()`/`toUInt()` conversion pair rather than through a property. They are
+  the only types handled that way, and <<value-class-limits>> says why that list is closed.
+* Nesting is unwrapped transitively. A `Price(Money(UInt))` payload carries an `Int`, because the JVM
+  flattens the lot to one erased type regardless — stopping at one level would refuse a payload whose
+  representation the platform has already settled.
+
+[#value-class-rewrap]
+=== Re-wrapping obliges Lazyval to honour the contract
+
+Reading the value out is half of it. Generated code also has to put one back, and it does that through
+the value class's own way in rather than around it. A factory wins over the constructor whenever one
+exists, because the idiom exists to validate:
+
+[source,kotlin]
+----
+@JvmInline
+value class Rate private constructor(val percent: Int) {
+
+    companion object {
+        fun of(percent: Int): Rate {
+            require(percent in 0..100) { "Rate must be a percentage" }
+            return Rate(percent)
+        }
+    }
+}
+----
+
+Constructing around `of` would let generated code mint values you declared impossible, which is why
+the constructor is not preferred even where it is reachable. A value class that validates in an `init`
+block needs no factory at all — its constructor is already the enforcing route.
+
+What counts as a factory is the same signature rule <<factory>> states for the domain-primitive, with
+one deliberate difference: a nullable return is accepted there and refused here. The
+domain-primitive's factory answers a caller who can hold the `null`; the value class's is called from
+inside the re-wrapping expression, where the enclosing constructor wants a `Rate` and a `null` has
+nowhere to go.
+
+[#value-class-rejected]
+=== What is rejected
+
+Each of these is legal Kotlin. Each is reported as an error on the payload property and names the
+value class, because it is the value class's own contract that is in the way — saying otherwise would
+send you to edit the wrong file.
+
+[cols="1,2"]
+|===
+| Shape | Why
+
+| The value class's own property, where it is not `public`
+| Nothing can read the value it wraps. Unlike the *domain-primitive's* property under <<visibility>>, a
+  `public` accessor function is no way out here: the shim reads the property itself.
+
+| A constructor that is not `public`, with no reachable factory
+| The value can be read but never rebuilt, and half a route is no route.
+
+| Several matching factories
+| No telling which is meant to rebuild it — the same ambiguity, and the same wording, as under
+  <<factory>>.
+
+| A nullable payload property
+| The payload Lazyval carries *is* the type the value class wraps, so a nullable one is the nullable
+  payload <<payload-type>> already refuses. Absence belongs to the reference at the call site.
+
+| A factory returning `Rate?` rather than `Rate`
+| See <<value-class-rewrap>> — there is no caller to hand the `null` to.
+
+| A non-`public` property in a value class from outside this compilation
+| The same obstacle as the first row, in a declaration you cannot widen. The diagnostic says so, rather
+  than advising you to edit the standard library.
+|===
+
+[#value-class-limits]
+=== Where Lazyval stops
+
+Two of those failures look alike and are not, and the difference is the whole boundary of what any
+amount of code generation can do here.
+
+*Mangling is solvable.* Java cannot name `Quantity.getValue-O3GLiTk()`, but the shim can, because the
+shim is Kotlin. Every value class whose value is reachable *from Kotlin* is therefore in reach of
+Lazyval, however unpronounceable its bytecode.
+
+*Privacy is not.* A Kotlin shim has no more access to a `private` member than Java does. Where a value
+class hides the value it wraps, there is nothing for generated code in either language to read, and no
+annotation, configuration or generator changes that. This is the end of the line rather than a feature
+not yet written.
+
+`kotlin.time.Duration` sits on the far side of that line, instructively. It is declared
+`value class Duration internal constructor(private val rawValue: Long)`, with
+`private val value: Long get() = rawValue shr 1` — which is why the error names `rawValue`, the
+property the primary constructor takes. Even with access it would not be worth carrying: `rawValue`
+packs a magnitude together with a unit-discriminator bit (`0` = nanoseconds, `1` = milliseconds), so a
+`Long` payload would be either an undocumented bit layout in your database column or a number whose
+unit you dropped.
+
+Nor is there a conversion pair to fall back on, which is the thing that gets the unsigned types in.
+`Int.toUInt()` and `UInt.toInt()` round-trip every value in both directions. No unit of `Duration`
+does: `inWholeNanoseconds` saturates to `Long.MAX_VALUE` beyond roughly ±146 years, and
+`inWholeMilliseconds` discards sub-millisecond precision. Lazyval will not pick one of those on your
+behalf and lose values quietly, so the conversion table stays closed to the four unsigned types.
+
+What to do instead is to make the unit a decision in your own source, and keep `Duration` as a derived
+view:
+
+[source,kotlin]
+----
+@LazyValue
+class Timeout private constructor(val nanos: Long) {
+
+    companion object {
+
+        fun of(nanos: Long): Timeout {
+            require(nanos >= 0) { "A timeout cannot run backwards" }
+            return Timeout(nanos)
+        }
+
+        fun of(duration: Duration): Timeout = of(duration.inWholeNanoseconds)
+    }
+
+    fun asDuration(): Duration = nanos.nanoseconds
+}
+----
+
+Swap `nanos: Long` for a `String` and `inWholeNanoseconds` for `toIsoString()` if you would rather
+store the exact ISO-8601 form. Either way the trade-off is now visible where you made it.
+
+Two details in that shape are load-bearing:
+
+* The `of(Duration)` overload does not make the factory ambiguous. Only a function taking the
+  *payload* type is a candidate, so `of(Long)` is the single match — see <<factory>>.
+* `asDuration()` is a function, not a property. A `val duration: Duration get() = ...` would count
+  towards the one-payload rule under <<payload>> and be rejected, unless marked `@Transient`.
 
 [#external]
 == Shared types from other modules

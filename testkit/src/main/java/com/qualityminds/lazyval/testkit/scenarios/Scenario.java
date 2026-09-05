@@ -293,6 +293,41 @@ public sealed interface Scenario {
             return Scenario.Kotlin.ofSingle("scenarios/kotlin/Quantity.kt");
         }
         /**
+         * A payload that is a Kotlin {@code value class}, which no {@code Scenario.Java} counterpart
+         * mirrors because Java has no such thing — the only deliberate asymmetry between the two
+         * predefined sets.
+         * <p>
+         * Run this if your generator emits Java. Kotlin compiles a value class away: the payload
+         * accessor's JVM name carries a signature hash and the enclosing constructor turns private in
+         * the bytecode, so neither is nameable from Java. Lazyval therefore unwraps the payload to the
+         * type the value class wrapped and generates an {@code internal object} shim to reach it.
+         * A generator that maps to {@code payloadType} and asks {@code element.java} for its read
+         * and create expressions handles this without changes; one that spells the accessor from the
+         * Kotlin declaration will emit Java that does not compile.
+         * <pre>{@code
+         * @LazyValue
+         * class Temperature(val kelvin: Kelvin)
+         *
+         * @JvmInline
+         * value class Kelvin private constructor(val degrees: Int) {
+         *     companion object {
+         *         fun of(degrees: Int): Kelvin { .. }
+         *     }
+         * }
+         * }</pre>
+         * Deliberately factory-less, so the shim is the only route back, and the value class hides its
+         * constructor behind a validating factory, so re-wrapping has to honour it.
+         * <p>
+         * Not part of {@link #combined()} or {@link #all()}: both are consumed by external test suites,
+         * and folding this in would change every existing approval and fail a generator that has not
+         * adopted the Java-facing API yet.
+         *
+         * @return new ScenarioFactory instance
+         */
+        public static ScenarioFactory<Kotlin> valueClassPayload() {
+            return Scenario.Kotlin.ofSingle("scenarios/kotlin/Temperature.kt");
+        }
+        /**
          * A data class which uses a factory capable of returning null.
          * <pre>{@code
          * @LazyValue

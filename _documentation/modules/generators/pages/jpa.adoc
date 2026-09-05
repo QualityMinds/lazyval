@@ -70,14 +70,14 @@ Kotlin::
 public class IsbnAttributeConverter :  AttributeConverter<Isbn?, String?> { // <1>
   override fun convertToDatabaseColumn(type: Isbn?): String? = type?.value()
 
-  override fun convertToEntityAttribute(dbValue: String?): Isbn? = dbValue?.let { Isbn.parse(dbValue) }
+  override fun convertToEntityAttribute(dbValue: String?): Isbn? = dbValue?.let { Isbn.parse(it) }
 }
 
 @Converter(autoApply = true)
 public class QuantityAttributeConverter : AttributeConverter<Quantity?, Int?> {
   override fun convertToDatabaseColumn(type: Quantity?): Int? = type?.value
 
-  override fun convertToEntityAttribute(dbValue: Int?): Quantity? = dbValue?.let { Quantity(dbValue) }
+  override fun convertToEntityAttribute(dbValue: Int?): Quantity? = dbValue?.let { Quantity(it) }
 }
 ----
 

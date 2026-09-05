@@ -7,4 +7,4 @@ import com.qualityminds.lazyval.LazyValue
  * which give you a reference to a class with all fields being null)
  */
 @LazyValue
-class NullableWrappedType (val value: String?) {}
+class NullablePayload (val value: String?) {}

@@ -2,8 +2,10 @@ package com.qualityminds.lazyval.ksp.internal.codegen.jackson
 
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
+import com.qualityminds.lazyval.naming.Payload
+import com.qualityminds.lazyval.naming.Payload.Kind
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
-import com.qualityminds.lazyval.ksp.spi.WrappedProperty
+import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ksp.toClassName
@@ -37,30 +39,29 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
 
     fun generateSerializer(element: ValidatedKspGeneratorElement): TypeSpec {
         val elementClassName = element.element.toClassName()
-        val wrappedType = element.wrappedProperty
-        val serializerName = "${element.typeName.name}Serializer"
+        val serializerName = "${element.name.flatName()}Serializer"
 
-        val wrappedTypeName = wrappedType.type.declaration.simpleName.asString()
-        val needsCachedSerializer = !wrappedType.isPrimitive() && !isStringType(wrappedType)
+        val needsCachedSerializer = !element.isPayloadPrimitive && !isStringType(element.payloadType)
 
         val serializeBody: FunSpec.Builder.() -> Unit = when {
-            wrappedType.isPrimitive() -> {
+            element.isPayloadPrimitive -> {
                 {
-                    val writeStatement = when (wrappedTypeName) {
-                        "Int", "Long", "Short" -> "gen.writeNumber(value.${element.kotlinAccessor})"
-                        "Float", "Double" -> "gen.writeNumber(value.${element.kotlinAccessor})"
-                        "Boolean" -> "gen.writeBoolean(value.${element.kotlinAccessor})"
-                        "Char", "Byte" -> "gen.writeString(value.${element.kotlinAccessor})"
-                        else -> "gen.writeString(value.${element.kotlinAccessor})"
+                    // Exhaustive over Kind on purpose: no else arm, so adding a primitive kind is
+                    // a compile error here rather than a silent fall-through to writeString.
+                    val writeStatement = when (element.primitiveKind()) {
+                        Kind.INT, Kind.LONG, Kind.SHORT, Kind.FLOAT, Kind.DOUBLE ->
+                            "gen.writeNumber(${element.kotlin.read("value")})"
+                        Kind.BOOLEAN -> "gen.writeBoolean(${element.kotlin.read("value")})"
+                        Kind.CHAR, Kind.BYTE -> "gen.writeString(${element.kotlin.read("value")})"
                     }
                     addStatement(writeStatement)
                 }
             }
-            isStringType(wrappedType) -> {
+            isStringType(element.payloadType) -> {
                 {
                     // Direct write — avoids per-call serializer lookup. Bypasses any user-customized
                     // String serializer; acceptable for scalar wrapper payloads.
-                    addStatement("gen.writeString(value.${element.kotlinAccessor})")
+                    addStatement("gen.writeString(${element.kotlin.read("value")})")
                 }
             }
             else -> {
@@ -70,9 +71,9 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
                     // equivalent serializer, never an incorrect one.
                     addStatement(
                         "val ser = innerSerializer ?: ctx.findValueSerializer(%T::class.java).also { innerSerializer = it }",
-                        wrappedType.type.toTypeName()
+                        element.payloadType.toTypeName()
                     )
-                    addStatement("ser.serialize(value.${element.kotlinAccessor}, gen, ctx)")
+                    addStatement("ser.serialize(${element.kotlin.read("value")}, gen, ctx)")
                 }
             }
         }
@@ -107,19 +108,18 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
 
     fun generateDeserializer(element: ValidatedKspGeneratorElement): TypeSpec {
         val elementClassName = element.element.toClassName()
-        val wrappedType = element.wrappedProperty
-        val deserializerName = "${element.typeName.name}Deserializer"
+        val deserializerName = "${element.name.flatName()}Deserializer"
 
         val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
         val returnType = elementClassName.copy(nullable = factoryReturnsNullable)
-        val needsCachedDeserializer = !wrappedType.isPrimitive() && !isStringType(wrappedType)
+        val needsCachedDeserializer = !element.isPayloadPrimitive && !isStringType(element.payloadType)
 
         val deserializeMethod = FunSpec.builder("deserialize")
             .addModifiers(KModifier.OVERRIDE)
             .returns(returnType)
             .addParameter("p", generatorConfig.jsonParser())
             .addParameter("ctx", generatorConfig.deserializationContext())
-            .apply(deserializeBody(element, wrappedType))
+            .apply(deserializeBody(element))
 
         val builder = TypeSpec.classBuilder(deserializerName)
             .superclass(generatorConfig.stdDeserializer().parameterizedBy(returnType))
@@ -140,21 +140,20 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
     }
 
     private fun deserializeBody(
-        element: ValidatedKspGeneratorElement,
-        wrappedType: WrappedProperty
+        element: ValidatedKspGeneratorElement
     ): FunSpec.Builder.() -> Unit = when {
-        wrappedType.isPrimitive() -> {
+        element.isPayloadPrimitive -> {
             {
-                addStatement(primitiveReadStatement(wrappedType.type.declaration.simpleName.asString()))
-                addStatement("return ${element.objectCreation("value")}")
+                addStatement(primitiveReadStatement(element.primitiveKind()))
+                addStatement("return ${element.kotlin.create("value")}")
             }
         }
-        isStringType(wrappedType) -> {
+        isStringType(element.payloadType) -> {
             {
                 // Direct read — avoids per-call deserializer lookup. Bypasses any user-customized
                 // String deserializer; acceptable for scalar wrapper payloads.
                 addStatement("val value = p.valueAsString")
-                addStatement("return ${element.objectCreation("value")}")
+                addStatement("return ${element.kotlin.create("value")}")
             }
         }
         else -> {
@@ -164,28 +163,36 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
                 // equivalent deserializer, never an incorrect one.
                 addStatement(
                     "val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(%T::class.java), null).also { innerDeserializer = it }",
-                    wrappedType.type.toTypeName()
+                    element.payloadType.toTypeName()
                 )
-                addStatement("val value = deser.deserialize(p, ctx) as %T", wrappedType.type.toTypeName())
-                addStatement("return ${element.objectCreation("value")}")
+                addStatement("val value = deser.deserialize(p, ctx) as %T", element.payloadType.toTypeName())
+                addStatement("return ${element.kotlin.create("value")}")
             }
         }
     }
 
-    private fun primitiveReadStatement(wrappedTypeName: String): String = when (wrappedTypeName) {
-        "Int" -> "val value = p.valueAsInt"
-        "Long" -> "val value = p.valueAsLong"
-        "Double" -> "val value = p.valueAsDouble"
-        "Boolean" -> "val value = p.valueAsBoolean"
-        "Float" -> "val value = p.valueAsDouble.toFloat()"
-        "Short" -> "val value = p.valueAsInt.toShort()"
-        "Byte" -> "val value = p.valueAsInt.toByte()"
-        "Char" -> "val value = p.valueAsString[0]"
-        else -> "val value = p.valueAsString"
+    private fun primitiveReadStatement(kind: Kind): String = when (kind) {
+        Kind.INT -> "val value = p.valueAsInt"
+        Kind.LONG -> "val value = p.valueAsLong"
+        Kind.DOUBLE -> "val value = p.valueAsDouble"
+        Kind.BOOLEAN -> "val value = p.valueAsBoolean"
+        Kind.FLOAT -> "val value = p.valueAsDouble.toFloat()"
+        Kind.SHORT -> "val value = p.valueAsInt.toShort()"
+        Kind.BYTE -> "val value = p.valueAsInt.toByte()"
+        Kind.CHAR -> "val value = p.valueAsString[0]"
     }
 
-    private fun isStringType(wrappedType: WrappedProperty): Boolean {
-        val fqn = wrappedType.type.declaration.qualifiedName?.asString()
+    /**
+     * The payload's primitive kind, in a branch already guarded by [isPayloadPrimitive].
+     *
+     * Kept to one place so the two `when`s over [Kind] stay exhaustive rather than needing an else arm
+     * for a case their guard has already ruled out.
+     */
+    private fun ValidatedKspGeneratorElement.primitiveKind(): Kind =
+        (payload as Payload.Primitive).kind
+
+    private fun isStringType(payloadType: KSType): Boolean {
+        val fqn = payloadType.declaration.qualifiedName?.asString()
         return fqn == "kotlin.String" || fqn == "java.lang.String"
     }
 

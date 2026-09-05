@@ -40,14 +40,14 @@ class Startup @Inject constructor(
         @JvmField
         val DefaultOrderA: Order = Order.create(
             Isbn.parse("3-86680-192-0"),
-            Quantity(1),
+            Quantity.of(1),
             EMail("a@b.de")
         )
 
         @JvmField
         val DefaultOrderB: Order = Order.create(
             Isbn.parse("978-3-86680-192-9"),
-            Quantity(1),
+            Quantity.of(1),
             EMail("x@y.de"),
             CouponCode.ofNullable("FRESH12")
         )

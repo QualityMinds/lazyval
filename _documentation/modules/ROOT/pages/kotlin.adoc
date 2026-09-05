@@ -12,6 +12,10 @@ Lazyval takes the opposite route: keep an ordinary class or data class — a sha
 understands — and let the processor generate the integration code you would otherwise write by hand. You trade
 the runtime unboxing of `value class` for a wrapper the ecosystem can actually work with.
 
+That is about the domain-primitive. A `value class` as the *payload* of one is a separate question with
+the opposite answer: it is supported, and Lazyval unwraps it — see
+xref:rules.adoc#value-class[Value class payloads] for what that costs and where it stops.
+
 [#usage]
 == Usage
 

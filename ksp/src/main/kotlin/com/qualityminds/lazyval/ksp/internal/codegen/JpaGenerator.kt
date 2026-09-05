@@ -61,14 +61,14 @@ class JpaGenerator : Generator {
     private fun buildAttributeConverter(context: Generator.Context, validatedElement: ValidatedKspGeneratorElement): TypeSpec {
         val element = validatedElement.element
         val lazyvalTypeName = element.toClassName()
-        val wrappedType = validatedElement.wrappedProperty
-        // KotlinPoet specific type-name
-        val wrappedTypeName = wrappedType.type.toTypeName()
+        // The unwrapped payload: a value class has no runtime form of its own, so the column type is
+        // whatever it erases to.
+        val payloadTypeName = validatedElement.payloadType.toTypeName()
 
-        val converterClassName = "${validatedElement.typeName.name}AttributeConverter"
+        val converterClassName = "${validatedElement.name.flatName()}AttributeConverter"
 
-        val convertToDatabaseColumn = buildConvertToDatabaseColumn(lazyvalTypeName, wrappedTypeName, validatedElement)
-        val convertToEntityAttribute = buildConvertToEntityAttribute(lazyvalTypeName, wrappedTypeName, validatedElement)
+        val convertToDatabaseColumn = buildConvertToDatabaseColumn(lazyvalTypeName, payloadTypeName, validatedElement)
+        val convertToEntityAttribute = buildConvertToEntityAttribute(lazyvalTypeName, payloadTypeName, validatedElement)
 
         return TypeSpec.classBuilder(converterClassName)
             .addGeneratedAnnotation(JpaGenerator::class, context)
@@ -81,7 +81,7 @@ class JpaGenerator : Generator {
                 ClassName("jakarta.persistence", "AttributeConverter")
                     .parameterizedBy(
                         lazyvalTypeName.copy(nullable = true),
-                        wrappedTypeName.copy(nullable = true)
+                        payloadTypeName.copy(nullable = true)
                     )
             )
             .addFunction(convertToDatabaseColumn)
@@ -91,15 +91,15 @@ class JpaGenerator : Generator {
 
     private fun buildConvertToDatabaseColumn(
         lazyvalTypeName: ClassName,
-        wrappedTypeName: TypeName,
+        payloadTypeName: TypeName,
         validatedElement: ValidatedKspGeneratorElement
     ): FunSpec {
         val convertToDatabaseColumn = FunSpec.builder("convertToDatabaseColumn")
             .addModifiers(KModifier.OVERRIDE)
-            .returns(wrappedTypeName.copy(nullable = true))
+            .returns(payloadTypeName.copy(nullable = true))
             .addParameter("type", lazyvalTypeName.copy(nullable = true))
             .apply {
-                addStatement("return type?.${validatedElement.kotlinAccessor}")
+                addStatement("return ${validatedElement.kotlin.readOrNull("type")}")
             }
             .build()
         return convertToDatabaseColumn
@@ -107,7 +107,7 @@ class JpaGenerator : Generator {
 
     private fun buildConvertToEntityAttribute(
         lazyvalTypeName: ClassName,
-        wrappedTypeName: TypeName,
+        payloadTypeName: TypeName,
         validatedElement: ValidatedKspGeneratorElement
     ): FunSpec {
         val parameterName = "dbValue"
@@ -115,9 +115,9 @@ class JpaGenerator : Generator {
         val convertToEntityAttribute = FunSpec.builder("convertToEntityAttribute")
             .addModifiers(KModifier.OVERRIDE)
             .returns(lazyvalTypeName.copy(nullable = true))
-            .addParameter(parameterName, wrappedTypeName.copy(nullable = true))
+            .addParameter(parameterName, payloadTypeName.copy(nullable = true))
             .apply {
-                addStatement("return $parameterName?.let { ${validatedElement.objectCreation(parameterName)} }")
+                addStatement("return ${validatedElement.kotlin.createOrNull(parameterName)}")
             }
             .build()
         return convertToEntityAttribute

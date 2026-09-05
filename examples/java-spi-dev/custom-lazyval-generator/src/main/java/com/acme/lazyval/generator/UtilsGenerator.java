@@ -39,9 +39,10 @@ public class UtilsGenerator implements Generator {
         List<String> methods = new ArrayList<>(elements.size());
 
         elements.stream()
-                .filter(ve -> "String".equals(ve.wrappedType().typeName().toString()))
+                // payload, not the raw TypeMirror: a generator assembling source as strings wants a
+                // name it can spell, and identifier() never contains a dot.
+                .filter(ve -> "String".equals(ve.payload().identifier()))
                 .forEach(validatedElement -> {
-                    var  wrappedType = validatedElement.wrappedType();
                     imports.add("import %s;\n".formatted(validatedElement.element().getQualifiedName()));
 
                     var method = """
@@ -49,10 +50,13 @@ public class UtilsGenerator implements Generator {
                             if(type == null) {
                               return null;
                             }
-                            return type.%s.toUpperCase();
+                            return %s.toUpperCase();
                           }
                         """.formatted(
-                            wrappedType.typeName(), validatedElement.typeName(), validatedElement.accessor());
+                            validatedElement.payload().identifier(),
+                            validatedElement.name(),
+                            // The whole read expression, so the accessor never has to be spelled here.
+                            validatedElement.java().read("type"));
                     methods.add(method);
                 });
 

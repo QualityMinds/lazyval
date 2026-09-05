@@ -18,7 +18,7 @@ class SpringBeanValidationIT extends AbstractIT {
 
     def "domain-primitive is unwrapped for default constraints"() {
         given:
-        def some = new SomeClass(new Quantity(11))
+        def some = new SomeClass(Quantity.of(11))
 
         when:
         def violations = validator.validate(some)

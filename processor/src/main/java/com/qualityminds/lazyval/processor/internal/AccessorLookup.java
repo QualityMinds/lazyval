@@ -27,7 +27,7 @@ final class AccessorLookup {
 
     /**
      * Inherited from {@code Object} by every class. {@code hashCode(): int} and
-     * {@code toString(): String} collide with common wrapped-property types and would otherwise be
+     * {@code toString(): String} collide with common payload types and would otherwise be
      * picked up by the first-by-type match, pairing a field with the wrong getter.
      */
     public static final Set<String> OBJECT_METHOD_NAMES = Set.of("equals", "hashCode", "toString");

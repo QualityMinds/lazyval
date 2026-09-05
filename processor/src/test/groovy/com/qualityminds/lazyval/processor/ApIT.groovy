@@ -110,7 +110,7 @@ class ApIT extends Specification {
 
         where:
         scenario                                                               | warning
-        Scenario.Java.ofSingle("scenarios/edge/ObjectValueNotFinal.java")      | "Lazyval: Value Types should be immutable, hence the wrapped field should be final."
+        Scenario.Java.ofSingle("scenarios/edge/ObjectValueNotFinal.java")      | "Lazyval: Value Types should be immutable, hence the payload field should be final."
         Scenario.Java.ofSingle("scenarios/edge/ObjectNotFinal.java")           | "Lazyval: Value Types should not be extendable, hence the class should be final."
         Scenario.Java.ofSingle("scenarios/edge/ObjectWithTransientField.java") | null
         // An unreachable second field must not make the type ambiguous.

@@ -11,6 +11,7 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
 import java.util.Set;
 import java.util.stream.Stream;
+import static com.qualityminds.lazyval.processor.internal.codegen.JavaPoetExprs.code;
 
 /**
  * Generates a JPA {@code AttributeConverter} for each domain-primitive.
@@ -64,52 +65,46 @@ public class JpaGenerator implements Generator {
 
     private static TypeSpec buildAttributeConverter(ValidatedGeneratorElement validElement) {
         TypeMirror type = validElement.element().asType();
-        var wrappedType = validElement.wrappedType();
-        TypeName wrappedTypeName;
-        if (wrappedType.isPrimitive()) {
-            // Box primitive types for JPA generics
-            wrappedTypeName = TypeName.get(wrappedType.typeMirror()).box();
-        } else {
-            wrappedTypeName = TypeName.get(wrappedType.typeMirror());
-        }
+        // box() returns a reference type unchanged, so no primitive branch is needed here.
+        TypeName payloadTypeName = TypeName.get(validElement.payloadType()).box();
 
-        return TypeSpec.classBuilder(validElement.typeName().name() + "AttributeConverter")
+        return TypeSpec.classBuilder(validElement.name().flatName() + "AttributeConverter")
                 .addAnnotation(GeneratedStamp.forGenerator(JpaGenerator.class))
                 .addAnnotation(CONVERTER_ANNOTATION)
                 .addSuperinterface(ParameterizedTypeName.get(
                         ClassName.get("jakarta.persistence", "AttributeConverter"),
                         TypeName.get(type),
-                        wrappedTypeName))
+                        payloadTypeName))
                 .addModifiers(Modifier.PUBLIC)
-                .addMethod(buildConvertToDatabaseColumn(validElement, wrappedTypeName, type))
-                .addMethod(buildConvertToEntityAttribute(validElement, type, wrappedTypeName))
+                .addMethod(buildConvertToDatabaseColumn(validElement, payloadTypeName, type))
+                .addMethod(buildConvertToEntityAttribute(validElement, type, payloadTypeName))
                 .build();
     }
 
-    private static MethodSpec buildConvertToEntityAttribute(ValidatedGeneratorElement validElement, TypeMirror type, TypeName wrappedTypeName) {
+    private static MethodSpec buildConvertToEntityAttribute(ValidatedGeneratorElement validElement, TypeMirror type, TypeName payloadTypeName) {
         String parameterName = "dbValue";
         return MethodSpec.methodBuilder("convertToEntityAttribute")
                 .addModifiers(Modifier.PUBLIC)
                 .returns(TypeName.get(type))
-                .addParameter(wrappedTypeName, parameterName)
+                .addParameter(payloadTypeName, parameterName)
                 .beginControlFlow("if(%s == null)".formatted(parameterName))
                 .addStatement("return null")
                 .endControlFlow()
-                .addStatement("return $L", validElement.objectCreation(parameterName))
+                .addStatement("return $L", code(validElement.java().create(parameterName)))
                 .build();
     }
 
-    private static MethodSpec buildConvertToDatabaseColumn(ValidatedGeneratorElement validElement, TypeName wrappedTypeName, TypeMirror type) {
+    private static MethodSpec buildConvertToDatabaseColumn(ValidatedGeneratorElement validElement, TypeName payloadTypeName, TypeMirror type) {
         String parameterName = "type";
         // Jpa Converter needs to check for null due to boxing primitive types
         return MethodSpec.methodBuilder("convertToDatabaseColumn")
                 .addModifiers(Modifier.PUBLIC)
-                .returns(wrappedTypeName)
+                .returns(payloadTypeName)
                 .addParameter(TypeName.get(type), parameterName)
                 .beginControlFlow("if(%s == null)".formatted(parameterName))
                 .addStatement("return null")
                 .endControlFlow()
-                .addStatement(String.format("return %s.%s", parameterName, validElement.accessor()))
+                .addStatement("return $L", code(validElement.java().read(parameterName)))
                 .build();
     }
 }

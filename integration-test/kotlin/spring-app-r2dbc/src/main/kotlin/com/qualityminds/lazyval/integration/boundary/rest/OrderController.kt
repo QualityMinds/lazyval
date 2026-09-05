@@ -44,7 +44,7 @@ class OrderController(
                     .map { dto ->
                         com.qualityminds.lazyval.integration.domain.Order.create(
                             Isbn.parse(dto.isbn),
-                            Quantity(dto.quantity),
+                            Quantity.of(dto.quantity),
                             EMail(dto.email),
                             CouponCode.ofNullable(dto.couponCode),
                         )

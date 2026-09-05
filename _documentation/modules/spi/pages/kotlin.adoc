@@ -64,6 +64,162 @@ IMPORTANT: The Kotlin SPI distinguishes results for Java or Kotlin sources. Pick
 `GeneratorResult.Java(metadata, contents)`:: A Java source file (`.java`) — useful when integrating with libraries that only look at compiled JVM types.
 `GeneratorResult.ServiceLoader(spiType, providerType)`:: A `META-INF/services/<spiType>` entry containing `providerType`. Contributions from multiple generators to the same SPI file are merged automatically.
 
+[#payload]
+== Reading and rebuilding the payload
+
+Whatever it emits, a generator does two things with a `@LazyValue` type: read the payload out of an
+instance, and rebuild an instance from a payload. `ValidatedKspGeneratorElement` hands you both as
+complete expressions, in either language, because neither is reliably spellable from the Kotlin
+declaration.
+
+`payloadType`:: The type generated code carries in place of the payload — in *either* language. Equal to
+`declaredPayload.type` except for a `value class` payload, where it is the type at the end of the
+wrapping chain. Map to this and not to the declared payload type: a value class is compiled away, so it
+is not something a framework can persist, serialize or validate. See
+xref:ROOT:rules.adoc#value-class[value class payloads].
+`payload`:: What the domain-primitive carries, described as the JVM sees it — the two answers a code
+writer cannot give you. `identifier()` is a dot-free fragment to build a generated name from (`"Int"`,
+`"IdsProductId"`); `boxed()` is the reference name a primitive becomes where only an object will do. A
+sealed pair — `Primitive(Kind)` or `Declared(DotName)` — because `int` is a keyword rather than a
+declaration. Output that needs a _type_ rather than a name maps `payloadType` with KotlinPoet or
+JavaPoet instead; that split is why the two members both exist, since `payload` lives in `utils` and so
+cannot hold a `KSType`. The same type is handed out by the Java SPI, so a generator shipped for both
+derives the same identifier from the same payload.
+`isPayloadPrimitive`:: Whether `payloadType` is a primitive on the JVM, and so whether generated code
+needs a null check. Reads the _unwrapped_ type, so a `value class` over `Int` counts as primitive —
+which is what it is at runtime, and where the payload _as declared_ would say no.
+`name`:: This domain-primitive's own name, as a `DotName` — see <<naming>>.
+`declaredPayload`:: The payload property _as declared_ — for a `value class` payload, the wrapper. Reach
+for it only to say something about the declaration itself, such as naming the value class in a doc
+comment; a `value class` over `Int` is not a primitive as declared but is one at runtime, so anything
+that turns on the payload's shape belongs on `payload` or `isPayloadPrimitive` instead.
+
+NOTE: `isPayloadPrimitive` is the only place that boolean lives. `Payload` deliberately offers no
+`isPrimitive()`: on a sealed pair the type system already answers it — `payload is Payload.Primitive`,
+or a `when` the compiler checks for exhaustiveness — and a boolean beside it would be a second way to
+ask one thing.
+
+=== If you emit Kotlin
+
+Reached through `element.kotlin`. Kotlin sees the declaration as written, so for an ordinary payload
+these are thin wrappers. They exist for three cases where the spelling is not the declaration's:
+
+* The payload is not always a property. An explicit accessor function has to be _called_, so the
+  expression ends in `()` — a KSP question, answered once during validation.
+* A `value class` payload does not exist at runtime. Reading it means unwrapping a chain (a `Quantity`
+  over `Meters` over `Int`), and rebuilding it means re-wrapping through each type's own factory, so a
+  validating factory is never bypassed — see xref:ROOT:rules.adoc#value-class-rewrap[re-wrapping].
+  Unsigned types are value classes too, so a `UInt` payload contributes a `.toInt()` on the way down
+  and a `.toUInt()` on the way back.
+* Null-safety has two shapes for one intent: an ordinary payload needs `type?.money`, while a chain has
+  to move inside a `let`, because a safe call would guard the first hop and then dereference the rest.
+
+`kotlin.read(instance)`:: Reads the payload out of `instance`, already unwrapped to `payloadType`.
+`kotlin.readOrNull(instance)`:: The same for a nullable `instance`, yielding `null` when it is.
+`kotlin.create(payload)`:: Rebuilds the domain-primitive from a `payloadType` value.
+`kotlin.createOrNull(payload)`:: The same for a nullable `payload`, yielding `null` when it is.
+
+The last two are why a generator emitting a nullable conversion — a JPA converter, a Cassandra codec —
+never has to make that third choice, or know that there was one:
+
+[source,kotlin]
+----
+FunSpec.builder("convertToEntityAttribute")
+    .addStatement("return ${element.kotlin.createOrNull("dbValue")}")
+
+// return dbValue?.let { Quantity(it) }
+----
+
+[#java-output]
+=== If you emit Java
+
+Reached through `element.java`. Kotlin and Java do not see the same member. `@JvmName` moves a name,
+`internal` xref:ROOT:rules.adoc#value-class-mangling[mangles] one, an `is`-prefixed `Boolean` keeps its
+own, a companion function without `@JvmStatic` is not on the type at all, and a `value class` payload is
+compiled away entirely — leaving an accessor whose JVM name carries a signature hash and a constructor
+that is private in the bytecode.
+
+None of that follows from the Kotlin declaration, and guessing at it is what used to emit Java that
+would not compile. Lazyval resolves the JVM names once during validation, and generates a small
+xref:ROOT:rules.adoc#value-class-shim[Kotlin access shim] where even that is not enough. So ask the
+element rather than spelling it yourself:
+
+`java.read(instance)`:: Reads the payload — through the accessor, or through the generated shim when
+there is one. A generator using this never has to know which.
+`java.create(payload)`:: Rebuilds the domain-primitive — constructor, factory, or shim.
+`javaAccessShim`:: The generated object those two go through, or `null` when there is none. Consulting it
+is only needed to emit something other than a read or a rebuild.
+
+Java has no `?.`, and its null-guard is a statement rather than an expression, so there is no `OrNull`
+pair here; branch on `isPayloadPrimitive` and emit the guard yourself, as the stock MapStruct generator
+does.
+
+[#payload-expr]
+=== Working with an expression
+
+Both facades return a `PayloadExpr`, which keeps the type names an expression mentions apart from its
+text. That separation is the point: a generator managing its own imports has to know which types an
+expression names and where, and handing them back as text would leave it to guess.
+
+`asSource()`:: The expression as source text, every type spelled out — nested for Kotlin, whose
+generated file imports the type and writes `Ids.ProductId`, and canonical for Java, so it compiles with
+no import at all. Also what `toString()` returns, which is why the sample above interpolates the
+expression directly.
+`asFormat(typeSlot)`:: The expression with `typeSlot` written where each type belongs, plus those types
+in the order they appear — the two things JavaPoet's `$T` and KotlinPoet's `%T` need in order to add the
+imports themselves.
+
+[source,kotlin]
+----
+val (format, types) = element.java.create("value").asFormat("\$T")
+val args = types.map { name ->
+    ClassName.get(name.packageName(),
+                  name.simpleNames().first(),
+                  *name.simpleNames().drop(1).toTypedArray())
+}
+method.addStatement("return $format", *args.toTypedArray())
+----
+
+NOTE: Nothing in this API throws. Earlier versions also exposed the raw accessor name and factory path,
+and had to fail loudly for a `value class` payload — whose accessor alone yields the wrapper, which
+compiles and is then wrong at runtime. Asking for a whole expression removes the choice, and with it
+that class of mistake.
+
+Verify with `Scenario.Kotlin.valueClassPayload()` — see
+xref:testkit.adoc#value-class-interop[value-class interop].
+
+[#naming]
+== Naming things
+
+`name` is a `com.qualityminds.lazyval.naming.DotName`: a package plus the simple names, already
+separated. A generator needs one name in four spellings, and the wrong one produces source that does not
+compile — so `DotName` offers all four instead of a string to re-split.
+
+[source,kotlin]
+----
+val name = element.name    // ProductId, declared inside Ids
+
+name.canonicalName()   // "com.acme.order.Ids.ProductId" - naming the type in full
+name.nestedName()      // "Ids.ProductId"                - naming it once it is imported
+name.simpleName()      // "ProductId"                    - the declaration's own name
+name.flatName()        // "IdsProductId"                 - deriving a new identifier from it
+----
+
+`flatName()` is what to derive a generated name from, and the one that is easy to get wrong: a class or
+file name must not contain a dot, and two nested types called `ProductId` under different enclosing
+classes would otherwise generate the same file, the second silently overwriting the first.
+
+[source,kotlin]
+----
+val codecName = element.name.flatName() + "Codec"   // "IdsProductIdCodec"
+----
+
+There is deliberately no `parse(String)`: splitting a qualified name back into a package and its simple
+names cannot be done from the string alone — JavaPoet's `ClassName.bestGuess` assumes the first
+capitalised segment starts the type, which is a convention rather than a rule. Lazyval learns the split
+from the compiler once, where the answer is authoritative, and passes it on. Both Poets take the parts
+directly: `ClassName.get(pkg, first, rest...)` and KotlinPoet's `ClassName(pkg, first, rest...)`.
+
 == Registration
 
 Register the implementation via `ServiceLoader` — place a file at:

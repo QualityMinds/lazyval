@@ -11,6 +11,18 @@
     <name>Lazyval Utils</name>
     <description>Utilities needed by both processors and testkit</description>
 
+    <!--
+      Deliberately never deployed. This module exists only so that the two processors and the testkit
+      can share NonEmptySet and DotName instead of duplicating them; both types are inlined into the
+      shaded processor jars at their original package names, and the testkit takes them at `provided`
+      scope from whichever processor the consumer already has to bring. Publishing this artifact would
+      create a second source of the same classes, and a version skew between the two copies would be
+      settled by classpath order rather than by anything the build can see.
+    -->
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.jspecify</groupId>

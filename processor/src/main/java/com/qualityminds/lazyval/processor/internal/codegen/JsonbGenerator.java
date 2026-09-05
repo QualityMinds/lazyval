@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static com.qualityminds.lazyval.processor.spi.GeneratorResult.Metadata;
+import static com.qualityminds.lazyval.processor.internal.codegen.JavaPoetExprs.code;
 
 // must only be public for ServiceLoader, but it is not part of the API
 public class JsonbGenerator implements Generator {
@@ -82,16 +83,11 @@ public class JsonbGenerator implements Generator {
 
     private static TypeSpec generateAdapter(ValidatedGeneratorElement element) {
         var elementType = TypeName.get(element.element().asType());
-        var wrappedType = element.wrappedType();
-        var adapterName = element.typeName().name() + "Adapter";
+        var adapterName = element.name().flatName() + "Adapter";
 
-        // For JsonbAdapter<Original, Adapted>, Adapted must be a reference type
-        TypeName adaptedType;
-        if (wrappedType.isPrimitive()) {
-            adaptedType = TypeName.get(wrappedType.typeMirror()).box();
-        } else {
-            adaptedType = TypeName.get(wrappedType.typeMirror());
-        }
+        // For JsonbAdapter<Original, Adapted>, Adapted must be a reference type — which box() gives
+        // us for a primitive payload and leaves alone for any other.
+        TypeName adaptedType = TypeName.get(element.payloadType()).box();
 
         var adaptToJson = MethodSpec.methodBuilder("adaptToJson")
                 .addAnnotation(OVERRIDE_ANNOTATION)
@@ -99,7 +95,7 @@ public class JsonbGenerator implements Generator {
                 .returns(adaptedType)
                 .addParameter(elementType, "obj")
                 .addException(Exception.class)
-                .addStatement("return obj.$L", element.accessor())
+                .addStatement("return $L", code(element.java().read("obj")))
                 .build();
 
         var adaptFromJson = MethodSpec.methodBuilder("adaptFromJson")
@@ -108,7 +104,7 @@ public class JsonbGenerator implements Generator {
                 .returns(elementType)
                 .addParameter(adaptedType, "value")
                 .addException(Exception.class)
-                .addStatement("return $L", element.objectCreation("value"))
+                .addStatement("return $L", code(element.java().create("value")))
                 .build();
 
         return TypeSpec.classBuilder(adapterName)
