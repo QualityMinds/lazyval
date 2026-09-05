@@ -31,14 +31,16 @@ class UtilsGenerator : Generator {
         val methods: MutableList<String> = mutableListOf()
 
         validatedElements.stream()
+            // payloadType, not the payload as declared: a `value class` over String is carried as a
+            // String at runtime, and filtering on the declaration would skip it.
             .filter { ve: ValidatedKspGeneratorElement ->
-                "String" == ve.wrappedProperty.type.toString()
+                "String" == ve.payloadType.declaration.simpleName.asString()
             }
             .forEach { validatedElement: ValidatedKspGeneratorElement ->
                 val element = validatedElement.element
                 val typeName = element.simpleName.asString()
                 imports.add("import ${element.qualifiedName?.asString()}")
-                val method = "public fun ${typeName}.toUpperCase2(): String = this.${validatedElement.kotlinAccessor}.uppercase()"
+                val method = "public fun ${typeName}.toUpperCase2(): String = ${validatedElement.kotlin.read("this")}.uppercase()"
                 methods.add(method)
             }
 

@@ -12,6 +12,7 @@ import com.qualityminds.lazyval.collections.NonEmptySet
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.StockGeneratorIds
+import com.qualityminds.lazyval.ksp.internal.codegen.JavaAccessShimCodegen
 import com.qualityminds.lazyval.ksp.spi.ValidatedElement
 import java.io.IOException
 import java.util.*
@@ -98,7 +99,8 @@ class LazyvalSymbolProcessor(
 
         if(validatedElements.isNotEmpty() && !hasProcessed) {
             validateOptions()
-            val results = getActiveGenerators()
+            val shims = javaAccessShims(validatedElements)
+            val generated = getActiveGenerators()
                 .flatMap { generator ->
                     val context = lazyvalEnvironment.createContext(validatedElements.first().element)
                     generator
@@ -113,6 +115,8 @@ class LazyvalSymbolProcessor(
                         }
                 }.toList()
 
+                val results = shims + generated
+
                 results.forEach { result ->
                     when (result) {
                         is InternalResult.Kotlin -> writeKotlinFile(result)
@@ -126,6 +130,28 @@ class LazyvalSymbolProcessor(
         hasProcessed = true
         return emptyList()
     }
+
+    /**
+     * The Java-access shims this round needs, one per domain-primitive whose payload is a `value class`.
+     *
+     * Emitted here rather than by a generator because several generators may need the same shim and
+     * none of them should own it. A Kotlin-only project therefore gets a shim it never calls — one
+     * small `internal object`, which is a better trade than having the SPI element record demand and
+     * become mutable, order-dependent state.
+     */
+    private fun javaAccessShims(validatedElements: List<ValidatedElement>): List<InternalResult> =
+        validatedElements.mapNotNull { validated ->
+            val inspection = validated.element.declaredPayload.type
+                .inspectValueClass(lazyvalEnvironment.builtIns)
+            val payload = (inspection as? ValueClassInspection.Unwrappable)?.payload
+                ?: return@mapNotNull null
+            val sources = when (validated) {
+                is ValidatedElement.ValidatedSourceElement -> listOf(validated.source)
+                is ValidatedElement.ValidatedJarElement -> emptyList()
+            }
+            InternalResult.from(
+                JavaAccessShimCodegen.generate(validated.element, payload), sources)
+        }
 
     private fun getActiveGenerators(): Stream<Generator> {
         val originalContextClassLoader: ClassLoader = Thread.currentThread().contextClassLoader

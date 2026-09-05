@@ -8,9 +8,9 @@ import com.qualityminds.lazyval.processor.spi.StockGeneratorIds;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
-import javax.lang.model.type.TypeMirror;
 import java.util.Set;
 import java.util.stream.Stream;
+import static com.qualityminds.lazyval.processor.internal.codegen.JavaPoetExprs.code;
 
 // must only be public for ServiceLoader, but it is not part of the API
 @SuppressWarnings("doclint:accessibility,missing")
@@ -46,7 +46,7 @@ final public class MapstructGenerator implements Generator {
                 .addModifiers(Modifier.PUBLIC);
 
         elements.forEach(validElement -> {
-            typeSpecBuilder.addMethod(buildMapToWrappedType(validElement));
+            typeSpecBuilder.addMethod(buildMapToPayload(validElement));
             typeSpecBuilder.addMethod(buildMapType(validElement));
         });
 
@@ -59,56 +59,45 @@ final public class MapstructGenerator implements Generator {
     }
 
     private static MethodSpec buildMapType(ValidatedGeneratorElement validElement) {
-        TypeMirror type = validElement.element().asType();
-        var wrappedType = validElement.wrappedType();
-        String parameterName;
-        parameterName = "value";
-        final MethodSpec map;
-        if(wrappedType.isPrimitive()){
-            map = MethodSpec.methodBuilder(String.format("map%sTo%s", wrappedType.typeNameUpper(), validElement.typeName().name()))
-                    .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
-                    .returns(TypeName.get(type))
-                    .addParameter(TypeName.get(wrappedType.typeMirror()), parameterName)
-                    .addStatement("return $L", validElement.objectCreation(parameterName))
-                    .build();
-        } else {
-            map = MethodSpec.methodBuilder(String.format("map%sTo%s", wrappedType.typeName(), validElement.typeName().name()))
-                    .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
-                    .returns(TypeName.get(type))
-                    .addParameter(TypeName.get(wrappedType.typeMirror()), parameterName)
-                    .beginControlFlow("if(%s == null)".formatted(parameterName))
+        var parameterName = "value";
+
+        // The method name and the parameter type ask the same question of either payload; only the
+        // null guard differs — a primitive parameter can never arrive null.
+        var map = MethodSpec.methodBuilder(String.format("map%sTo%s",
+                        validElement.payload().identifier(), validElement.name().flatName()))
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .returns(TypeName.get(validElement.element().asType()))
+                .addParameter(TypeName.get(validElement.payloadType()), parameterName);
+
+        if (!validElement.isPayloadPrimitive()) {
+            map.beginControlFlow("if(%s == null)".formatted(parameterName))
                     .addStatement("return null")
-                    .endControlFlow()
-                    .addStatement("return $L", validElement.objectCreation(parameterName))
-                    .build();
+                    .endControlFlow();
         }
-        return map;
+
+        return map.addStatement("return $L", code(validElement.java().create(parameterName))).build();
     }
 
-    private static MethodSpec buildMapToWrappedType(ValidatedGeneratorElement validElement) {
-        TypeMirror type = validElement.element().asType();
-        var wrappedType = validElement.wrappedType();
-
-        final MethodSpec mapToWrappedType;
+    private static MethodSpec buildMapToPayload(ValidatedGeneratorElement validElement) {
         var parameterName = "type";
-        if(wrappedType.isPrimitive()) {
-            mapToWrappedType = MethodSpec.methodBuilder(String.format("map%sTo%s", validElement.typeName().name(), wrappedType.typeNameUpper()))
-                    .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
-                    .returns(TypeName.get(wrappedType.typeMirror()))
-                    .addParameter(TypeName.get(type), parameterName)
-                    .addStatement(String.format("return %s.%s", parameterName, validElement.accessor()))
-                    .build();
-        } else {
-            mapToWrappedType = MethodSpec.methodBuilder(String.format("map%sTo%s", validElement.typeName().name(), wrappedType.typeName()))
-                    .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
-                    .returns(TypeName.get(wrappedType.typeMirror()))
-                    .addParameter(TypeName.get(type), parameterName)
-                    .beginControlFlow("if(%s == null)".formatted(parameterName))
+
+        var mapToPayload = MethodSpec.methodBuilder(String.format("map%sTo%s",
+                        validElement.name().flatName(), validElement.payload().identifier()))
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .returns(TypeName.get(validElement.payloadType()))
+                .addParameter(TypeName.get(validElement.element().asType()), parameterName);
+
+        // Same condition as above, different reason: there the payload was the parameter and a
+        // primitive one can never arrive null, here it is the return type and a primitive one cannot
+        // carry null back out — `return null` from a method returning `int` would not compile.
+        if (!validElement.isPayloadPrimitive()) {
+            mapToPayload.beginControlFlow("if(%s == null)".formatted(parameterName))
                     .addStatement("return null")
-                    .endControlFlow()
-                    .addStatement(String.format("return %s.%s", parameterName, validElement.accessor()))
-                    .build();
+                    .endControlFlow();
         }
-        return mapToWrappedType;
+
+        return mapToPayload
+                .addStatement("return $L", code(validElement.java().read(parameterName)))
+                .build();
     }
 }

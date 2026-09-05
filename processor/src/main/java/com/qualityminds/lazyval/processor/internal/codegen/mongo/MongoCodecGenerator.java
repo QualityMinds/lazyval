@@ -12,6 +12,7 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.stream.Stream;
+import static com.qualityminds.lazyval.processor.internal.codegen.JavaPoetExprs.code;
 
 /**
  * Generates a native MongoDB driver {@code Codec} for each domain-primitive, grouped into a
@@ -19,7 +20,7 @@ import java.util.stream.Stream;
  * org.bson.codecs.configuration.CodecProvider CodecProvider}. The provider resolves each
  * primitive's inner-type codec from the supplied {@code CodecRegistry} on demand and
  * delegates {@code encode}/{@code decode} to it, which transparently picks up whatever
- * representation the registry has configured for the wrapped type (e.g. UUID representation,
+ * representation the registry has configured for the payload type (e.g. UUID representation,
  * date/time codecs).
  *
  * <h3>Null handling — Mongo driver convention</h3>
@@ -181,18 +182,12 @@ public class MongoCodecGenerator implements Generator {
 
     private static TypeSpec buildCodec(ValidatedGeneratorElement element) {
         TypeMirror type = element.element().asType();
-        var wrappedType = element.wrappedType();
-
-        TypeName wrappedTypeName;
-        if (wrappedType.isPrimitive()) {
-            wrappedTypeName = TypeName.get(wrappedType.typeMirror()).box();
-        } else {
-            wrappedTypeName = TypeName.get(wrappedType.typeMirror());
-        }
+        // box() returns a reference type unchanged, so no primitive branch is needed here.
+        TypeName payloadTypeName = TypeName.get(element.payloadType()).box();
         TypeName elementTypeName = TypeName.get(type);
 
-        String codecClassName = element.typeName().name() + "Codec";
-        TypeName innerCodecTypeName = ParameterizedTypeName.get(CODEC, wrappedTypeName);
+        String codecClassName = element.name().flatName() + "Codec";
+        TypeName innerCodecTypeName = ParameterizedTypeName.get(CODEC, payloadTypeName);
 
         FieldSpec innerCodecField = FieldSpec.builder(innerCodecTypeName, "innerCodec", Modifier.PRIVATE, Modifier.FINAL)
                 .build();
@@ -213,7 +208,7 @@ public class MongoCodecGenerator implements Generator {
                 .addParameter(BSON_WRITER, "writer")
                 .addParameter(elementTypeName, "value")
                 .addParameter(ENCODER_CONTEXT, "encoderContext")
-                .addStatement("innerCodec.encode(writer, value.$L, encoderContext)", element.accessor())
+                .addStatement("innerCodec.encode(writer, $L, encoderContext)", code(element.java().read("value")))
                 .build();
 
         MethodSpec decode = MethodSpec.methodBuilder("decode")
@@ -222,7 +217,7 @@ public class MongoCodecGenerator implements Generator {
                 .returns(elementTypeName)
                 .addParameter(BSON_READER, "reader")
                 .addParameter(DECODER_CONTEXT, "decoderContext")
-                .addStatement("return $L", element.objectCreation("innerCodec.decode(reader, decoderContext)"))
+                .addStatement("return $L", code(element.java().create("innerCodec.decode(reader, decoderContext)")))
                 .build();
 
         MethodSpec getEncoderClass = MethodSpec.methodBuilder("getEncoderClass")
@@ -323,7 +318,7 @@ public class MongoCodecGenerator implements Generator {
 
         StringBuilder generatedSetInit = new StringBuilder("$T<$T<?>> generatedTypes = $T.of(\n");
         for (int i = 0; i < elements.size(); i++) {
-            generatedSetInit.append("    ").append(elements.get(i).typeName()).append(".class");
+            generatedSetInit.append("    ").append(elements.get(i).name().nestedName()).append(".class");
             if (i < elements.size() - 1) {
                 generatedSetInit.append(",");
             }
@@ -369,14 +364,11 @@ public class MongoCodecGenerator implements Generator {
 
         for (ValidatedGeneratorElement element : elements) {
             TypeName elementTypeName = TypeName.get(element.element().asType());
-            var wrappedType = element.wrappedType();
-            TypeName wrappedTypeName = wrappedType.isPrimitive()
-                    ? TypeName.get(wrappedType.typeMirror()).box()
-                    : TypeName.get(wrappedType.typeMirror());
-            String codecClassName = element.typeName().name() + "Codec";
+            TypeName payloadTypeName = TypeName.get(element.payloadType()).box();
+            String codecClassName = element.name().flatName() + "Codec";
 
             method.beginControlFlow("if (clazz == $T.class)", elementTypeName)
-                    .addStatement("return ($T<T>) new $L(registry.get($T.class))", CODEC, codecClassName, wrappedTypeName)
+                    .addStatement("return ($T<T>) new $L(registry.get($T.class))", CODEC, codecClassName, payloadTypeName)
                     .endControlFlow();
         }
 

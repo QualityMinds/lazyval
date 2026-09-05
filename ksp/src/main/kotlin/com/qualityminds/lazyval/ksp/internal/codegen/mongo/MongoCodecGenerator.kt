@@ -18,7 +18,7 @@ import java.util.stream.Stream
  *
  * The provider resolves each primitive's inner-type codec from the supplied `CodecRegistry`
  * on demand and delegates `encode`/`decode` to it, which transparently picks up whatever
- * representation the registry has configured for the wrapped type (e.g. UUID representation,
+ * representation the registry has configured for the payload type (e.g. UUID representation,
  * date/time codecs).
  *
  * ## Null handling — Mongo driver convention
@@ -175,12 +175,12 @@ class MongoCodecGenerator : Generator {
 
     private fun buildCodec(element: ValidatedKspGeneratorElement): TypeSpec {
         val elementClassName = element.element.toClassName()
-        val wrappedTypeName = element.wrappedProperty.type.toTypeName().copy(nullable = false)
+        val payloadTypeName = element.payloadType.toTypeName().copy(nullable = false)
         val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
         val outerType = elementClassName.copy(nullable = factoryReturnsNullable)
 
-        val codecClassName = "${element.typeName.name}Codec"
-        val innerCodecTypeName = CODEC.parameterizedBy(wrappedTypeName)
+        val codecClassName = "${element.name.flatName()}Codec"
+        val innerCodecTypeName = CODEC.parameterizedBy(payloadTypeName)
 
         val constructor = FunSpec.constructorBuilder()
             .addParameter("innerCodec", innerCodecTypeName)
@@ -203,11 +203,11 @@ class MongoCodecGenerator : Generator {
                         |    writer.writeNull()
                         |    return
                         |}
-                        |innerCodec.encode(writer, value.${element.kotlinAccessor}, encoderContext)
+                        |innerCodec.encode(writer, ${element.kotlin.read("value")}, encoderContext)
                         |""".trimMargin()
                     )
                 } else {
-                    addStatement("innerCodec.encode(writer, value.${element.kotlinAccessor}, encoderContext)")
+                    addStatement("innerCodec.encode(writer, ${element.kotlin.read("value")}, encoderContext)")
                 }
             }
             .build()
@@ -217,7 +217,7 @@ class MongoCodecGenerator : Generator {
             .addParameter("reader", BSON_READER)
             .addParameter("decoderContext", DECODER_CONTEXT)
             .returns(outerType)
-            .addStatement("return ${element.objectCreation("innerCodec.decode(reader, decoderContext)")}")
+            .addStatement("return ${element.kotlin.create("innerCodec.decode(reader, decoderContext)")}")
             .build()
 
         val getEncoderClass = FunSpec.builder("getEncoderClass")
@@ -394,8 +394,8 @@ class MongoCodecGenerator : Generator {
 
         for (element in elements) {
             val elementClassName = element.element.toClassName()
-            val wrappedTypeName = element.wrappedProperty.type.toTypeName().copy(nullable = false)
-            val codecClassName = "${element.typeName.name}Codec"
+            val payloadTypeName = element.payloadType.toTypeName().copy(nullable = false)
+            val codecClassName = "${element.name.flatName()}Codec"
 
             builder.addCode(
                 """
@@ -403,7 +403,7 @@ class MongoCodecGenerator : Generator {
                 |    return %L(registry.get(%T::class.javaObjectType)) as %T
                 |}
                 |""".trimMargin(),
-                elementClassName, codecClassName, wrappedTypeName, codecOfT
+                elementClassName, codecClassName, payloadTypeName, codecOfT
             )
         }
 

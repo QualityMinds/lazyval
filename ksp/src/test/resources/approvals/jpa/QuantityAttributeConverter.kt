@@ -11,5 +11,5 @@ import scenarios.kotlin.Quantity
 public class QuantityAttributeConverter : AttributeConverter<Quantity?, Int?> {
   override fun convertToDatabaseColumn(type: Quantity?): Int? = type?.value
 
-  override fun convertToEntityAttribute(dbValue: Int?): Quantity? = dbValue?.let { Quantity(dbValue) }
+  override fun convertToEntityAttribute(dbValue: Int?): Quantity? = dbValue?.let { Quantity(it) }
 }

@@ -74,28 +74,22 @@ class JsonbGenerator : Generator {
 
     private fun generateAdapter(context: Generator.Context, element: ValidatedKspGeneratorElement): NamedAdapter {
         val elementClassName = element.element.toClassName()
-        val wrappedType = element.wrappedProperty
-        val adapterName = "${element.typeName.name}Adapter"
-        val wrappedTypeName = wrappedType.type.toTypeName()
-
-        val factoryMethod = element.factoryMethod
-        val objectCreation = if (factoryMethod != null) {
-            "${element.typeName}.${factoryMethod.simpleName.asString()}(value)"
-        } else {
-            "${element.typeName}(value)"
-        }
+        val adapterName = "${element.name.flatName()}Adapter"
+        // The unwrapped payload: a value class is not a JSON type, whatever it erases to is.
+        val payloadTypeName = element.payloadType.toTypeName()
+        val objectCreation = element.kotlin.create("value")
 
         val adaptToJson = FunSpec.builder("adaptToJson")
             .addModifiers(KModifier.OVERRIDE)
-            .returns(wrappedTypeName)
+            .returns(payloadTypeName)
             .addParameter("obj", elementClassName)
-            .addStatement("return obj.${element.kotlinAccessor}")
+            .addStatement("return ${element.kotlin.read("obj")}")
             .build()
 
         val adaptFromJson = FunSpec.builder("adaptFromJson")
             .addModifiers(KModifier.OVERRIDE)
             .returns(elementClassName.copy(nullable = true))
-            .addParameter("value", wrappedTypeName)
+            .addParameter("value", payloadTypeName)
             .addStatement("return $objectCreation")
             .build()
 
@@ -104,7 +98,7 @@ class JsonbGenerator : Generator {
             TypeSpec.classBuilder(adapterName)
                 .addGeneratedAnnotation(JsonbGenerator::class, context)
                 .addSuperinterface(
-                    JSONB_ADAPTER.parameterizedBy(elementClassName, wrappedTypeName)
+                    JSONB_ADAPTER.parameterizedBy(elementClassName, payloadTypeName)
                 )
                 .addFunction(adaptToJson)
                 .addFunction(adaptFromJson)

@@ -37,8 +37,8 @@ import java.util.stream.Stream
  *
  * ### Write converters
  *
- * The wrapped type inside a domain-primitive is always non-nullable (lazyval rejects nullable
- * wrapped properties at compile time). Write converters therefore always return a non-null
+ * The payload inside a domain-primitive is always non-nullable (lazyval rejects nullable
+ * payloads at compile time). Write converters therefore always return a non-null
  * value: `Converter<DomainType, InnerType>`.
  */
 // File-level rather than in a companion so the emission functions at the bottom of the file can see
@@ -169,22 +169,22 @@ class SpringDataGenerator : Generator {
 
 private fun buildReadConverter(element: ValidatedKspGeneratorElement): TypeSpec {
     val elementClassName = element.element.toClassName()
-    val wrappedTypeName = element.wrappedProperty.type.toTypeName()
+    val payloadTypeName = element.payloadType.toTypeName()
     val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
     val returnType = elementClassName.copy(nullable = factoryReturnsNullable)
 
-    return TypeSpec.classBuilder("${element.typeName.name}ReadConverter")
+    return TypeSpec.classBuilder("${element.name.flatName()}ReadConverter")
         .addModifiers(KModifier.PRIVATE)
         .addAnnotation(READING_CONVERTER)
         .addSuperinterface(
-            CONVERTER.parameterizedBy(wrappedTypeName.copy(nullable = false), returnType)
+            CONVERTER.parameterizedBy(payloadTypeName.copy(nullable = false), returnType)
         )
         .addFunction(
             FunSpec.builder("convert")
                 .addModifiers(KModifier.OVERRIDE)
-                .addParameter("source", wrappedTypeName.copy(nullable = false))
+                .addParameter("source", payloadTypeName.copy(nullable = false))
                 .returns(returnType)
-                .addStatement("return ${element.objectCreation("source")}")
+                .addStatement("return ${element.kotlin.create("source")}")
                 .build()
         )
         .build()
@@ -192,20 +192,20 @@ private fun buildReadConverter(element: ValidatedKspGeneratorElement): TypeSpec 
 
 private fun buildWriteConverter(element: ValidatedKspGeneratorElement): TypeSpec {
     val elementClassName = element.element.toClassName()
-    val wrappedTypeName = element.wrappedProperty.type.toTypeName()
+    val payloadTypeName = element.payloadType.toTypeName()
 
-    return TypeSpec.classBuilder("${element.typeName.name}WriteConverter")
+    return TypeSpec.classBuilder("${element.name.flatName()}WriteConverter")
         .addModifiers(KModifier.PRIVATE)
         .addAnnotation(WRITING_CONVERTER)
         .addSuperinterface(
-            CONVERTER.parameterizedBy(elementClassName, wrappedTypeName.copy(nullable = false))
+            CONVERTER.parameterizedBy(elementClassName, payloadTypeName.copy(nullable = false))
         )
         .addFunction(
             FunSpec.builder("convert")
                 .addModifiers(KModifier.OVERRIDE)
                 .addParameter("source", elementClassName)
-                .returns(wrappedTypeName.copy(nullable = false))
-                .addStatement("return source.${element.kotlinAccessor}")
+                .returns(payloadTypeName.copy(nullable = false))
+                .addStatement("return ${element.kotlin.read("source")}")
                 .build()
         )
         .build()
