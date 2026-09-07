@@ -117,7 +117,7 @@ class JpaGenerator : Generator {
             .returns(lazyvalTypeName.copy(nullable = true))
             .addParameter(parameterName, payloadTypeName.copy(nullable = true))
             .apply {
-                addStatement("return ${validatedElement.kotlin.createOrNull(parameterName)}")
+                addStatement("return %L", validatedElement.kotlin.createOrNull(parameterName).kotlinPoet())
             }
             .build()
         return convertToEntityAttribute

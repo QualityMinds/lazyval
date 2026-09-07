@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.cassandra
 
 import com.qualityminds.lazyval.collections.NonEmptySet
+import com.qualityminds.lazyval.ksp.internal.codegen.kotlinPoet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
@@ -150,7 +151,7 @@ class CassandraCodecGenerator : Generator {
                     .addModifiers(KModifier.OVERRIDE)
                     .addParameter("value", payloadTypeName.copy(nullable = true))
                     .returns(nullableElementClassName)
-                    .addStatement("return ${element.kotlin.createOrNull("value")}")
+                    .addStatement("return %L", element.kotlin.createOrNull("value").kotlinPoet())
                     .build()
             )
             .addFunction(

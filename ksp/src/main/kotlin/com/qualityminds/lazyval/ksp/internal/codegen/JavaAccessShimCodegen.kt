@@ -47,7 +47,7 @@ internal object JavaAccessShimCodegen {
                 domainType.simpleName, payload.declaration.simpleName.asString())
             .addParameter(VALUE, underlying)
             .returns(domainType)
-            .addStatement("return %L", element.kotlin.create(VALUE))
+            .addStatement("return %L", element.kotlin.create(VALUE).kotlinPoet())
             .build()
 
         val typeSpec = TypeSpec.objectBuilder(shim.name.simpleName())

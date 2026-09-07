@@ -65,14 +65,26 @@ class AccessPlanSpec extends Specification {
 
         where:
         factory || expected
-        null    || "Order(value)"
-        "of"    || "Order.of(value)"
+        null    || "com.acme.Order(value)"
+        "of"    || "com.acme.Order.of(value)"
     }
 
-    void "a nested domain-primitive is spelled with its enclosing types, not its package"() {
-        expect: 'this lands in Kotlin output, which imports the type and writes Ids.ProductId'
-        plan(name: DotName.of("com.acme.order", "Ids", "ProductId"))
-                .kotlinCreate("value").asSource() == "Ids.ProductId(value)"
+    void "a rebuild is spelled qualified, so raw statement text carries its own resolution"() {
+        given: 'KotlinPoet imports only what it is handed as %T; interpolated text hands it nothing'
+        def nested = DotName.of("com.acme.order", "Ids", "ProductId")
+
+        expect: 'a nested spelling would compile only where the file names the type for some other reason'
+        plan(name: nested).kotlinCreate("value").asSource() ==
+                "com.acme.order.Ids.ProductId(value)"
+
+        and: 'through the factory, and through the let the nullable form wraps it in'
+        plan(name: nested, kotlinFactory: "of").kotlinCreateOrNull("dbValue").asSource() ==
+                "dbValue?.let { com.acme.order.Ids.ProductId.of(it) }"
+
+        and: 'the unwrapping chain already spelled its wrappers this way, so one expression agrees with itself'
+        plan(name: nested, unwrapping: [property("amount", "com.acme.Amount")])
+                .kotlinCreate("raw").asSource() ==
+                "com.acme.order.Ids.ProductId(com.acme.Amount(raw))"
     }
 
     void "reading peels the chain outermost-first and rebuilding assembles it innermost-first"() {
@@ -85,7 +97,7 @@ class AccessPlanSpec extends Specification {
         chain.kotlinRead("order").asSource() == "order.value.outer.toLong()"
 
         and: 'the same two steps, in the mirrored order'
-        chain.kotlinCreate("raw").asSource() == "Order(com.acme.Outer(raw.toULong()))"
+        chain.kotlinCreate("raw").asSource() == "com.acme.Order(com.acme.Outer(raw.toULong()))"
     }
 
     void "a null-safe rebuild is a let in either case, unwrapped or not"() {
@@ -94,8 +106,8 @@ class AccessPlanSpec extends Specification {
 
         where:
         steps                                     || expected
-        []                                        || "dbValue?.let { Order(it) }"
-        [property("amount", "com.acme.Amount")]   || "dbValue?.let { Order(com.acme.Amount(it)) }"
+        []                                        || "dbValue?.let { com.acme.Order(it) }"
+        [property("amount", "com.acme.Amount")]   || "dbValue?.let { com.acme.Order(com.acme.Amount(it)) }"
     }
 
     // ---- Java ---------------------------------------------------------------------------
@@ -149,7 +161,7 @@ class AccessPlanSpec extends Specification {
     }
 
     void "a Kotlin expression names its type too, so KotlinPoet can import it"() {
-        when: 'asSource() would have spelled it Order, which needs the import to already be there'
+        when: 'asSource() spells it out in full; %T lets KotlinPoet shorten it and add the import'
         def formatted = plan(name: DotName.of("com.acme.order", "Ids", "ProductId"))
                 .kotlinCreate("value").asFormat('%T')
 

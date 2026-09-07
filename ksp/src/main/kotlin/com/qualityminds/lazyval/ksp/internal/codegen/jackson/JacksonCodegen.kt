@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.jackson
 
+import com.qualityminds.lazyval.ksp.internal.codegen.kotlinPoet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.naming.Payload
@@ -145,7 +146,7 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
         element.isPayloadPrimitive -> {
             {
                 addStatement(primitiveReadStatement(element.primitiveKind()))
-                addStatement("return ${element.kotlin.create("value")}")
+                addStatement("return %L", element.kotlin.create("value").kotlinPoet())
             }
         }
         isStringType(element.payloadType) -> {
@@ -153,7 +154,7 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
                 // Direct read — avoids per-call deserializer lookup. Bypasses any user-customized
                 // String deserializer; acceptable for scalar wrapper payloads.
                 addStatement("val value = p.valueAsString")
-                addStatement("return ${element.kotlin.create("value")}")
+                addStatement("return %L", element.kotlin.create("value").kotlinPoet())
             }
         }
         else -> {
@@ -166,7 +167,7 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
                     element.payloadType.toTypeName()
                 )
                 addStatement("val value = deser.deserialize(p, ctx) as %T", element.payloadType.toTypeName())
-                addStatement("return ${element.kotlin.create("value")}")
+                addStatement("return %L", element.kotlin.create("value").kotlinPoet())
             }
         }
     }

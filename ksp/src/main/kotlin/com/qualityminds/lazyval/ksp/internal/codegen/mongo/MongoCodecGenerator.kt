@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.mongo
 
 import com.qualityminds.lazyval.collections.NonEmptySet
+import com.qualityminds.lazyval.ksp.internal.codegen.kotlinPoet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
@@ -217,7 +218,8 @@ class MongoCodecGenerator : Generator {
             .addParameter("reader", BSON_READER)
             .addParameter("decoderContext", DECODER_CONTEXT)
             .returns(outerType)
-            .addStatement("return ${element.kotlin.create("innerCodec.decode(reader, decoderContext)")}")
+            .addStatement("return %L",
+                element.kotlin.create("innerCodec.decode(reader, decoderContext)").kotlinPoet())
             .build()
 
         val getEncoderClass = FunSpec.builder("getEncoderClass")
