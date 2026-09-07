@@ -109,8 +109,8 @@ public record DotName(String packageName, List<String> simpleNames) {
     }
 
     /**
-     * The simple names concatenated, safe to use as an identifier and unique among the declarations of
-     * a package. Use this to derive the name of something generated <em>from</em> this declaration.
+     * The simple names concatenated, safe to use as an identifier (contains no dots). Use this to derive
+     * the name of something generated <em>from</em> this declaration.
      * @return {@code "IdsProductId"}
      */
     public String flatName() {
