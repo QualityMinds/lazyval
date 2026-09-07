@@ -97,11 +97,18 @@ internal data class AccessPlan(
      * Kotlin expression building the domain-primitive around [value] as it stands, with no unwrapping
      * chain applied.
      *
-     * [DotName.nestedName] rather than the qualified name: this lands in Kotlin output, where the
-     * generated file imports the domain-primitive and spells it `Ids.ProductId`.
+     * [DotName.canonicalName] rather than the nested name, because this spelling is the one
+     * [PayloadExpr.asSource] writes, and raw statement text carries no import with it: KotlinPoet adds
+     * an import only for a type handed to it as `%T`. A nested `Ids.ProductId` therefore compiled only
+     * where the generator happened to name the domain-primitive elsewhere in the same file — true of
+     * every stock generator, and silently false for one that merely rebuilds the type inside a function
+     * body. The qualified name always resolves, and the unwrapping chain already spells its wrappers
+     * this way ([UnwrapStep.Property]'s builder is a qualified callable), so both halves of one
+     * expression now agree. A generator that wants the short spelling asks for [PayloadExpr.asFormat]
+     * and lets KotlinPoet add the import.
      */
     private fun kotlinConstruct(value: String): PayloadExpr = payloadExpr {
-        type(name, name.nestedName())
+        type(name, name.canonicalName())
         if (kotlinFactory != null) {
             text(".$kotlinFactory")
         }

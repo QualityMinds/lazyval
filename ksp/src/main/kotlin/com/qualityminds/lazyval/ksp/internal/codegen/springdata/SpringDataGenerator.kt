@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.springdata
 
 import com.qualityminds.lazyval.collections.NonEmptySet
+import com.qualityminds.lazyval.ksp.internal.codegen.kotlinPoet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
@@ -184,7 +185,7 @@ private fun buildReadConverter(element: ValidatedKspGeneratorElement): TypeSpec 
                 .addModifiers(KModifier.OVERRIDE)
                 .addParameter("source", payloadTypeName.copy(nullable = false))
                 .returns(returnType)
-                .addStatement("return ${element.kotlin.create("source")}")
+                .addStatement("return %L", element.kotlin.create("source").kotlinPoet())
                 .build()
         )
         .build()

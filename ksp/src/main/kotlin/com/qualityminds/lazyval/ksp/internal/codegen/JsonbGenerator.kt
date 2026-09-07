@@ -77,7 +77,7 @@ class JsonbGenerator : Generator {
         val adapterName = "${element.name.flatName()}Adapter"
         // The unwrapped payload: a value class is not a JSON type, whatever it erases to is.
         val payloadTypeName = element.payloadType.toTypeName()
-        val objectCreation = element.kotlin.create("value")
+        val objectCreation = element.kotlin.create("value").kotlinPoet()
 
         val adaptToJson = FunSpec.builder("adaptToJson")
             .addModifiers(KModifier.OVERRIDE)
@@ -90,7 +90,7 @@ class JsonbGenerator : Generator {
             .addModifiers(KModifier.OVERRIDE)
             .returns(elementClassName.copy(nullable = true))
             .addParameter("value", payloadTypeName)
-            .addStatement("return $objectCreation")
+            .addStatement("return %L", objectCreation)
             .build()
 
         return NamedAdapter(
