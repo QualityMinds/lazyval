@@ -69,7 +69,7 @@ class QuarkusMongoIT {
         def createdOrder = mapper.toDomainOrder(orderApi.createOrder(PERSISTENCE_TYPE, createOrderDto))
 
         assert createdOrder.isbn == Isbn.parse(createOrderDto.getIsbn())
-        assert createdOrder.quantity == new Quantity(createOrderDto.getQuantity())
+        assert createdOrder.quantity == Quantity.of(createOrderDto.getQuantity())
         assert createdOrder.email == new EMail(createOrderDto.getEmail())
         assert createdOrder.id != null
     }

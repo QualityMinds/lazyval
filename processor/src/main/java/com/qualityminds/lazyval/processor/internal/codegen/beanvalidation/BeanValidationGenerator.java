@@ -13,6 +13,7 @@ import javax.lang.model.type.TypeMirror;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
+import static com.qualityminds.lazyval.processor.internal.codegen.JavaPoetExprs.code;
 
 /**
  * Generates a {@code ValueExtractor} for each domain-primitive, delegating all constraint
@@ -65,17 +66,14 @@ public class BeanValidationGenerator implements Generator {
 
     private Stream<GeneratorResult> buildValueExtractor(ValidatedGeneratorElement element, String packageName) {
         TypeMirror lazyvalTypeMirror = element.element().asType();
-        TypeMirror wrappedTypeMirror = element.wrappedType().typeMirror();
-        String className = element.typeName().name() + "ValueExtractor";
+        String className = element.name().flatName() + "ValueExtractor";
 
-        // For primitive inner types (int, long, ...) the class literal in @ExtractedValue must be boxed.
-        TypeName wrappedTypeName = TypeName.get(wrappedTypeMirror);
-        TypeName wrappedTypeForAnnotation = element.wrappedType().isPrimitive()
-                ? wrappedTypeName.box()
-                : wrappedTypeName;
+        // The class literal in @ExtractedValue must be a reference type, which is what box() gives us
+        // for a primitive payload and leaves alone for any other.
+        TypeName payloadTypeForAnnotation = TypeName.get(element.payloadType()).box();
 
         AnnotationSpec extractedValueAnnotation = AnnotationSpec.builder(EXTRACTED_VALUE)
-                .addMember("type", "$T.class", wrappedTypeForAnnotation)
+                .addMember("type", "$T.class", payloadTypeForAnnotation)
                 .build();
 
         // ValueExtractor<@ExtractedValue(type = String.class) Isbn>
@@ -92,7 +90,7 @@ public class BeanValidationGenerator implements Generator {
                 .addStatement("receiver.value(null, null)")
                 .addStatement("return")
                 .endControlFlow()
-                .addStatement("receiver.value(null, originalValue.$L)", element.accessor())
+                .addStatement("receiver.value(null, $L)", code(element.java().read("originalValue")))
                 .build();
 
         TypeSpec extractor = TypeSpec.classBuilder(className)

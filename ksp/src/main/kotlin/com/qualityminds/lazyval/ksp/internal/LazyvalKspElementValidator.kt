@@ -5,15 +5,16 @@ import com.google.devtools.ksp.getDeclaredFunctions
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.isPublic
 import com.google.devtools.ksp.symbol.*
+import com.qualityminds.lazyval.ksp.spi.JavaAccessShim
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
-import com.qualityminds.lazyval.ksp.spi.WrappedProperty
+import com.qualityminds.lazyval.ksp.spi.DeclaredPayload
+import com.qualityminds.lazyval.naming.DotName
 
 private const val NOT_FINAL_CLASS_WARNING =
     "Value Types should not be extendable, hence the class should be final."
 private const val NOT_FINAL_VALUE_WARNING =
-    "Value Types should be immutable, hence the wrapped property should be final (val)."
+    "Value Types should be immutable, hence the payload property should be final (val)."
 private const val JVM_FIELD_ANNOTATION = "kotlin.jvm.JvmField"
-private const val JVM_INLINE_ANNOTATION = "kotlin.jvm.JvmInline"
 private const val JVM_NAME_ANNOTATION = "kotlin.jvm.JvmName"
 private val TRANSIENT_ANNOTATIONS = setOf(
     "kotlin.jvm.Transient",
@@ -73,10 +74,12 @@ internal class LazyvalKspElementValidator(
             }
             return null
         }
-        val payloadValid = validatePayload(classDeclaration, payloadCandidates)
         val (valueProperty, accessorMethod) = payloadCandidates.first()
-
         val payloadType = valueProperty.type.resolve()
+        // Resolved before the payload rules run because they judge it, and once because the element
+        // needs the same answer to describe its Java-facing view.
+        val valueClass = payloadType.inspectValueClass(environment.builtIns)
+        val payloadValid = validatePayload(classDeclaration, payloadCandidates, valueClass)
         val factoryMethods = findFactoryMethods(classDeclaration, payloadType)
         val factoryValid = validateFactoryMethods(classDeclaration, factoryMethods)
         // Only answerable once the payload is: with several candidates there is no single type to match
@@ -94,11 +97,14 @@ internal class LazyvalKspElementValidator(
         val factoryMethod = factoryMethods.firstOrNull()
         return ValidatedKspGeneratorElement(
             classDeclaration,
-            WrappedProperty(valueProperty),
+            DeclaredPayload(valueProperty),
             factoryMethod,
             accessorMethod,
             jvmNames.javaAccessorName(valueProperty, accessorMethod),
-            jvmNames.javaFactoryPath(factoryMethod))
+            jvmNames.javaFactoryPath(factoryMethod),
+            (valueClass as? ValueClassInspection.Unwrappable)?.payload?.steps.orEmpty(),
+            javaPayloadType(payloadType, valueClass),
+            javaAccessShim(classDeclaration, valueProperty, valueClass))
     }
 
     /** Rules about the class itself, independent of what it wraps. */
@@ -124,13 +130,14 @@ internal class LazyvalKspElementValidator(
     }
 
     /**
-     * Rules about the wrapped payload: exactly one property, of a non-nullable type that is not a value
-     * class, readable through an accessor. All four describe the same thing, so a class that gets
-     * several wrong hears about each of them.
+     * Rules about the payload: exactly one property, of a non-nullable type, readable through
+     * an accessor, and — when it is a value class — one Lazyval can unwrap and re-wrap. All of them
+     * describe the same thing, so a class that gets several wrong hears about each of them.
      */
     private fun validatePayload(
         classDeclaration: KSClassDeclaration,
-        pairs: List<PropertyAccessorPair>
+        pairs: List<PropertyAccessorPair>,
+        valueClass: ValueClassInspection
     ): Boolean {
         var valid = true
         if (pairs.size > 1) {
@@ -142,13 +149,13 @@ internal class LazyvalKspElementValidator(
         val payloadType = valueProperty.type.resolve()
         if (payloadType.isMarkedNullable) {
             environment.error(valueProperty,
-                "Wrapped type must not be nullable. Please use a non-nullable type.")
+                "Payload must not be nullable. Please use a non-nullable type.")
             valid = false
         }
-        // Reported on the payload rather than the class because the type is the author's choice to
-        // change. Covers Kotlin's unsigned types too, which are value classes and mangle the same way.
-        if (payloadType.isValueClass()) {
-            environment.error(valueProperty, valueClassPayloadMessage(payloadType))
+        // A value-class payload is supported by unwrapping it, so only the shapes that cannot be
+        // unwrapped are refused. Reported on the payload because the type is the author's choice.
+        if (valueClass is ValueClassInspection.Unsupported) {
+            environment.error(valueProperty, valueClass.message)
             valid = false
         }
         // Generated Java reads the payload through a method and has no field path, so a property whose
@@ -162,7 +169,7 @@ internal class LazyvalKspElementValidator(
     }
 
     /**
-     * At most one factory method may match the wrapped type; with several, Lazyval cannot tell which
+     * At most one factory method may match the payload type; with several, Lazyval cannot tell which
      * one is meant to reconstruct the value. Having none is fine — the constructor is then used.
      */
     private fun validateFactoryMethods(
@@ -292,7 +299,7 @@ private data class PropertyAccessorPair(
 
 /**
  * Non-static, non-transient properties paired with their accessor — the candidates for being the
- * wrapped payload. Static and transient state is excluded because only the storage payload counts.
+ * payload. Static and transient state is excluded because only the storage payload counts.
  *
  * Accessors are resolved before the transient filter runs, because a framework `@Transient` may
  * sit on the accessor instead of on the property.
@@ -326,9 +333,41 @@ private fun findPropertyAccessorPairs(
         .toList()
 }
 
+/**
+ * The type generated Java carries in place of the payload. A value class is compiled away, so Java can
+ * only ever see the type it wraps; for anything else the payload type stands as written.
+ */
+private fun javaPayloadType(payloadType: KSType, valueClass: ValueClassInspection): KSType =
+    when (valueClass) {
+        is ValueClassInspection.Unwrappable -> valueClass.payload.underlyingType
+        else -> payloadType
+    }
+
+/**
+ * The shim generated Java goes through, or `null` when it can read and rebuild the type directly.
+ *
+ * Named after the domain-primitive and placed in its package so it can reach an `internal` member, and
+ * so two domain-primitives never collide — [DotName.flatName] already flattens nested names.
+ */
+private fun javaAccessShim(
+    classDeclaration: KSClassDeclaration,
+    valueProperty: KSPropertyDeclaration,
+    valueClass: ValueClassInspection
+): JavaAccessShim? {
+    if (valueClass !is ValueClassInspection.Unwrappable) {
+        return null
+    }
+    return JavaAccessShim(
+        name = DotName.of(
+            classDeclaration.packageName.asString(),
+            "${classDeclaration.toDotName().flatName()}JvmAccess"),
+        readMember = valueProperty.simpleName.asString(),
+        createMember = "of")
+}
+
 private fun findFactoryMethods(
     classDeclaration: KSClassDeclaration,
-    wrappedType: KSType
+    payloadType: KSType
 ): List<KSFunctionDeclaration> {
     // Kotlin classes expose factories via companion objects. Java classes (e.g. java.time.Year.of)
     // expose them as JAVA_STATIC methods declared on the class itself. Scan both so external Java
@@ -355,7 +394,7 @@ private fun findFactoryMethods(
                     (returnType.isMarkedNullable && returnType.makeNotNullable() == classDeclaration.asStarProjectedType())
             if (!returnTypeMatches) return@filter false
 
-            function.parameters[0].type.resolve().reconstructs(wrappedType)
+            function.parameters[0].type.resolve().reconstructs(payloadType)
         }
         .toList()
 }
@@ -377,17 +416,6 @@ private fun findPayloadConstructor(
  */
 private fun KSType.reconstructs(payload: KSType): Boolean =
     this == payload || (isMarkedNullable && makeNotNullable() == payload)
-
-/**
- * Whether this type is a Kotlin `value class`, and therefore has no form generated Java can call.
- *
- * Two signals because one is not enough: `Modifier.VALUE` is reported for a declaration in the
- * compilation unit, but not for one read off the classpath — `kotlin.UInt` arrives with neither the
- * modifier nor anything else naming it a value class except `@JvmInline`, which is retained.
- */
-private fun KSType.isValueClass(): Boolean =
-    Modifier.VALUE in declaration.modifiers ||
-            declaration.annotations.hasMarker(JVM_INLINE_ANNOTATION)
 
 /**
  * Whether this declaration is compiled by the run that is processing it, rather than read from a jar.

@@ -13,6 +13,7 @@ import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import static com.qualityminds.lazyval.processor.internal.codegen.JavaPoetExprs.code;
 
 /**
  * Generates Spring Data {@code Converter} read/write pairs for each domain-primitive and
@@ -29,8 +30,8 @@ import java.util.stream.Stream;
  * silently. Java's type system provides no compile-time guarantee for this; callers must ensure
  * the target field accepts {@code null}.
  * <p>
- * <b>Write converters:</b> the wrapped type inside a domain-primitive is always non-nullable
- * (lazyval rejects nullable wrapped properties at compile time), so write converters always
+ * <b>Write converters:</b> the payload inside a domain-primitive is always non-nullable
+ * (lazyval rejects nullable payloads at compile time), so write converters always
  * return a non-null value.
  */
 // must only be public for ServiceLoader, but it is not part of the API
@@ -167,56 +168,44 @@ public class SpringDataGenerator implements Generator {
 
     private static TypeSpec buildReadConverter(ValidatedGeneratorElement element) {
         TypeMirror type = element.element().asType();
-        var wrappedType = element.wrappedType();
-
-        TypeName wrappedTypeName;
-        if (wrappedType.isPrimitive()) {
-            wrappedTypeName = TypeName.get(wrappedType.typeMirror()).box();
-        } else {
-            wrappedTypeName = TypeName.get(wrappedType.typeMirror());
-        }
+        // box() returns a reference type unchanged, so no primitive branch is needed here.
+        TypeName payloadTypeName = TypeName.get(element.payloadType()).box();
         TypeName elementTypeName = TypeName.get(type);
 
         MethodSpec convertMethod = MethodSpec.methodBuilder("convert")
                 .addAnnotation(OVERRIDE_ANNOTATION)
                 .addModifiers(Modifier.PUBLIC)
                 .returns(elementTypeName)
-                .addParameter(wrappedTypeName, "source")
-                .addStatement("return $L", element.objectCreation("source"))
+                .addParameter(payloadTypeName, "source")
+                .addStatement("return $L", code(element.java().create("source")))
                 .build();
 
-        return TypeSpec.classBuilder(element.typeName().name() + "ReadConverter")
+        return TypeSpec.classBuilder(element.name().flatName() + "ReadConverter")
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
                 .addAnnotation(READING_CONVERTER)
-                .addSuperinterface(ParameterizedTypeName.get(CONVERTER, wrappedTypeName, elementTypeName))
+                .addSuperinterface(ParameterizedTypeName.get(CONVERTER, payloadTypeName, elementTypeName))
                 .addMethod(convertMethod)
                 .build();
     }
 
     private static TypeSpec buildWriteConverter(ValidatedGeneratorElement element) {
         TypeMirror type = element.element().asType();
-        var wrappedType = element.wrappedType();
-
-        TypeName wrappedTypeName;
-        if (wrappedType.isPrimitive()) {
-            wrappedTypeName = TypeName.get(wrappedType.typeMirror()).box();
-        } else {
-            wrappedTypeName = TypeName.get(wrappedType.typeMirror());
-        }
+        // box() returns a reference type unchanged, so no primitive branch is needed here.
+        TypeName payloadTypeName = TypeName.get(element.payloadType()).box();
         TypeName elementTypeName = TypeName.get(type);
 
         MethodSpec convertMethod = MethodSpec.methodBuilder("convert")
                 .addAnnotation(OVERRIDE_ANNOTATION)
                 .addModifiers(Modifier.PUBLIC)
-                .returns(wrappedTypeName)
+                .returns(payloadTypeName)
                 .addParameter(elementTypeName, "source")
-                .addStatement("return source.$L", element.accessor())
+                .addStatement("return $L", code(element.java().read("source")))
                 .build();
 
-        return TypeSpec.classBuilder(element.typeName().name() + "WriteConverter")
+        return TypeSpec.classBuilder(element.name().flatName() + "WriteConverter")
                 .addModifiers(Modifier.PRIVATE, Modifier.STATIC, Modifier.FINAL)
                 .addAnnotation(WRITING_CONVERTER)
-                .addSuperinterface(ParameterizedTypeName.get(CONVERTER, elementTypeName, wrappedTypeName))
+                .addSuperinterface(ParameterizedTypeName.get(CONVERTER, elementTypeName, payloadTypeName))
                 .addMethod(convertMethod)
                 .build();
     }

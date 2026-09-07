@@ -26,7 +26,7 @@ class LazyvalElementValidator {
     private static final String NOT_FINAL_OBJECT_WARNING =
             "Value Types should not be extendable, hence the class should be final.";
     private static final String NOT_FINAL_VALUE_WARNING =
-            "Value Types should be immutable, hence the wrapped field should be final.";
+            "Value Types should be immutable, hence the payload field should be final.";
     private static final Set<String> TRANSIENT_ANNOTATIONS = Set.of(
             "jakarta.persistence.Transient",
             "org.springframework.data.annotation.Transient");
@@ -190,7 +190,7 @@ class LazyvalElementValidator {
     }
 
     /**
-     * At most one factory method may match the wrapped type; with several, Lazyval cannot tell which
+     * At most one factory method may match the payload type; with several, Lazyval cannot tell which
      * one is meant to reconstruct the value. Having none is fine — the constructor is then used.
      */
     private boolean validateFactoryMethods(TypeElement lazyvalElement, List<ExecutableElement> factoryMethods) {
@@ -270,14 +270,14 @@ class LazyvalElementValidator {
         }
     }
 
-    private List<ExecutableElement> findFactoryMethods(TypeElement lazyvalElement, TypeMirror wrappedType) {
+    private List<ExecutableElement> findFactoryMethods(TypeElement lazyvalElement, TypeMirror payloadType) {
         return lazyvalElement.getEnclosedElements().stream()
                 .filter(element -> element.getKind() == ElementKind.METHOD)
                 .map(element -> (ExecutableElement) element)
                 .filter(method -> method.getModifiers().contains(Modifier.STATIC)
                         && typeUtils.isSameType(method.getReturnType(), lazyvalElement.asType())
                         && method.getParameters().size() == 1
-                        && typeUtils.isSameType(method.getParameters().get(0).asType(), wrappedType))
+                        && typeUtils.isSameType(method.getParameters().get(0).asType(), payloadType))
                 .toList();
     }
 

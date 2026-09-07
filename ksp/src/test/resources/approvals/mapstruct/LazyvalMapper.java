@@ -23,7 +23,7 @@ public interface LazyvalMapper {
     return type.getValue();
   }
 
-  default Ids.ProductId mapStringToProductId(String value) {
+  default Ids.ProductId mapStringToIdsProductId(String value) {
     if (value == null) {
       return null;
     }
@@ -44,11 +44,11 @@ public interface LazyvalMapper {
     return Isbn.parse(value);
   }
 
-  default int mapNullableQuantityToint(NullableQuantity type) {
+  default int mapNullableQuantityToInt(NullableQuantity type) {
     return type.getValue();
   }
 
-  default NullableQuantity mapintToNullableQuantity(int value) {
+  default NullableQuantity mapIntToNullableQuantity(int value) {
     return NullableQuantity.ofNullable(value);
   }
 
@@ -66,11 +66,11 @@ public interface LazyvalMapper {
     return new OrderDate(value);
   }
 
-  default int mapQuantityToint(Quantity type) {
+  default int mapQuantityToInt(Quantity type) {
     return type.getValue();
   }
 
-  default Quantity mapintToQuantity(int value) {
+  default Quantity mapIntToQuantity(int value) {
     return new Quantity(value);
   }
 }

@@ -11,5 +11,5 @@ import scenarios.kotlin.OrderDate
 public class OrderDateAttributeConverter : AttributeConverter<OrderDate?, LocalDate?> {
   override fun convertToDatabaseColumn(type: OrderDate?): LocalDate? = type?.date
 
-  override fun convertToEntityAttribute(dbValue: LocalDate?): OrderDate? = dbValue?.let { OrderDate(dbValue) }
+  override fun convertToEntityAttribute(dbValue: LocalDate?): OrderDate? = dbValue?.let { OrderDate(it) }
 }

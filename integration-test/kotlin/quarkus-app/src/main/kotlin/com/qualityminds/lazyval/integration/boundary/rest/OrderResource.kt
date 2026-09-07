@@ -34,7 +34,7 @@ class OrderResource @Inject constructor(
     override fun createOrder(persistenceType: PersistenceType, createOrder: CreateOrder): Order {
         val newOrder = com.qualityminds.lazyval.integration.domain.Order.create(
             Isbn.parse(createOrder.isbn),
-            Quantity(createOrder.quantity),
+            Quantity.of(createOrder.quantity),
             EMail(createOrder.email),
             CouponCode.ofNullable(createOrder.couponCode),
         )

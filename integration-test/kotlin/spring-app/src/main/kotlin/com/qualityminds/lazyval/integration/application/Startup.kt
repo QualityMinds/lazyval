@@ -23,14 +23,14 @@ class Startup(
         val DefaultOrderA: com.qualityminds.lazyval.integration.domain.Order =
             com.qualityminds.lazyval.integration.domain.Order.create(
                 Isbn.parse("3-86680-192-0"),
-                Quantity(1),
+                Quantity.of(1),
                 EMail("a@b.de")
             )
         @JvmField
         val DefaultOrderB: com.qualityminds.lazyval.integration.domain.Order =
             com.qualityminds.lazyval.integration.domain.Order.create(
                 Isbn.parse("978-3-86680-192-9"),
-                Quantity(1),
+                Quantity.of(1),
                 EMail("x@y.de")
             )
     }

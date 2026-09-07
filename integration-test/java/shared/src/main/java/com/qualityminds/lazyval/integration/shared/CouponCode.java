@@ -2,6 +2,7 @@ package com.qualityminds.lazyval.integration.shared;
 
 import org.jspecify.annotations.Nullable;
 
+import java.util.Locale;
 import java.util.Objects;
 
 public final class CouponCode {
@@ -19,7 +20,7 @@ public final class CouponCode {
     @Nullable
     public static CouponCode ofNullable(@Nullable String value) {
         if (value == null || value.isBlank()) return null;
-        return new CouponCode(value.trim().toUpperCase());
+        return new CouponCode(value.trim().toUpperCase(Locale.ROOT));
     }
 
     @Override

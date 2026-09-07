@@ -3,6 +3,7 @@ package com.qualityminds.lazyval.ksp.internal.codegen.beanvalidation
 import com.palantir.javapoet.JavaFile
 import com.qualityminds.lazyval.collections.NonEmptySet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
+import com.qualityminds.lazyval.ksp.internal.codegen.toJavaPoet
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.StockGeneratorIds
@@ -71,8 +72,8 @@ class BeanValidationGenerator : Generator {
         element: ValidatedKspGeneratorElement,
         packageName: String
     ): Stream<GeneratorResult> {
-        val baseClassName = "${element.typeName.name}ValueExtractorBase"
-        val implClassName = "${element.typeName.name}ValueExtractor"
+        val baseClassName = "${element.name.flatName()}ValueExtractorBase"
+        val implClassName = "${element.name.flatName()}ValueExtractor"
 
         val javaFile = buildAbstractBase(element, packageName, baseClassName, implClassName, context)
         val fileSpec = buildKotlinImpl(element, packageName, implClassName, baseClassName, context)
@@ -95,13 +96,13 @@ class BeanValidationGenerator : Generator {
         implClassName: String,
         context: Generator.Context
     ): JavaFile {
-        val lazyvalJavaClassName = nestedAwareJavaClassName(element)
-        val wrappedTypeName = getJavaTypeName(element)
-        val wrappedTypeForAnnotation: JTypeName =
-            if (element.wrappedProperty.isPrimitive()) wrappedTypeName.box() else wrappedTypeName
+        val lazyvalJavaClassName = element.name.toJavaPoet()
+        // box() returns a reference type unchanged, so no primitive branch is needed: the class
+        // literal in @ExtractedValue only ever needs the reference form.
+        val payloadTypeForAnnotation: JTypeName = element.payload.toJavaPoet().box()
 
         val extractedValueAnnotation = JAnnotationSpec.builder(J_EXTRACTED_VALUE)
-            .addMember("type", "\$T.class", wrappedTypeForAnnotation)
+            .addMember("type", "\$T.class", payloadTypeForAnnotation)
             .build()
 
         val superInterface = JParameterizedTypeName.get(
@@ -110,7 +111,7 @@ class BeanValidationGenerator : Generator {
         )
 
         val javadoc = "Abstract base class providing the {@code ValueExtractor} superinterface\n" +
-            "declaration for {@code ${element.typeName}}.\n\n" +
+            "declaration for {@code ${element.name.nestedName()}}.\n\n" +
             "<p>This class must be written in Java. The Kotlin compiler does not emit\n" +
             "{@code RuntimeVisibleTypeAnnotations} for type-use annotations on generic supertype\n" +
             "arguments\n" +
@@ -152,7 +153,7 @@ class BeanValidationGenerator : Generator {
             .addStatement("receiver.value(null, null)")
             .addStatement("return")
             .endControlFlow()
-            .addStatement("receiver.value(null, originalValue.%L)", element.kotlinAccessor)
+            .addStatement("receiver.value(null, %L)", element.kotlin.read("originalValue"))
             .build()
 
         val typeSpec = TypeSpec.classBuilder(implClassName)
@@ -163,32 +164,6 @@ class BeanValidationGenerator : Generator {
             .build()
 
         return FileSpec.builder(packageName, implClassName).addType(typeSpec).build()
-    }
-
-    private fun getJavaTypeName(element: ValidatedKspGeneratorElement): JTypeName {
-        val ksType = element.wrappedProperty.type
-        return when (ksType.declaration.simpleName.asString()) {
-            "Int" -> JTypeName.INT
-            "Long" -> JTypeName.LONG
-            "Short" -> JTypeName.SHORT
-            "Byte" -> JTypeName.BYTE
-            "Double" -> JTypeName.DOUBLE
-            "Float" -> JTypeName.FLOAT
-            "Boolean" -> JTypeName.BOOLEAN
-            "Char" -> JTypeName.CHAR
-            "String" -> JClassName.get("java.lang", "String")
-            else -> {
-                val pkg = ksType.declaration.packageName.asString()
-                val name = ksType.declaration.simpleName.asString()
-                JClassName.get(pkg, name)
-            }
-        }
-    }
-
-    private fun nestedAwareJavaClassName(element: ValidatedKspGeneratorElement): JClassName {
-        val elementPackageName = element.element.packageName.asString()
-        val simpleNames = element.typeName.value.split(".")
-        return JClassName.get(elementPackageName, simpleNames.first(), *simpleNames.drop(1).toTypedArray())
     }
 
     fun toResultStream(

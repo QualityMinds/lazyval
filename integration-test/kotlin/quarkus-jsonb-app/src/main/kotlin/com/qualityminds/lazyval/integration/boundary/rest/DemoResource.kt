@@ -18,7 +18,7 @@ class DemoResource {
     @GET
     fun get(): Demo = Demo(
         Isbn.parse("3-86680-192-0"),
-        Quantity(2),
+        Quantity.of(2),
         EMail("a@b.de")
     )
 

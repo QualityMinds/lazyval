@@ -16,7 +16,7 @@ internal object AccessorLookup {
 
     /**
      * Inherited from `Any`/`Object` by every class. `hashCode(): Int` and `toString(): String`
-     * collide with common wrapped-property types and would otherwise be picked up by the tier-3
+     * collide with common payload types and would otherwise be picked up by the tier-3
      * type-only match, pairing a field with the wrong getter.
      */
     val OBJECT_METHOD_NAMES = setOf("equals", "hashCode", "toString")

@@ -77,6 +77,34 @@ class KspMapstructIT extends Specification {
         result == Testresult.Kotlin.Approved.of(approvals)
     }
 
+    /**
+     * A `value class` payload, pinned end to end: the mapper trades in the erased `int` and calls the
+     * generated shim, and the shim re-wraps through `Score.of` rather than through `Score`'s public
+     * constructor.
+     *
+     * The shim is approved as well as the mapper because compilation cannot distinguish the two
+     * construction routes — both are valid Kotlin — yet only one honours the factory's `require`.
+     */
+    void "Mapstruct unwraps a value-class payload through the generated shim"() {
+        given:
+        def scenario = Scenario.Kotlin.ofSingle("scenarios/edge/ValueClassFactoryPreferred.kt")
+                .withDependencies(dependencyMapstruct, dependencyJakartaAnnotations)
+
+        and: 'approvals for the mapper and for the shim it calls'
+        List<Approval.ForKotlin> approvals = [
+                Approval.JavaSource.at("test/$GENERATED_FILE_NAME",
+                        "approvals/mapstruct/LazyvalMapperValueClass.java"),
+                Approval.KotlinSource.at("scenarios/edge/ValueClassFactoryPreferredJvmAccess.kt",
+                        "approvals/mapstruct/ValueClassFactoryPreferredJvmAccess.kt")
+        ]
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario, approvals)
+
+        then:
+        result == Testresult.Kotlin.Approved.of(approvals)
+    }
+
     void "Warning is issued when package is not configured in any way"(){
         given:
         def scenario = Scenario.Kotlin.quantity().withDependencies(dependencyMapstruct)
