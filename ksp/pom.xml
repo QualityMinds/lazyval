@@ -137,11 +137,11 @@
                     <relocations>
                         <!--
                           Third-party packages only. `com.qualityminds.lazyval.**` must NEVER be
-                          relocated: `naming.DotName` and `collections.NonEmptySet` are part of the
+                          relocated: `naming.DotName`, `naming.Payload` and `collections.NonEmptySet` are part of the
                           Generator SPI, so an external generator compiles against those exact names
                           and would fail at runtime against a relocated copy. Together with
                           minimizeJar, which keeps a bundled class only while something references it,
-                          this is what puts those two types on the published API surface — so
+                          this is what puts those shared types on the published API surface — so
                           ShadedArtifactIT asserts both properties against the built jar.
                         -->
                         <relocation>
