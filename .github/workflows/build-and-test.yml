@@ -29,9 +29,9 @@ jobs:
       lazyval-version: ${{ steps.version.outputs.version }}
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up JDK
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           java-version: ${{ env.JAVA_VERSION_BUILD }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
@@ -46,7 +46,7 @@ jobs:
           retention-days: 1
       - name: Upload Detekt SARIF
         if: always() && !env.ACT # doesnt work locally
-        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9 # v4.37.0
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           # currently error-prone does not support sarif, hence we only upload kotlin-detekt
           # see https://github.com/google/error-prone/issues/3766
@@ -80,9 +80,9 @@ jobs:
           - kotlin/spring-app-r2dbc
     steps:
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Set up JDK
-        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           java-version: ${{ env.JAVA_VERSION_BUILD }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
@@ -102,7 +102,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/prepare-example
         with:
           cache: maven
@@ -127,7 +127,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/prepare-example
         with:
           cache: maven
@@ -152,7 +152,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/prepare-example
         with:
           cache: gradle
@@ -174,7 +174,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/prepare-example
       - uses: coursier/cache-action@95e5b1029b6b86e7bac033ee44a0697d8a527d2d # v8.1.1
       - name: Download Mill Script
@@ -198,7 +198,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/prepare-example
         with:
           cache: maven
@@ -224,7 +224,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/prepare-example
         with:
           cache: maven
@@ -249,7 +249,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/prepare-example
         with:
           cache: gradle
@@ -271,7 +271,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/prepare-example
       - uses: coursier/cache-action@95e5b1029b6b86e7bac033ee44a0697d8a527d2d # v8.1.1
       - name: Download Mill Script
@@ -295,7 +295,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/prepare-example
       - name: Create Maven 3 wrapper
         working-directory: examples/java-spi-dev
@@ -311,7 +311,7 @@ jobs:
     env:
       VERSION_LAZYVAL: ${{ needs.build.outputs.lazyval-version }}
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/prepare-example
       - name: Create Maven 3 wrapper
         working-directory: examples/kotlin-spi-dev
