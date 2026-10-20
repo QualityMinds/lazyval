@@ -15,10 +15,10 @@ import java.util.UUID;
 @Qualifier("r2dbc")
 public class R2dbcOrderRepository implements OrderRepository {
 
-    private final SpringDataR2dbcRepository springDataRepository;
+    private final R2dbcSpringDataRepository springDataRepository;
     private final R2dbcMapper mapper;
 
-    public R2dbcOrderRepository(SpringDataR2dbcRepository springDataRepository, R2dbcMapper mapper) {
+    R2dbcOrderRepository(R2dbcSpringDataRepository springDataRepository, R2dbcMapper mapper) {
         this.springDataRepository = springDataRepository;
         this.mapper = mapper;
     }

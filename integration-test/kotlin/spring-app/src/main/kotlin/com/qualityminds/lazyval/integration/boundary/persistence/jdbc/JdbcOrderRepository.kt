@@ -9,8 +9,8 @@ import java.util.*
 
 @Repository
 @Qualifier("jdbc")
-class JdbcOrderRepository(
-    private val springDataRepository: SpringDataJdbcRepository,
+internal class JdbcOrderRepository(
+    private val springDataRepository: JdbcSpringDataRepository,
     private val mapper: JdbcMapper
 ) : OrderRepository {
 

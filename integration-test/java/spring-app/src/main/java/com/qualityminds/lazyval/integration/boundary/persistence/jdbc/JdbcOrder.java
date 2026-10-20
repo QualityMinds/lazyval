@@ -34,7 +34,7 @@ import java.util.UUID;
 // "jdbc_orders" and miss the JDBC_ORDERS that schema.sql actually created. Derived column names go
 // through IdentifierProcessing and are upper-cased already, so only the table name needs this.
 @Table("JDBC_ORDERS")
-public class JdbcOrder implements Persistable<UUID> {
+class JdbcOrder implements Persistable<UUID> {
 
     @Id
     private final UUID id;

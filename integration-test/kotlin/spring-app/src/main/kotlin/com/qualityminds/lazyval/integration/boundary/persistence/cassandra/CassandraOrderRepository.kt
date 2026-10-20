@@ -9,8 +9,8 @@ import java.util.*
 
 @Repository
 @Qualifier("cassandra")
-class CassandraOrderRepository(
-    private val springDataRepository: SpringDataCassandraRepository,
+internal class CassandraOrderRepository(
+    private val springDataRepository: CassandraSpringDataRepository,
     private val mapper: CassandraMapper
 ) : OrderRepository {
 

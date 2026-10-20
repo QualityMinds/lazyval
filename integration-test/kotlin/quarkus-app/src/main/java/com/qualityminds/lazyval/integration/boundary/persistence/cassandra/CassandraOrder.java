@@ -14,8 +14,8 @@ import java.util.UUID;
 
 @Entity
 @CqlName("orders")
-@PropertyStrategy(mutable = true)
-public class CassandraOrder {
+@PropertyStrategy
+class CassandraOrder {
     @PartitionKey
     private UUID id;
     private Isbn isbn;

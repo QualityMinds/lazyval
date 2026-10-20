@@ -15,10 +15,10 @@ import static java.util.stream.StreamSupport.stream;
 @Qualifier("jpa")
 class JpaOrderRepository implements OrderRepository {
 
-    private final SpringDataRepository springDataRepository;
+    private final JpaSpringDataRepository springDataRepository;
     private final JpaMapper mapper;
 
-    JpaOrderRepository(SpringDataRepository springDataRepository, JpaMapper mapper) {
+    JpaOrderRepository(JpaSpringDataRepository springDataRepository, JpaMapper mapper) {
         this.springDataRepository = springDataRepository;
         this.mapper = mapper;
     }

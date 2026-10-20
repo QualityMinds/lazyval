@@ -14,10 +14,10 @@ import java.util.UUID;
 @Qualifier("cassandra")
 public class CassandraOrderRepository implements OrderRepository {
 
-    private final SpringDataCassandraRepository springDataRepository;
+    private final CassandraSpringDataRepository springDataRepository;
     private final CassandraMapper mapper;
 
-    public CassandraOrderRepository(SpringDataCassandraRepository springDataRepository, CassandraMapper mapper) {
+    CassandraOrderRepository(CassandraSpringDataRepository springDataRepository, CassandraMapper mapper) {
         this.springDataRepository = springDataRepository;
         this.mapper = mapper;
     }

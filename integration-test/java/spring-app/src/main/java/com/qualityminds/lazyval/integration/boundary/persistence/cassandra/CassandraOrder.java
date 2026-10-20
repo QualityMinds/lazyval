@@ -13,7 +13,7 @@ import org.springframework.data.cassandra.core.mapping.Table;
 import java.util.UUID;
 
 @Table("orders")
-public class CassandraOrder {
+class CassandraOrder {
 
     @PrimaryKey
     private UUID id;

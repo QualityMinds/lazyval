@@ -9,11 +9,11 @@ import com.qualityminds.lazyval.integration.shared.Isbn
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.inject.Named
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 @Named("mongo")
-class MongoOrderRepository @Inject constructor(
+internal class MongoOrderRepository @Inject constructor(
     private val client: MongoClient,
     private val mapper: MongoMapper
 ) : OrderRepository {

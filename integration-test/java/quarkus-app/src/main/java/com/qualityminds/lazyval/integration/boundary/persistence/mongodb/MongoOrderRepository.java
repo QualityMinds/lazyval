@@ -20,7 +20,7 @@ public class MongoOrderRepository implements OrderRepository {
     private final MongoMapper mapper;
 
     @Inject
-    public MongoOrderRepository(PanacheMongoOrderRepository repository, MongoMapper mapper) {
+    MongoOrderRepository(PanacheMongoOrderRepository repository, MongoMapper mapper) {
         this.repository = repository;
         this.mapper = mapper;
     }

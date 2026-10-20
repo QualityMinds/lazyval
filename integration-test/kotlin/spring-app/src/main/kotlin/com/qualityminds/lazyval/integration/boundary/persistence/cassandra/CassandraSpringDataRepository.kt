@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository
 import java.util.*
 
 @Repository
-interface SpringDataCassandraRepository : CassandraRepository<CassandraOrder, UUID> {
+interface CassandraSpringDataRepository : CassandraRepository<CassandraOrder, UUID> {
 
     @Query("SELECT * FROM orders WHERE isbn = ?0 ALLOW FILTERING")
     fun findByIsbn(isbn: Isbn): List<CassandraOrder>

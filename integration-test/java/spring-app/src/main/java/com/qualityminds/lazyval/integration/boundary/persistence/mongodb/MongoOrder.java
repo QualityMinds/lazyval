@@ -10,7 +10,7 @@ import org.springframework.data.mongodb.core.mapping.MongoId;
 
 import java.util.UUID;
 
-public class MongoOrder {
+class MongoOrder {
     @MongoId
     private UUID id;
     private Isbn isbn;

@@ -13,7 +13,7 @@ import java.util.UUID;
  * repository detection stays unambiguous if another Spring Data module ever joins the classpath.
  */
 @Repository
-public interface SpringDataR2dbcRepository extends R2dbcRepository<R2dbcOrder, UUID> {
+interface R2dbcSpringDataRepository extends R2dbcRepository<R2dbcOrder, UUID> {
 
     @Query("SELECT * FROM orders WHERE isbn = :isbn")
     Flux<R2dbcOrder> findByIsbn(Isbn isbn);

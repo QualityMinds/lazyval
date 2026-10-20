@@ -6,7 +6,7 @@ import org.mapstruct.Mapper;
 import java.util.List;
 
 @Mapper
-public interface JpaMapper {
+interface JpaMapper {
 
     Order toDomain(JpaOrder order);
     List<Order> toDomain(List<JpaOrder> orders);

@@ -14,10 +14,10 @@ import java.util.UUID;
 @Qualifier("mongo")
 public class MongoOrderRepository implements OrderRepository {
 
-    private final SpringDataMongoRepository springDataRepository;
+    private final MongoSpringDataRepository springDataRepository;
     private final MongoMapper mapper;
 
-    public MongoOrderRepository(SpringDataMongoRepository springDataRepository, MongoMapper mapper) {
+    MongoOrderRepository(MongoSpringDataRepository springDataRepository, MongoMapper mapper) {
         this.springDataRepository = springDataRepository;
         this.mapper = mapper;
     }

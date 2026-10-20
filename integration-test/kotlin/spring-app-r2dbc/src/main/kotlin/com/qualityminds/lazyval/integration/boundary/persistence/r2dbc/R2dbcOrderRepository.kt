@@ -11,8 +11,8 @@ import java.util.*
 
 @Repository
 @Qualifier("r2dbc")
-class R2dbcOrderRepository(
-    private val springDataRepository: SpringDataR2dbcRepository,
+internal class R2dbcOrderRepository(
+    private val springDataRepository: R2dbcSpringDataRepository,
     private val mapper: R2dbcMapper,
 ) : OrderRepository {
 

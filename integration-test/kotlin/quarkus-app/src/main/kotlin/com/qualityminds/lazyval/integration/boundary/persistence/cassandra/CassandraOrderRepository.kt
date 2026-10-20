@@ -7,11 +7,11 @@ import com.qualityminds.lazyval.integration.shared.Isbn
 import io.smallrye.common.annotation.Identifier
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 @Identifier("cassandra")
-class CassandraOrderRepository @Inject constructor(
+internal class CassandraOrderRepository @Inject constructor(
     private val dao: CassandraOrderDao,
     private val session: QuarkusCqlSession,
     private val mapper: CassandraMapper

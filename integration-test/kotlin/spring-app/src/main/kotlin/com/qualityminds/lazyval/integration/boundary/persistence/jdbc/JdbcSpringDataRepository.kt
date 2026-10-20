@@ -11,7 +11,7 @@ import java.util.*
  * `CrudRepository`. Detection works off the relational `@Table` on [JdbcOrder].
  */
 @Repository
-interface SpringDataJdbcRepository : CrudRepository<JdbcOrder, UUID> {
+interface JdbcSpringDataRepository : CrudRepository<JdbcOrder, UUID> {
 
     @Query("SELECT * FROM JDBC_ORDERS WHERE isbn = :isbn")
     fun findByIsbn(isbn: Isbn): List<JdbcOrder>
