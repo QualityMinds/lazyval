@@ -13,7 +13,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.net.InetSocketAddress;
 
 @ApplicationScoped
-public class CassandraConfig {
+class CassandraConfig {
 
 
     @Inject
@@ -27,7 +27,7 @@ public class CassandraConfig {
     private CqlSession session;
 
     @PostConstruct
-    public void init() {
+    void init() {
         String[] parts = contactPoints.split(":");
         String host = parts[0];
         int port = Integer.parseInt(parts[1]);
@@ -45,7 +45,7 @@ public class CassandraConfig {
 
     @Produces
     @ApplicationScoped
-    public CqlSession cqlSession() {
+    CqlSession cqlSession() {
         return session;
     }
 

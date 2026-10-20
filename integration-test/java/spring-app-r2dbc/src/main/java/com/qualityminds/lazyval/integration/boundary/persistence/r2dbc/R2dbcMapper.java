@@ -6,7 +6,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
 
 @Mapper
-public interface R2dbcMapper {
+interface R2dbcMapper {
 
     Order toDomain(R2dbcOrder order);
 

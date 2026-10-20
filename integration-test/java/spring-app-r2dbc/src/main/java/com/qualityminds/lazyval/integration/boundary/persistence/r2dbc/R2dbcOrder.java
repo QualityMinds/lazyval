@@ -26,7 +26,7 @@ import java.util.UUID;
  * entities mapped from the domain.
  */
 @Table("orders")
-public class R2dbcOrder implements Persistable<UUID> {
+class R2dbcOrder implements Persistable<UUID> {
 
     @Id
     private final UUID id;

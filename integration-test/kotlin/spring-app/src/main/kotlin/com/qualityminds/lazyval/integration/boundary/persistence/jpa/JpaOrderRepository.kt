@@ -1,4 +1,4 @@
-package com.qualityminds.lazyval.integration.boundary.persistence.jpa;
+package com.qualityminds.lazyval.integration.boundary.persistence.jpa
 
 import com.qualityminds.lazyval.integration.domain.Order
 import com.qualityminds.lazyval.integration.domain.OrderRepository
@@ -10,7 +10,7 @@ import java.util.*
 @Repository
 @Qualifier("jpa")
 internal class JpaOrderRepository(
-    private val springDataRepository: SpringDataRepository,
+    private val springDataRepository: JpaSpringDataRepository,
     private val mapper: JpaMapper
 ) : OrderRepository {
 

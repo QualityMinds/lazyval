@@ -6,7 +6,7 @@ import org.mapstruct.Mapper;
 import java.util.List;
 
 @Mapper
-public interface MongoMapper {
+interface MongoMapper {
 
     Order toDomain(MongoOrder order);
     List<Order> toDomain(List<MongoOrder> orders);

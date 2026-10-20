@@ -31,7 +31,7 @@ public class CassandraOrderRepository implements OrderRepository {
     private final PreparedStatement selectByIsbnStmt;
 
     @Inject
-    public CassandraOrderRepository(CqlSession session, CassandraMapper mapper) {
+    CassandraOrderRepository(CqlSession session, CassandraMapper mapper) {
         this.session = session;
         this.mapper = mapper;
         insertStmt = session.prepare(

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 @ApplicationScoped
-public class PanacheRepository implements io.quarkus.hibernate.orm.panache.PanacheRepository<JpaOrder> {
+class PanacheRepository implements io.quarkus.hibernate.orm.panache.PanacheRepository<JpaOrder> {
 
     JpaOrder findById(UUID id){
         return find("id", id).firstResult();

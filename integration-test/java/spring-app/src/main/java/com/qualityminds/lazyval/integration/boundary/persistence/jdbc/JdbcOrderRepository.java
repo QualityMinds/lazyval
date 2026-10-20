@@ -16,10 +16,10 @@ import static java.util.stream.StreamSupport.stream;
 @Qualifier("jdbc")
 class JdbcOrderRepository implements OrderRepository {
 
-    private final SpringDataJdbcRepository springDataRepository;
+    private final JdbcSpringDataRepository springDataRepository;
     private final JdbcMapper mapper;
 
-    JdbcOrderRepository(SpringDataJdbcRepository springDataRepository, JdbcMapper mapper) {
+    JdbcOrderRepository(JdbcSpringDataRepository springDataRepository, JdbcMapper mapper) {
         this.springDataRepository = springDataRepository;
         this.mapper = mapper;
     }

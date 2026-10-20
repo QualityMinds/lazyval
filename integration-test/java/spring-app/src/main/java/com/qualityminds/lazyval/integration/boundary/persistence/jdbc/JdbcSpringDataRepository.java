@@ -14,7 +14,7 @@ import java.util.UUID;
  * see the class comment there for why that matters with four Spring Data modules on the classpath.
  */
 @Repository
-public interface SpringDataJdbcRepository extends CrudRepository<JdbcOrder, UUID> {
+interface JdbcSpringDataRepository extends CrudRepository<JdbcOrder, UUID> {
 
     @Query("SELECT * FROM JDBC_ORDERS WHERE isbn = :isbn")
     List<JdbcOrder> findByIsbn(Isbn isbn);

@@ -16,7 +16,7 @@ import org.bson.codecs.pojo.PojoCodecProvider;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
-public class MongoConfig {
+class MongoConfig {
 
 
     @Inject
@@ -26,7 +26,7 @@ public class MongoConfig {
     private MongoClient client;
 
     @PostConstruct
-    public void init() {
+    void init() {
         CodecRegistry registry = CodecRegistries.fromRegistries(
                 LazyvalMongoCodecs.asRegistry(),
                 CodecRegistries.fromProviders(PojoCodecProvider.builder()
@@ -47,7 +47,7 @@ public class MongoConfig {
 
     @Produces
     @ApplicationScoped
-    public MongoClient mongoClient() {
+    MongoClient mongoClient() {
         return client;
     }
 

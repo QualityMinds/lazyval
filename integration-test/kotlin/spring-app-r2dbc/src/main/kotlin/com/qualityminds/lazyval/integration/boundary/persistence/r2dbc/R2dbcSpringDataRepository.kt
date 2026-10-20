@@ -12,7 +12,7 @@ import java.util.*
  * detection stays unambiguous if another Spring Data module ever joins the classpath.
  */
 @Repository
-interface SpringDataR2dbcRepository : R2dbcRepository<R2dbcOrder, UUID> {
+interface R2dbcSpringDataRepository : R2dbcRepository<R2dbcOrder, UUID> {
 
     @Query("SELECT * FROM orders WHERE isbn = :isbn")
     fun findByIsbn(isbn: Isbn): Flux<R2dbcOrder>

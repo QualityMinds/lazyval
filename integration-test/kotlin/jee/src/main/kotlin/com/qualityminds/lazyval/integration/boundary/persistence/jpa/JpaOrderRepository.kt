@@ -8,11 +8,11 @@ import jakarta.inject.Inject
 import jakarta.inject.Named
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 @Named("jpa")
-class JpaOrderRepository @Inject constructor(
+internal class JpaOrderRepository @Inject constructor(
     private val mapper: JpaMapper
 ) : OrderRepository {
 

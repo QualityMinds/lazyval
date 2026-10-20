@@ -3,22 +3,22 @@ package com.qualityminds.lazyval.integration.boundary.persistence.cassandra
 import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.cql.PreparedStatement
 import com.datastax.oss.driver.api.core.cql.Row
-import com.qualityminds.lazyval.integration.shared.EMail;
 import com.qualityminds.lazyval.integration.domain.Order
 import com.qualityminds.lazyval.integration.domain.OrderDate
 import com.qualityminds.lazyval.integration.domain.OrderRepository
 import com.qualityminds.lazyval.integration.shared.CouponCode
+import com.qualityminds.lazyval.integration.shared.EMail
 import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import jakarta.annotation.PostConstruct
 import jakarta.enterprise.context.ApplicationScoped
 import jakarta.inject.Inject
 import jakarta.inject.Named
-import java.util.UUID
+import java.util.*
 
 @ApplicationScoped
 @Named("cassandra")
-class CassandraOrderRepository @Inject constructor(
+internal class CassandraOrderRepository @Inject constructor(
     private val session: CqlSession,
     private val mapper: CassandraMapper
 ) : OrderRepository {

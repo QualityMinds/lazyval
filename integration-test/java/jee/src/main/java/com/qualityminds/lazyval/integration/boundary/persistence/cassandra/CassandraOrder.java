@@ -9,7 +9,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.UUID;
 
-public class CassandraOrder {
+class CassandraOrder {
 
     private UUID id;
     private Isbn isbn;

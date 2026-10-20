@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository
 import java.util.*
 
 @Repository
-interface SpringDataMongoRepository : MongoRepository<MongoOrder, UUID> {
+interface MongoSpringDataRepository : MongoRepository<MongoOrder, UUID> {
     @Query("{ 'isbn' : ?0 }")
     fun findByIsbn(isbn: Isbn): MutableList<MongoOrder>?
 }

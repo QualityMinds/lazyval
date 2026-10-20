@@ -8,7 +8,7 @@ import org.mapstruct.MappingTarget;
 import java.util.List;
 
 @Mapper
-public interface JdbcMapper {
+interface JdbcMapper {
 
     Order toDomain(JdbcOrder order);
 

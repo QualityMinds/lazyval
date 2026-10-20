@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface SpringDataCassandraRepository extends CassandraRepository<CassandraOrder, UUID> {
+interface CassandraSpringDataRepository extends CassandraRepository<CassandraOrder, UUID> {
 
     @Query("SELECT * FROM orders WHERE isbn = ?0 ALLOW FILTERING")
     List<CassandraOrder> findByIsbn(Isbn isbn);

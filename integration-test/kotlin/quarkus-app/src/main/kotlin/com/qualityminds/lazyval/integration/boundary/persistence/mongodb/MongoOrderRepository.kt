@@ -11,7 +11,7 @@ import java.util.*
 
 @ApplicationScoped
 @Identifier("mongo")
-class MongoOrderRepository @Inject constructor(
+internal class MongoOrderRepository @Inject constructor(
     private val mapper: MongoMapper
 ) : OrderRepository {
 

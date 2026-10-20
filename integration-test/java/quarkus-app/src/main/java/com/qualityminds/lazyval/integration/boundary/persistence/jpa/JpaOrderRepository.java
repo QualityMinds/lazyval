@@ -19,7 +19,7 @@ public class JpaOrderRepository implements OrderRepository {
     private final JpaMapper mapper;
 
     @Inject
-    public JpaOrderRepository(PanacheRepository repository, JpaMapper mapper) {
+    JpaOrderRepository(PanacheRepository repository, JpaMapper mapper) {
         this.repository = repository;
         this.mapper = mapper;
     }

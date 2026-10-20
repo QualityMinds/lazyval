@@ -6,6 +6,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import java.util.UUID;
 
 @ApplicationScoped
-public class PanacheMongoOrderRepository implements PanacheMongoRepositoryBase<MongoOrder, UUID> {
+class PanacheMongoOrderRepository implements PanacheMongoRepositoryBase<MongoOrder, UUID> {
 
 }

@@ -10,7 +10,7 @@ import com.qualityminds.lazyval.integration.shared.Isbn;
 import java.util.UUID;
 
 @Dao
-public interface CassandraOrderDao {
+interface CassandraOrderDao {
     @Update
     void update(CassandraOrder order);
 

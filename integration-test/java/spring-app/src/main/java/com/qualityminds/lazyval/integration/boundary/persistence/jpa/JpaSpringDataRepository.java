@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface SpringDataRepository extends CrudRepository<JpaOrder, UUID> {
+interface JpaSpringDataRepository extends CrudRepository<JpaOrder, UUID> {
 
     @Query("SELECT o FROM JpaOrder o WHERE o.isbn = :isbn")
     List<JpaOrder> findByIsbn(Isbn isbn);

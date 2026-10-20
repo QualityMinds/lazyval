@@ -9,8 +9,8 @@ import java.util.*
 
 @Repository
 @Qualifier("mongo")
-class MongoOrderRepository(
-    private val springDataRepository: SpringDataMongoRepository,
+internal class MongoOrderRepository(
+    private val springDataRepository: MongoSpringDataRepository,
     private val mapper: MongoMapper
 ) : OrderRepository {
 

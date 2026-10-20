@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository
 import java.util.*
 
 @Repository
-interface SpringDataRepository : CrudRepository<JpaOrder, UUID> {
+interface JpaSpringDataRepository : CrudRepository<JpaOrder, UUID> {
 
     @Query("SELECT o FROM JpaOrder o WHERE o.isbn = :isbn")
     fun findByIsbn(isbn: Isbn): List<JpaOrder>

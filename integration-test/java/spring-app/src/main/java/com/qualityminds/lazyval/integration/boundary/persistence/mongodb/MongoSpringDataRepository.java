@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public interface SpringDataMongoRepository extends MongoRepository<MongoOrder, UUID> {
+interface MongoSpringDataRepository extends MongoRepository<MongoOrder, UUID> {
 
     @Query("{ 'isbn' : ?0 }")
     List<MongoOrder> findByIsbn(Isbn isbn);

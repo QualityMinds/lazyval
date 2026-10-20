@@ -25,7 +25,7 @@ public class MongoOrderRepository implements OrderRepository {
     private final MongoMapper mapper;
 
     @Inject
-    public MongoOrderRepository(MongoClient client, MongoMapper mapper) {
+    MongoOrderRepository(MongoClient client, MongoMapper mapper) {
         this.client = client;
         this.mapper = mapper;
     }
@@ -42,7 +42,7 @@ public class MongoOrderRepository implements OrderRepository {
         try (ClientSession session = client.startSession()) {
             session.withTransaction(() -> {
                 orders().insertOne(session, doc);
-                return null;
+                return doc;
             });
         }
     }
