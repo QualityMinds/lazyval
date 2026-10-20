@@ -162,6 +162,7 @@ components:
         - MONGO
         - JDBC
         - R2DBC
+        - REDIS
       # Without this the generator would sanitize R2DBC to the constant R2_DBC (it splits on the
       # digit boundary), so valueOf("R2DBC") would fail while the client keeps sending "R2DBC".
       x-enum-varnames:
@@ -170,6 +171,7 @@ components:
         - MONGO
         - JDBC
         - R2DBC
+        - REDIS
       examples:
         - JPA
 

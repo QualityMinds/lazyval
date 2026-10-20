@@ -79,8 +79,9 @@
         <version.plugin.war>3.5.1</version.plugin.war>
         <!-- integration testing -->
         <version.it.quarkus>3.36.1</version.it.quarkus>
-        <version.it.spring-boot>4.0.5</version.it.spring-boot>
+        <version.it.spring-boot>4.1.1</version.it.spring-boot>
         <version.it.testcontainers>2.0.5</version.it.testcontainers>
+        <version.it.testcontainers-redis>3.0.0</version.it.testcontainers-redis>
         <version.it.mapstruct>1.6.3</version.it.mapstruct>
         <version.it.cassandra.quarkus>1.4.1</version.it.cassandra.quarkus>
         <version.it.cassandra>4.19.2</version.it.cassandra>

@@ -55,6 +55,15 @@ class APSpringDataStores {
                       new Dependency('org.mongodb', 'bson', '5.6.5')],
             supersededCodec: 'test/boundary/persistence/mongodb/LazyvalMongoCodecs')
 
+    static final Store REDIS = new Store(
+            label: 'Redis',
+            optionKey: 'lazyval.springdata.redis.converters',
+            beanMethod: 'redisCustomConversions',
+            approvalDir: 'redis',
+            // the generated post-processor names RedisMappingContext, whose KeyValueMappingContext
+            // supertype lives in spring-data-keyvalue — not transitive either
+            modules: [springData('spring-data-redis', '4.1.1'), springData('spring-data-keyvalue', '4.1.1')])
+
     static final Store JDBC = new Store(
             label: 'JDBC',
             optionKey: 'lazyval.springdata.jdbc.converters',
@@ -73,7 +82,7 @@ class APSpringDataStores {
             modules: [springData('spring-data-r2dbc', '4.1.0'),
                       new Dependency('io.r2dbc', 'r2dbc-spi', '1.0.0.RELEASE')])
 
-    static final List<Store> ALL = [CASSANDRA, MONGO, JDBC, R2DBC]
+    static final List<Store> ALL = [CASSANDRA, MONGO, JDBC, R2DBC, REDIS]
 
     /** The stores whose native codec generator the Spring Data generator supersedes. */
     static final List<Store> WITH_SUPERSEDED_CODEC = ALL.findAll { it.supersededCodec != null }
