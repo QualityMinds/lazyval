@@ -31,17 +31,20 @@ public class OrderController implements OrderApi {
     private final OrderRepository cassandraRepository;
     private final OrderRepository mongoRepository;
     private final OrderRepository jdbcRepository;
+    private final OrderRepository redisRepository;
 
     public OrderController(RestMapper mapper,
                            @Qualifier("jpa") OrderRepository jpaRepository,
                            @Qualifier("cassandra") OrderRepository cassandraRepository,
                            @Qualifier("mongo") OrderRepository mongoRepository,
-                           @Qualifier("jdbc") OrderRepository jdbcRepository) {
+                           @Qualifier("jdbc") OrderRepository jdbcRepository,
+                           @Qualifier("redis") OrderRepository redisRepository){
         this.mapper = mapper;
         this.jpaRepository = jpaRepository;
         this.cassandraRepository = cassandraRepository;
         this.mongoRepository = mongoRepository;
         this.jdbcRepository = jdbcRepository;
+        this.redisRepository = redisRepository;
     }
 
     @Override
@@ -85,6 +88,7 @@ public class OrderController implements OrderApi {
             case CASSANDRA -> cassandraRepository;
             case MONGO -> mongoRepository;
             case JDBC -> jdbcRepository;
+            case REDIS -> redisRepository;
             // R2DBC lives in the spring-app-r2dbc scenario and answers with 501 here.
             default -> throw new UnsupportedPersistenceTypeException(persistenceType);
         };

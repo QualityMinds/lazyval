@@ -30,15 +30,18 @@ public class Startup {
     private final OrderRepository cassandraRepository;
     private final OrderRepository mongoRepository;
     private final OrderRepository jdbcRepository;
+    private final OrderRepository redisRepository;
 
     public Startup(@Qualifier("jpa") OrderRepository jpaRepository,
                    @Qualifier("cassandra") OrderRepository cassandraRepository,
                    @Qualifier("mongo") OrderRepository mongoRepository,
-                   @Qualifier("jdbc") OrderRepository jdbcRepository) {
+                   @Qualifier("jdbc") OrderRepository jdbcRepository,
+                   @Qualifier("redis") OrderRepository redisRepository) {
         this.jpaRepository = jpaRepository;
         this.cassandraRepository = cassandraRepository;
         this.mongoRepository = mongoRepository;
         this.jdbcRepository = jdbcRepository;
+        this.redisRepository = redisRepository;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -59,6 +62,10 @@ public class Startup {
         if (jdbcRepository.findAll().isEmpty()) {
             jdbcRepository.save(DefaultOrderA);
             jdbcRepository.save(DefaultOrderB);
+        }
+        if (redisRepository.findAll().isEmpty()) {
+            redisRepository.save(DefaultOrderA);
+            redisRepository.save(DefaultOrderB);
         }
     }
 }
