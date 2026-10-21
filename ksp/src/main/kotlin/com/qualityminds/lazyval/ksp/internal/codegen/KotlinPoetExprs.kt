@@ -26,3 +26,27 @@ internal fun PayloadExpr.kotlinPoet(): CodeBlock {
     val (format, types) = asFormat("%T")
     return CodeBlock.of(format, *types.map { it.toKotlinPoet() }.toTypedArray())
 }
+
+private val SLOT = Regex("%[TL]")
+
+/**
+ * [kotlinPoet] for an expression built around [placeholder], with [substitute] in its place. Unlike
+ * handing the substitute to the SPI as text, every type it names still becomes an import.
+ *
+ * ```
+ * element.kotlin.createOrNull("#payload#").kotlinPoet("#payload#", CodeBlock.of("convert(bytes, %T::class.java)", type))
+ * ```
+ *
+ * [placeholder] must not contain `%`.
+ */
+internal fun PayloadExpr.kotlinPoet(placeholder: String, substitute: CodeBlock): CodeBlock {
+    val (format, types) = asFormat("%T")
+    val substituted = format.replace(placeholder, "%L")
+    // the substitute's slot sits somewhere between the expression's type slots, so the arguments are
+    // collected in the order the slots appear
+    val typeArgs = types.iterator()
+    val args = SLOT.findAll(substituted)
+        .map { if (it.value == "%T") typeArgs.next().toKotlinPoet() else substitute }
+        .toList()
+    return CodeBlock.of(substituted, *args.toTypedArray())
+}

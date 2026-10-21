@@ -45,6 +45,7 @@ import java.util.stream.Stream
 // File-level rather than in a companion so the emission functions at the bottom of the file can see
 // them too — a companion's private members are visible to the class only.
 private const val OPTION_GENERATED_PACKAGE = "lazyval.springdata.package"
+private const val CONFIGURATION_NAME = "LazyvalSpringDataConfiguration"
 
 private const val CONVERTER_FQN = "org.springframework.core.convert.converter.Converter"
 private const val READING_CONVERTER_FQN = "org.springframework.data.convert.ReadingConverter"
@@ -90,17 +91,23 @@ class SpringDataGenerator : Generator {
         // LinkedHashMap, so bean methods are emitted in SpringDataStore declaration order
         val userConverters = activeStores.associateWith { validateUserConverters(it, context, converterPackage) }
 
-        val converterSpecs = mutableListOf<TypeSpec>()
-        for (element in validatedElements) {
-            converterSpecs += buildReadConverter(element)
-            converterSpecs += buildWriteConverter(element)
+        val configuration = ClassName(converterPackage, CONFIGURATION_NAME)
+        val redis = activeStores.any { it.converterKind == SpringDataStore.ConverterKind.BINARY }
+        if (redis && !uniqueConstantNames(validatedElements, context)) {
+            return Stream.empty()
         }
 
-        val configSpec = buildSpringDataConfiguration(converterSpecs, userConverters, context)
+        // only the kinds an active store needs: a Redis-only build carries no payload converters.
+        // Sorted, so payload converters come before the Redis ones whatever the store order.
+        val converterSpecs = activeStores.map { it.converterKind }.distinct().sorted()
+            .associateWith { buildConverters(it, validatedElements, configuration) }
 
-        val file = FileSpec.builder(converterPackage, "LazyvalSpringDataConfiguration")
+        val configSpec = buildSpringDataConfiguration(converterSpecs, userConverters, context, redis, validatedElements, configuration)
+
+        val file = FileSpec.builder(converterPackage, CONFIGURATION_NAME)
             .addType(configSpec)
-            .apply { converterSpecs.forEach { addType(it) } }
+            .apply { if (redis) addProperty(buildRedisPayload()) }
+            .apply { converterSpecs.values.flatten().forEach { addType(it) } }
             .build()
 
         return Stream.of(GeneratorResult.Kotlin(
@@ -153,6 +160,21 @@ class SpringDataGenerator : Generator {
         return valid
     }
 
+    /** Two types flattening to the same constant would make the generated Redis holders uncompilable. */
+    private fun uniqueConstantNames(
+        elements: NonEmptySet<ValidatedKspGeneratorElement>,
+        context: Generator.Context
+    ): Boolean {
+        val clashes = elements.groupBy { constantName(it) }.filterValues { it.size > 1 }.toSortedMap()
+        clashes.forEach { (constant, clashing) ->
+            context.logError(
+                this,
+                "types ${clashing.map { it.name.canonicalName() }} would share the Redis constant '$constant'; rename one of them"
+            )
+        }
+        return clashes.isEmpty()
+    }
+
     private fun warnIfOptionSetForMissingStore(store: SpringDataStore, context: Generator.Context) {
         val raw = context.getSetting(store.optionKey)
         if (!raw.isNullOrBlank()) {
@@ -167,6 +189,20 @@ class SpringDataGenerator : Generator {
 // ── emission ────────────────────────────────────────────────────────────────────────────────────
 // Top-level rather than members: these need no generator state, and keeping them out of the class
 // keeps SpringDataGenerator focused on deciding *what* to generate.
+
+private fun buildConverters(
+    kind: SpringDataStore.ConverterKind,
+    elements: NonEmptySet<ValidatedKspGeneratorElement>,
+    configuration: ClassName,
+): List<TypeSpec> = elements.flatMap { element ->
+    when (kind) {
+        SpringDataStore.ConverterKind.PAYLOAD -> listOf(buildReadConverter(element), buildWriteConverter(element))
+        SpringDataStore.ConverterKind.BINARY -> {
+            val serializers = redisSerializersOf(configuration)
+            listOf(buildRedisReadConverter(element, serializers), buildRedisWriteConverter(element, serializers))
+        }
+    }
+}
 
 private fun buildReadConverter(element: ValidatedKspGeneratorElement): TypeSpec {
     val elementClassName = element.element.toClassName()
@@ -212,16 +248,20 @@ private fun buildWriteConverter(element: ValidatedKspGeneratorElement): TypeSpec
         .build()
 }
 
+@Suppress("LongParameterList")
 private fun buildSpringDataConfiguration(
-    converterSpecs: List<TypeSpec>,
+    converterSpecs: Map<SpringDataStore.ConverterKind, List<TypeSpec>>,
     userConverters: Map<SpringDataStore, List<String>>,
-    context: Generator.Context
+    context: Generator.Context,
+    redis: Boolean,
+    elements: NonEmptySet<ValidatedKspGeneratorElement>,
+    configuration: ClassName,
 ): TypeSpec {
     val hasConditionalOnMissingBean = context.isOnClasspath(
         "org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean"
     )
 
-    val configBuilder = TypeSpec.classBuilder("LazyvalSpringDataConfiguration")
+    val configBuilder = TypeSpec.classBuilder(configuration)
         .addGeneratedAnnotation(SpringDataGenerator::class, context)
         .addAnnotation(CONFIGURATION)
         .addKdoc("""
@@ -235,8 +275,14 @@ private fun buildSpringDataConfiguration(
 
     userConverters.forEach { (store, userFqns) ->
         configBuilder.addFunction(
-            buildBeanMethod(store, converterSpecs, userFqns, hasConditionalOnMissingBean)
+            buildBeanMethod(store, converterSpecs.getValue(store.converterKind), userFqns, hasConditionalOnMissingBean)
         )
+    }
+
+    if (redis) {
+        configBuilder.addType(buildRedisCompanion())
+        configBuilder.addType(buildRedisSerializers(elements))
+        configBuilder.addType(buildRedisCacheKeys(elements, redisSerializersOf(configuration)))
     }
 
     return configBuilder.build()

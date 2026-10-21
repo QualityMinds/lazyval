@@ -26,6 +26,8 @@ internal enum class SpringDataStore(
     val beanName: String,
     /** how the `CustomConversions` instance is built — see [Construction] */
     val construction: Construction,
+    /** which converters the bean registers — see [ConverterKind] */
+    val converterKind: ConverterKind = ConverterKind.PAYLOAD,
 ) {
 
     CASSANDRA(
@@ -44,6 +46,17 @@ internal enum class SpringDataStore(
         label = "MongoDB",
         beanName = "mongoCustomConversions",
         construction = Construction.Plain,
+    ),
+
+    REDIS(
+        conversionsFqn = "org.springframework.data.redis.core.convert.RedisCustomConversions",
+        conversionsType = ClassName("org.springframework.data.redis.core.convert", "RedisCustomConversions"),
+        optionKey = "lazyval.springdata.redis.converters",
+        label = "Redis",
+        beanName = "redisCustomConversions",
+        construction = Construction.Plain,
+        // Redis stores bytes only, so the converters cannot stop at the payload type
+        converterKind = ConverterKind.BINARY,
     ),
 
     JDBC(
@@ -79,6 +92,21 @@ internal enum class SpringDataStore(
         ),
     ),
     ;
+
+    /**
+     * What a store's converters convert a domain-primitive from and to. Stores sharing a kind share the
+     * generated converter classes.
+     */
+    internal enum class ConverterKind {
+        /** The wrapped type; the store maps that on its own. */
+        PAYLOAD,
+
+        /**
+         * `ByteArray`: the store has no notion of types, so the payload is turned into bytes with the
+         * store's own default converters.
+         */
+        BINARY,
+    }
 
     /**
      * How a store's `CustomConversions` instance is constructed. The two shapes differ structurally —

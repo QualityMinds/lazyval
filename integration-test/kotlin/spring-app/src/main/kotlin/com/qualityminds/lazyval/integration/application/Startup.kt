@@ -15,7 +15,8 @@ class Startup(
     @Qualifier("jpa") private val jpaRepository: OrderRepository,
     @Qualifier("cassandra") private val cassandraRepository: OrderRepository,
     @Qualifier("mongo") private val mongoRepository: OrderRepository,
-    @Qualifier("jdbc") private val jdbcRepository: OrderRepository
+    @Qualifier("jdbc") private val jdbcRepository: OrderRepository,
+    @Qualifier("redis") private val redisRepository: OrderRepository
 ) {
 
     companion object {
@@ -54,6 +55,10 @@ class Startup(
         if (jdbcRepository.findAll().isEmpty()) {
             jdbcRepository.save(DefaultOrderA)
             jdbcRepository.save(DefaultOrderB)
+        }
+        if (redisRepository.findAll().isEmpty()) {
+            redisRepository.save(DefaultOrderA)
+            redisRepository.save(DefaultOrderB)
         }
     }
 }
