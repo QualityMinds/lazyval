@@ -55,6 +55,10 @@ Data's own configuration does. How the dialect is obtained differs:
 |`org.springframework.data:spring-data-r2dbc`
 |
 
+|`org.springframework.data.redis.core.convert.RedisCustomConversions`
+|`spring-boot-starter-data-redis`
+|
+
 |===
 
 == Config Options

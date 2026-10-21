@@ -36,15 +36,15 @@ a|
 * JPA
 * BeanValidation
 * Jackson 3
-* SpringData (R2DBC)
-| SpringData covers Cassandra, MongoDB & JDBC
+* SpringData
+| SpringData covers Cassandra, JDBC, MongoDB & Redis
 
 |Spring-R2DBC
 a|
 * MapStruct
 * BeanValidation
 * Jackson 3
-* SpringData
+* SpringData (R2DBC only)
 a|
 Reactive scenario: WebFlux with `Mono`/`Flux` controller signatures over Spring Data R2DBC
 (PostgreSQL). Separate from the Spring scenario because two relational Spring Data modules in one

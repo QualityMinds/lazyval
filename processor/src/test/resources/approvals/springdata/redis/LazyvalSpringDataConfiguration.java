@@ -89,7 +89,7 @@ public class LazyvalSpringDataConfiguration {
     public static final RedisSerializer<Ids.ProductId> IDS_PRODUCT_ID = new RedisSerializer<Ids.ProductId>() {
       @Override
       public byte[] serialize(Ids.ProductId value) {
-        return value == null ? null : REDIS_PAYLOAD.convert(value.value(), byte[].class);
+        return value == null ? new byte[0] : REDIS_PAYLOAD.convert(value.value(), byte[].class);
       }
 
       @Override
@@ -106,7 +106,7 @@ public class LazyvalSpringDataConfiguration {
     public static final RedisSerializer<Isbn> ISBN = new RedisSerializer<Isbn>() {
       @Override
       public byte[] serialize(Isbn value) {
-        return value == null ? null : REDIS_PAYLOAD.convert(value.getValue(), byte[].class);
+        return value == null ? new byte[0] : REDIS_PAYLOAD.convert(value.getValue(), byte[].class);
       }
 
       @Override
@@ -123,7 +123,7 @@ public class LazyvalSpringDataConfiguration {
     public static final RedisSerializer<OrderDate> ORDER_DATE = new RedisSerializer<OrderDate>() {
       @Override
       public byte[] serialize(OrderDate value) {
-        return value == null ? null : REDIS_PAYLOAD.convert(value.value(), byte[].class);
+        return value == null ? new byte[0] : REDIS_PAYLOAD.convert(value.value(), byte[].class);
       }
 
       @Override
@@ -140,7 +140,7 @@ public class LazyvalSpringDataConfiguration {
     public static final RedisSerializer<Quantity> QUANTITY = new RedisSerializer<Quantity>() {
       @Override
       public byte[] serialize(Quantity value) {
-        return value == null ? null : REDIS_PAYLOAD.convert(value.value(), byte[].class);
+        return value == null ? new byte[0] : REDIS_PAYLOAD.convert(value.value(), byte[].class);
       }
 
       @Override

@@ -28,6 +28,7 @@ class OrderController(
     @Qualifier("cassandra") private val cassandraRepository: OrderRepository,
     @Qualifier("mongo") private val mongoRepository: OrderRepository,
     @Qualifier("jdbc") private val jdbcRepository: OrderRepository,
+    @Qualifier("redis") private val redisRepository: OrderRepository,
 ) : OrderApi {
 
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
@@ -69,6 +70,7 @@ class OrderController(
             PersistenceType.CASSANDRA -> cassandraRepository
             PersistenceType.MONGO -> mongoRepository
             PersistenceType.JDBC -> jdbcRepository
+            PersistenceType.REDIS -> redisRepository
             // R2DBC lives in the spring-app-r2dbc scenario and answers with 501 here.
             else -> throw UnsupportedPersistenceTypeException(persistenceType)
         }
