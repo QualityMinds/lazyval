@@ -6,7 +6,6 @@ import com.qualityminds.lazyval.integration.client.JSON
 import com.qualityminds.lazyval.integration.client.api.OrderApi
 import com.qualityminds.lazyval.integration.client.model.PersistenceType
 import com.qualityminds.lazyval.integration.client.model.Problem
-import org.testcontainers.spock.Testcontainers
 import spock.lang.Title
 
 /**
@@ -14,7 +13,6 @@ import spock.lang.Title
  * so this deployment answers 501 for them.
  */
 @Title("Kotlin - JakartaEE unsupported persistence type")
-@Testcontainers
 class JeeUnsupportedPersistenceTypeIT extends AbstractLibertyIT {
 
     OrderApi orderApi

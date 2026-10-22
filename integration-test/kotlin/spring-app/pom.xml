@@ -15,6 +15,14 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <!-- keep until spring moves to groovy 6 -->
+                <groupId>org.apache.groovy</groupId>
+                <artifactId>groovy-bom</artifactId>
+                <version>${version.groovy}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>${version.it.spring-boot}</version>
@@ -96,7 +104,7 @@
         <dependency>
             <groupId>org.spockframework</groupId>
             <artifactId>spock-spring</artifactId>
-            <version>2.4-groovy-5.0</version>
+            <version>${version.spock}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

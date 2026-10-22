@@ -41,7 +41,7 @@
         <maven.javadoc.skip>true</maven.javadoc.skip>
         <!-- dependencies -->
         <version.eclipse-collections>13.0.0</version.eclipse-collections>
-        <version.groovy>5.0.6</version.groovy>
+        <version.groovy>6.0.0</version.groovy>
         <version.javapoet>0.20.0</version.javapoet>
         <version.jetbrains-annotations>26.1.0</version.jetbrains-annotations>
         <version.jspecify>1.0.0</version.jspecify>
@@ -50,7 +50,7 @@
         <version.kotlinpoet>2.3.0</version.kotlinpoet>
         <version.ksp>2.3.6</version.ksp>
         <version.slf4j>2.0.20</version.slf4j>
-        <version.spock>2.4-groovy-5.0</version.spock>
+        <version.spock>2.5-groovy-6.0</version.spock> <!-- Groovy 6 not yet working with testcontainers-spock -->
         <version.diff-utils>4.17</version.diff-utils>
         <!-- used by groovy mock to mock final classes -->
         <version.byte-buddy>1.18.11</version.byte-buddy>
