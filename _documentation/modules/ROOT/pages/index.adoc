@@ -104,7 +104,8 @@ xref:multi-module.adoc[Multi-Module Support]
 * xref:generators:jpa.adoc[JPA AttributeConverters]
 * xref:generators:jsonb.adoc[JSON-B]
 * xref:generators:mapstruct.adoc[MapStruct]
-* xref:generators:spring-data.adoc[Spring Data] (Cassandra, MongoDB, JDBC, R2DBC)
+* xref:generators:redis-lettuce.adoc[Redis with Lettuce]
+* xref:generators:spring-data.adoc[Spring Data] (Cassandra, MongoDB, JDBC, R2DBC, Redis)
 
 See xref:generators:index.adoc[Generators Overview] for how to plug in user-supplied converters
 where the framework requires application-specific decisions (e.g. timezone for `LocalDate ↔ Date`

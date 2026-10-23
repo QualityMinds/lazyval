@@ -24,6 +24,8 @@ public final class StockGeneratorIds {
     public static final String JPA = "jpa";
     /** ID of the stock generator for JSON-B. */
     public static final String JSONB = "jsonb";
+    /** ID of the stock generator for Redis using Lettuce client. */
+    public static final String REDIS_LETTUCE_CODEC = "redis-lettuce";
     /** ID of the stock generator for Mapstruct. */
     public static final String MAPSTRUCT = "mapstruct";
     /** ID of the stock generator for Mongo-DB. */

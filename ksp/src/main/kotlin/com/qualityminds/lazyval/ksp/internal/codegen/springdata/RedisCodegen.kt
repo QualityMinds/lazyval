@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.springdata
 
 import com.qualityminds.lazyval.collections.NonEmptySet
+import com.qualityminds.lazyval.ksp.internal.codegen.constantName
 import com.qualityminds.lazyval.ksp.internal.codegen.kotlinPoet
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
 import com.squareup.kotlinpoet.*
@@ -35,12 +36,6 @@ private val BEAN = ClassName("org.springframework.context.annotation", "Bean")
 
 /** Kotlin types whose `::class.java` is the primitive class, which a conversion target must not be. */
 private val PRIMITIVES = setOf(BOOLEAN, BYTE, SHORT, INT, LONG, CHAR, FLOAT, DOUBLE)
-
-private val CONSTANT_WORD_BOUNDARY = Regex("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
-
-/** `IdsProductId` → `IDS_PRODUCT_ID`, `EMail` → `E_MAIL`. */
-internal fun constantName(element: ValidatedKspGeneratorElement): String =
-    element.name.flatName().replace(CONSTANT_WORD_BOUNDARY, "_").uppercase()
 
 /**
  * A conversion service holding only Spring Data Redis' default store converters, which turn the

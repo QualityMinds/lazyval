@@ -62,7 +62,10 @@ class KspSpringDataStores {
             approvalDir: 'redis',
             // the generated post-processor names RedisMappingContext, whose KeyValueMappingContext
             // supertype lives in spring-data-keyvalue — not transitive either
-            modules: [springData('spring-data-redis', '4.1.1'), springData('spring-data-keyvalue', '4.1.1')])
+            modules: [springData('spring-data-redis', '4.1.1'), springData('spring-data-keyvalue', '4.1.1'),
+                      // pulls the codec generator in, so supersede is exercised
+                      new Dependency('io.lettuce', 'lettuce-core', '7.5.2.RELEASE')],
+            supersededCodec: 'test/boundary/persistence/redis/LazyvalLettuceCodecs')
 
     static final Store JDBC = new Store(
             label: 'JDBC',

@@ -24,6 +24,8 @@ object StockGeneratorIds {
     const val JPA = "jpa"
     /** ID of the stock generator for JSON-B. */
     const val JSONB = "jsonb"
+    /** ID of the stock generator for Lettuce (Redis). */
+    const val REDIS_LETTUCE_CODEC = "redis-lettuce"
     /** ID of the stock generator for Mapstruct. */
     const val MAPSTRUCT = "mapstruct"
     /** ID of the stock generator for Mongo-DB. */

@@ -5,8 +5,8 @@ import com.qualityminds.lazyval.collections.NonEmptySet;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
-import java.util.Locale;
-import java.util.regex.Pattern;
+
+import com.qualityminds.lazyval.processor.internal.codegen.ConstantNames;
 
 import static com.qualityminds.lazyval.processor.internal.codegen.JavaPoetExprs.code;
 
@@ -48,14 +48,8 @@ final class RedisCodegen {
      * {@code #} cannot occur in a Java identifier, so it never collides with a factory or type name.
      */
     private static final String PAYLOAD_PLACEHOLDER = "#payload#";
-    private static final Pattern CONSTANT_WORD_BOUNDARY = Pattern.compile("(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])");
 
     private RedisCodegen() {
-    }
-
-    /** {@code IdsProductId} → {@code IDS_PRODUCT_ID}, {@code EMail} → {@code E_MAIL}. */
-    static String constantName(ValidatedGeneratorElement element) {
-        return CONSTANT_WORD_BOUNDARY.matcher(element.name().flatName()).replaceAll("_").toUpperCase(Locale.ROOT);
     }
 
     /**
@@ -170,7 +164,7 @@ final class RedisCodegen {
                     .addMethod(deserialize)
                     .addMethod(targetType)
                     .build();
-            holder.addField(FieldSpec.builder(serializerType, constantName(element),
+            holder.addField(FieldSpec.builder(serializerType, ConstantNames.of(element),
                             Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
                     .initializer("$L", serializer)
                     .build());
@@ -202,13 +196,13 @@ final class RedisCodegen {
                     .returns(String.class)
                     .addParameter(elementTypeName, "source")
                     .addStatement("return new $T($N.$N.serialize(source), $T.UTF_8)",
-                            String.class, REDIS_SERIALIZERS, constantName(element), STANDARD_CHARSETS)
+                            String.class, REDIS_SERIALIZERS, ConstantNames.of(element), STANDARD_CHARSETS)
                     .build();
             TypeSpec converter = TypeSpec.anonymousClassBuilder("")
                     .addSuperinterface(converterType)
                     .addMethod(convert)
                     .build();
-            holder.addField(FieldSpec.builder(converterType, constantName(element),
+            holder.addField(FieldSpec.builder(converterType, ConstantNames.of(element),
                             Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
                     .initializer("$L", converter)
                     .build());
@@ -226,7 +220,7 @@ final class RedisCodegen {
                 .addModifiers(Modifier.PUBLIC)
                 .returns(elementTypeName)
                 .addParameter(BYTES, "source")
-                .addStatement("return $N.$N.deserialize(source)", REDIS_SERIALIZERS, constantName(element))
+                .addStatement("return $N.$N.deserialize(source)", REDIS_SERIALIZERS, ConstantNames.of(element))
                 .build();
 
         // the "Redis" infix keeps them apart from the payload converters other stores share
@@ -247,7 +241,7 @@ final class RedisCodegen {
                 .addModifiers(Modifier.PUBLIC)
                 .returns(BYTES)
                 .addParameter(elementTypeName, "source")
-                .addStatement("return $N.$N.serialize(source)", REDIS_SERIALIZERS, constantName(element))
+                .addStatement("return $N.$N.serialize(source)", REDIS_SERIALIZERS, ConstantNames.of(element))
                 .build();
 
         return TypeSpec.classBuilder(element.name().flatName() + "RedisWriteConverter")
@@ -274,7 +268,7 @@ final class RedisCodegen {
                 .addModifiers(Modifier.PUBLIC, Modifier.STATIC)
                 .addParameter(CONVERTER_REGISTRY, "registry");
         for (ValidatedGeneratorElement element : elements) {
-            registerAll.addStatement("registry.addConverter($N)", constantName(element));
+            registerAll.addStatement("registry.addConverter($N)", ConstantNames.of(element));
         }
         return registerAll.build();
     }

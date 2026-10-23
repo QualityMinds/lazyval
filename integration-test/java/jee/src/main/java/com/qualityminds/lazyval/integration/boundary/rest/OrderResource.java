@@ -44,6 +44,9 @@ public class OrderResource implements OrderApi {
     @Inject
     @Named("mongo")
     OrderRepository mongoRepository;
+    @Inject
+    @Named("redis")
+    OrderRepository redisRepository;
 
     // Required by the JPA backend; a JTA transaction around a Cassandra or Mongo write is a no-op.
     @Transactional
@@ -79,6 +82,7 @@ public class OrderResource implements OrderApi {
             case JPA -> jpaRepository;
             case CASSANDRA -> cassandraRepository;
             case MONGO -> mongoRepository;
+            case REDIS -> redisRepository;
             // JDBC and R2DBC are Spring-only scenarios and answer with 501 here.
             default -> throw new UnsupportedPersistenceTypeException(persistenceType);
         };

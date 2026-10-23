@@ -4,6 +4,7 @@ com.qualityminds.lazyval.ksp.internal.codegen.jackson.Jackson2Generator
 com.qualityminds.lazyval.ksp.internal.codegen.jackson.Jackson3Generator
 com.qualityminds.lazyval.ksp.internal.codegen.cassandra.CassandraCodecGenerator
 com.qualityminds.lazyval.ksp.internal.codegen.mongo.MongoCodecGenerator
+com.qualityminds.lazyval.ksp.internal.codegen.redis.LettuceCodecGenerator
 com.qualityminds.lazyval.ksp.internal.codegen.springdata.SpringDataGenerator
 com.qualityminds.lazyval.ksp.internal.codegen.beanvalidation.BeanValidationGenerator
 com.qualityminds.lazyval.ksp.internal.codegen.JsonbGenerator

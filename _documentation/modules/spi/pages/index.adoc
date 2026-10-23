@@ -48,7 +48,7 @@ A generator can declare via `supersedes()` that it replaces one or more other ge
 
  Lazyval: 'cassandra' was auto-disabled because 'spring-data' supersedes it
 
-The built-in `spring-data` generator supersedes `cassandra` and `mongodb` for this reason — Spring Data's conversion layer runs before the driver's codec layer, so the standalone codecs would be dead code.
+The built-in `spring-data` generator supersedes `cassandra`, `mongodb` and `redis` for this reason — Spring Data's conversion layer runs before the driver's codec layer, so the standalone codecs would be dead code.
 
 TIP: Stock generator ids are available as public constants in `StockGeneratorIds` so third-party implementations can supersede them without hardcoding string literals.
 

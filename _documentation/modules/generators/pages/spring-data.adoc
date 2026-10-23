@@ -317,9 +317,10 @@ If a Java factory method can return `null`, the generated converter will propaga
 
 == Notes
 
-=== Automatic supersession of `cassandra` and `mongodb`
+=== Automatic supersession of `cassandra`, `mongodb` and `redis-lettuce`
 
-`spring-data` supersedes both `cassandra` and `mongodb`. Spring Data's conversion layer runs before
+`spring-data` supersedes `cassandra`, `mongodb` and `redis-lettuce` (`spring-boot-starter-data-redis` always brings
+`lettuce-core`). Spring Data's conversion layer runs before
 the driver's codec layer, so the standalone codec generators would produce dead code on the Spring
 Data path — Lazyval therefore drops them from the active set automatically. No manual
 `lazyval.generators.disable` is required in the common Spring Data setup.

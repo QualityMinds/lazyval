@@ -1,8 +1,9 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.springdata
 
 import com.qualityminds.lazyval.collections.NonEmptySet
-import com.qualityminds.lazyval.ksp.internal.codegen.kotlinPoet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
+import com.qualityminds.lazyval.ksp.internal.codegen.kotlinPoet
+import com.qualityminds.lazyval.ksp.internal.codegen.uniqueConstantNames
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.StockGeneratorIds
@@ -73,7 +74,7 @@ class SpringDataGenerator : Generator {
         setOf(OPTION_GENERATED_PACKAGE) + SpringDataStore.entries.map { it.optionKey }
 
     override fun supersedes(): Set<String> =
-        setOf(StockGeneratorIds.CASSANDRA_CODEC, StockGeneratorIds.MONGODB_CODEC)
+        setOf(StockGeneratorIds.CASSANDRA_CODEC, StockGeneratorIds.MONGODB_CODEC, StockGeneratorIds.REDIS_LETTUCE_CODEC)
 
     override fun generate(
         validatedElements: NonEmptySet<ValidatedKspGeneratorElement>,
@@ -93,7 +94,7 @@ class SpringDataGenerator : Generator {
 
         val configuration = ClassName(converterPackage, CONFIGURATION_NAME)
         val redis = activeStores.any { it.converterKind == SpringDataStore.ConverterKind.BINARY }
-        if (redis && !uniqueConstantNames(validatedElements, context)) {
+        if (redis && !uniqueConstantNames(validatedElements, context, this)) {
             return Stream.empty()
         }
 
@@ -158,21 +159,6 @@ class SpringDataGenerator : Generator {
             }
         }
         return valid
-    }
-
-    /** Two types flattening to the same constant would make the generated Redis holders uncompilable. */
-    private fun uniqueConstantNames(
-        elements: NonEmptySet<ValidatedKspGeneratorElement>,
-        context: Generator.Context
-    ): Boolean {
-        val clashes = elements.groupBy { constantName(it) }.filterValues { it.size > 1 }.toSortedMap()
-        clashes.forEach { (constant, clashing) ->
-            context.logError(
-                this,
-                "types ${clashing.map { it.name.canonicalName() }} would share the Redis constant '$constant'; rename one of them"
-            )
-        }
-        return clashes.isEmpty()
     }
 
     private fun warnIfOptionSetForMissingStore(store: SpringDataStore, context: Generator.Context) {

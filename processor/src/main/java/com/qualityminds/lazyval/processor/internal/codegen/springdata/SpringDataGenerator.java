@@ -2,6 +2,7 @@ package com.qualityminds.lazyval.processor.internal.codegen.springdata;
 
 import com.palantir.javapoet.*;
 import com.qualityminds.lazyval.collections.NonEmptySet;
+import com.qualityminds.lazyval.processor.internal.codegen.ConstantNames;
 import com.qualityminds.lazyval.processor.internal.codegen.GeneratedStamp;
 import com.qualityminds.lazyval.processor.internal.codegen.springdata.SpringDataStore.ConverterKind;
 import com.qualityminds.lazyval.processor.spi.Generator;
@@ -77,7 +78,7 @@ public class SpringDataGenerator implements Generator {
 
     @Override
     public Set<String> supersedes() {
-        return Set.of(StockGeneratorIds.CASSANDRA_CODEC, StockGeneratorIds.MONGODB_CODEC);
+        return Set.of(StockGeneratorIds.CASSANDRA_CODEC, StockGeneratorIds.MONGODB_CODEC, StockGeneratorIds.REDIS_LETTUCE_CODEC);
     }
 
     @Override
@@ -108,7 +109,7 @@ public class SpringDataGenerator implements Generator {
 
         List<TypeSpec> redisApi = List.of();
         if (converterSpecs.containsKey(ConverterKind.BINARY)) {
-            if (!uniqueConstantNames(elements, context)) {
+            if (!ConstantNames.unique(elements, context, this)) {
                 return Stream.empty();
             }
             redisApi = List.of(RedisCodegen.buildRedisSerializers(elements), RedisCodegen.buildRedisCacheKeys(elements));
@@ -234,23 +235,6 @@ public class SpringDataGenerator implements Generator {
                 .addSuperinterface(ParameterizedTypeName.get(CONVERTER, elementTypeName, payloadTypeName))
                 .addMethod(convertMethod)
                 .build();
-    }
-
-    /** Two types flattening to the same constant would make the generated holder classes uncompilable. */
-    private boolean uniqueConstantNames(NonEmptySet<ValidatedGeneratorElement> elements, Context context) {
-        Map<String, List<String>> byConstant = new TreeMap<>();
-        for (ValidatedGeneratorElement element : elements) {
-            byConstant.computeIfAbsent(RedisCodegen.constantName(element), k -> new ArrayList<>()).add(element.name().canonicalName());
-        }
-        boolean unique = true;
-        for (var entry : byConstant.entrySet()) {
-            if (entry.getValue().size() > 1) {
-                context.logError(this, "types " + entry.getValue() + " would share the Redis constant '"
-                        + entry.getKey() + "'; rename one of them");
-                unique = false;
-            }
-        }
-        return unique;
     }
 
     private static TypeSpec buildSpringDataConfiguration(Map<ConverterKind, List<TypeSpec>> converterSpecs,
