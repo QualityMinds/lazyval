@@ -300,7 +300,8 @@ public class LazyvalJacksonModule extends SimpleModule implements ObjectMapperCu
 ----
 
 ==== Redis
- By default, Quarkus falls back to a JsonCodec for Redis when discovering custom types, meaning that JSON strings
+
+By default, Quarkus falls back to a JsonCodec for Redis when discovering custom types, meaning that JSON strings
 are serialized to byte[]. Since the LazyvalJacksonModule already registers SerDes for each domain-primitive, Quarkus-Redis
 works out of the box.
 
