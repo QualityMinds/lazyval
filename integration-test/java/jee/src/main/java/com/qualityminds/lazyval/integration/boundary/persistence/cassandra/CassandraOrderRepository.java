@@ -16,6 +16,7 @@ import jakarta.inject.Inject;
 import jakarta.inject.Named;
 
 import java.util.Comparator;
+import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,7 +36,7 @@ public class CassandraOrderRepository implements OrderRepository {
         this.session = session;
         this.mapper = mapper;
         insertStmt = session.prepare(
-                "INSERT INTO orders (id, isbn, quantity, email, orderdate, couponcode) VALUES (?, ?, ?, ?, ?, ?)");
+                "INSERT INTO orders (id, isbn, quantity, email, currency, orderdate, couponcode) VALUES (?, ?, ?, ?, ?, ?, ?)");
         selectAllStmt = session.prepare("SELECT * FROM orders");
         selectByIdStmt = session.prepare("SELECT * FROM orders WHERE id = ?");
         selectByIsbnStmt = session.prepare(
@@ -51,6 +52,7 @@ public class CassandraOrderRepository implements OrderRepository {
         builder = builder.set("isbn", co.getIsbn(), Isbn.class);
         builder = builder.set("quantity", co.getQuantity(), Quantity.class);
         builder = builder.set("email", co.getEmail(), EMail.class);
+        builder = builder.set("currency", co.getCurrency(), Currency.class);
         builder = builder.set("orderdate", co.getOrderDate(), OrderDate.class);
         builder = builder.set("couponcode", co.getCouponCode(), CouponCode.class);
         session.execute(builder.build());
@@ -93,6 +95,7 @@ public class CassandraOrderRepository implements OrderRepository {
                 row.get("isbn", Isbn.class),
                 row.get("quantity", Quantity.class),
                 row.get("email", EMail.class),
+                row.get("currency", Currency.class),
                 row.get("orderdate", OrderDate.class),
                 row.get("couponcode", CouponCode.class)
         );

@@ -11,12 +11,13 @@ data class Order(
     val isbn: Isbn,
     val quantity: Quantity,
     val email: EMail,
+    val currency: Currency,
     val orderDate: OrderDate,
     val couponCode: CouponCode? = null
 ) {
     companion object {
         @JvmStatic
-        fun create(isbn: Isbn, quantity: Quantity, email: EMail, couponCode: CouponCode? = null): Order =
-            Order(UUID.randomUUID(), isbn, quantity, email, OrderDate.now(), couponCode)
+        fun create(isbn: Isbn, quantity: Quantity, email: EMail, currency: Currency, couponCode: CouponCode? = null): Order =
+            Order(UUID.randomUUID(), isbn, quantity, email, currency, OrderDate.now(), couponCode)
     }
 }

@@ -9,13 +9,15 @@ import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.util.Currency
 
 @Component
 class Startup(
     @Qualifier("jpa") private val jpaRepository: OrderRepository,
     @Qualifier("cassandra") private val cassandraRepository: OrderRepository,
     @Qualifier("mongo") private val mongoRepository: OrderRepository,
-    @Qualifier("jdbc") private val jdbcRepository: OrderRepository
+    @Qualifier("jdbc") private val jdbcRepository: OrderRepository,
+    @Qualifier("redis") private val redisRepository: OrderRepository
 ) {
 
     companion object {
@@ -24,14 +26,16 @@ class Startup(
             com.qualityminds.lazyval.integration.domain.Order.create(
                 Isbn.parse("3-86680-192-0"),
                 Quantity.of(1),
-                EMail("a@b.de")
+                EMail("a@b.de"),
+                Currency.getInstance("EUR")
             )
         @JvmField
         val DefaultOrderB: com.qualityminds.lazyval.integration.domain.Order =
             com.qualityminds.lazyval.integration.domain.Order.create(
                 Isbn.parse("978-3-86680-192-9"),
                 Quantity.of(1),
-                EMail("x@y.de")
+                EMail("x@y.de"),
+                Currency.getInstance("USD")
             )
     }
 
@@ -54,6 +58,10 @@ class Startup(
         if (jdbcRepository.findAll().isEmpty()) {
             jdbcRepository.save(DefaultOrderA)
             jdbcRepository.save(DefaultOrderB)
+        }
+        if (redisRepository.findAll().isEmpty()) {
+            redisRepository.save(DefaultOrderA)
+            redisRepository.save(DefaultOrderB)
         }
     }
 }

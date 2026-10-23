@@ -35,6 +35,7 @@ data class JdbcOrder(
     val isbn: Isbn,
     val quantity: Quantity,
     val email: EMail,
+    val currency: Currency,
     val orderDate: OrderDate,
     val couponCode: CouponCode? = null,
 ) : Persistable<UUID> {

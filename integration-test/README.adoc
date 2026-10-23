@@ -7,24 +7,24 @@ The following scenarios are tested for Java with the annotation processor and Ko
 
 |JakartaEE
 a|
-* MapStruct
-* JPA
 * BeanValidation
-* JSONB
 * Cassandra
+* JPA
+* JSONB
+* MapStruct
 * MongoDB
 
 |Cassandra & MongoDB codecs require custom registration in application
 
 |Quarkus
 a|
-* MapStruct
-* JPA
 * BeanValidation
-* Jackson 2
 * Cassandra
+* Jackson 2 -> Redis
+* JPA
+* MapStruct
 * MongoDB
-|Jackson,Cassandra & MongoDB tested for Quarkus-specific registration
+|Jackson,Cassandra & MongoDB tested for Quarkus-specific registration. Redis is supported via Jackson-Serde.
 
 |Quarkus-JSONB
 |JSON-B
@@ -32,19 +32,19 @@ a|
 
 |Spring
 a|
-* MapStruct
-* JPA
 * BeanValidation
 * Jackson 3
-* SpringData (R2DBC)
-| SpringData covers Cassandra, MongoDB & JDBC
+* JPA
+* MapStruct
+* SpringData
+| SpringData covers Cassandra, JDBC, MongoDB & Redis
 
 |Spring-R2DBC
 a|
-* MapStruct
 * BeanValidation
 * Jackson 3
-* SpringData
+* MapStruct
+* SpringData (R2DBC only)
 a|
 Reactive scenario: WebFlux with `Mono`/`Flux` controller signatures over Spring Data R2DBC
 (PostgreSQL). Separate from the Spring scenario because two relational Spring Data modules in one
@@ -126,6 +126,10 @@ isbn:
 ----
 1. Maps primitive + format to a type
 2. Defines the import to be used for that type
+
+NOTE: The Currency is intentionally not mapped and kept as String in the DTO layer because it would require additional
+SerDes which would be the applications responsibility (not a Lazyval type). It's only goal is to test custom converters
+for generators which do not allow multiple registrations.
 
 The generated client in `api-client` doest do this mapping and instead uses scalar values which makes sure that this
 approach doesn't break consumers and also verifies the correct Jackson/JSONB serdes.

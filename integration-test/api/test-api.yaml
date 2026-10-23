@@ -162,6 +162,7 @@ components:
         - MONGO
         - JDBC
         - R2DBC
+        - REDIS
       # Without this the generator would sanitize R2DBC to the constant R2_DBC (it splits on the
       # digit boundary), so valueOf("R2DBC") would fail while the client keeps sending "R2DBC".
       x-enum-varnames:
@@ -170,6 +171,7 @@ components:
         - MONGO
         - JDBC
         - R2DBC
+        - REDIS
       examples:
         - JPA
 
@@ -177,7 +179,7 @@ components:
       # Plain wire-format types so bean validation runs at the boundary instead of failing
       # in the deserializer when domain-primitive constructors reject invalid input.
       type: object
-      required: [isbn, quantity, email]
+      required: [isbn, quantity, email, currency]
       properties:
         isbn:
           type: string
@@ -199,6 +201,12 @@ components:
           description: Customer email address
           examples:
             - "customer@example.com"
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          description: ISO 4217 currency code the order is priced in
+          examples:
+            - "EUR"
         couponCode:
           type: string
           description: Optional coupon or discount code applied to the order
@@ -207,7 +215,7 @@ components:
 
     Order:
       type: object
-      required: [id, isbn, quantity, email, orderDate]
+      required: [id, isbn, quantity, email, currency, orderDate]
       properties:
         id:
           type: string
@@ -235,6 +243,15 @@ components:
           description: Customer email address
           examples:
             - "customer@example.com"
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          description: >
+            ISO 4217 currency code the order is priced in. Deliberately not a domain-primitive:
+            java.util.Currency is a value object Lazyval does not know, so every store has to map it
+            through the application's own converter or codec.
+          examples:
+            - "EUR"
         orderDate:
           type: string
           format: date

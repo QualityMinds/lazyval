@@ -14,6 +14,7 @@ import jakarta.inject.Inject
 import jakarta.inject.Named
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
+import java.util.Currency
 import java.util.UUID
 
 @Singleton
@@ -21,7 +22,8 @@ import java.util.UUID
 class StartupBean @Inject constructor(
     @Named("jpa") private val jpaRepository: OrderRepository,
     @Named("cassandra") private val cassandraRepository: OrderRepository,
-    @Named("mongo") private val mongoRepository: OrderRepository
+    @Named("mongo") private val mongoRepository: OrderRepository,
+    @Named("redis") private val redisRepository: OrderRepository
 ) {
 
     @Transactional
@@ -42,6 +44,11 @@ class StartupBean @Inject constructor(
             mongoRepository.save(DefaultOrderB)
             logger.info("Initialized Mongo database with demo entities")
         }
+        if (redisRepository.findAll().isEmpty()) {
+            redisRepository.save(DefaultOrderA)
+            redisRepository.save(DefaultOrderB)
+            logger.info("Initialized Redis database with demo entities")
+        }
     }
 
     companion object {
@@ -55,6 +62,7 @@ class StartupBean @Inject constructor(
             Isbn.parse("3-86680-192-0"),
             Quantity.of(1),
             EMail("a@b.de"),
+            Currency.getInstance("EUR"),
             OrderDate.now()
         )
 
@@ -64,6 +72,7 @@ class StartupBean @Inject constructor(
             Isbn.parse("978-3-86680-192-9"),
             Quantity.of(1),
             EMail("x@y.de"),
+            Currency.getInstance("USD"),
             OrderDate.now(),
             CouponCode.ofNullable("FRESH12")
         )

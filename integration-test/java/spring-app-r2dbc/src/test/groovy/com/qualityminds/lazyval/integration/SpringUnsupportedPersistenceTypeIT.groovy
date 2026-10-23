@@ -95,4 +95,19 @@ class SpringUnsupportedPersistenceTypeIT extends AbstractIT {
             detail.contains('JDBC')
         }
     }
+
+    def "should answer 501 for REDIS"() {
+        when:
+        orderApi.getAllOrders(PersistenceType.REDIS)
+
+        then:
+        def ex = thrown(ApiException)
+        ex.code == 501
+
+        and: 'problem-json is present'
+        with(jsonMapper.readValue(ex.responseBody, Problem)) {
+            status == 501
+            detail.contains('REDIS')
+        }
+    }
 }

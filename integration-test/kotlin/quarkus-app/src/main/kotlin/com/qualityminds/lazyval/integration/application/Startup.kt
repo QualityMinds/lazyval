@@ -12,12 +12,14 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.event.Observes
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
+import java.util.Currency
 
 @ApplicationScoped
 class Startup @Inject constructor(
     @Identifier("jpa") private val jpaRepository: OrderRepository,
     @Identifier("cassandra") private val cassandraRepository: OrderRepository,
-    @Identifier("mongo") private val mongoRepository: OrderRepository
+    @Identifier("mongo") private val mongoRepository: OrderRepository,
+    @Identifier("redis") private val redisRepository: OrderRepository
 ) {
 
     @Transactional
@@ -34,6 +36,10 @@ class Startup @Inject constructor(
             mongoRepository.save(DefaultOrderA)
             mongoRepository.save(DefaultOrderB)
         }
+        if (redisRepository.findAll().isEmpty()) {
+            redisRepository.save(DefaultOrderA)
+            redisRepository.save(DefaultOrderB)
+        }
     }
 
     companion object {
@@ -41,7 +47,8 @@ class Startup @Inject constructor(
         val DefaultOrderA: Order = Order.create(
             Isbn.parse("3-86680-192-0"),
             Quantity.of(1),
-            EMail("a@b.de")
+            EMail("a@b.de"),
+            Currency.getInstance("EUR")
         )
 
         @JvmField
@@ -49,6 +56,7 @@ class Startup @Inject constructor(
             Isbn.parse("978-3-86680-192-9"),
             Quantity.of(1),
             EMail("x@y.de"),
+            Currency.getInstance("USD"),
             CouponCode.ofNullable("FRESH12")
         )
     }

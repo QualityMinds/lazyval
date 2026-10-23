@@ -15,6 +15,7 @@ import jakarta.inject.Named;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Path;
 
+import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,6 +44,9 @@ public class OrderResource implements OrderApi {
     @Inject
     @Named("mongo")
     OrderRepository mongoRepository;
+    @Inject
+    @Named("redis")
+    OrderRepository redisRepository;
 
     // Required by the JPA backend; a JTA transaction around a Cassandra or Mongo write is a no-op.
     @Transactional
@@ -52,6 +56,7 @@ public class OrderResource implements OrderApi {
                 Isbn.parse(createOrder.getIsbn()),
                 new Quantity(createOrder.getQuantity()),
                 new EMail(createOrder.getEmail()),
+                Currency.getInstance(createOrder.getCurrency()),
                 CouponCode.ofNullable(createOrder.getCouponCode()));
         repository(persistenceType).save(newOrder);
         return mapper.toDto(newOrder);
@@ -77,6 +82,7 @@ public class OrderResource implements OrderApi {
             case JPA -> jpaRepository;
             case CASSANDRA -> cassandraRepository;
             case MONGO -> mongoRepository;
+            case REDIS -> redisRepository;
             // JDBC and R2DBC are Spring-only scenarios and answer with 501 here.
             default -> throw new UnsupportedPersistenceTypeException(persistenceType);
         };

@@ -26,7 +26,7 @@ class APSpringDataStores {
         /** the store module, plus anything MavenResolver will not pull in transitively */
         List<Dependency> modules
         /**
-         * Set only for the two stores that have a native codec generator the Spring Data generator
+         * Set only for the stores that have a native codec generator the Spring Data generator
          * supersedes: the file that reappears once {@code lazyval.generators.supersede=false}.
          */
         String supersededCodec
@@ -55,6 +55,18 @@ class APSpringDataStores {
                       new Dependency('org.mongodb', 'bson', '5.6.5')],
             supersededCodec: 'test/boundary/persistence/mongodb/LazyvalMongoCodecs')
 
+    static final Store REDIS = new Store(
+            label: 'Redis',
+            optionKey: 'lazyval.springdata.redis.converters',
+            beanMethod: 'redisCustomConversions',
+            approvalDir: 'redis',
+            // the generated post-processor names RedisMappingContext, whose KeyValueMappingContext
+            // supertype lives in spring-data-keyvalue — not transitive either
+            modules: [springData('spring-data-redis', '4.1.1'), springData('spring-data-keyvalue', '4.1.1'),
+                      // pulls the codec generator in, so supersede is exercised
+                      new Dependency('io.lettuce', 'lettuce-core', '7.5.2.RELEASE')],
+            supersededCodec: 'test/boundary/persistence/redis/LazyvalLettuceCodecs')
+
     static final Store JDBC = new Store(
             label: 'JDBC',
             optionKey: 'lazyval.springdata.jdbc.converters',
@@ -73,7 +85,7 @@ class APSpringDataStores {
             modules: [springData('spring-data-r2dbc', '4.1.0'),
                       new Dependency('io.r2dbc', 'r2dbc-spi', '1.0.0.RELEASE')])
 
-    static final List<Store> ALL = [CASSANDRA, MONGO, JDBC, R2DBC]
+    static final List<Store> ALL = [CASSANDRA, MONGO, JDBC, R2DBC, REDIS]
 
     /** The stores whose native codec generator the Spring Data generator supersedes. */
     static final List<Store> WITH_SUPERSEDED_CODEC = ALL.findAll { it.supersededCodec != null }

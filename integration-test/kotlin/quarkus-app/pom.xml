@@ -76,6 +76,25 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-redis-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-redis-cache</artifactId>
+        </dependency>
+        <!-- Redis stores values without a Codec bean as JSON; quarkus-kotlin registers the Kotlin
+             module with Quarkus' ObjectMapper, so Kotlin data classes such as RedisOrder and the
+             cached Order can be read back -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-kotlin</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-kotlin</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
             <artifactId>quarkus-mongodb-panache-kotlin</artifactId>
         </dependency>
         <dependency>
@@ -113,6 +132,12 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-mongodb</artifactId>
             <version>${version.it.testcontainers}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.redis</groupId>
+            <artifactId>testcontainers-redis</artifactId>
+            <version>${version.it.testcontainers-redis}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -220,6 +245,12 @@
                 <configuration>
                     <apOptions>
                         <lazyval.generators.disable>jackson-3</lazyval.generators.disable>
+                        <lazyval.cassandra.codecs>
+                            com.qualityminds.lazyval.integration.boundary.persistence.cassandra.CurrencyCodec
+                        </lazyval.cassandra.codecs>
+                        <lazyval.mongodb.codecs>
+                            com.qualityminds.lazyval.integration.boundary.persistence.mongodb.CurrencyCodec
+                        </lazyval.mongodb.codecs>
                         <lazyval.generators.basePackage>
                             com.qualityminds.lazyval.integration
                         </lazyval.generators.basePackage>

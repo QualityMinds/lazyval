@@ -66,6 +66,14 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-redis-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-redis-cache</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
             <artifactId>quarkus-mongodb-panache</artifactId>
         </dependency>
         <dependency>
@@ -103,6 +111,12 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-mongodb</artifactId>
             <version>${version.it.testcontainers}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.redis</groupId>
+            <artifactId>testcontainers-redis</artifactId>
+            <version>${version.it.testcontainers-redis}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -161,6 +175,8 @@
                         <configuration>
                             <compilerArgs combine.children="append">
                                 <arg>-Alazyval.generators.disable=jackson-3</arg><!-- disabled as Jackson 3 only on test path -->
+                                <arg>-Alazyval.cassandra.codecs=com.qualityminds.lazyval.integration.boundary.persistence.cassandra.CurrencyCodec</arg>
+                                <arg>-Alazyval.mongodb.codecs=com.qualityminds.lazyval.integration.boundary.persistence.mongodb.CurrencyCodec</arg>
                                 <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
                             </compilerArgs>
                         </configuration>

@@ -31,7 +31,7 @@ internal class CassandraOrderRepository @Inject constructor(
     @PostConstruct
     fun init() {
         insertStmt = session.prepare(
-            "INSERT INTO orders (id, isbn, quantity, email, orderdate, couponcode) VALUES (?, ?, ?, ?, ?, ?)"
+            "INSERT INTO orders (id, isbn, quantity, email, currency, orderdate, couponcode) VALUES (?, ?, ?, ?, ?, ?, ?)"
         )
         selectAllStmt = session.prepare("SELECT * FROM orders")
         selectByIdStmt = session.prepare("SELECT * FROM orders WHERE id = ?")
@@ -45,6 +45,7 @@ internal class CassandraOrderRepository @Inject constructor(
             .set("isbn", co.isbn, Isbn::class.java)
             .set("quantity", co.quantity, Quantity::class.java)
             .set("email", co.email, EMail::class.java)
+            .set("currency", co.currency, Currency::class.java)
             .set("orderdate", co.orderDate, OrderDate::class.java)
             .set("couponcode", co.couponCode, CouponCode::class.java)
             .build()
@@ -77,6 +78,7 @@ internal class CassandraOrderRepository @Inject constructor(
         isbn = row.get("isbn", Isbn::class.java)!!,
         quantity = row.get("quantity", Quantity::class.java)!!,
         email = row.get("email", EMail::class.java)!!,
+        currency = row.get("currency", Currency::class.java)!!,
         orderDate = row.get("orderdate", OrderDate::class.java)!!,
         couponCode = row.get("couponcode", CouponCode::class.java)
     )

@@ -1,0 +1,157 @@
+= Redis with Lettuce
+
+Redis stores bytes only, and the https://lettuce.io[Lettuce] client maps them through one `RedisCodec<K, V>` per
+connection — with no fallback for types it does not know. This generator creates one codec per domain-primitive,
+bundled as constants in `LazyvalLettuceCodecs`, usable as key codec and as value codec alike.
+
+NOTE: For *Spring Data* Redis projects, see xref:spring-data.adoc[Spring Data] — it registers converters for
+repositories and generates `RedisSerializer`s for `RedisTemplate` and the Redis cache.
+
+IMPORTANT: When Spring Data is on the classpath, the `spring-data` generator supersedes `redis` and this
+generator is silently dropped from the active set: `spring-boot-starter-data-redis` always brings `lettuce-core`,
+but Spring Data talks to Lettuce in plain bytes, so the codecs would never be used. Lazyval logs an info message in
+that case. See xref:spi:index.adoc#superseding-other-generators[Superseding other generators] for details.
+
+NOTE: *Quarkus* Redis projects, are already covered by xref:jackson.adoc[Jackson generator] as Quarkus codecs fall
+back to a JsonCodec.
+
+== Consulted Classpath
+
+|===
+|Class |JAR Coordinates |Required
+
+|`io.lettuce.core.codec.RedisCodec`
+|`io.lettuce:lettuce-core`
+^|YES
+
+|===
+
+== Config Options
+
+|===
+|Property |Description
+
+|_lazyval.redis.lettuce.package_
+|Specifies the package where `LazyvalLettuceCodecs` is generated to.
+Overrides default value based on `lazyval.generators.basePackage` (`boundary.persistence.redis`).
+
+|===
+
+== Generated Files
+
+A single `LazyvalLettuceCodecs` holder with one `RedisCodec<T, T>` constant per domain-primitive. The constant name
+is the type's flat name in upper snake case: `Isbn` → `ISBN`, `EMail` → `E_MAIL`, a nested `Ids.ProductId` →
+`IDS_PRODUCT_ID`. In Kotlin the holder is an `object` and the constants are `@JvmField`, so Java reads them as
+plain static fields.
+
+[tabs]
+====
+Java::
++
+[source,java]
+----
+public final class LazyvalLettuceCodecs {
+  public static final RedisCodec<Isbn, Isbn> ISBN = new TextCodec<Isbn>() {
+    @Override
+    String format(Isbn value) {
+      return value.getValue();
+    }
+
+    @Override
+    Isbn parse(String text) {
+      return Isbn.parse(text);
+    }
+  };
+
+  // one constant per domain-primitive, then the private TextCodec writing the text as UTF-8
+}
+----
+
+Kotlin::
++
+[source,kotlin]
+----
+public object LazyvalLettuceCodecs {
+  @JvmField
+  public val ISBN: RedisCodec<Isbn, Isbn> = TextCodec<Isbn>({ it.value }, { Isbn.parse(it) })
+
+  // one constant per domain-primitive
+}
+
+// the private TextCodec writing the text as UTF-8
+----
+====
+
+== Usage
+
+A connection takes one codec for keys and one for values; `RedisCodec.of` composes them:
+
+[tabs]
+====
+Java::
++
+[source,java]
+----
+RedisCommands<String, Isbn> isbns =
+        client.connect(RedisCodec.of(StringCodec.UTF8, LazyvalLettuceCodecs.ISBN)).sync();
+isbns.set("book:42", Isbn.parse("978-3-16-148410-0"));
+
+// a domain-primitive as key works the same way
+RedisCommands<Isbn, String> titles =
+        client.connect(RedisCodec.of(LazyvalLettuceCodecs.ISBN, StringCodec.UTF8)).sync();
+----
+
+Kotlin::
++
+[source,kotlin]
+----
+val isbns = client.connect(RedisCodec.of(StringCodec.UTF8, LazyvalLettuceCodecs.ISBN)).sync()
+isbns.set("book:42", Isbn.parse("978-3-16-148410-0"))
+----
+====
+
+A connection with mixed value types — a hash holding several properties, say — goes through a `byte[]`
+connection (`ByteArrayCodec`), with each field encoded by its codec's `encodeValue` and read back with
+`decodeValue`.
+
+== Encoding
+
+A domain-primitive is stored as its wrapped value in UTF-8 text, written the way Spring Data Redis' store converters
+write it — so data can be shared with an application reading it through the
+xref:spring-data.adoc[Spring Data] generator's `RedisSerializers`. Being plain text, it stays readable in
+`redis-cli`, and numeric payloads remain usable for `INCRBY` and friends.
+
+|===
+|Payload |Stored as
+
+|`String`
+|as is
+
+|numbers, `BigDecimal`, `BigInteger`
+|`toString()`, e.g. `42`, `1E+3`
+
+|`Boolean`
+|`1` / `0` (reading also accepts `true`), as Spring Data Redis does
+
+|enums
+|`name()`
+
+|`UUID`
+|`toString()`
+
+|`java.time`: `LocalDate`, `LocalDateTime`, `LocalTime`, `Instant`, `ZonedDateTime`, `OffsetDateTime`,
+`OffsetTime`, `Duration`, `Period`, `ZoneId`
+|ISO `toString()`
+
+|`java.util.Date`
+|epoch milliseconds
+
+|===
+
+A Kotlin `value class` payload is unwrapped first, so it is stored as the type it wraps.
+
+== When the defaults aren't enough
+
+A domain-primitive whose payload has no entry in the table above — `java.util.Locale`, say — gets no codec; Lazyval
+reports a warning naming the type. Lazyval owns no central registration point for Lettuce, so there is no option to
+plug a codec in: write a `RedisCodec` for that type yourself and compose it like the generated ones.

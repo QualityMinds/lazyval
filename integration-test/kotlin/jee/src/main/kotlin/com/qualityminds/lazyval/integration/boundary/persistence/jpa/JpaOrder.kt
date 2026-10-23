@@ -18,6 +18,7 @@ class JpaOrder(
     var isbn: Isbn,
     var quantity: Quantity,
     var email: EMail,
+    var currency: Currency,
     var orderDate: OrderDate,
     var couponCode: CouponCode? = null
 )

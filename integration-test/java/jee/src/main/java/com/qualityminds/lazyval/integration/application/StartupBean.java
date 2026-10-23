@@ -16,6 +16,7 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Currency;
 import java.util.UUID;
 
 @Singleton
@@ -31,6 +32,7 @@ public class StartupBean {
             Isbn.parse("3-86680-192-0"),
             new Quantity(1),
             new EMail("a@b.de"),
+            Currency.getInstance("EUR"),
             OrderDate.now(),
             null);
     public static final Order DefaultOrderB = new Order(
@@ -38,6 +40,7 @@ public class StartupBean {
             Isbn.parse("978-3-86680-192-9"),
             new Quantity(1),
             new EMail("x@y.de"),
+            Currency.getInstance("USD"),
             OrderDate.now(),
             CouponCode.ofNullable("FRESH12"));
 
@@ -54,6 +57,10 @@ public class StartupBean {
     @Inject
     @Named("mongo")
     OrderRepository mongoRepository;
+
+    @Inject
+    @Named("redis")
+    OrderRepository redisRepository;
 
     @Transactional
     @PostConstruct
@@ -73,6 +80,11 @@ public class StartupBean {
             mongoRepository.save(DefaultOrderA);
             mongoRepository.save(DefaultOrderB);
             logger.info("Initialized Mongo database with demo entities");
+        }
+        if(redisRepository.findAll().isEmpty()) {
+            redisRepository.save(DefaultOrderA);
+            redisRepository.save(DefaultOrderB);
+            logger.info("Initialized Redis database with demo entities");
         }
     }
 }
