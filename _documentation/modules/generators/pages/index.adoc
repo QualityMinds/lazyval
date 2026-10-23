@@ -24,6 +24,10 @@ prefer xref:spring-data.adoc[Spring Data] instead.
 |xref:jsonb.adoc[JSON-B]
 |`JsonbAdapter` implementations bundled into a `LazyvalJsonbAdapters` class with a ready-to-use `JsonbConfig`.
 
+|xref:redis-lettuce.adoc[Redis (Lettuce)]
+|One Lettuce `RedisCodec` per domain-primitive, bundled as constants in `LazyvalLettuceCodecs`.
+For Spring Data Redis projects, prefer xref:spring-data.adoc[Spring Data] instead.
+
 |xref:mapstruct.adoc[MapStruct]
 |A `LazyvalMapper` interface usable as a shared configuration in other mappers.
 

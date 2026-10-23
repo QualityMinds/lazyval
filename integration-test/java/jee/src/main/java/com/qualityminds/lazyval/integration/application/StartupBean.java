@@ -58,6 +58,10 @@ public class StartupBean {
     @Named("mongo")
     OrderRepository mongoRepository;
 
+    @Inject
+    @Named("redis")
+    OrderRepository redisRepository;
+
     @Transactional
     @PostConstruct
     void init() {
@@ -76,6 +80,11 @@ public class StartupBean {
             mongoRepository.save(DefaultOrderA);
             mongoRepository.save(DefaultOrderB);
             logger.info("Initialized Mongo database with demo entities");
+        }
+        if(redisRepository.findAll().isEmpty()) {
+            redisRepository.save(DefaultOrderA);
+            redisRepository.save(DefaultOrderB);
+            logger.info("Initialized Redis database with demo entities");
         }
     }
 }
