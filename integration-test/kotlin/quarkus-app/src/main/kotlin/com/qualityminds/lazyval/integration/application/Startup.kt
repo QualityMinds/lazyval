@@ -18,7 +18,8 @@ import java.util.Currency
 class Startup @Inject constructor(
     @Identifier("jpa") private val jpaRepository: OrderRepository,
     @Identifier("cassandra") private val cassandraRepository: OrderRepository,
-    @Identifier("mongo") private val mongoRepository: OrderRepository
+    @Identifier("mongo") private val mongoRepository: OrderRepository,
+    @Identifier("redis") private val redisRepository: OrderRepository
 ) {
 
     @Transactional
@@ -34,6 +35,10 @@ class Startup @Inject constructor(
         if (mongoRepository.findAll().isEmpty()) {
             mongoRepository.save(DefaultOrderA)
             mongoRepository.save(DefaultOrderB)
+        }
+        if (redisRepository.findAll().isEmpty()) {
+            redisRepository.save(DefaultOrderA)
+            redisRepository.save(DefaultOrderB)
         }
     }
 
