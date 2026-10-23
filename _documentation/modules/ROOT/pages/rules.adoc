@@ -211,8 +211,8 @@ factory for a `String` payload, and counts towards the at-most-one limit alongsi
 ====
 Java::
 +
-Any type the active generators can handle. See xref:generators:index.adoc[Generators] for what each
-one supports, and for how to plug in a converter for a type it does not.
+Any type the active generators can handle, other than an array. See xref:generators:index.adoc[Generators]
+for what each one supports, and for how to plug in a converter for a type it does not.
 
 Kotlin::
 +
@@ -224,6 +224,13 @@ its own section — see <<value-class>>.
 +
 Beyond that, the same generator-side considerations as for Java apply.
 ====
+
+Neither language accepts an array — `byte[]`, `String[]`, `ByteArray`, `Array<String>` — nor, in Kotlin, a
+value class wrapping one. An array cannot stand for a value: it stays mutable behind any accessor, and its
+`equals` is identity, which records and data classes inherit. Nor do the technologies agree on how to store
+one — Jackson writes Base64 text, JSON-B an array of numbers, MongoDB a BSON binary. For binary data, wrap
+its `String` encoding instead (`HexFormat`, `Base64`); if the raw bytes have to reach the store, leave out
+`@LazyValue` and write the mappings yourself.
 
 [#value-class]
 == Value class payloads
@@ -394,6 +401,9 @@ send you to edit the wrong file.
 | A nullable payload property
 | The payload Lazyval carries *is* the type the value class wraps, so a nullable one is the nullable
   payload <<payload-type>> already refuses. Absence belongs to the reference at the call site.
+
+| A payload property of array type
+| Likewise: the array it wraps is the array payload <<payload-type>> already refuses.
 
 | A factory returning `Rate?` rather than `Rate`
 | See <<value-class-rewrap>> — there is no caller to hand the `null` to.

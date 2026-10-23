@@ -40,8 +40,5 @@ public final class LettucePayloads {
     @LazyValue
     public record Level(Priority value) {}
 
-    @LazyValue
-    public record Blob(byte[] value) {}
-
     private LettucePayloads() {}
 }
