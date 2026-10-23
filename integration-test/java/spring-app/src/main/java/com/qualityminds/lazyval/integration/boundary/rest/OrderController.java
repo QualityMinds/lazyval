@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Currency;
 import java.util.UUID;
 
 /**
@@ -56,6 +57,7 @@ public class OrderController implements OrderApi {
                         Isbn.parse(createOrder.getIsbn()),
                         new Quantity(createOrder.getQuantity()),
                         new EMail(createOrder.getEmail()),
+                        Currency.getInstance(createOrder.getCurrency()),
                         CouponCode.ofNullable(createOrder.getCouponCode())
                 );
         repository(persistenceType).save(newOrder);

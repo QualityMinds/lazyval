@@ -10,6 +10,7 @@ import org.springframework.data.cassandra.core.mapping.Column;
 import org.springframework.data.cassandra.core.mapping.PrimaryKey;
 import org.springframework.data.cassandra.core.mapping.Table;
 
+import java.util.Currency;
 import java.util.UUID;
 
 @Table("orders")
@@ -20,6 +21,7 @@ class CassandraOrder {
     private Isbn isbn;
     private Quantity quantity;
     private EMail email;
+    private Currency currency;
     @Column("orderdate")
     private OrderDate orderDate;
     @Nullable
@@ -28,11 +30,13 @@ class CassandraOrder {
     protected CassandraOrder() {
     }
 
-    public CassandraOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, OrderDate orderDate, @Nullable CouponCode couponCode) {
+    public CassandraOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, Currency currency, OrderDate orderDate,
+                    @Nullable CouponCode couponCode) {
         this.id = id;
         this.isbn = isbn;
         this.quantity = quantity;
         this.email = email;
+        this.currency = currency;
         this.orderDate = orderDate;
         this.couponCode = couponCode;
     }
@@ -67,6 +71,14 @@ class CassandraOrder {
 
     public void setEmail(EMail email) {
         this.email = email;
+    }
+
+    public Currency getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(Currency currency) {
+        this.currency = currency;
     }
 
     public OrderDate getOrderDate() {

@@ -278,6 +278,8 @@
                         </goals>
                         <configuration>
                             <compilerArgs combine.children="append">
+                                <arg>-Alazyval.cassandra.codecs=com.qualityminds.lazyval.integration.boundary.persistence.cassandra.CurrencyCodec</arg>
+                                <arg>-Alazyval.mongodb.codecs=com.qualityminds.lazyval.integration.boundary.persistence.mongodb.CurrencyCodec</arg>
                                 <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
                             </compilerArgs>
                         </configuration>

@@ -214,6 +214,7 @@
                                 <!-- only spring-data R2DBC and the JSON/validation integration are
                                      under test here; the other stores live in spring-app -->
                                 <arg>-Alazyval.generators.disable=cassandra,jackson-2</arg>
+                                <arg>-Alazyval.springdata.r2dbc.converters=com.qualityminds.lazyval.integration.boundary.persistence.CurrencyToStringConverter,com.qualityminds.lazyval.integration.boundary.persistence.StringToCurrencyConverter</arg>
                                 <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
                             </compilerArgs>
                         </configuration>

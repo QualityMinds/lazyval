@@ -14,6 +14,7 @@ import jakarta.inject.Inject
 import jakarta.inject.Named
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.Path
+import java.util.Currency
 import java.util.UUID
 
 /**
@@ -39,6 +40,7 @@ class OrderResource @Inject constructor(
             Isbn.parse(createOrder.isbn),
             Quantity.of(createOrder.quantity),
             EMail(createOrder.email),
+            Currency.getInstance(createOrder.currency),
             CouponCode.ofNullable(createOrder.couponCode),
         )
         repository(persistenceType).save(newOrder)

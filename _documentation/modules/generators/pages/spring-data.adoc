@@ -571,6 +571,81 @@ class SqlDateToOrderDateConverter : Converter<java.sql.Date, OrderDate> {
 <compilerArg>-Alazyval.springdata.jdbc.converters=com.example.SqlDateToOrderDateConverter</compilerArg>
 ----
 
+[[foreign-value-types]]
+=== Value types Lazyval does not generate for
+
+The options are not limited to domain-primitives. Lazyval owns each store's `CustomConversions` bean,
+and that bean is the one place Spring Data looks for converters — declaring a second one replaces
+Lazyval's. So any other value type on the same entities, one that is not a `@LazyValue` and that the
+store does not map on its own, is registered through the same option.
+
+`java.util.Currency` is a typical example: a proper value object, but unknown to most stores.
+
+|===
+|Store |Without a converter |Converter pair
+
+|Cassandra, JDBC, R2DBC
+|The application fails to start: the mapping context introspects `Currency` as an entity and hits
+`InaccessibleObjectException` (`java.base` does not open `java.util`).
+|`Currency ↔ String`
+
+|Redis
+|Fails to start in the same way. With a `String` pair it starts, but saving fails with _"Cannot
+convert value … to bytes"_: Redis stores bytes only and does not chain `Currency → String → byte[]`.
+|`Currency ↔ byte[]`
+
+|MongoDB
+|Works without one: Spring Data MongoDB maps `Currency` on its own.
+|none
+|===
+
+[tabs]
+====
+Java::
++
+[source,java]
+----
+@WritingConverter
+public class CurrencyToStringConverter implements Converter<Currency, String> {
+    @Override
+    public String convert(Currency source) {
+        return source.getCurrencyCode();
+    }
+}
+
+@ReadingConverter
+public class StringToCurrencyConverter implements Converter<String, Currency> {
+    @Override
+    public Currency convert(String source) {
+        return Currency.getInstance(source);
+    }
+}
+----
+
+Kotlin::
++
+[source,kotlin]
+----
+@WritingConverter
+class CurrencyToStringConverter : Converter<Currency, String> {
+    override fun convert(source: Currency): String = source.currencyCode
+}
+
+@ReadingConverter
+class StringToCurrencyConverter : Converter<String, Currency> {
+    override fun convert(source: String): Currency = Currency.getInstance(source)
+}
+----
+====
+
+[source,xml]
+----
+<compilerArg>-Alazyval.springdata.cassandra.converters=com.example.CurrencyToStringConverter,com.example.StringToCurrencyConverter</compilerArg>
+----
+
+For Redis, the pair converts to and from `byte[]` instead (the ISO code as UTF-8) and is registered
+through `lazyval.springdata.redis.converters`.
+
 === Validation rules
 
 Each FQN passed to `lazyval.springdata.{cassandra,mongo,jdbc,r2dbc}.converters` is checked

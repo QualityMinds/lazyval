@@ -161,6 +161,8 @@
                         <configuration>
                             <compilerArgs combine.children="append">
                                 <arg>-Alazyval.generators.disable=jackson-3</arg><!-- disabled as Jackson 3 only on test path -->
+                                <arg>-Alazyval.cassandra.codecs=com.qualityminds.lazyval.integration.boundary.persistence.cassandra.CurrencyCodec</arg>
+                                <arg>-Alazyval.mongodb.codecs=com.qualityminds.lazyval.integration.boundary.persistence.mongodb.CurrencyCodec</arg>
                                 <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
                             </compilerArgs>
                         </configuration>

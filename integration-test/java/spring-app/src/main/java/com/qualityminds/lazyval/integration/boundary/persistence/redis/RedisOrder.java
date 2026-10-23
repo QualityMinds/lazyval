@@ -10,12 +10,13 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.redis.core.RedisHash;
 import org.springframework.data.redis.core.index.Indexed;
 
+import java.util.Currency;
 import java.util.UUID;
 
 @RedisHash("orders")
 record RedisOrder(
         @Id UUID id,
         @Indexed Isbn isbn,     // needed for findByIsbn
-        Quantity quantity, EMail email, OrderDate orderDate,
+        Quantity quantity, EMail email, Currency currency, OrderDate orderDate,
         @Nullable CouponCode couponCode
 ) {}

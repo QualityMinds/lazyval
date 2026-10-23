@@ -11,6 +11,7 @@ import io.quarkus.mongodb.panache.kotlin.PanacheMongoEntityBase
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.codecs.pojo.annotations.BsonProperty
 import java.util.UUID
+import java.util.Currency
 
 @MongoEntity(collection = "orders")
 class MongoOrder(
@@ -19,6 +20,7 @@ class MongoOrder(
     var isbn: Isbn,
     var quantity: Quantity,
     var email: EMail,
+    var currency: Currency,
     @field:BsonProperty("orderdate")
     var orderDate: OrderDate,
     @field:BsonProperty("couponcode")

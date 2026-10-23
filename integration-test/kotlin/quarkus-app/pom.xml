@@ -220,6 +220,12 @@
                 <configuration>
                     <apOptions>
                         <lazyval.generators.disable>jackson-3</lazyval.generators.disable>
+                        <lazyval.cassandra.codecs>
+                            com.qualityminds.lazyval.integration.boundary.persistence.cassandra.CurrencyCodec
+                        </lazyval.cassandra.codecs>
+                        <lazyval.mongodb.codecs>
+                            com.qualityminds.lazyval.integration.boundary.persistence.mongodb.CurrencyCodec
+                        </lazyval.mongodb.codecs>
                         <lazyval.generators.basePackage>
                             com.qualityminds.lazyval.integration
                         </lazyval.generators.basePackage>

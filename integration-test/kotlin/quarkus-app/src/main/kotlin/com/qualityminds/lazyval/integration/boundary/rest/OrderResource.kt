@@ -15,6 +15,7 @@ import jakarta.transaction.Transactional
 import jakarta.ws.rs.Produces
 import jakarta.ws.rs.core.MediaType
 import java.util.UUID
+import java.util.Currency
 
 /**
  * One resource for every persistence technology under test: the `persistenceType` path segment
@@ -36,6 +37,7 @@ class OrderResource @Inject constructor(
             Isbn.parse(createOrder.isbn),
             Quantity.of(createOrder.quantity),
             EMail(createOrder.email),
+            Currency.getInstance(createOrder.currency),
             CouponCode.ofNullable(createOrder.couponCode),
         )
         repository(persistenceType).save(newOrder)
