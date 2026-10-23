@@ -4,7 +4,7 @@ Since domain-primitives are complex objects, the MongoDB Java driver cannot nati
 values. This generator creates native driver `Codec` implementations bundled into a `LazyvalMongoCodecs`
 class that implements `CodecProvider`. Each codec resolves the wrapped-type codec from the supplied
 `CodecRegistry` and delegates `encode`/`decode` to it — so anything the registry knows how to handle
-(String, primitive wrappers, JSR-310 date/time types, UUID, BigDecimal, byte[], …) works out of the box.
+(String, primitive wrappers, JSR-310 date/time types, UUID, BigDecimal, …) works out of the box.
 
 NOTE: For Spring Data MongoDB projects, see xref:spring-data.adoc[Spring Data] — a separate generator
 produces `@ReadingConverter`/`@WritingConverter` classes and a `MongoCustomConversions` bean.
@@ -300,7 +300,7 @@ resolution semantics.
 == When the defaults aren't enough
 
 The default Mongo codec registry covers `String`, all primitive wrappers, `UUID`,
-`BigDecimal`, `byte[]`, `Pattern`, and the JSR-310 types — `LocalDate`,
+`BigDecimal`, `Pattern`, and the JSR-310 types — `LocalDate`,
 `LocalDateTime`, `LocalTime`, `Instant`. Generated codecs compose with that
 registry end-to-end, so a domain-primitive wrapping any of these works out of
 the box. No `Date` bridge is required.

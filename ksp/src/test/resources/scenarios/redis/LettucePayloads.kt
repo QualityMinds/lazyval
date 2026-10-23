@@ -35,6 +35,3 @@ data class Legacy(val value: Date)
 
 @LazyValue
 data class Level(val value: Priority)
-
-@LazyValue
-class Blob(val value: ByteArray)

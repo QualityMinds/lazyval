@@ -198,12 +198,7 @@ private fun KSType.ordinaryLevel(declaration: KSClassDeclaration): Level {
     }
 
     val underlying = parameter.type.resolve()
-    // Refused rather than carried: the payload generated code carries is this type, and a nullable
-    // payload is already forbidden for a domain-primitive. Nullability belongs to the reference at the
-    // call site, which is free to be `T?` whatever the value class wraps.
-    if (underlying.isMarkedNullable) {
-        return Level.Unsupported(valueClassNullablePayloadMessage(this, propertyName))
-    }
+    refusedUnderlying(underlying, propertyName)?.let { return Level.Unsupported(it) }
 
     val factories = declaration.valueClassFactories(underlying)
     // Reported before ambiguity, and reported at all rather than skipped over: a nullable-returning
@@ -228,6 +223,18 @@ private fun KSType.ordinaryLevel(declaration: KSClassDeclaration): Level {
         else -> return Level.Unsupported(valueClassUnconstructableMessage(this))
     }
     return Level.Next(underlying, UnwrapStep.Property(propertyName, builder))
+}
+
+/**
+ * Why [underlying] is refused rather than carried, or `null` when it may be carried. The payload generated
+ * code carries is this type, so it answers to the rules a domain-primitive's own payload does: not
+ * nullable — nullability belongs to the reference at the call site, which is free to be `T?` whatever the
+ * value class wraps — and not an array.
+ */
+private fun KSType.refusedUnderlying(underlying: KSType, propertyName: String): String? = when {
+    underlying.isMarkedNullable -> valueClassNullablePayloadMessage(this, propertyName)
+    underlying.isArray -> valueClassArrayPayloadMessage(this, propertyName)
+    else -> null
 }
 
 /**

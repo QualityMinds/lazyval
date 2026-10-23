@@ -380,8 +380,8 @@ all you need:
   `LocalDate`, `LocalTime`, `Instant`, `UUID`, `BigDecimal`, `InetAddress`, and
   `ByteBuffer`. The generated pair matches them directly.
 * **MongoDB**: works the same way for `String`, numeric primitives, `UUID`,
-  `BigDecimal`, `byte[]`, and any other type Spring Data MongoDB recognises as
-  a simple type.
+  `BigDecimal`, and any other type Spring Data MongoDB recognises as a simple
+  type.
 * **JDBC and R2DBC**: the rule is different in kind — what counts as natively
   supported is decided by the `Dialect`, not by the store. Each dialect declares
   its own `simpleTypes()` and contributes its own converters, so the same

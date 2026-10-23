@@ -30,7 +30,6 @@ private val REDIS_CODEC = ClassName("io.lettuce.core.codec", "RedisCodec")
 private val STRING_CODEC = ClassName("io.lettuce.core.codec", "StringCodec")
 private val BYTE_BUFFER = ClassName("java.nio", "ByteBuffer")
 private const val TEXT_CODEC = "TextCodec"
-private const val BINARY_CODEC = "BinaryCodec"
 
 /**
  * How a payload is written as text and read back — mirrors Spring Data Redis' `BinaryConverters` and
@@ -95,23 +94,17 @@ class LettuceCodecGenerator : Generator {
         val codecPackage = context.generatorPackage(OPTION_GENERATED_PACKAGE, "boundary.persistence.redis")
         val codecs = mutableListOf<PropertySpec>()
         val supported = mutableListOf<ValidatedKspGeneratorElement>()
-        var needsBinary = false
         for (element in validatedElements) {
-            if (payloadName(element) == "kotlin.ByteArray") {
-                codecs += binaryCodec(element, ClassName(codecPackage, BINARY_CODEC))
-                needsBinary = true
-            } else {
-                val text = textFor(element)
-                if (text == null) {
-                    context.logWarning(
-                        this, element.element,
-                        "${element.name.canonicalName()}: no Lettuce codec is generated, its payload type " +
-                            "${payloadName(element)} has no text encoding; write a RedisCodec for it yourself"
-                    )
-                    continue
-                }
-                codecs += textCodec(element, text, ClassName(codecPackage, TEXT_CODEC))
+            val text = textFor(element)
+            if (text == null) {
+                context.logWarning(
+                    this, element.element,
+                    "${element.name.canonicalName()}: no Lettuce codec is generated, its payload type " +
+                        "${payloadName(element)} has no text encoding; write a RedisCodec for it yourself"
+                )
+                continue
             }
+            codecs += textCodec(element, text, ClassName(codecPackage, TEXT_CODEC))
             supported += element
         }
         if (codecs.isEmpty() || !uniqueConstantNames(supported, context, this)) {
@@ -139,12 +132,6 @@ class LettuceCodecGenerator : Generator {
         val file = FileSpec.builder(codecPackage, HOLDER)
             .addType(holder)
             .addType(buildTextCodec())
-            .apply {
-                if (needsBinary) {
-                    addType(buildBinaryCodec())
-                    addFunction(remainingBytes())
-                }
-            }
             .build()
         return Stream.of(GeneratorResult.Kotlin(GeneratorResult.Metadata(file.packageName, file.name), file.toString()))
     }
@@ -184,13 +171,6 @@ private fun textCodec(element: ValidatedKspGeneratorElement, text: Text, textCod
     return constant(element, CodeBlock.of("%T<%T>({ %L }, { %L })", textCodec, elementType, formatted, created))
 }
 
-private fun binaryCodec(element: ValidatedKspGeneratorElement, binaryCodec: ClassName): PropertySpec {
-    val elementType = element.element.toClassName()
-    val read = element.kotlin.read("it").kotlinPoet()
-    val created = element.kotlin.create("it").kotlinPoet()
-    return constant(element, CodeBlock.of("%T<%T>({ %L }, { %L })", binaryCodec, elementType, read, created))
-}
-
 private fun constant(element: ValidatedKspGeneratorElement, initializer: CodeBlock): PropertySpec {
     val elementType = element.element.toClassName()
     return PropertySpec.builder(constantName(element), REDIS_CODEC.parameterizedBy(elementType, elementType))
@@ -202,36 +182,11 @@ private fun constant(element: ValidatedKspGeneratorElement, initializer: CodeBlo
 private val T = TypeVariableName("T", ANY)
 
 /** Keys and values alike: the payload's text form as UTF-8, through Lettuce's own `StringCodec`. */
-private fun buildTextCodec(): TypeSpec = codecClass(
-    TEXT_CODEC, STRING,
-    decode = CodeBlock.of("parse(%T.UTF8.decodeValue(bytes))", STRING_CODEC),
-    decodeKey = CodeBlock.of("parse(%T.UTF8.decodeKey(bytes))", STRING_CODEC),
-    encodeKey = CodeBlock.of("%T.UTF8.encodeKey(key?.let(format))", STRING_CODEC),
-    encode = CodeBlock.of("%T.UTF8.encodeValue(value?.let(format))", STRING_CODEC),
-)
-
-/** Keys and values alike: the payload's bytes unchanged. */
-private fun buildBinaryCodec(): TypeSpec = codecClass(
-    BINARY_CODEC, BYTE_ARRAY,
-    decode = CodeBlock.of("parse(bytes.remainingBytes())"),
-    decodeKey = CodeBlock.of("parse(bytes.remainingBytes())"),
-    encodeKey = CodeBlock.of("%T.wrap(key?.let(format) ?: ByteArray(0))", BYTE_BUFFER),
-    encode = CodeBlock.of("%T.wrap(value?.let(format) ?: ByteArray(0))", BYTE_BUFFER),
-)
-
-@Suppress("LongParameterList")
-private fun codecClass(
-    name: String,
-    form: TypeName,
-    decode: CodeBlock,
-    decodeKey: CodeBlock,
-    encodeKey: CodeBlock,
-    encode: CodeBlock,
-): TypeSpec {
-    val format = LambdaTypeName.get(parameters = arrayOf(T), returnType = form)
-    val parse = LambdaTypeName.get(parameters = arrayOf(form), returnType = T.copy(nullable = true))
+private fun buildTextCodec(): TypeSpec {
+    val format = LambdaTypeName.get(parameters = arrayOf(T), returnType = STRING)
+    val parse = LambdaTypeName.get(parameters = arrayOf(STRING), returnType = T.copy(nullable = true))
     val nullableT = T.copy(nullable = true)
-    return TypeSpec.classBuilder(name)
+    return TypeSpec.classBuilder(TEXT_CODEC)
         .addModifiers(KModifier.PRIVATE)
         .addTypeVariable(T)
         .addSuperinterface(REDIS_CODEC.parameterizedBy(T, T))
@@ -246,29 +201,22 @@ private fun codecClass(
         .addFunction(
             FunSpec.builder("decodeKey").addModifiers(KModifier.OVERRIDE)
                 .addParameter("bytes", BYTE_BUFFER).returns(nullableT)
-                .addStatement("return %L", decodeKey).build()
+                .addStatement("return parse(%T.UTF8.decodeKey(bytes))", STRING_CODEC).build()
         )
         .addFunction(
             FunSpec.builder("decodeValue").addModifiers(KModifier.OVERRIDE)
                 .addParameter("bytes", BYTE_BUFFER).returns(nullableT)
-                .addStatement("return %L", decode).build()
+                .addStatement("return parse(%T.UTF8.decodeValue(bytes))", STRING_CODEC).build()
         )
         .addFunction(
             FunSpec.builder("encodeKey").addModifiers(KModifier.OVERRIDE)
                 .addParameter("key", nullableT).returns(BYTE_BUFFER)
-                .addStatement("return %L", encodeKey).build()
+                .addStatement("return %T.UTF8.encodeKey(key?.let(format))", STRING_CODEC).build()
         )
         .addFunction(
             FunSpec.builder("encodeValue").addModifiers(KModifier.OVERRIDE)
                 .addParameter("value", nullableT).returns(BYTE_BUFFER)
-                .addStatement("return %L", encode).build()
+                .addStatement("return %T.UTF8.encodeValue(value?.let(format))", STRING_CODEC).build()
         )
         .build()
 }
-
-private fun remainingBytes(): FunSpec = FunSpec.builder("remainingBytes")
-    .addModifiers(KModifier.PRIVATE)
-    .receiver(BYTE_BUFFER)
-    .returns(BYTE_ARRAY)
-    .addStatement("return ByteArray(remaining()).also { get(it) }")
-    .build()

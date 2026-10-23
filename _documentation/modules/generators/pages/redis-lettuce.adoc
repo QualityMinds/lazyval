@@ -146,9 +146,6 @@ xref:spring-data.adoc[Spring Data] generator's `RedisSerializers`. Being plain t
 |`java.util.Date`
 |epoch milliseconds
 
-|`byte[]`
-|unchanged
-
 |===
 
 A Kotlin `value class` payload is unwrapped first, so it is stored as the type it wraps.

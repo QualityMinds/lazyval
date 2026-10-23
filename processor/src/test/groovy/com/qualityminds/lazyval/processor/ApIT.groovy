@@ -45,6 +45,10 @@ class ApIT extends Specification {
             "'RecordTransientWithoutFactory' cannot be reconstructed from its payload alone: the canonical " +
             "constructor also takes the transient component 'derivedLength'. " +
             "Add a constructor taking only java.lang.String, or a public static factory method."
+    public static final String ERROR_ARRAY_PAYLOAD = "Lazyval: Payload 'value' is an array, which Lazyval " +
+            "does not support: an array is mutable and has no value equality. Wrap an immutable type " +
+            "instead, e.g. a hex or Base64 String for binary data, or remove @LazyValue and write the " +
+            "mappings yourself."
 
     @TempDir()
     Path projectDir
@@ -94,6 +98,9 @@ class ApIT extends Specification {
                 .withDependencies(dependencyMapstruct)                              | ERROR_NON_PUBLIC_RECORD
         Scenario.Java.ofSingle("scenarios/failing/RecordTransientWithoutFactory.java")
                 .withDependencies(dependencyJakartaPersistence)                     | ERROR_RECORD_NO_RECONSTRUCTION
+        // Shaped correctly in every other respect, so the array rule is the only one left to object.
+        Scenario.Java.ofSingle("scenarios/failing/RecordArrayPayload.java")         | ERROR_ARRAY_PAYLOAD
+        Scenario.Java.ofSingle("scenarios/failing/ObjectArrayPayload.java")         | ERROR_ARRAY_PAYLOAD
         expected = new Testresult.Java.Failure(error)
     }
 

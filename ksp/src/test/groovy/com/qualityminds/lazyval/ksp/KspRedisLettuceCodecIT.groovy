@@ -67,7 +67,7 @@ class KspRedisLettuceCodecIT extends Specification {
     }
 
     void "every payload kind of the text table produces codecs that compile"() {
-        given: 'booleans, numbers, BigDecimal, UUID, java.time, ZoneId, Date, an enum and ByteArray'
+        given: 'booleans, numbers, BigDecimal, UUID, java.time, ZoneId, Date and an enum'
         def scenario = Scenario.Kotlin.ofSingle("scenarios/redis/LettucePayloads.kt").withDependencies(dependencyLettuce)
 
         when:

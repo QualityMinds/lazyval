@@ -20,6 +20,10 @@ private val TRANSIENT_ANNOTATIONS = setOf(
     "kotlin.jvm.Transient",
     "jakarta.persistence.Transient",
     "org.springframework.data.annotation.Transient")
+/** `Array<T>` and the primitive arrays — which is also how KSP presents a Java array. */
+private val ARRAY_TYPES = setOf(
+    "kotlin.Array", "kotlin.BooleanArray", "kotlin.ByteArray", "kotlin.CharArray", "kotlin.ShortArray",
+    "kotlin.IntArray", "kotlin.LongArray", "kotlin.FloatArray", "kotlin.DoubleArray")
 
 /**
  * Validates a [KSClassDeclaration] against Lazyval's value-type contract and returns a
@@ -130,8 +134,8 @@ internal class LazyvalKspElementValidator(
     }
 
     /**
-     * Rules about the payload: exactly one property, of a non-nullable type, readable through
-     * an accessor, and — when it is a value class — one Lazyval can unwrap and re-wrap. All of them
+     * Rules about the payload: exactly one property, of a non-nullable type other than an array, readable
+     * through an accessor, and — when it is a value class — one Lazyval can unwrap and re-wrap. All of them
      * describe the same thing, so a class that gets several wrong hears about each of them.
      */
     private fun validatePayload(
@@ -150,6 +154,10 @@ internal class LazyvalKspElementValidator(
         if (payloadType.isMarkedNullable) {
             environment.error(valueProperty,
                 "Payload must not be nullable. Please use a non-nullable type.")
+            valid = false
+        }
+        if (payloadType.isArray) {
+            environment.error(valueProperty, arrayPayloadMessage(valueProperty))
             valid = false
         }
         // A value-class payload is supported by unwrapping it, so only the shapes that cannot be
@@ -449,6 +457,22 @@ private fun Sequence<KSAnnotation>.hasTransientMarker(): Boolean {
         annotation.annotationType.resolve().declaration.qualifiedName?.asString() in TRANSIENT_ANNOTATIONS
     }
 }
+
+/**
+ * Whether this type is an array, which no payload may be — the domain-primitive's own, nor the one a
+ * value class wraps. A property to read like [KSType.isMarkedNullable], the rule it sits next to.
+ *
+ * Looks through a type alias, because KSP reports the alias rather than the type it stands for, and
+ * `typealias Hash = ByteArray` is an array all the same.
+ *
+ * `internal` rather than file-private because [inspectValueClass] applies the rule to what a value class
+ * wraps, and one spelling of the check beats two.
+ */
+internal val KSType.isArray: Boolean
+    get() = when (val declaration = declaration) {
+        is KSTypeAlias -> declaration.type.resolve().isArray
+        else -> declaration.qualifiedName?.asString() in ARRAY_TYPES
+    }
 
 /**
  * Whether this annotation list carries [qualifiedName]. The short name is compared first so the common

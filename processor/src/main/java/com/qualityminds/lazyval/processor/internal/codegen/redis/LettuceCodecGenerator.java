@@ -12,7 +12,6 @@ import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.type.DeclaredType;
-import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.stream.Stream;
@@ -35,7 +34,6 @@ public class LettuceCodecGenerator implements Generator {
     private static final String OPTION_GENERATED_PACKAGE = "lazyval.redis.lettuce.package";
     private static final String HOLDER = "LazyvalLettuceCodecs";
     private static final String TEXT_CODEC = "TextCodec";
-    private static final String BINARY_CODEC = "BinaryCodec";
     /**
      * Stands in for the payload while the factory call is built, then gets replaced by the parse
      * expression. {@code #} cannot occur in a Java identifier, so it never collides with a factory name.
@@ -45,7 +43,6 @@ public class LettuceCodecGenerator implements Generator {
     private static final ClassName REDIS_CODEC = ClassName.get("io.lettuce.core.codec", "RedisCodec");
     private static final ClassName STRING_CODEC = ClassName.get("io.lettuce.core.codec", "StringCodec");
     private static final ClassName BYTE_BUFFER = ClassName.get("java.nio", "ByteBuffer");
-    private static final TypeName BYTES = ArrayTypeName.of(TypeName.BYTE);
     private static final AnnotationSpec OVERRIDE_ANNOTATION = AnnotationSpec.builder(
             ClassName.get("java.lang", "Override")).build();
 
@@ -113,28 +110,22 @@ public class LettuceCodecGenerator implements Generator {
     public Stream<GeneratorResult> generate(NonEmptySet<ValidatedGeneratorElement> elements, Context context) {
         List<FieldSpec> codecs = new ArrayList<>();
         List<ValidatedGeneratorElement> supported = new ArrayList<>();
-        boolean needsBinary = false;
         for (ValidatedGeneratorElement element : elements) {
-            if (isBinary(element.payloadType())) {
-                codecs.add(binaryCodec(element));
-                needsBinary = true;
-            } else {
-                Optional<Text> text = textFor(element.payloadType());
-                if (text.isEmpty()) {
-                    context.logWarning(this, element.element(), element.name().canonicalName() + ": no Lettuce codec is generated, "
-                            + "its payload type " + element.payloadType() + " has no text encoding; "
-                            + "write a RedisCodec for it yourself");
-                    continue;
-                }
-                codecs.add(textCodec(element, text.get()));
+            Optional<Text> text = textFor(element.payloadType());
+            if (text.isEmpty()) {
+                context.logWarning(this, element.element(), element.name().canonicalName() + ": no Lettuce codec is generated, "
+                        + "its payload type " + element.payloadType() + " has no text encoding; "
+                        + "write a RedisCodec for it yourself");
+                continue;
             }
+            codecs.add(textCodec(element, text.get()));
             supported.add(element);
         }
         if (codecs.isEmpty() || !ConstantNames.unique(supported, context, this)) {
             return Stream.empty();
         }
 
-        TypeSpec.Builder holder = TypeSpec.classBuilder(HOLDER)
+        TypeSpec holder = TypeSpec.classBuilder(HOLDER)
                 .addAnnotation(GeneratedStamp.forGenerator(LettuceCodecGenerator.class))
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .addJavadoc("""
@@ -149,22 +140,16 @@ public class LettuceCodecGenerator implements Generator {
                         """, HOLDER, ConstantNames.of(supported.get(0)))
                 .addFields(codecs)
                 .addMethod(MethodSpec.constructorBuilder().addModifiers(Modifier.PRIVATE).build())
-                .addType(buildTextCodec());
-        if (needsBinary) {
-            holder.addType(buildBinaryCodec());
-        }
+                .addType(buildTextCodec())
+                .build();
 
         String codecPackage = context.generatorPackage(OPTION_GENERATED_PACKAGE, "boundary.persistence.redis");
-        JavaFile file = JavaFile.builder(codecPackage, holder.build())
+        JavaFile file = JavaFile.builder(codecPackage, holder)
                 .skipJavaLangImports(true)
                 .build();
         return Stream.of(new GeneratorResult.Java(
                 new GeneratorResult.Metadata(file.packageName(), file.typeSpec().name()),
                 file.toString()));
-    }
-
-    private static boolean isBinary(TypeMirror payload) {
-        return payload.getKind() == TypeKind.ARRAY && payload.toString().equals("byte[]");
     }
 
     private static Optional<Text> textFor(TypeMirror payload) {
@@ -209,27 +194,6 @@ public class LettuceCodecGenerator implements Generator {
         return template.contains("$T") ? CodeBlock.of(indexed, value, payloadType) : CodeBlock.of(indexed, value);
     }
 
-    private static FieldSpec binaryCodec(ValidatedGeneratorElement element) {
-        TypeName elementType = TypeName.get(element.element().asType());
-
-        TypeSpec codec = TypeSpec.anonymousClassBuilder("")
-                .superclass(ParameterizedTypeName.get(ClassName.get("", BINARY_CODEC), elementType))
-                .addMethod(MethodSpec.methodBuilder("format")
-                        .addAnnotation(OVERRIDE_ANNOTATION)
-                        .returns(BYTES)
-                        .addParameter(elementType, "value")
-                        .addStatement("return $L", code(element.java().read("value")))
-                        .build())
-                .addMethod(MethodSpec.methodBuilder("parse")
-                        .addAnnotation(OVERRIDE_ANNOTATION)
-                        .returns(elementType)
-                        .addParameter(BYTES, "bytes")
-                        .addStatement("return $L", code(element.java().create("bytes")))
-                        .build())
-                .build();
-        return constant(element, elementType, codec);
-    }
-
     private static FieldSpec constant(ValidatedGeneratorElement element, TypeName elementType, TypeSpec codec) {
         return FieldSpec.builder(ParameterizedTypeName.get(REDIS_CODEC, elementType, elementType),
                         ConstantNames.of(element), Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
@@ -260,40 +224,6 @@ public class LettuceCodecGenerator implements Generator {
                         "$T.UTF8.encodeKey(key == null ? null : format(key))", STRING_CODEC)))
                 .addMethod(encode("encodeValue", "value", t, CodeBlock.of(
                         "$T.UTF8.encodeValue(value == null ? null : format(value))", STRING_CODEC)))
-                .build();
-    }
-
-    /** Keys and values alike: the payload's bytes unchanged. */
-    private static TypeSpec buildBinaryCodec() {
-        TypeVariableName t = TypeVariableName.get("T");
-        return TypeSpec.classBuilder(BINARY_CODEC)
-                .addModifiers(Modifier.PRIVATE, Modifier.ABSTRACT, Modifier.STATIC)
-                .addTypeVariable(t)
-                .addSuperinterface(ParameterizedTypeName.get(REDIS_CODEC, t, t))
-                .addMethod(MethodSpec.methodBuilder("format")
-                        .addModifiers(Modifier.ABSTRACT)
-                        .returns(BYTES)
-                        .addParameter(t, "value")
-                        .build())
-                .addMethod(MethodSpec.methodBuilder("parse")
-                        .addModifiers(Modifier.ABSTRACT)
-                        .returns(t)
-                        .addParameter(BYTES, "bytes")
-                        .build())
-                .addMethod(decode("decodeKey", t, CodeBlock.of("parse(copy(bytes))")))
-                .addMethod(decode("decodeValue", t, CodeBlock.of("parse(copy(bytes))")))
-                .addMethod(encode("encodeKey", "key", t, CodeBlock.of(
-                        "$T.wrap(key == null ? new byte[0] : format(key))", BYTE_BUFFER)))
-                .addMethod(encode("encodeValue", "value", t, CodeBlock.of(
-                        "$T.wrap(value == null ? new byte[0] : format(value))", BYTE_BUFFER)))
-                .addMethod(MethodSpec.methodBuilder("copy")
-                        .addModifiers(Modifier.PRIVATE, Modifier.STATIC)
-                        .returns(BYTES)
-                        .addParameter(BYTE_BUFFER, "buffer")
-                        .addStatement("byte[] bytes = new byte[buffer.remaining()]")
-                        .addStatement("buffer.get(bytes)")
-                        .addStatement("return bytes")
-                        .build())
                 .build();
     }
 

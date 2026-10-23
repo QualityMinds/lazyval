@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Every diagnostic {@link LazyvalElementValidator} reports about an unreachable declaration.
+ * Every diagnostic {@link LazyvalElementValidator} reports about an unreachable or unsupported declaration.
  * <p>
  * They live together because they are held to two consistency requirements that are easy to break
  * one message at a time: {@code ApIT} asserts each of them verbatim.
@@ -68,6 +68,19 @@ final class LazyvalElementValidatorMessages {
                 + constructor.getParameters().get(0).asType() + ")' is " + visibilityOf(constructor)
                 + " and cannot be called from generated code, which is emitted into another package."
                 + " Make the constructor public, or add a public static factory method.";
+    }
+
+    /**
+     * Refused whatever else the type gets right, because an array cannot hold a value: it stays
+     * mutable through every reference generated code hands out, and its {@code equals} is identity,
+     * which a record inherits for the component. The advice names binary data because that is what
+     * reaches for an array in practice, and a String encoding of it has one obvious mapping everywhere.
+     */
+    static String arrayPayloadMessage(Element payload) {
+        return "Payload '" + payload.getSimpleName() + "' is an array, which Lazyval does not support:"
+                + " an array is mutable and has no value equality. Wrap an immutable type instead,"
+                + " e.g. a hex or Base64 String for binary data, or remove @LazyValue and write the"
+                + " mappings yourself.";
     }
 
     /**

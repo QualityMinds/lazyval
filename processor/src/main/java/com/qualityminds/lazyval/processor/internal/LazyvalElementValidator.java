@@ -3,6 +3,7 @@ package com.qualityminds.lazyval.processor.internal;
 import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.*;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
 import java.util.List;
@@ -97,12 +98,13 @@ class LazyvalElementValidator {
         var transientComponents = components.stream()
                 .filter(component -> isTransientComponent(lazyvalElement, component))
                 .toList();
-        // Only answerable once the payload is: with several candidates there is no single type to match
-        // a constructor against, and the first component is a guess that would misname the fix.
+        // Only answerable once the payload is: with several candidates there is no single type to judge or
+        // to match a constructor against, and the first component is a guess that would misname the fix.
+        boolean payloadTypeValid = !payloadValid || validatePayloadType(payloadComponents.get(0));
         boolean reconstructionValid = !payloadValid
                 || validateReconstruction(lazyvalElement, payloadType, factoryMethods, transientComponents);
 
-        if (!(payloadValid && factoryValid && reconstructionValid)) {
+        if (!(payloadValid && payloadTypeValid && factoryValid && reconstructionValid)) {
             return Optional.empty();
         }
         ExecutableElement factoryMethod = factoryMethods.isEmpty() ? null : factoryMethods.get(0);
@@ -154,10 +156,11 @@ class LazyvalElementValidator {
         var factoryMethods = findFactoryMethods(lazyvalElement, payloadType);
         boolean factoryValid = validateFactoryMethods(lazyvalElement, factoryMethods);
         // See the note in validateRecord: an ambiguous payload leaves nothing to match against.
+        boolean payloadTypeValid = !payloadValid || validatePayloadType(pair.field());
         boolean reconstructionValid = !payloadValid
                 || validateReconstruction(lazyvalElement, payloadType, factoryMethods, List.of());
 
-        if (!(shapeValid && payloadValid && factoryValid && reconstructionValid)) {
+        if (!(shapeValid && payloadValid && payloadTypeValid && factoryValid && reconstructionValid)) {
             return Optional.empty();
         }
         warnOnNonFinal(lazyvalElement, pair.field());
@@ -187,6 +190,18 @@ class LazyvalElementValidator {
         fields.forEach(field -> AccessorLookup.findNonPublicAccessor(field, allMethods).ifPresentOrElse(
                 accessor -> environment.error(accessor, LazyvalElementValidatorMessages.nonPublicAccessorMessage(field, accessor)),
                 () -> environment.error(field, LazyvalElementValidatorMessages.missingAccessorMessage(field))));
+    }
+
+    /**
+     * An array compiles as a payload and cannot be one, whichever route — record component or field —
+     * reaches it. Reported on the payload, because its type is what the author has to change.
+     */
+    private boolean validatePayloadType(Element payload) {
+        if (payload.asType().getKind() != TypeKind.ARRAY) {
+            return true;
+        }
+        environment.error(payload, LazyvalElementValidatorMessages.arrayPayloadMessage(payload));
+        return false;
     }
 
     /**
