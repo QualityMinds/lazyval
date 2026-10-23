@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS orders
     isbn        VARCHAR(32)  NOT NULL,
     quantity    INTEGER      NOT NULL,
     email       VARCHAR(255) NOT NULL,
+    currency    VARCHAR(3)   NOT NULL,
     order_date  DATE         NOT NULL,
     coupon_code VARCHAR(64)
 );

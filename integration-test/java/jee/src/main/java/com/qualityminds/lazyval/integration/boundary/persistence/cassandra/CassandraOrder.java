@@ -7,6 +7,7 @@ import com.qualityminds.lazyval.integration.shared.Isbn;
 import com.qualityminds.lazyval.integration.shared.Quantity;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Currency;
 import java.util.UUID;
 
 class CassandraOrder {
@@ -15,17 +16,19 @@ class CassandraOrder {
     private Isbn isbn;
     private Quantity quantity;
     private EMail email;
+    private Currency currency;
     private OrderDate orderDate;
     @Nullable
     private CouponCode couponCode;
 
     protected CassandraOrder() {}
 
-    public CassandraOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, OrderDate orderDate, @Nullable CouponCode couponCode) {
+    public CassandraOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, Currency currency, OrderDate orderDate, @Nullable CouponCode couponCode) {
         this.id = id;
         this.isbn = isbn;
         this.quantity = quantity;
         this.email = email;
+        this.currency = currency;
         this.orderDate = orderDate;
         this.couponCode = couponCode;
     }
@@ -60,6 +63,14 @@ class CassandraOrder {
 
     public void setEmail(EMail email) {
         this.email = email;
+    }
+
+    public Currency getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(Currency currency) {
+        this.currency = currency;
     }
 
     public OrderDate getOrderDate() {

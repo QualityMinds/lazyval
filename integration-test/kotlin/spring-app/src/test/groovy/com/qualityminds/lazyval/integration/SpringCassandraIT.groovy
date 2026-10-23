@@ -56,6 +56,7 @@ class SpringCassandraIT extends AbstractIT {
                 .isbn('978-3-16-148410-0')
                 .quantity(2)
                 .email('test@post.de')
+                .currency('EUR')
 
         when:
         def createdOrder = mapper.toDomainOrder(orderApi.createOrder(PERSISTENCE_TYPE, createOrderDto))
@@ -64,6 +65,7 @@ class SpringCassandraIT extends AbstractIT {
         createdOrder.isbn == Isbn.parse(createOrderDto.getIsbn())
         createdOrder.quantity == Quantity.of(createOrderDto.getQuantity())
         createdOrder.email == new EMail(createOrderDto.getEmail())
+        createdOrder.currency == Currency.getInstance(createOrderDto.getCurrency())
         createdOrder.id != null
         createdOrder.couponCode == null
     }
@@ -74,6 +76,7 @@ class SpringCassandraIT extends AbstractIT {
                 .isbn('bogus')
                 .quantity(-1)
                 .email('invalid')
+                .currency('EUR')
 
         when:
         orderApi.createOrder(PERSISTENCE_TYPE, createOrderDto)

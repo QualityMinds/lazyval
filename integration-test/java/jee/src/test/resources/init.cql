@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS orders (
     isbn     text,
     quantity int,
     email    text,
+    currency text,
     orderdate date,
     couponcode text,
 );

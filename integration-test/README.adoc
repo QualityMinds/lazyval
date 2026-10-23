@@ -127,5 +127,9 @@ isbn:
 1. Maps primitive + format to a type
 2. Defines the import to be used for that type
 
+NOTE: The Currency is intentionally not mapped and kept as String in the DTO layer because it would require additional
+SerDes which would be the applications responsibility (not a Lazyval type). It's only goal is to test custom converters
+for generators which do not allow multiple registrations.
+
 The generated client in `api-client` doest do this mapping and instead uses scalar values which makes sure that this
 approach doesn't break consumers and also verifies the correct Jackson/JSONB serdes.

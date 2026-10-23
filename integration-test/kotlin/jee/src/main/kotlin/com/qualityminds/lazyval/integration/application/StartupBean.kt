@@ -14,6 +14,7 @@ import jakarta.inject.Inject
 import jakarta.inject.Named
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
+import java.util.Currency
 import java.util.UUID
 
 @Singleton
@@ -55,6 +56,7 @@ class StartupBean @Inject constructor(
             Isbn.parse("3-86680-192-0"),
             Quantity.of(1),
             EMail("a@b.de"),
+            Currency.getInstance("EUR"),
             OrderDate.now()
         )
 
@@ -64,6 +66,7 @@ class StartupBean @Inject constructor(
             Isbn.parse("978-3-86680-192-9"),
             Quantity.of(1),
             EMail("x@y.de"),
+            Currency.getInstance("USD"),
             OrderDate.now(),
             CouponCode.ofNullable("FRESH12")
         )

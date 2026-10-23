@@ -12,6 +12,7 @@ import jakarta.enterprise.context.ApplicationScoped
 import jakarta.enterprise.event.Observes
 import jakarta.inject.Inject
 import jakarta.transaction.Transactional
+import java.util.Currency
 
 @ApplicationScoped
 class Startup @Inject constructor(
@@ -41,7 +42,8 @@ class Startup @Inject constructor(
         val DefaultOrderA: Order = Order.create(
             Isbn.parse("3-86680-192-0"),
             Quantity.of(1),
-            EMail("a@b.de")
+            EMail("a@b.de"),
+            Currency.getInstance("EUR")
         )
 
         @JvmField
@@ -49,6 +51,7 @@ class Startup @Inject constructor(
             Isbn.parse("978-3-86680-192-9"),
             Quantity.of(1),
             EMail("x@y.de"),
+            Currency.getInstance("USD"),
             CouponCode.ofNullable("FRESH12")
         )
     }

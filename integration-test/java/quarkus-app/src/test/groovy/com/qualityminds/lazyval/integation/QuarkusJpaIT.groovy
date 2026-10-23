@@ -67,12 +67,14 @@ class QuarkusJpaIT {
                 .isbn('978-3-16-148410-0')
                 .quantity(2)
                 .email('test@post.de')
+                .currency('EUR')
 
         def createdOrder = mapper.toDomainOrder(orderApi.createOrder(PERSISTENCE_TYPE, createOrderDto))
 
         assert createdOrder.isbn() == Isbn.parse(createOrderDto.getIsbn())
         assert createdOrder.quantity() == new Quantity(createOrderDto.getQuantity())
         assert createdOrder.email() == new EMail(createOrderDto.getEmail())
+        assert createdOrder.currency() == Currency.getInstance(createOrderDto.getCurrency())
         assert createdOrder.id() != null
     }
 
@@ -102,6 +104,7 @@ class QuarkusJpaIT {
                 .isbn('bogus')
                 .quantity(-1)
                 .email('invalid')
+                .currency('EUR')
 
         def ex = assertThrows(ApiException) { orderApi.createOrder(PERSISTENCE_TYPE, createOrderDto) }
         assert ex.code == 400

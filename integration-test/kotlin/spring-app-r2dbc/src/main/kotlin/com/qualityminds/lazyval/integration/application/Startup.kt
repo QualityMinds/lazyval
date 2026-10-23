@@ -10,6 +10,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.event.EventListener
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Flux
+import java.util.Currency
 
 @Component
 class Startup(@Qualifier("r2dbc") private val repository: OrderRepository) {
@@ -36,6 +37,7 @@ class Startup(@Qualifier("r2dbc") private val repository: OrderRepository) {
             Isbn.parse("3-86680-192-0"),
             Quantity.of(1),
             EMail("a@b.de"),
+            Currency.getInstance("EUR"),
         )
 
         @JvmField
@@ -43,6 +45,7 @@ class Startup(@Qualifier("r2dbc") private val repository: OrderRepository) {
             Isbn.parse("978-3-86680-192-9"),
             Quantity.of(1),
             EMail("x@y.de"),
+            Currency.getInstance("USD"),
         )
     }
 }

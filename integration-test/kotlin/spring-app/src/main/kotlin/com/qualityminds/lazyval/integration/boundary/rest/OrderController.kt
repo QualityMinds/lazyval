@@ -40,6 +40,7 @@ class OrderController(
             Isbn.parse(createOrder.isbn),
             Quantity.of(createOrder.quantity),
             EMail(createOrder.email),
+            Currency.getInstance(createOrder.currency),
             CouponCode.ofNullable(createOrder.couponCode),
         )
         repository(persistenceType).save(newOrder)

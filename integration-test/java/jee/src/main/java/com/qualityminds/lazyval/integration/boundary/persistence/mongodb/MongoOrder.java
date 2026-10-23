@@ -10,6 +10,7 @@ import org.bson.codecs.pojo.annotations.BsonId;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Currency;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -19,6 +20,7 @@ public class MongoOrder {
     private Isbn isbn;
     private Quantity quantity;
     private EMail email;
+    private Currency currency;
     @BsonProperty("orderdate")
     private OrderDate orderDate;
     @Nullable
@@ -31,12 +33,14 @@ public class MongoOrder {
             @BsonProperty("isbn") Isbn isbn,
             @BsonProperty("quantity") Quantity quantity,
             @BsonProperty("email") EMail email,
+            @BsonProperty("currency") Currency currency,
             @BsonProperty("orderdate") OrderDate orderDate,
             @BsonProperty("couponcode") @Nullable CouponCode couponCode) {
         this.id = id;
         this.isbn = isbn;
         this.quantity = quantity;
         this.email = email;
+        this.currency = currency;
         this.orderDate = orderDate;
         this.couponCode = couponCode;
     }
@@ -55,6 +59,10 @@ public class MongoOrder {
 
     public EMail getEmail() {
         return email;
+    }
+
+    public Currency getCurrency() {
+        return currency;
     }
 
     public OrderDate getOrderDate() {

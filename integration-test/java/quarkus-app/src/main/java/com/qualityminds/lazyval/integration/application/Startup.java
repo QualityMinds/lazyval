@@ -13,6 +13,8 @@ import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
+import java.util.Currency;
+
 @ApplicationScoped
 public class Startup {
 
@@ -24,11 +26,13 @@ public class Startup {
             Isbn.parse("3-86680-192-0"),
             new Quantity(1),
             new EMail("a@b.de"),
+            Currency.getInstance("EUR"),
             null);
     public static final Order DefaultOrderB = Order.create(
             Isbn.parse("978-3-86680-192-9"),
             new Quantity(1),
             new EMail("x@y.de"),
+            Currency.getInstance("USD"),
             CouponCode.ofNullable("FRESH12"));
 
     @Inject

@@ -15,6 +15,7 @@ import jakarta.inject.Named;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Path;
 
+import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,6 +53,7 @@ public class OrderResource implements OrderApi {
                 Isbn.parse(createOrder.getIsbn()),
                 new Quantity(createOrder.getQuantity()),
                 new EMail(createOrder.getEmail()),
+                Currency.getInstance(createOrder.getCurrency()),
                 CouponCode.ofNullable(createOrder.getCouponCode()));
         repository(persistenceType).save(newOrder);
         return mapper.toDto(newOrder);

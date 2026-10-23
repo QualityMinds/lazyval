@@ -17,6 +17,7 @@ data class CassandraOrder(
     val isbn: Isbn,
     val quantity: Quantity,
     val email: EMail,
+    val currency: Currency,
     @Column("orderdate")
     val orderDate: OrderDate,
     val couponCode: CouponCode? = null

@@ -11,6 +11,7 @@ import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
 import org.springframework.data.relational.core.mapping.Table;
 
+import java.util.Currency;
 import java.util.UUID;
 
 /**
@@ -41,18 +42,20 @@ class JdbcOrder implements Persistable<UUID> {
     private final Isbn isbn;
     private final Quantity quantity;
     private final EMail email;
+    private final Currency currency;
     private final OrderDate orderDate;
     private final @Nullable CouponCode couponCode;
 
     @Transient
     private boolean newEntity;
 
-    public JdbcOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, OrderDate orderDate,
+    public JdbcOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, Currency currency, OrderDate orderDate,
                      @Nullable CouponCode couponCode) {
         this.id = id;
         this.isbn = isbn;
         this.quantity = quantity;
         this.email = email;
+        this.currency = currency;
         this.orderDate = orderDate;
         this.couponCode = couponCode;
     }
@@ -82,6 +85,10 @@ class JdbcOrder implements Persistable<UUID> {
 
     public EMail getEmail() {
         return email;
+    }
+
+    public Currency getCurrency() {
+        return currency;
     }
 
     public OrderDate getOrderDate() {

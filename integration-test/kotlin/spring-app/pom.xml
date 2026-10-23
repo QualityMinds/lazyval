@@ -195,8 +195,14 @@
                         <lazyval.springdata.mongo.converters>
                             com.qualityminds.lazyval.integration.boundary.persistence.DateToOrderDateConverter,com.qualityminds.lazyval.integration.boundary.persistence.OrderDateToDateConverter
                         </lazyval.springdata.mongo.converters>
+                        <lazyval.springdata.cassandra.converters>
+                            com.qualityminds.lazyval.integration.boundary.persistence.CurrencyToStringConverter,com.qualityminds.lazyval.integration.boundary.persistence.StringToCurrencyConverter
+                        </lazyval.springdata.cassandra.converters>
+                        <lazyval.springdata.redis.converters>
+                            com.qualityminds.lazyval.integration.boundary.persistence.CurrencyToBytesConverter,com.qualityminds.lazyval.integration.boundary.persistence.BytesToCurrencyConverter
+                        </lazyval.springdata.redis.converters>
                         <lazyval.springdata.jdbc.converters>
-                            com.qualityminds.lazyval.integration.boundary.persistence.SqlDateToOrderDateConverter
+                            com.qualityminds.lazyval.integration.boundary.persistence.SqlDateToOrderDateConverter,com.qualityminds.lazyval.integration.boundary.persistence.CurrencyToStringConverter,com.qualityminds.lazyval.integration.boundary.persistence.StringToCurrencyConverter
                         </lazyval.springdata.jdbc.converters>
                     </apOptions>
                 </configuration>

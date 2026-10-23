@@ -264,6 +264,12 @@
                         <lazyval.generators.basePackage>
                             com.qualityminds.lazyval.integration
                         </lazyval.generators.basePackage>
+                        <lazyval.cassandra.codecs>
+                            com.qualityminds.lazyval.integration.boundary.persistence.cassandra.CurrencyCodec
+                        </lazyval.cassandra.codecs>
+                        <lazyval.mongodb.codecs>
+                            com.qualityminds.lazyval.integration.boundary.persistence.mongodb.CurrencyCodec
+                        </lazyval.mongodb.codecs>
                     </apOptions>
                 </configuration>
             </plugin>

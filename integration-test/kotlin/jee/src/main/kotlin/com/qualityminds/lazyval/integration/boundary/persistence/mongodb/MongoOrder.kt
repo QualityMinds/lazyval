@@ -8,6 +8,7 @@ import com.qualityminds.lazyval.integration.shared.Quantity
 import org.bson.codecs.pojo.annotations.BsonCreator
 import org.bson.codecs.pojo.annotations.BsonId
 import org.bson.codecs.pojo.annotations.BsonProperty
+import java.util.Currency
 import java.util.UUID
 
 // Kotlin compilation runs without -java-parameters, so the POJO codec cannot recover
@@ -22,6 +23,8 @@ data class MongoOrder @BsonCreator constructor(
     val quantity: Quantity,
     @param:BsonProperty("email")
     val email: EMail,
+    @param:BsonProperty("currency")
+    val currency: Currency,
     @param:BsonProperty("orderdate") @get:BsonProperty("orderdate")
     val orderDate: OrderDate,
     @param:BsonProperty("couponcode") @get:BsonProperty("couponcode")

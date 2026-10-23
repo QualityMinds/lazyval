@@ -11,19 +11,23 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.util.Currency;
+
 @Component
 public class Startup {
 
     public static final Order DefaultOrderA = Order.create(
             Isbn.parse("3-86680-192-0"),
             new Quantity(1),
-            new EMail("a@b.de")
+            new EMail("a@b.de"),
+            Currency.getInstance("EUR")
     );
 
     public static final Order DefaultOrderB = Order.create(
             Isbn.parse("978-3-86680-192-9"),
             new Quantity(1),
-            new EMail("x@y.de")
+            new EMail("x@y.de"),
+            Currency.getInstance("USD")
     );
 
     private final OrderRepository repository;
