@@ -28,6 +28,7 @@ class OrderResource @Inject constructor(
     @Identifier("jpa") private val jpaRepository: OrderRepository,
     @Identifier("cassandra") private val cassandraRepository: OrderRepository,
     @Identifier("mongo") private val mongoRepository: OrderRepository,
+    @Identifier("redis") private val redisRepository: OrderRepository,
 ) : OrderApi {
 
     // Required by the JPA backend; a JTA transaction around a Cassandra or Mongo write is a no-op.
@@ -58,6 +59,7 @@ class OrderResource @Inject constructor(
             PersistenceType.JPA -> jpaRepository
             PersistenceType.CASSANDRA -> cassandraRepository
             PersistenceType.MONGO -> mongoRepository
+            PersistenceType.REDIS -> redisRepository
             // JDBC and R2DBC are Spring-only scenarios and answer with 501 here.
             else -> throw UnsupportedPersistenceTypeException(persistenceType)
         }

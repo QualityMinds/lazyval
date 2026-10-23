@@ -7,24 +7,24 @@ The following scenarios are tested for Java with the annotation processor and Ko
 
 |JakartaEE
 a|
-* MapStruct
-* JPA
 * BeanValidation
-* JSONB
 * Cassandra
+* JPA
+* JSONB
+* MapStruct
 * MongoDB
 
 |Cassandra & MongoDB codecs require custom registration in application
 
 |Quarkus
 a|
-* MapStruct
-* JPA
 * BeanValidation
-* Jackson 2
 * Cassandra
+* Jackson 2 -> Redis
+* JPA
+* MapStruct
 * MongoDB
-|Jackson,Cassandra & MongoDB tested for Quarkus-specific registration
+|Jackson,Cassandra & MongoDB tested for Quarkus-specific registration. Redis is supported via Jackson-Serde.
 
 |Quarkus-JSONB
 |JSON-B
@@ -32,18 +32,18 @@ a|
 
 |Spring
 a|
-* MapStruct
-* JPA
 * BeanValidation
 * Jackson 3
+* JPA
+* MapStruct
 * SpringData
 | SpringData covers Cassandra, JDBC, MongoDB & Redis
 
 |Spring-R2DBC
 a|
-* MapStruct
 * BeanValidation
 * Jackson 3
+* MapStruct
 * SpringData (R2DBC only)
 a|
 Reactive scenario: WebFlux with `Mono`/`Flux` controller signatures over Spring Data R2DBC

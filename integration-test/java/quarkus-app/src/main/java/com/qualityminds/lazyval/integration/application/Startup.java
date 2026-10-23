@@ -21,6 +21,7 @@ public class Startup {
     private final OrderRepository jpaRepository;
     private final OrderRepository cassandraRepository;
     private final OrderRepository mongoRepository;
+    private final OrderRepository redisRepository;
 
     public static final Order DefaultOrderA = Order.create(
             Isbn.parse("3-86680-192-0"),
@@ -39,11 +40,13 @@ public class Startup {
     public Startup(
             @Identifier("jpa") OrderRepository jpaRepository,
             @Identifier("cassandra") OrderRepository cassandraRepository,
-            @Identifier("mongo") OrderRepository mongoRepository)
+            @Identifier("mongo") OrderRepository mongoRepository,
+            @Identifier("redis") OrderRepository redisRepository)
     {
         this.jpaRepository = jpaRepository;
         this.cassandraRepository = cassandraRepository;
         this.mongoRepository = mongoRepository;
+        this.redisRepository = redisRepository;
     }
 
     @Transactional
@@ -60,6 +63,10 @@ public class Startup {
         if(mongoRepository.findAll().isEmpty()) {
             mongoRepository.save(DefaultOrderA);
             mongoRepository.save(DefaultOrderB);
+        }
+        if(redisRepository.findAll().isEmpty()) {
+            redisRepository.save(DefaultOrderA);
+            redisRepository.save(DefaultOrderB);
         }
     }
 }
