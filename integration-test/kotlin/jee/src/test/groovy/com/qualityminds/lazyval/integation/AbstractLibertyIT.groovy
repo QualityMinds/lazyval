@@ -1,5 +1,6 @@
 package com.qualityminds.lazyval.integation
 
+import com.redis.testcontainers.RedisContainer
 import org.slf4j.LoggerFactory
 import org.testcontainers.cassandra.CassandraContainer
 import org.testcontainers.containers.BindMode
@@ -26,14 +27,19 @@ abstract class AbstractLibertyIT extends Specification {
             .withReplicaSet() // replicaset needed to support ACID transactions
             .withNetwork(network).withNetworkAliases("mongo")
 //            .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("mongo")))
+    /** Also reached from the specs directly, through its host-mapped port. */
+    protected static RedisContainer redisContainer = new RedisContainer("redis")
+            .withNetwork(network).withNetworkAliases("redis")
 
     static {
         cassandraContainer.start()
         mongoContainer.start()
+        redisContainer.start()
 
         // Use the Docker-internal hostname and native port (not the host-mapped port)
         def cassandraContactPoint = "cassandra:9042"
         def mongoDbConnection = "mongodb://mongo:27017"
+        def redisUri = "redis://redis:6379"
 
         liberty = new GenericContainer<>("icr.io/appcafe/open-liberty:full-java17-openj9-ubi-minimal")
                 .withFileSystemBind(
@@ -51,6 +57,7 @@ abstract class AbstractLibertyIT extends Specification {
                 .withEnv("CASSANDRA_CONTACT_POINTS", cassandraContactPoint)
                 .withEnv("CASSANDRA_LOCAL_DATACENTER", "datacenter1")
                 .withEnv("MONGODB_CONNECTION_URL", mongoDbConnection)
+                .withEnv("REDIS_URI", redisUri)
                 .waitingFor(Wait.forLogMessage(".*CWWKZ0001I.* integration-test-kotlin-jee-app .*", 1))
                 .withStartupTimeout(Duration.ofMinutes(1))
                 .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("liberty")))

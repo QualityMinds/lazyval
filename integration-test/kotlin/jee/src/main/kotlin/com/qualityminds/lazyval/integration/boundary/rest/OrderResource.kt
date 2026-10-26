@@ -14,6 +14,7 @@ import jakarta.inject.Inject
 import jakarta.inject.Named
 import jakarta.transaction.Transactional
 import jakarta.ws.rs.Path
+import java.util.Currency
 import java.util.UUID
 
 /**
@@ -30,6 +31,7 @@ class OrderResource @Inject constructor(
     @Named("jpa") private val jpaRepository: OrderRepository,
     @Named("cassandra") private val cassandraRepository: OrderRepository,
     @Named("mongo") private val mongoRepository: OrderRepository,
+    @Named("redis") private val redisRepository: OrderRepository,
 ) : OrderApi {
 
     // Required by the JPA backend; a JTA transaction around a Cassandra or Mongo write is a no-op.
@@ -39,6 +41,7 @@ class OrderResource @Inject constructor(
             Isbn.parse(createOrder.isbn),
             Quantity.of(createOrder.quantity),
             EMail(createOrder.email),
+            Currency.getInstance(createOrder.currency),
             CouponCode.ofNullable(createOrder.couponCode),
         )
         repository(persistenceType).save(newOrder)
@@ -59,6 +62,7 @@ class OrderResource @Inject constructor(
             PersistenceType.JPA -> jpaRepository
             PersistenceType.CASSANDRA -> cassandraRepository
             PersistenceType.MONGO -> mongoRepository
+            PersistenceType.REDIS -> redisRepository
             // JDBC and R2DBC are Spring-only scenarios and answer with 501 here.
             else -> throw UnsupportedPersistenceTypeException(persistenceType)
         }

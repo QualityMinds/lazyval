@@ -15,6 +15,7 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
+import java.util.Currency;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,16 +31,19 @@ public class OrderResource implements OrderApi {
     private final OrderRepository jpaRepository;
     private final OrderRepository cassandraRepository;
     private final OrderRepository mongoRepository;
+    private final OrderRepository redisRepository;
 
     @Inject
     public OrderResource(RestMapper mapper,
                          @Identifier("jpa") OrderRepository jpaRepository,
                          @Identifier("cassandra") OrderRepository cassandraRepository,
-                         @Identifier("mongo") OrderRepository mongoRepository) {
+                         @Identifier("mongo") OrderRepository mongoRepository,
+                         @Identifier("redis") OrderRepository redisRepository) {
         this.mapper = mapper;
         this.jpaRepository = jpaRepository;
         this.cassandraRepository = cassandraRepository;
         this.mongoRepository = mongoRepository;
+        this.redisRepository = redisRepository;
     }
 
     // Required by the JPA backend; a JTA transaction around a Cassandra or Mongo write is a no-op.
@@ -50,6 +54,7 @@ public class OrderResource implements OrderApi {
                 Isbn.parse(createOrder.getIsbn()),
                 new Quantity(createOrder.getQuantity()),
                 new EMail(createOrder.getEmail()),
+                Currency.getInstance(createOrder.getCurrency()),
                 CouponCode.ofNullable(createOrder.getCouponCode()));
         repository(persistenceType).save(newOrder);
         return mapper.toDto(newOrder);
@@ -75,6 +80,7 @@ public class OrderResource implements OrderApi {
             case JPA -> jpaRepository;
             case CASSANDRA -> cassandraRepository;
             case MONGO -> mongoRepository;
+            case REDIS -> redisRepository;
             // JDBC and R2DBC are Spring-only scenarios and answer with 501 here.
             default -> throw new UnsupportedPersistenceTypeException(persistenceType);
         };

@@ -25,6 +25,7 @@ enum SpringDataStore {
             "lazyval.springdata.cassandra.converters",
             "Cassandra",
             "cassandraCustomConversions",
+            ConverterKind.PAYLOAD,
             Construction.plain()),
 
     MONGO(
@@ -33,6 +34,17 @@ enum SpringDataStore {
             "lazyval.springdata.mongo.converters",
             "MongoDB",
             "mongoCustomConversions",
+            ConverterKind.PAYLOAD,
+            Construction.plain()),
+
+    REDIS(
+            "org.springframework.data.redis.core.convert.RedisCustomConversions",
+            ClassName.get("org.springframework.data.redis.core.convert", "RedisCustomConversions"),
+            "lazyval.springdata.redis.converters",
+            "Redis",
+            "redisCustomConversions",
+            // Redis stores bytes only, so the converters cannot stop at the payload type
+            ConverterKind.BINARY,
             Construction.plain()),
 
     JDBC(
@@ -41,6 +53,7 @@ enum SpringDataStore {
             "lazyval.springdata.jdbc.converters",
             "JDBC",
             "jdbcCustomConversions",
+            ConverterKind.PAYLOAD,
             // Spring Boot publishes a JdbcDialect bean, so it can simply be injected
             Construction.viaDialect(
                     ClassName.get("org.springframework.data.jdbc.core.dialect", "JdbcDialect"),
@@ -53,6 +66,7 @@ enum SpringDataStore {
             "lazyval.springdata.r2dbc.converters",
             "R2DBC",
             "r2dbcCustomConversions",
+            ConverterKind.PAYLOAD,
             // Spring Boot publishes no R2dbcDialect bean — DataR2dbcAutoConfiguration resolves it in
             // its own constructor and keeps it private — so it is resolved from the ConnectionFactory
             // bean. Taking an R2dbcDialect parameter compiles, but leaves the bean unsatisfiable at
@@ -68,15 +82,17 @@ enum SpringDataStore {
     private final String optionKey;
     private final String label;
     private final String beanName;
+    private final ConverterKind converterKind;
     private final Construction construction;
 
     SpringDataStore(String conversionsFqn, ClassName conversionsType, String optionKey,
-                    String label, String beanName, Construction construction) {
+                    String label, String beanName, ConverterKind converterKind, Construction construction) {
         this.conversionsFqn = conversionsFqn;
         this.conversionsType = conversionsType;
         this.optionKey = optionKey;
         this.label = label;
         this.beanName = beanName;
+        this.converterKind = converterKind;
         this.construction = construction;
     }
 
@@ -105,8 +121,27 @@ enum SpringDataStore {
         return beanName;
     }
 
+    /** Which converters the bean registers. */
+    ConverterKind converterKind() {
+        return converterKind;
+    }
+
     Construction construction() {
         return construction;
+    }
+
+    /**
+     * What a store's converters convert a domain-primitive from and to. Stores sharing a kind share
+     * the generated converter classes.
+     */
+    enum ConverterKind {
+        /** The wrapped type; the store maps that on its own. */
+        PAYLOAD,
+        /**
+         * {@code byte[]}: the store has no notion of types, so the payload is turned into bytes with
+         * the store's own default converters.
+         */
+        BINARY
     }
 
     /**

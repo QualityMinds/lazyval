@@ -13,33 +13,40 @@ import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 
+import java.util.Currency;
+
 @ApplicationScoped
 public class Startup {
 
     private final OrderRepository jpaRepository;
     private final OrderRepository cassandraRepository;
     private final OrderRepository mongoRepository;
+    private final OrderRepository redisRepository;
 
     public static final Order DefaultOrderA = Order.create(
             Isbn.parse("3-86680-192-0"),
             new Quantity(1),
             new EMail("a@b.de"),
+            Currency.getInstance("EUR"),
             null);
     public static final Order DefaultOrderB = Order.create(
             Isbn.parse("978-3-86680-192-9"),
             new Quantity(1),
             new EMail("x@y.de"),
+            Currency.getInstance("USD"),
             CouponCode.ofNullable("FRESH12"));
 
     @Inject
     public Startup(
             @Identifier("jpa") OrderRepository jpaRepository,
             @Identifier("cassandra") OrderRepository cassandraRepository,
-            @Identifier("mongo") OrderRepository mongoRepository)
+            @Identifier("mongo") OrderRepository mongoRepository,
+            @Identifier("redis") OrderRepository redisRepository)
     {
         this.jpaRepository = jpaRepository;
         this.cassandraRepository = cassandraRepository;
         this.mongoRepository = mongoRepository;
+        this.redisRepository = redisRepository;
     }
 
     @Transactional
@@ -56,6 +63,10 @@ public class Startup {
         if(mongoRepository.findAll().isEmpty()) {
             mongoRepository.save(DefaultOrderA);
             mongoRepository.save(DefaultOrderB);
+        }
+        if(redisRepository.findAll().isEmpty()) {
+            redisRepository.save(DefaultOrderA);
+            redisRepository.save(DefaultOrderB);
         }
     }
 }

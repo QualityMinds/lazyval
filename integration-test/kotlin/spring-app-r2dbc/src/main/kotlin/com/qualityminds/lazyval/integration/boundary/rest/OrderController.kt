@@ -46,6 +46,7 @@ class OrderController(
                             Isbn.parse(dto.isbn),
                             Quantity.of(dto.quantity),
                             EMail(dto.email),
+                            Currency.getInstance(dto.currency),
                             CouponCode.ofNullable(dto.couponCode),
                         )
                     }

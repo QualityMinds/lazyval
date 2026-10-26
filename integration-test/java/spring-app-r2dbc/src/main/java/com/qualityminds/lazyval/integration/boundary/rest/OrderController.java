@@ -17,6 +17,7 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Currency;
 import java.util.UUID;
 
 /**
@@ -51,6 +52,7 @@ public class OrderController implements OrderApi {
                                 Isbn.parse(dto.getIsbn()),
                                 new Quantity(dto.getQuantity()),
                                 new EMail(dto.getEmail()),
+                                Currency.getInstance(dto.getCurrency()),
                                 CouponCode.ofNullable(dto.getCouponCode())))
                         .flatMap(repository::save))
                 .map(saved -> ResponseEntity.ok(mapper.toDto(saved)));

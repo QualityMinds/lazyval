@@ -38,6 +38,11 @@ class KspIT extends Specification {
             "of the value class. " +
             "Make the property non-nullable; a value that may be absent belongs to the reference at " +
             "the call site, not inside the value class."
+    public static final String ERROR_VC_ARRAY_PAYLOAD = "Lazyval: Payload type 'Tags' is a value " +
+            "class whose property 'names' is an array, and generated code carries that value in place " +
+            "of the value class. " +
+            "Wrap an immutable type instead, e.g. a hex or Base64 String for binary data, " +
+            "or remove @LazyValue and write the mappings yourself."
     public static final String ERROR_VC_NULLABLE_FACTORY = "Lazyval: Payload type 'Unsure' is a value " +
             "class whose factory function 'of' returns Unsure?, but generated code has to rebuild a " +
             "non-null Unsure from the payload it carries. " +
@@ -52,6 +57,10 @@ class KspIT extends Specification {
     public static final String ERROR_JVM_FIELD_PROPERTY = "Lazyval: Property 'value' is annotated " +
             "@JvmField, which suppresses the getter generated code reads the payload through. " +
             "Remove @JvmField, or add a public accessor function."
+    public static final String ERROR_ARRAY_PAYLOAD = "Lazyval: Payload 'value' is an array, which Lazyval " +
+            "does not support: an array is mutable and has no value equality. Wrap an immutable type " +
+            "instead, e.g. a hex or Base64 String for binary data, or remove @LazyValue and write the " +
+            "mappings yourself."
     public static final String ERROR_NON_PUBLIC_CONSTRUCTOR = "Lazyval: Constructor " +
             "'IsbnMissingFactory(String)' is private and cannot be called from generated code, " +
             "which is emitted into another package. " +
@@ -116,11 +125,13 @@ class KspIT extends Specification {
         Scenario.Kotlin.ofSingle("scenarios/failing/ValueClassPrivateProperty.kt")   | ERROR_VC_PRIVATE_PROPERTY
         Scenario.Kotlin.ofSingle("scenarios/failing/ValueClassUnconstructable.kt")   | ERROR_VC_UNCONSTRUCTABLE
         Scenario.Kotlin.ofSingle("scenarios/failing/ValueClassAmbiguousFactory.kt")  | ERROR_VC_AMBIGUOUS_FACTORY
-        // The last two are unwrappable but refused anyway, because carrying them would break a rule
+        // The last three are unwrappable but refused anyway, because carrying them would break a rule
         // that holds elsewhere: the payload Lazyval carries is what the value class wraps, so a
-        // nullable one is the nullable payload NullablePayload above already rejects, and a
-        // factory answering null has no caller to hand it to inside the re-wrapping expression.
+        // nullable one is the nullable payload NullablePayload above already rejects, an array the
+        // one ArrayPayload is refused for, and a factory answering null has no caller to hand it to
+        // inside the re-wrapping expression.
         Scenario.Kotlin.ofSingle("scenarios/failing/ValueClassNullablePayload.kt")   | ERROR_VC_NULLABLE_PAYLOAD
+        Scenario.Kotlin.ofSingle("scenarios/failing/ValueClassArrayPayload.kt")      | ERROR_VC_ARRAY_PAYLOAD
         Scenario.Kotlin.ofSingle("scenarios/failing/ValueClassNullableFactory.kt")   | ERROR_VC_NULLABLE_FACTORY
         // Same obstacle as ValueClassPrivateProperty in a declaration this compilation cannot widen,
         // so the advice has to differ: kotlin.time.Duration hides rawValue and is not ours to edit.
@@ -129,6 +140,9 @@ class KspIT extends Specification {
         Scenario.Kotlin.ofSingle("scenarios/failing/MultiplePropertyClass.kt")       | "Lazyval: Not a simple ValueType. Lazyval only supports classes with one non-transient property."
         Scenario.Kotlin.ofSingle("scenarios/failing/MultiplePropertyDataClass.kt")   | "Lazyval: Not a simple ValueType. Lazyval only supports classes with one non-transient property."
         Scenario.Kotlin.ofSingle("scenarios/failing/NullablePayload.kt")         | "Lazyval: Payload must not be nullable. Please use a non-nullable type."
+        Scenario.Kotlin.ofSingle("scenarios/failing/ArrayPayload.kt")                | ERROR_ARRAY_PAYLOAD
+        // KSP reports a type alias rather than the type it stands for, so the rule has to look through it.
+        Scenario.Kotlin.ofSingle("scenarios/failing/ArrayPayloadTypeAlias.kt")       | ERROR_ARRAY_PAYLOAD
         Scenario.Kotlin.ofSingle("scenarios/failing/ClassWithoutProperty.kt")        | "Lazyval: No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property."
         // Generated code sits in another package, so anything short of public is unreachable. Unlike
         // ClassWithoutProperty above, the property is right there in the source, so the error names it

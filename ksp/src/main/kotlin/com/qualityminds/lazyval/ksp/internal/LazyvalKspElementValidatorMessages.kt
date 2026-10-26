@@ -64,6 +64,16 @@ internal fun jvmFieldPropertyMessage(property: KSPropertyDeclaration): String =
             "Remove @JvmField, or add a public accessor function."
 
 /**
+ * Refused whatever else the class gets right, because an array cannot hold a value: it stays mutable
+ * through every reference generated code hands out, and its `equals` is identity, which a data class
+ * inherits for the property. Worded like the APT validator's message, since the rule is the same.
+ */
+internal fun arrayPayloadMessage(property: KSPropertyDeclaration): String =
+    "Payload '${property.simpleName.asString()}' is an array, which Lazyval does not support: " +
+            "an array is mutable and has no value equality. Wrap an immutable type instead, " +
+            "e.g. a hex or Base64 String for binary data, or remove @LazyValue and write the mappings yourself."
+
+/**
  * Why a `value class` payload cannot be unwrapped. Every one of these is a shape Kotlin permits, and
  * each would otherwise surface as an error inside the generated shim — a Kotlin error, since the shim
  * is Kotlin, which makes it no less of a broken build.
@@ -100,6 +110,16 @@ internal fun valueClassNullablePayloadMessage(payloadType: KSType, propertyName:
             "nullable, and generated code carries that value in place of the value class. " +
             "Make the property non-nullable; a value that may be absent belongs to the reference at " +
             "the call site, not inside the value class."
+
+/**
+ * [arrayPayloadMessage] reached through a value class, refused for the reason a nullable underlying type
+ * is: generated code would carry the array in place of the value class.
+ */
+internal fun valueClassArrayPayloadMessage(payloadType: KSType, propertyName: String): String =
+    "Payload type '${payloadType.shortName()}' is a value class whose property '$propertyName' is an " +
+            "array, and generated code carries that value in place of the value class. " +
+            "Wrap an immutable type instead, e.g. a hex or Base64 String for binary data, " +
+            "or remove @LazyValue and write the mappings yourself."
 
 /** No factory and no reachable constructor, so the value cannot be rebuilt from its payload. */
 internal fun valueClassUnconstructableMessage(payloadType: KSType): String =

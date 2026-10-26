@@ -172,6 +172,9 @@
                         <lazyval.generators.disable>
                             cassandra,jackson-2
                         </lazyval.generators.disable>
+                        <lazyval.springdata.r2dbc.converters>
+                            com.qualityminds.lazyval.integration.boundary.persistence.CurrencyToStringConverter,com.qualityminds.lazyval.integration.boundary.persistence.StringToCurrencyConverter
+                        </lazyval.springdata.r2dbc.converters>
                     </apOptions>
                 </configuration>
             </plugin>

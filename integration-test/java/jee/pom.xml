@@ -82,6 +82,11 @@
             <version>${version.it.mongodb}</version>
         </dependency>
         <dependency>
+            <groupId>io.lettuce</groupId>
+            <artifactId>lettuce-core</artifactId>
+            <version>${version.it.lettuce}</version>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${version.slf4j}</version>
@@ -122,6 +127,12 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-mongodb</artifactId>
             <version>${version.it.testcontainers}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.redis</groupId>
+            <artifactId>testcontainers-redis</artifactId>
+            <version>${version.it.testcontainers-redis}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -278,6 +289,8 @@
                         </goals>
                         <configuration>
                             <compilerArgs combine.children="append">
+                                <arg>-Alazyval.cassandra.codecs=com.qualityminds.lazyval.integration.boundary.persistence.cassandra.CurrencyCodec</arg>
+                                <arg>-Alazyval.mongodb.codecs=com.qualityminds.lazyval.integration.boundary.persistence.mongodb.CurrencyCodec</arg>
                                 <arg>-Alazyval.generators.basePackage=com.qualityminds.lazyval.integration</arg>
                             </compilerArgs>
                         </configuration>

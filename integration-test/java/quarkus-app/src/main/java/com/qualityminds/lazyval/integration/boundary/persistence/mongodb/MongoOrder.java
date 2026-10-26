@@ -9,6 +9,7 @@ import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.codecs.pojo.annotations.BsonProperty;
 import org.jspecify.annotations.Nullable;
 
+import java.util.Currency;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -18,6 +19,7 @@ public class MongoOrder {
     private Isbn isbn;
     private Quantity quantity;
     private EMail email;
+    private Currency currency;
     @BsonProperty("orderdate")
     private OrderDate orderDate;
     @Nullable
@@ -28,11 +30,12 @@ public class MongoOrder {
         // needed by Panache
     }
 
-    public MongoOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, OrderDate orderDate, @Nullable CouponCode couponCode) {
+    public MongoOrder(UUID id, Isbn isbn, Quantity quantity, EMail email, Currency currency, OrderDate orderDate, @Nullable CouponCode couponCode) {
         this.id = id;
         this.isbn = isbn;
         this.quantity = quantity;
         this.email = email;
+        this.currency = currency;
         this.orderDate = orderDate;
         this.couponCode = couponCode;
     }
@@ -67,6 +70,14 @@ public class MongoOrder {
 
     public void setEmail(EMail email) {
         this.email = email;
+    }
+
+    public Currency getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(Currency currency) {
+        this.currency = currency;
     }
 
     public OrderDate getOrderDate() {

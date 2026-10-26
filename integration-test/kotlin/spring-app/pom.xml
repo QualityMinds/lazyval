@@ -63,6 +63,14 @@
             <artifactId>spring-boot-starter-data-jdbc</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-reflect</artifactId>
         </dependency>
@@ -117,6 +125,12 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-mongodb</artifactId>
             <version>${version.it.testcontainers}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.redis</groupId>
+            <artifactId>testcontainers-redis</artifactId>
+            <version>${version.it.testcontainers-redis}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -181,8 +195,14 @@
                         <lazyval.springdata.mongo.converters>
                             com.qualityminds.lazyval.integration.boundary.persistence.DateToOrderDateConverter,com.qualityminds.lazyval.integration.boundary.persistence.OrderDateToDateConverter
                         </lazyval.springdata.mongo.converters>
+                        <lazyval.springdata.cassandra.converters>
+                            com.qualityminds.lazyval.integration.boundary.persistence.CurrencyToStringConverter,com.qualityminds.lazyval.integration.boundary.persistence.StringToCurrencyConverter
+                        </lazyval.springdata.cassandra.converters>
+                        <lazyval.springdata.redis.converters>
+                            com.qualityminds.lazyval.integration.boundary.persistence.CurrencyToBytesConverter,com.qualityminds.lazyval.integration.boundary.persistence.BytesToCurrencyConverter
+                        </lazyval.springdata.redis.converters>
                         <lazyval.springdata.jdbc.converters>
-                            com.qualityminds.lazyval.integration.boundary.persistence.SqlDateToOrderDateConverter
+                            com.qualityminds.lazyval.integration.boundary.persistence.SqlDateToOrderDateConverter,com.qualityminds.lazyval.integration.boundary.persistence.CurrencyToStringConverter,com.qualityminds.lazyval.integration.boundary.persistence.StringToCurrencyConverter
                         </lazyval.springdata.jdbc.converters>
                     </apOptions>
                 </configuration>
