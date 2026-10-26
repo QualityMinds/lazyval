@@ -274,27 +274,6 @@ public class LazyvalMongoCodecRegistrar : CodecProvider {
 
 This can be disabled by setting `lazyval.mongodb.quarkus.register=false`.
 
-== Notes
-
-=== Auto-superseded by Spring Data MongoDB
-
-Spring Data MongoDB transitively pulls in `mongodb-driver-core`, which would otherwise activate the
-`mongodb` generator on top of the xref:spring-data.adoc[Spring Data] generator. Both register
-conversions for the same primitives — and Spring Data's conversion runs before the BSON codec, so
-the generated Mongo codecs are dead code on the Spring Data path.
-
-To avoid producing that dead code, `spring-data` supersedes `mongodb`: when both are candidates,
-`mongodb` is silently dropped from the active set and Lazyval logs
-
- Lazyval: 'mongodb' was auto-disabled because 'spring-data' supersedes it
-
-If you'd rather have the native driver codecs than the Spring Data converters, disable `spring-data`
-with `lazyval.generators.disable=spring-data`; `mongodb` then activates in its place. There is
-currently no way to have both active at the same time.
-
-See xref:spi:index.adoc#superseding-other-generators[Superseding other generators] for the full
-resolution semantics.
-
 [[custom-codecs]]
 [appendix]
 == When the defaults aren't enough
@@ -418,3 +397,25 @@ the generated one; an `INFO`-level message via `System.Logger` names the user
 codec and the generated codec it replaces. This matches the last-wins
 semantics used by the
 xref:spring-data.adoc#user-supplied-converters[Spring Data converters] hook.
+
+[appendix]
+== Notes
+
+=== Auto-superseded by Spring Data MongoDB
+
+Spring Data MongoDB transitively pulls in `mongodb-driver-core`, which would otherwise activate the
+`mongodb` generator on top of the xref:spring-data.adoc[Spring Data] generator. Both register
+conversions for the same primitives — and Spring Data's conversion runs before the BSON codec, so
+the generated Mongo codecs are dead code on the Spring Data path.
+
+To avoid producing that dead code, `spring-data` supersedes `mongodb`: when both are candidates,
+`mongodb` is silently dropped from the active set and Lazyval logs
+
+ Lazyval: 'mongodb' was auto-disabled because 'spring-data' supersedes it
+
+If you'd rather have the native driver codecs than the Spring Data converters, disable `spring-data`
+with `lazyval.generators.disable=spring-data`; `mongodb` then activates in its place. There is
+currently no way to have both active at the same time.
+
+See xref:spi:index.adoc#superseding-other-generators[Superseding other generators] for the full
+resolution semantics.

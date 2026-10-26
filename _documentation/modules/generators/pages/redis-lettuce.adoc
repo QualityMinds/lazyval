@@ -150,7 +150,9 @@ xref:spring-data.adoc[Spring Data] generator's `RedisSerializers`. Being plain t
 
 A Kotlin `value class` payload is unwrapped first, so it is stored as the type it wraps.
 
-== When the defaults aren't enough
+[appendix]
+== Notes
+=== When the defaults aren't enough
 
 A domain-primitive whose payload has no entry in the table above — `java.util.Locale`, say — gets no codec; Lazyval
 reports a warning naming the type. Lazyval owns no central registration point for Lettuce, so there is no option to
