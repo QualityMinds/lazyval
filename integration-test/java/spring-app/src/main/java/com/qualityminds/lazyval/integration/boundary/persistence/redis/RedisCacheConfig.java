@@ -2,10 +2,13 @@ package com.qualityminds.lazyval.integration.boundary.persistence.redis;
 
 import com.qualityminds.lazyval.integration.boundary.persistence.LazyvalSpringDataConfiguration;
 import com.qualityminds.lazyval.integration.domain.Order;
+import org.springframework.boot.cache.autoconfigure.RedisCacheManagerBuilderCustomizer;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheWriter;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.JacksonJsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext.SerializationPair;
 import tools.jackson.databind.ObjectMapper;
@@ -28,5 +31,17 @@ class RedisCacheConfig {
                         new JacksonJsonRedisSerializer<>(jsonMapper, Order.class)));
         configuration.configureKeyConverters(LazyvalSpringDataConfiguration.RedisCacheKeys::registerAll);
         return configuration;
+    }
+
+    /**
+     * With Lettuce, Spring Data Redis writes to the cache asynchronously by default: {@code put} returns
+     * before the entry is stored, so an immediate second lookup may miss. Immediate writes make a cached
+     * value visible as soon as the {@code @Cacheable} method returns.
+     * Only needed for testing.
+     */
+    @Bean
+    RedisCacheManagerBuilderCustomizer immediateCacheWrites(RedisConnectionFactory connectionFactory) {
+        return builder -> builder.cacheWriter(
+                RedisCacheWriter.create(connectionFactory, writer -> writer.immediateWrites()));
     }
 }
