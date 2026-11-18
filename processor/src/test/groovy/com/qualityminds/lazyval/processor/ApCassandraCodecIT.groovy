@@ -16,7 +16,7 @@ import java.nio.file.Path
 class ApCassandraCodecIT extends Specification {
 
     public static final Dependency dependencyDriverCore = new Dependency("com.datastax.oss", "java-driver-core", "4.17.0")
-    public static final Dependency dependencyCassandraQuarkusExtension = new Dependency("com.datastax.oss.quarkus", "cassandra-quarkus-client", "1.4.1")
+    public static final Dependency dependencyCassandraQuarkusExtension = new Dependency("com.datastax.oss.quarkus", "cassandra-quarkus-client", "1.5.0")
     public static final Dependency dependencyCdi = new Dependency("jakarta.enterprise", "jakarta.enterprise.cdi-api", "4.1.0")
     public static final Dependency dependencyInject = new Dependency("jakarta.inject", "jakarta.inject-api", "2.0.1")
     public static final Dependency dependencyJakartaAnnotation = new Dependency("jakarta.annotation", "jakarta.annotation-api", "3.0.0")
@@ -37,7 +37,8 @@ class ApCassandraCodecIT extends Specification {
         given: 'a compiler run with all sources and the Cassandra Quarkus extension on the classpath'
         def scenario = Scenario.Java.combined()
                 .withDependencies(
-                        dependencyDriverCore, dependencyCassandraQuarkusExtension,
+                        dependencyDriverCore,
+                        dependencyCassandraQuarkusExtension,
                         // compile dependencies
                         dependencyCdi,
                         dependencyInject,
@@ -47,12 +48,10 @@ class ApCassandraCodecIT extends Specification {
                         dependencyQuarkusNetty,
                         dependencyNetty)
 
-        and: 'approvals for the generated codecs class and the auto-registered Quarkus registrar'
+        and: 'approval for the generated codecs class'
         List<Approval.ForJava> approvals = [
                 Approval.JavaSource.at("test/boundary/persistence/cassandra/$GENERATED_FILE_NAME",
-                        "approvals/cassandracodec/$GENERATED_FILE_NAME"),
-                Approval.JavaSource.at("test/boundary/persistence/cassandra/LazyvalCassandraCodecRegistrar.java",
-                        "approvals/cassandracodec/LazyvalCassandraCodecRegistrar.java")
+                        "approvals/cassandracodec/$GENERATED_FILE_NAME")
         ]
 
         when:
@@ -102,11 +101,13 @@ class ApCassandraCodecIT extends Specification {
         result == new Testresult.Java.Success(GENERATED_FILE_NAME)
     }
 
-    void "Quarkus Registrar can be disabled via option"(){
+    void "Cassandra-Quarkus auto-registration fails because version to low"() {
         given:
         def scenario = Scenario.Java.orderDate()
                 .withDependencies(
-                        dependencyDriverCore, dependencyCassandraQuarkusExtension,
+                        dependencyDriverCore,
+                        // old version without @CassandraCodecProvider
+                        new Dependency("com.datastax.oss.quarkus", "cassandra-quarkus-client", "1.4.1"),
                         // compile dependencies
                         dependencyCdi,
                         dependencyInject,
@@ -115,13 +116,12 @@ class ApCassandraCodecIT extends Specification {
                         dependencyQuarkusArc,
                         dependencyQuarkusNetty,
                         dependencyNetty)
-        scenario.withOption("lazyval.cassandra.quarkus.register", "false")
 
         when:
         def result = testkitJava.run(projectDir, scenario)
 
-        then: 'only the codecs class is generated, no registrar'
-        result == new Testresult.Java.Success(GENERATED_FILE_NAME)
+        then:
+        result == new Testresult.Java.Failure("Lazyval: [cassandra] Your version of the Cassandra-Quarkus extension does not support codec-registration. Please use at least 1.5.0.")
     }
 
     void "single valid user codec is appended to all()"() {

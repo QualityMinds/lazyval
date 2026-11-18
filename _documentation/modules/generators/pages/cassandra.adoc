@@ -33,10 +33,6 @@ in that case. See xref:spi:index.adoc#superseding-other-generators[Superseding o
 |Specifies the package where the `LazyvalCassandraCodecs` class is generated to.
 Overrides default value based on `lazyval.generators.basePackage`.
 
-|_lazyval.cassandra.quarkus.register_
-|Controls whether the Quarkus codec registrar is generated when Quarkus is detected.
-Defaults to `true`. Set to `false` to disable automatic registration.
-
 |_lazyval.cassandra.codecs_
 |Comma-separated list of fully qualified `TypeCodec` class names appended to the generated codec set.
 Only needed when the defaults don't fit — see <<custom-codecs>>.
@@ -152,44 +148,39 @@ Domain-primitives wrapping types not listed above will be skipped by this genera
 
 === Quarkus
 
-NOTE: hopefully not needed anymore when https://github.com/datastax/cassandra-quarkus/pull/274 is merged.
+When the https://github.com/datastax/cassandra-quarkus[Cassandra-Quarkus extension] is detected on the classpath,
+the utility method `all` will be enhanced with `@CassandraCodecProvider` which is used by Cassandra-Quarkus to find
+the codecs during built-time and register them automatically.
 
-When the Quarkus Cassandra extension (`QuarkusCqlSession`) is detected on the classpath, an additional
-`LazyvalCassandraCodecRegistrar` CDI bean is generated. It acts as an `@Alternative` producer that wraps
-the default Quarkus session stage and registers all codecs into the `MutableCodecRegistry` before the
-session is used by other beans.
-
-This can be disabled by setting `lazyval.cassandra.quarkus.register=false`.
-
+[tabs]
+====
+Java::
++
 [source,java]
 ----
-@ApplicationScoped
-@Alternative
-@Priority(1)
-public class LazyvalCassandraCodecRegistrar {
-  private final CassandraClientProducer delegate;
-
-  @Inject
-  public LazyvalCassandraCodecRegistrar(CassandraClientProducer delegate) {
-    this.delegate = delegate;
-  }
-
-  @Produces
-  @ApplicationScoped
-  @Unremovable
-  public CompletionStage<QuarkusCqlSession> produceCodecAwareSessionStage(
-      CassandraClientConfig config, @MainEventLoopGroup EventLoopGroup mainEventLoop) {
-    CompletionStage<QuarkusCqlSession> stage = delegate.produceQuarkusCqlSessionStage(config, mainEventLoop);
-    return stage.thenApply(session -> {
-        MutableCodecRegistry registry = (MutableCodecRegistry) session.getContext().getCodecRegistry();
-        registry.register(new LazyvalCassandraCodecs.OrderDateCodec());
-        registry.register(new LazyvalCassandraCodecs.QuantityCodec());
-        registry.register(new LazyvalCassandraCodecs.IsbnCodec());
-        return session;
-    });
-  }
+@CassandraCodecProvider
+public static TypeCodec<?>[] all() {
+return new TypeCodec[] {
+        new OrderDateCodec(),
+        new QuantityCodec(),
+        new IsbnCodec()
+    };
 }
 ----
+
+Kotlin::
++
+[source,kotlin]
+----
+@JvmStatic
+@CassandraCodecProvider
+public fun all(): Array<TypeCodec<*>> = arrayOf(
+  OrderDateCodec(),
+  QuantityCodec(),
+  IsbnCodec()
+)
+----
+====
 
 No manual registration is needed — the codecs are available as soon as the Cassandra session is injected.
 
@@ -209,9 +200,8 @@ Plug in a custom codec via `lazyval.cassandra.codecs` when:
   the default `DATE`, to keep cqlsh-rendered values human-readable or to dodge driver-version mismatches
   on `LocalDate` encoding.
 
-User-supplied codecs are appended to `LazyvalCassandraCodecs.all()` (and to the Quarkus registrar's
-`register(...)` calls) _after_ the generated codecs, so DataStax's last-registered-wins resolution picks
-them when both target the same Java type.
+User-supplied codecs are appended to `LazyvalCassandraCodecs.all()` _after_ the generated codecs,
+so DataStax's last-registered-wins resolution picks them when both target the same Java type.
 
 === Example: store `LocalDate` as an ISO string
 
@@ -291,8 +281,5 @@ co-locate codecs with the generated configuration and keep them out of the modul
 === Override semantics — last-wins
 
 DataStax resolves codecs by registration order: when two codecs target the same Java type, the one
-registered last wins. The generator emits user codecs after the generated ones in both
-`LazyvalCassandraCodecs.all()` and the Quarkus registrar's `register(...)` sequence, so a user codec
-overrides the generated one for the same target type. At class-load time, an `INFO`-level message via
-`System.Logger` names the user codec and the generated codec it replaces, matching the
-xref:mongodb.adoc#custom-codecs[Mongo last-wins] semantics.
+registered last wins. The generator emits user codecs after the generated ones in `LazyvalCassandraCodecs.all()`, so a user codec overrides the generated one for the same target type.
+At class-load time, an `INFO`-level message via `System.Logger` names the user codec and the generated codec it replaces.

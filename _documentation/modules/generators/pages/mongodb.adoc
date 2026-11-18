@@ -394,9 +394,7 @@ module's public API.
 User codecs are consulted first in `LazyvalMongoCodecs.get(clazz, registry)`.
 A user codec whose `getEncoderClass()` matches the requested class supersedes
 the generated one; an `INFO`-level message via `System.Logger` names the user
-codec and the generated codec it replaces. This matches the last-wins
-semantics used by the
-xref:spring-data.adoc#user-supplied-converters[Spring Data converters] hook.
+codec and the generated codec it replaces.
 
 [appendix]
 == Notes
