@@ -83,11 +83,11 @@ internal class LazyvalKspEnvironment(
             }
 
             override fun logInfo(generator: Generator, message: String) {
-                info(" [${generator.generatorId()}] $message")
+                info("[${generator.generatorId()}] $message")
             }
 
             override fun logWarning(generator: Generator, message: String) {
-                warn(" [${generator.generatorId()}] $message")
+                warn("[${generator.generatorId()}] $message")
             }
 
             override fun logWarning(
@@ -99,7 +99,7 @@ internal class LazyvalKspEnvironment(
             }
 
             override fun logError(generator: Generator, message: String) {
-                error(" [${generator.generatorId()}] $message")
+                error("[${generator.generatorId()}] $message")
             }
 
             override fun logError(

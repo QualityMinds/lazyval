@@ -10,7 +10,6 @@ import spock.lang.Specification
 import spock.lang.TempDir
 import spock.lang.Title
 
-import java.nio.file.Files
 import java.nio.file.Path
 
 @Title("KSP Generator Integration - Cassandra Codec")
@@ -18,7 +17,7 @@ class KspCassandraCodecIT extends Specification {
 
     public static final Dependency dependencyJakartaAnnotations = new Dependency("jakarta.annotation", "jakarta.annotation-api", "3.0.0")
     public static final Dependency dependencyDriverCore = new Dependency("com.datastax.oss", "java-driver-core", "4.17.0")
-    public static final Dependency dependencyCassandraQuarkusExtension = new Dependency("com.datastax.oss.quarkus", "cassandra-quarkus-client", "1.4.1")
+    public static final Dependency dependencyCassandraQuarkusExtension = new Dependency("com.datastax.oss.quarkus", "cassandra-quarkus-client", "1.5.0")
     public static final Dependency dependencyCdi = new Dependency("jakarta.enterprise", "jakarta.enterprise.cdi-api", "4.1.0")
     public static final Dependency dependencyInject = new Dependency("jakarta.inject", "jakarta.inject-api", "2.0.1")
     public static final Dependency dependencyJakartaAnnotation = new Dependency("jakarta.annotation", "jakarta.annotation-api", "3.0.0")
@@ -34,11 +33,13 @@ class KspCassandraCodecIT extends Specification {
     @Shared
     def testkitKotlin = Testkit.kotlin()
 
-    void "Cassandra Codec with combined Scenarios, including the Quarkus registrar"() {
+    void "Cassandra Codec with combined Scenarios, including the Cassandra-Quarkus"() {
         given: 'a compiler run with all sources and the Cassandra Quarkus extension on the classpath'
         def scenario = Scenario.Kotlin.combined()
                 .withDependencies(
-                        dependencyDriverCore, dependencyJakartaAnnotations, dependencyCassandraQuarkusExtension,
+                        dependencyDriverCore,
+                        dependencyJakartaAnnotations,
+                        dependencyCassandraQuarkusExtension,
                         // compile dependencies
                         dependencyCdi,
                         dependencyInject,
@@ -47,12 +48,10 @@ class KspCassandraCodecIT extends Specification {
                         dependencyQuarkusNetty,
                         dependencyNetty)
 
-        and: 'approvals for the generated codecs file and the auto-registered Quarkus registrar'
+        and: 'approval for the generated codecs file'
         List<Approval.ForKotlin> approvals = [
                 Approval.KotlinSource.at("test/boundary/persistence/cassandra/$GENERATED_FILE_NAME",
-                        "approvals/cassandracodec/$GENERATED_FILE_NAME"),
-                Approval.KotlinSource.at("test/boundary/persistence/cassandra/LazyvalCassandraCodecRegistrar.kt",
-                        "approvals/cassandracodec/LazyvalCassandraCodecRegistrar.kt")
+                        "approvals/cassandracodec/$GENERATED_FILE_NAME")
         ]
 
         when:
@@ -79,11 +78,13 @@ class KspCassandraCodecIT extends Specification {
         testkitKotlin.generatedKotlinSourcePath(projectDir, "test/custom/$GENERATED_FILE_NAME").toFile().exists()
     }
 
-    void "Quarkus Registrar can be disabled via option"(){
+    void "Cassandra-Quarkus auto-registration fails because version to low"() {
         given:
         def scenario = Scenario.Kotlin.orderDate()
                 .withDependencies(
-                        dependencyDriverCore, dependencyCassandraQuarkusExtension,
+                        dependencyDriverCore,
+                        // old version without @CassandraCodecProvider
+                        new Dependency("com.datastax.oss.quarkus", "cassandra-quarkus-client", "1.4.1"),
                         // compile dependencies
                         dependencyCdi,
                         dependencyInject,
@@ -92,13 +93,12 @@ class KspCassandraCodecIT extends Specification {
                         dependencyQuarkusArc,
                         dependencyQuarkusNetty,
                         dependencyNetty)
-        scenario.withOption("lazyval.cassandra.quarkus.register", "false")
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
 
-        then: 'only the codecs file is generated, no registrar'
-        result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
+        then:
+        result == new Testresult.Kotlin.Failure("Lazyval: [cassandra] Your version of the Cassandra-Quarkus extension does not support codec-registration. Please use at least 1.5.0.")
     }
 
     void "Does not add '@Generated' when jakarta.annotations-api not on classpath"(){
@@ -112,7 +112,8 @@ class KspCassandraCodecIT extends Specification {
         result == new Testresult.Kotlin.Success(GENERATED_FILE_NAME)
 
         and: 'doesnt contain @Generated'
-        !Files.readString(testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/cassandra/$GENERATED_FILE_NAME")).contains("@Generated")
+        def generated = testkitKotlin.generatedKotlinSourcePath(projectDir, "test/boundary/persistence/cassandra/$GENERATED_FILE_NAME").toFile().text
+        !generated.contains("@Generated")
     }
 
     void "single valid user codec is appended to all()"() {

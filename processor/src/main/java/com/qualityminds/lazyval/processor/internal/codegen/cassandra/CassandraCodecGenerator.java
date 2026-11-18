@@ -12,6 +12,7 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.type.TypeMirror;
 import java.util.*;
 import java.util.stream.Stream;
+
 import static com.qualityminds.lazyval.processor.internal.codegen.JavaPoetExprs.code;
 
 /**
@@ -30,7 +31,6 @@ import static com.qualityminds.lazyval.processor.internal.codegen.JavaPoetExprs.
 public class CassandraCodecGenerator implements Generator {
 
     private static final String OPTION_GENERATED_PACKAGE = "lazyval.cassandra.package";
-    private static final String OPTION_QUARKUS_REGISTER = "lazyval.cassandra.quarkus.register";
     private static final String OPTION_USER_CODECS = "lazyval.cassandra.codecs";
 
     private static final String TYPE_CODEC_FQN = "com.datastax.oss.driver.api.core.type.codec.TypeCodec";
@@ -45,6 +45,8 @@ public class CassandraCodecGenerator implements Generator {
     private static final ClassName JAVA_LANG_CLASS = ClassName.get("java.lang", "Class");
     private static final AnnotationSpec OVERRIDE_ANNOTATION = AnnotationSpec.builder(
             ClassName.get("java.lang", "Override")).build();
+    private static final AnnotationSpec QUARKUS_CASSANDRA_CODEC_PROVIDER = AnnotationSpec.builder(
+            ClassName.get("com.datastax.oss.quarkus.runtime.api.config", "CassandraCodecProvider")).build();
 
     /**
      * Maps Java type names to their corresponding {@code TypeCodecs} constant names.
@@ -95,7 +97,7 @@ public class CassandraCodecGenerator implements Generator {
 
     @Override
     public Set<String> supportedOptions() {
-        return Set.of(OPTION_GENERATED_PACKAGE, OPTION_QUARKUS_REGISTER, OPTION_USER_CODECS);
+        return Set.of(OPTION_GENERATED_PACKAGE, OPTION_USER_CODECS);
     }
 
     @Override
@@ -115,29 +117,13 @@ public class CassandraCodecGenerator implements Generator {
         }
 
         if (!codecSpecs.isEmpty()) {
-            TypeSpec utilitySpec = buildCodecsUtility(orderedElements, codecSpecs, userCodecFqns);
+            TypeSpec utilitySpec = buildCodecsUtility(context, orderedElements, codecSpecs, userCodecFqns);
             JavaFile utilityFile = JavaFile.builder(codecPackage, utilitySpec)
                     .skipJavaLangImports(true)
                     .build();
             results.add(new GeneratorResult.Java(
                     new GeneratorResult.Metadata(utilityFile.packageName(), utilityFile.typeSpec().name()),
                     utilityFile.toString()));
-
-            boolean isQuarkus = context.isOnClasspath("com.datastax.oss.quarkus.runtime.api.session.QuarkusCqlSession");
-            boolean quarkusRegister = context.getSetting(OPTION_QUARKUS_REGISTER)
-                    .map(v -> !"false".equalsIgnoreCase(v))
-                    .orElse(true);
-
-            if (isQuarkus && quarkusRegister) {
-                List<String> codecClassNames = codecSpecs.stream().map(TypeSpec::name).toList();
-                TypeSpec registrarSpec = CassandraQuarkusRegistrar.build(codecClassNames, userCodecFqns);
-                JavaFile registrarFile = JavaFile.builder(codecPackage, registrarSpec)
-                        .skipJavaLangImports(true)
-                        .build();
-                results.add(new GeneratorResult.Java(
-                        new GeneratorResult.Metadata(registrarFile.packageName(), registrarFile.typeSpec().name()),
-                        registrarFile.toString()));
-            }
         }
 
         return results.stream();
@@ -181,14 +167,14 @@ public class CassandraCodecGenerator implements Generator {
         return valid;
     }
 
-    private static String resolveTypeCodecConstant(ValidatedGeneratorElement element) {
+    private String resolveTypeCodecConstant(ValidatedGeneratorElement element) {
         String typeName = element.payloadType().toString();
         return Objects.requireNonNull(
                 TYPE_CODEC_MAP.get(typeName),
                 () -> "No TypeCodecs constant mapping for payload type '" + typeName + "'");
     }
 
-    private static TypeSpec buildMappingCodec(ValidatedGeneratorElement element, String typeCodecConstant) {
+    private TypeSpec buildMappingCodec(ValidatedGeneratorElement element, String typeCodecConstant) {
         TypeMirror type = element.element().asType();
         // box() returns a reference type unchanged, so no primitive branch is needed here.
         TypeName payloadTypeName = TypeName.get(element.payloadType()).box();
@@ -231,7 +217,7 @@ public class CassandraCodecGenerator implements Generator {
                 .build();
     }
 
-    private static TypeSpec buildCodecsUtility(List<ValidatedGeneratorElement> elements,
+    private TypeSpec buildCodecsUtility(Context context, List<ValidatedGeneratorElement> elements,
                                                List<TypeSpec> codecSpecs,
                                                List<String> userCodecFqns) {
         List<String> codecClassNames = codecSpecs.stream().map(TypeSpec::name).toList();
@@ -275,6 +261,16 @@ public class CassandraCodecGenerator implements Generator {
         }
         arrayInit.append("}");
         allMethod.addStatement(arrayInit.toString(), TYPE_CODEC);
+
+        boolean isQuarkus = context.isOnClasspath("com.datastax.oss.quarkus.runtime.api.session.QuarkusCqlSession");
+
+        if(isQuarkus){
+            if(context.isOnClasspath("com.datastax.oss.quarkus.runtime.api.config.CassandraCodecProvider")) {
+                allMethod.addAnnotation(QUARKUS_CASSANDRA_CODEC_PROVIDER);
+            }else {
+                context.logError(this, "Your version of the Cassandra-Quarkus extension does not support codec-registration. Please use at least 1.5.0.");
+            }
+        }
 
         var builder = TypeSpec.classBuilder("LazyvalCassandraCodecs")
                 .addAnnotation(GeneratedStamp.forGenerator(CassandraCodecGenerator.class))

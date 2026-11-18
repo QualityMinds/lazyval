@@ -1,8 +1,8 @@
 package com.qualityminds.lazyval.ksp.internal.codegen.cassandra
 
 import com.qualityminds.lazyval.collections.NonEmptySet
-import com.qualityminds.lazyval.ksp.internal.codegen.kotlinPoet
 import com.qualityminds.lazyval.ksp.internal.codegen.GeneratedStamp.addGeneratedAnnotation
+import com.qualityminds.lazyval.ksp.internal.codegen.kotlinPoet
 import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.ksp.spi.GeneratorResult
 import com.qualityminds.lazyval.ksp.spi.StockGeneratorIds
@@ -40,7 +40,7 @@ class CassandraCodecGenerator : Generator {
     override fun requiredClasspath(): Set<String> =
         setOf("com.datastax.oss.driver.api.core.type.codec.MappingCodec")
 
-    override fun supportedOptions(): Set<String> = setOf(OPTION_GENERATED_PACKAGE, OPTION_QUARKUS_REGISTER, OPTION_USER_CODECS)
+    override fun supportedOptions(): Set<String> = setOf(OPTION_GENERATED_PACKAGE, OPTION_USER_CODECS)
 
     override fun generate(
         validatedElements: NonEmptySet<ValidatedKspGeneratorElement>,
@@ -69,23 +69,6 @@ class CassandraCodecGenerator : Generator {
                 GeneratorResult.Metadata(fileSpec.packageName, fileSpec.name),
                 fileSpec.toString()
             )
-
-            val isQuarkus = context.isOnClasspath("com.datastax.oss.quarkus.runtime.api.session.QuarkusCqlSession")
-            val quarkusRegister = context.getSetting(OPTION_QUARKUS_REGISTER)
-                ?.let { !"false".equals(it, ignoreCase = true) }
-                ?: true
-
-            if (isQuarkus && quarkusRegister) {
-                val codecClassNames = codecSpecs.map { it.name!! }
-                val registrarSpec = CassandraQuarkusRegistrar.build(context, codecClassNames, userCodecFqns)
-                val registrarFile = FileSpec.builder(codecPackage, registrarSpec.name!!)
-                    .addType(registrarSpec)
-                    .build()
-                results += GeneratorResult.Kotlin(
-                    GeneratorResult.Metadata(registrarFile.packageName, registrarFile.name),
-                    registrarFile.toString()
-                )
-            }
         }
 
         return results.stream()
@@ -190,12 +173,22 @@ class CassandraCodecGenerator : Generator {
                 "by one instance of each user-supplied codec",
                 TYPE_CODEC
             )
+            .addAnnotation(JvmStatic::class)
             .returns(ARRAY.parameterizedBy(TYPE_CODEC.parameterizedBy(STAR)))
             .addStatement(
                 "return arrayOf(\n%L\n)",
                 codecEntries.joinToString(",\n")
-            )
-            .build()
+            ).apply {
+                val isQuarkus = context.isOnClasspath("com.datastax.oss.quarkus.runtime.api.session.QuarkusCqlSession")
+
+                if(isQuarkus){
+                    if(context.isOnClasspath("com.datastax.oss.quarkus.runtime.api.config.CassandraCodecProvider")) {
+                        this.addAnnotation(QUARKUS_CASSANDRA_CODEC_PROVIDER)
+                    }else {
+                        context.logError(this@CassandraCodecGenerator, "Your version of the Cassandra-Quarkus extension does not support codec-registration. Please use at least 1.5.0.")
+                    }
+                }
+            }.build()
 
         val builder = TypeSpec.objectBuilder("LazyvalCassandraCodecs")
             .addGeneratedAnnotation(CassandraCodecGenerator::class, context)
@@ -243,7 +236,6 @@ class CassandraCodecGenerator : Generator {
 
     companion object {
         private const val OPTION_GENERATED_PACKAGE = "lazyval.cassandra.package"
-        private const val OPTION_QUARKUS_REGISTER = "lazyval.cassandra.quarkus.register"
         private const val OPTION_USER_CODECS = "lazyval.cassandra.codecs"
 
         private const val TYPE_CODEC_FQN = "com.datastax.oss.driver.api.core.type.codec.TypeCodec"
@@ -254,6 +246,7 @@ class CassandraCodecGenerator : Generator {
         private val TYPE_CODEC = ClassName("com.datastax.oss.driver.api.core.type.codec", "TypeCodec")
         private val SYSTEM_LOGGER_LEVEL = ClassName("java.lang", "System", "Logger", "Level")
         private val JAVA_LANG_SYSTEM = ClassName("java.lang", "System")
+        private val QUARKUS_CASSANDRA_CODEC_PROVIDER = AnnotationSpec.builder(ClassName("com.datastax.oss.quarkus.runtime.api.config", "CassandraCodecProvider")).build()
 
         /**
          * Maps Kotlin/Java type qualified names to their corresponding

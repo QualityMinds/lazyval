@@ -4,11 +4,13 @@ import com.datastax.oss.driver.api.core.type.codec.MappingCodec
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs
 import com.datastax.oss.driver.api.core.type.reflect.GenericType
+import com.datastax.oss.quarkus.runtime.api.config.CassandraCodecProvider
 import jakarta.`annotation`.Generated
 import java.time.LocalDate
 import kotlin.Array
 import kotlin.Int
 import kotlin.String
+import kotlin.jvm.JvmStatic
 import scenarios.kotlin.Ids
 import scenarios.kotlin.Isbn
 import scenarios.kotlin.NullableQuantity
@@ -33,6 +35,8 @@ public object LazyvalCassandraCodecs {
    * @return an array containing one codec instance per generated wrapper type, followed
    * by one instance of each user-supplied codec
    */
+  @JvmStatic
+  @CassandraCodecProvider
   public fun all(): Array<TypeCodec<*>> = arrayOf(
       IdsProductIdCodec(),
       IsbnCodec(),

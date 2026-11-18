@@ -4,6 +4,7 @@ import com.datastax.oss.driver.api.core.type.codec.MappingCodec;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodec;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.quarkus.runtime.api.config.CassandraCodecProvider;
 import scenarios.java.Ids;
 import scenarios.java.Isbn;
 import scenarios.java.OrderDate;
@@ -34,6 +35,7 @@ public final class LazyvalCassandraCodecs {
    * @return an array containing one codec instance per generated wrapper type,
    * followed by one instance of each user-supplied codec
    */
+  @CassandraCodecProvider
   public static TypeCodec<?>[] all() {
     return new TypeCodec[] {
             new IdsProductIdCodec(),

@@ -80,6 +80,7 @@ class LazyvalEnvironment {
 
             @Override
             public Optional<ClassInspection> inspectClass(String fqcn) {
+                //noinspection ConstantValue Null-Check kept for Third-party generators
                 if (fqcn == null || fqcn.isBlank()) {
                     return Optional.empty();
                 }
@@ -110,27 +111,27 @@ class LazyvalEnvironment {
 
             @Override
             public void logInfo(Generator generator, String message) {
-                info(" [%s] %s".formatted(generator.generatorId(), message));
+                info("[%s] %s".formatted(generator.generatorId(), message));
             }
 
             @Override
             public void logWarning(Generator generator, String message) {
-                warn(" [%s] %s".formatted(generator.generatorId(), message));
+                warn("[%s] %s".formatted(generator.generatorId(), message));
             }
 
             @Override
             public void logWarning(Generator generator, Element element, String message) {
-                warn(element, " [%s] %s".formatted(generator.generatorId(), message));
+                warn(element, "[%s] %s".formatted(generator.generatorId(), message));
             }
 
             @Override
             public void logError(Generator generator, String message) {
-                error(" [%s] %s".formatted(generator.generatorId(), message));
+                error("[%s] %s".formatted(generator.generatorId(), message));
             }
 
             @Override
             public void logError(Generator generator, Element element, String message) {
-                error(element, " [%s] %s".formatted(generator.generatorId(), message));
+                error(element, "[%s] %s".formatted(generator.generatorId(), message));
             }
         };
     }
