@@ -186,7 +186,6 @@
                     <jvmTarget>${version.java}</jvmTarget>
                     <args>
                         <arg>-Xjsr305=strict</arg>
-                        <arg>-Xannotation-default-target=param-property</arg>
                     </args>
                     <compilerPlugins>
                         <!-- Required, not optional: KSP emits `public class
