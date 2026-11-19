@@ -80,6 +80,9 @@
         <!-- integration testing -->
         <version.it.quarkus>3.40.1.2</version.it.quarkus>
         <version.it.spring-boot>4.1.1</version.it.spring-boot>
+        <version.it.micronaut>5.2.7</version.it.micronaut>
+        <version.it.micronaut-spock>5.2.0</version.it.micronaut-spock>
+        <version.it.micronaut-maven-plugin>5.0.2</version.it.micronaut-maven-plugin>
         <version.it.testcontainers>2.0.5</version.it.testcontainers>
         <version.it.testcontainers-redis>3.0.0</version.it.testcontainers-redis>
         <version.it.mapstruct>1.6.3</version.it.mapstruct>

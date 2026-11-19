@@ -25,6 +25,7 @@
         <module>api-client</module>
         <module>java/shared</module>
         <module>java/jee</module>
+        <module>java/micronaut-app</module>
         <module>java/quarkus-app</module>
         <module>java/quarkus-jsonb-app</module>
         <module>java/spring-app</module>

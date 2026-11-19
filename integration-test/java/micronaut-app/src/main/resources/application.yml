@@ -1,0 +1,7 @@
+# Micronaut application configuration.
+#
+# Note: the OpenAPI *code generator* is configured in pom.xml (micronaut-maven-plugin,
+# goal generate-openapi-server). It runs at build time and does not read application config.
+micronaut:
+  application:
+    name: micronaut-app
