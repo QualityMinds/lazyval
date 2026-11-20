@@ -435,6 +435,14 @@
                         <configuration>
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>true</autoPublish>
+                            <!--
+                              The central-publishing plugin replaces the deploy phase and ignores
+                              maven.deploy.skip, so modules that must not be published have to be excluded here.
+                              lazyval-utils is shaded into the processors (see utils/pom.xml).
+                            -->
+                            <excludeArtifacts>
+                                <artifact>lazyval-utils</artifact>
+                            </excludeArtifacts>
                         </configuration>
                     </plugin>
                 </plugins>
