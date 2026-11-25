@@ -8,6 +8,7 @@ import com.qualityminds.lazyval.processor.spi.ValidatedGeneratorElement;
 
 import javax.lang.model.element.Modifier;
 import java.util.List;
+import java.util.Optional;
 import static com.qualityminds.lazyval.processor.internal.codegen.JavaPoetExprs.code;
 
 /**
@@ -122,63 +123,109 @@ final class JacksonCodegen {
                     .addException(ClassName.get(generatorConfig.corePackage(), "JacksonException"));
         }
 
-        boolean needsCachedDeserializer = false;
-        if (element.payload() instanceof Payload.Primitive primitive) {
-            String readValueStatement = switch (primitive.kind()) {
-                case INT -> "var value = p.getValueAsInt()";
-                case LONG -> "var value = p.getValueAsLong()";
-                case DOUBLE -> "var value = p.getValueAsDouble()";
-                case BOOLEAN -> "var value = p.getValueAsBoolean()";
-                case FLOAT -> "var value = (float) p.getValueAsDouble()";
-                case SHORT -> "var value = (short) p.getValueAsInt()";
-                case BYTE -> "var value = (byte) p.getValueAsInt()";
-                case CHAR -> "var value = p.getValueAsString().charAt(0)";
-            };
-            deserializeMethod.addStatement(readValueStatement);
-        } else if (isStringPayload(element)) {
-            // Direct read — avoids per-call deserializer lookup. Bypasses any user-customized
-            // String deserializer; acceptable for scalar wrapper payloads.
-            deserializeMethod.addStatement("var value = p.getValueAsString()");
-        } else {
-            // Resolve the delegate deserializer (e.g. JavaTimeModule for DateTime types) once
-            // and cache it. Benign data race on assignment: redundant resolution yields an
-            // equivalent deserializer, never an incorrect one.
-            needsCachedDeserializer = true;
-            var cachedFieldType = ParameterizedTypeName.get(generatorConfig.valueDeserializer(), ClassName.OBJECT);
+        var payloadType = TypeName.get(element.payloadType());
+        var directRead = directRead(element);
+        if (directRead.isPresent()) {
             deserializeMethod
-                    .addStatement("$T deser = this.innerDeserializer", cachedFieldType)
-                    .beginControlFlow("if (deser == null)")
-                    .addStatement("deser = ctxt.findContextualValueDeserializer(ctxt.constructType($T.class), null)",
-                            TypeName.get(element.payloadType()))
-                    .addStatement("this.innerDeserializer = deser")
-                    .endControlFlow()
-                    .addStatement("var value = ($T) deser.deserialize(p, ctxt)",
-                            TypeName.get(element.payloadType()));
+                    .addStatement("$T value", payloadType)
+                    .beginControlFlow("if ($L)", directRead.get().condition())
+                    .addStatement("value = $L", directRead.get().read())
+                    .nextControlFlow("else");
+            addDelegateLookup(deserializeMethod, payloadType);
+            deserializeMethod
+                    .addStatement("value = ($T) deser.deserialize(p, ctxt)", payloadType.box())
+                    .endControlFlow();
+        } else {
+            addDelegateLookup(deserializeMethod, payloadType);
+            deserializeMethod.addStatement("var value = ($T) deser.deserialize(p, ctxt)", payloadType.box());
         }
 
         deserializeMethod
                 .addStatement("return $L", code(element.java().create("value")));
 
-        var builder = TypeSpec.classBuilder(deserializerName)
+        return TypeSpec.classBuilder(deserializerName)
                 .superclass(ParameterizedTypeName.get(generatorConfig.stdDeserializer(), elementType))
                 .addField(FieldSpec.builder(
                                 ClassName.bestGuess(deserializerName), "INSTANCE",
                                 Modifier.STATIC, Modifier.FINAL)
                         .initializer("new $L()", deserializerName).build())
+                .addField(FieldSpec.builder(
+                                ParameterizedTypeName.get(generatorConfig.valueDeserializer(), ClassName.OBJECT),
+                                "innerDeserializer",
+                                Modifier.PRIVATE)
+                        .build())
                 .addMethod(MethodSpec.constructorBuilder()
                         .addModifiers(Modifier.PROTECTED)
                         .addStatement("super($T.class)", elementType).build())
-                .addMethod(deserializeMethod.build());
+                .addMethod(deserializeMethod.build())
+                .build();
+    }
 
-        if (needsCachedDeserializer) {
-            builder.addField(FieldSpec.builder(
-                            ParameterizedTypeName.get(generatorConfig.valueDeserializer(), ClassName.OBJECT),
-                            "innerDeserializer",
-                            Modifier.PRIVATE)
-                    .build());
+    /**
+     * Resolves Jackson's own deserializer for the payload type (e.g. JavaTimeModule for DateTime types,
+     * or the primitive {@code int} deserializer) once and caches it. Benign data race on assignment:
+     * redundant resolution yields an equivalent deserializer, never an incorrect one.
+     */
+    private void addDelegateLookup(MethodSpec.Builder deserializeMethod, TypeName payloadType) {
+        var cachedFieldType = ParameterizedTypeName.get(generatorConfig.valueDeserializer(), ClassName.OBJECT);
+        deserializeMethod
+                .addStatement("$T deser = this.innerDeserializer", cachedFieldType)
+                .beginControlFlow("if (deser == null)")
+                .addStatement("deser = ctxt.findContextualValueDeserializer(ctxt.constructType($T.class), null)",
+                        payloadType)
+                .addStatement("this.innerDeserializer = deser")
+                .endControlFlow();
+    }
+
+    /**
+     * A payload read straight off the parser, guarded by the token check Jackson's own deserializer for that
+     * payload type makes before its own direct read.
+     *
+     * @param condition true when the current token can be read as-is
+     * @param read      the read, valid only where {@code condition} holds
+     */
+    private record DirectRead(CodeBlock condition, String read) {}
+
+    /**
+     * The direct read for a primitive or {@code String} payload, so valid input skips the delegate call.
+     * Any other token goes to Jackson's deserializer for the payload type, never to a lenient
+     * {@code getValueAs*()}: those turn an object, array or boolean into {@code 0}, {@code null} or
+     * {@code 1} and leave the parser inside the unconsumed value. Through the delegate, coercion config,
+     * {@code UNWRAP_SINGLE_VALUE_ARRAYS} and {@code MismatchedInputException}s with the property path are
+     * Jackson's.
+     * <p>
+     * Empty for {@code char}: a direct read would need the same one-character-string check Jackson's
+     * {@code char} deserializer starts with, so it would save nothing. Empty as well for every other
+     * payload, which is always delegated.
+     */
+    private Optional<DirectRead> directRead(ValidatedGeneratorElement element) {
+        var jsonToken = generatorConfig.jsonToken();
+        var intToken = CodeBlock.of("p.isExpectedNumberIntToken()");
+        var floatToken = CodeBlock.of("p.hasToken($T.VALUE_NUMBER_FLOAT)", jsonToken);
+        if (element.payload() instanceof Payload.Primitive primitive) {
+            // Exhaustive over Kind on purpose: no default arm, so adding a primitive kind is a
+            // compile error here rather than a silent fall-through to the delegate.
+            return switch (primitive.kind()) {
+                case INT -> Optional.of(new DirectRead(intToken, "p.getIntValue()"));
+                case LONG -> Optional.of(new DirectRead(intToken, "p.getLongValue()"));
+                case SHORT -> Optional.of(new DirectRead(intToken, "p.getShortValue()"));
+                case BYTE -> Optional.of(new DirectRead(intToken, "p.getByteValue()"));
+                case DOUBLE -> Optional.of(new DirectRead(floatToken, "p.getDoubleValue()"));
+                case FLOAT -> Optional.of(new DirectRead(floatToken, "p.getFloatValue()"));
+                case BOOLEAN -> Optional.of(new DirectRead(
+                        CodeBlock.of("p.hasToken($T.VALUE_TRUE) || p.hasToken($T.VALUE_FALSE)", jsonToken, jsonToken),
+                        "p.getBooleanValue()"));
+                case CHAR -> Optional.empty();
+            };
         }
-
-        return builder.build();
+        if (isStringPayload(element)) {
+            // Bypasses any user-customized String deserializer for string tokens; acceptable for
+            // scalar wrapper payloads.
+            return Optional.of(new DirectRead(
+                    CodeBlock.of("p.hasToken($T.VALUE_STRING)", jsonToken),
+                    "p." + generatorConfig.parserStringMethod() + "()"));
+        }
+        return Optional.empty();
     }
 
     private static boolean isStringPayload(ValidatedGeneratorElement element) {

@@ -2,6 +2,7 @@ package test
 
 import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
+import com.fasterxml.jackson.core.JsonToken
 import com.fasterxml.jackson.core.Version
 import com.fasterxml.jackson.databind.DeserializationContext
 import com.fasterxml.jackson.databind.JsonDeserializer
@@ -15,6 +16,8 @@ import com.fasterxml.jackson.databind.module.SimpleSerializers
 import com.fasterxml.jackson.databind.ser.std.StdSerializer
 import java.time.LocalDate
 import kotlin.Any
+import kotlin.Int
+import kotlin.String
 import scenarios.kotlin.Ids
 import scenarios.kotlin.Isbn
 import scenarios.kotlin.NullableQuantity
@@ -118,22 +121,43 @@ public class LazyvalJackson2Module : SimpleModule("LazyvalJackson2Module", Versi
   }
 
   private class IdsProductIdDeserializer : StdDeserializer<Ids.ProductId>(Ids.ProductId::class.java) {
+    private var innerDeserializer: JsonDeserializer<Any>? = null
+
     override fun deserialize(p: JsonParser, ctx: DeserializationContext): Ids.ProductId {
-      val value = p.valueAsString
+      val value = if (p.hasToken(JsonToken.VALUE_STRING)) {
+        p.text
+      } else {
+        val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(String::class.java), null).also { innerDeserializer = it }
+        deser.deserialize(p, ctx) as String
+      }
       return Ids.ProductId.of(value)
     }
   }
 
   private class IsbnDeserializer : StdDeserializer<Isbn>(Isbn::class.java) {
+    private var innerDeserializer: JsonDeserializer<Any>? = null
+
     override fun deserialize(p: JsonParser, ctx: DeserializationContext): Isbn {
-      val value = p.valueAsString
+      val value = if (p.hasToken(JsonToken.VALUE_STRING)) {
+        p.text
+      } else {
+        val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(String::class.java), null).also { innerDeserializer = it }
+        deser.deserialize(p, ctx) as String
+      }
       return Isbn.parse(value)
     }
   }
 
   private class NullableQuantityDeserializer : StdDeserializer<NullableQuantity?>(NullableQuantity::class.java) {
+    private var innerDeserializer: JsonDeserializer<Any>? = null
+
     override fun deserialize(p: JsonParser, ctx: DeserializationContext): NullableQuantity? {
-      val value = p.valueAsInt
+      val value = if (p.isExpectedNumberIntToken) {
+        p.intValue
+      } else {
+        val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(Int::class.java), null).also { innerDeserializer = it }
+        deser.deserialize(p, ctx) as Int
+      }
       return NullableQuantity.ofNullable(value)
     }
   }
@@ -149,8 +173,15 @@ public class LazyvalJackson2Module : SimpleModule("LazyvalJackson2Module", Versi
   }
 
   private class QuantityDeserializer : StdDeserializer<Quantity>(Quantity::class.java) {
+    private var innerDeserializer: JsonDeserializer<Any>? = null
+
     override fun deserialize(p: JsonParser, ctx: DeserializationContext): Quantity {
-      val value = p.valueAsInt
+      val value = if (p.isExpectedNumberIntToken) {
+        p.intValue
+      } else {
+        val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(Int::class.java), null).also { innerDeserializer = it }
+        deser.deserialize(p, ctx) as Int
+      }
       return Quantity.of(value)
     }
   }

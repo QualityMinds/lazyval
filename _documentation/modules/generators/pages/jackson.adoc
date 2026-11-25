@@ -9,11 +9,17 @@ simple value and deserializing uses the proper construction method.
 Since there are subtle differences from Jackson-2 to Jackson-3, Lazyval ships two dedicated generators for Java as well
 as Kotlin.
 
-When wrapping a primitive or `String`, the generated (de)serializer reads and writes the JSON token
-directly through `JsonParser`/`JsonGenerator`, avoiding any per-call lookup.
 When wrapping another type (like `LocalDate`), the implementation looks up the already-registered and
 configured (de)serializer for that type via the `SerializerProvider` / `DeserializationContext`,
 caches it on first use, and reuses the cached instance for every subsequent call.
+
+When wrapping a primitive or `String`, the generated serializer writes the JSON token directly through
+`JsonGenerator`, avoiding any per-call lookup. The generated deserializer reads directly through `JsonParser`
+only if the current token is the one Jackson itself reads directly for that type, e.g. `VALUE_NUMBER_INT` for
+an `int` or `VALUE_STRING` for a `String`. Any other token is handed to Jackson's own deserializer for the
+payload type, looked up and cached as above. Jackson's coercion rules then decide what is still accepted
+(by default `"7"` for an `int`), and anything else, such as an object, an array or `true` for an `int`, fails
+with a `MismatchedInputException` carrying the property path.
 
 NOTE: Jackson and JSON-B address the same problem from two different ecosystems. If your application uses
 Jakarta JSON-B instead of (or in addition to) Jackson, see xref:jsonb.adoc[JSON-B].
@@ -150,8 +156,11 @@ public class LazyvalJacksonModule extends SimpleModule {
     }
   }
 
+  // Primitive wrapper: direct read for the expected token, Jackson's int deserializer for any other.
   static class QuantityDeserializer extends StdDeserializer<Quantity> {
     static final QuantityDeserializer INSTANCE = new QuantityDeserializer();
+
+    private JsonDeserializer<Object> innerDeserializer;
 
     protected QuantityDeserializer() {
       super(Quantity.class);
@@ -160,13 +169,26 @@ public class LazyvalJacksonModule extends SimpleModule {
     @Override
     public Quantity deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
         JacksonException {
-      var value = p.getValueAsInt();
+      int value;
+      if (p.isExpectedNumberIntToken()) {
+        value = p.getIntValue();
+      } else {
+        JsonDeserializer<Object> deser = this.innerDeserializer;
+        if (deser == null) {
+          deser = ctxt.findContextualValueDeserializer(ctxt.constructType(int.class), null);
+          this.innerDeserializer = deser;
+        }
+        value = (Integer) deser.deserialize(p, ctxt);
+      }
       return new Quantity(value);
     }
   }
 
+  // String wrapper: direct read for a string token, Jackson's String deserializer for any other.
   static class IsbnDeserializer extends StdDeserializer<Isbn> {
     static final IsbnDeserializer INSTANCE = new IsbnDeserializer();
+
+    private JsonDeserializer<Object> innerDeserializer;
 
     protected IsbnDeserializer() {
       super(Isbn.class);
@@ -175,7 +197,17 @@ public class LazyvalJacksonModule extends SimpleModule {
     @Override
     public Isbn deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
         JacksonException {
-      var value = p.getValueAsString();
+      String value;
+      if (p.hasToken(JsonToken.VALUE_STRING)) {
+        value = p.getText();
+      } else {
+        JsonDeserializer<Object> deser = this.innerDeserializer;
+        if (deser == null) {
+          deser = ctxt.findContextualValueDeserializer(ctxt.constructType(String.class), null);
+          this.innerDeserializer = deser;
+        }
+        value = (String) deser.deserialize(p, ctxt);
+      }
       return Isbn.parse(value);
     }
   }
@@ -257,16 +289,32 @@ public class LazyvalJacksonModule : SimpleModule("LazyvalJacksonModule", Version
     }
   }
 
+  // Primitive wrapper: direct read for the expected token, Jackson's int deserializer for any other.
   private class QuantityDeserializer : StdDeserializer<Quantity>(Quantity::class.java) {
+    private var innerDeserializer: ValueDeserializer<Any>? = null
+
     override fun deserialize(p: JsonParser, ctx: DeserializationContext): Quantity {
-      val value = p.valueAsInt
+      val value = if (p.isExpectedNumberIntToken) {
+        p.intValue
+      } else {
+        val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(Int::class.java), null).also { innerDeserializer = it }
+        deser.deserialize(p, ctx) as Int
+      }
       return Quantity(value)
     }
   }
 
+  // String wrapper: direct read for a string token, Jackson's String deserializer for any other.
   private class IsbnDeserializer : StdDeserializer<Isbn>(Isbn::class.java) {
+    private var innerDeserializer: ValueDeserializer<Any>? = null
+
     override fun deserialize(p: JsonParser, ctx: DeserializationContext): Isbn {
-      val value = p.valueAsString
+      val value = if (p.hasToken(JsonToken.VALUE_STRING)) {
+        p.string
+      } else {
+        val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(String::class.java), null).also { innerDeserializer = it }
+        deser.deserialize(p, ctx) as String
+      }
       return Isbn.parse(value)
     }
   }

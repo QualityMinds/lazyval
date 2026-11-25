@@ -23,6 +23,7 @@ internal enum class GeneratorConfig(
     val lazyvalJacksonModuleName: String,
     val valueSerializerClass: String,
     val valueDeserializerClass: String,
+    val parserStringProperty: String,
     val executingGenerator: KClass<out Generator>
 ) {
     JACKSON_2(
@@ -40,6 +41,7 @@ internal enum class GeneratorConfig(
         lazyvalJacksonModuleName = "LazyvalJackson2Module",
         valueSerializerClass = "JsonSerializer",
         valueDeserializerClass = "JsonDeserializer",
+        parserStringProperty = "text",
         executingGenerator = Jackson2Generator::class
     ),
     JACKSON_3(
@@ -57,11 +59,13 @@ internal enum class GeneratorConfig(
         lazyvalJacksonModuleName = "LazyvalJacksonModule",
         valueSerializerClass = "ValueSerializer",
         valueDeserializerClass = "ValueDeserializer",
+        parserStringProperty = "string",
         executingGenerator = Jackson3Generator::class
     );
 
     fun jsonGenerator(): ClassName = ClassName(corePackage, "JsonGenerator")
     fun jsonParser(): ClassName = ClassName(corePackage, "JsonParser")
+    fun jsonToken(): ClassName = ClassName(corePackage, "JsonToken")
     fun stdSerializer(): ClassName = ClassName(serStdPackage, "StdSerializer")
     fun stdDeserializer(): ClassName = ClassName(deserStdPackage, "StdDeserializer")
     fun serializerProvider(): ClassName = ClassName(databindPackage, serializerProviderClass)

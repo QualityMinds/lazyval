@@ -100,6 +100,22 @@ class ApJacksonIT extends Specification {
         testkitJava.generatedSourcePath(projectDir, "test/custom/$GENERATED_FILE_NAME_3").toFile().exists()
     }
 
+    void "every primitive payload produces a #generatedFile that compiles"(){
+        given: 'one domain-primitive per primitive kind'
+        def scenario = Scenario.Java.primitivePayloads().withDependencies(databind, core)
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then:
+        result == new Testresult.Java.Success(generatedFile)
+
+        where:
+        databind                     | core                     | generatedFile
+        dependencyJackson_2_Databind | dependencyJackson_2_Core | GENERATED_FILE_NAME_2
+        dependencyJackson_3_Databind | dependencyJackson_3_Core | GENERATED_FILE_NAME_3
+    }
+
     void "When Jackson 2 and 3 are active are warning is issued"(){
         given:
         def scenario = Scenario.Java.quantity()
