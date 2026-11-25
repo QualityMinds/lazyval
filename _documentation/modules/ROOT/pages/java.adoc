@@ -52,7 +52,6 @@ Maven::
 ----
 include::ROOT:example$java/pom.xml[tags=docu;!excluded]
 ----
-<1> mark the dependency as optional to avoid runtime-dependency
 
 Maven 4::
 +
@@ -81,4 +80,9 @@ Mill::
 ----
 include::ROOT:example$java/build.mill[tags=docu;!excluded]
 ----
+
 ====
+<1> mark the dependency as optional to avoid runtime-dependency
+<2> add processor to the APT toolchain
+<3> the modules base-package used by generators as baseline
+<4> Mapstruct generator will use this package and ignore the base-package
