@@ -55,6 +55,11 @@ generated Java that passes the payload boxed binds to that overload and does not
 |`ids()`
 |Sealed interface holding a nested record `ProductId` — inner-type handling, plus multiple factories of which only `of(String)` is relevant to Lazyval.
 
+|`primitivePayloads()`
+|One domain-primitive per primitive payload kind (`boolean` … `double`), nested in one class / `object` —
+proves that every arm of a `switch`/`when` over `Payload.Primitive` kind compiles. Not part of `combined()` or
+`all()`.
+
 |`nullableQuantity()` _(Kotlin only)_
 |Factory that can return `null` — exercises nullability propagation.
 

@@ -195,6 +195,54 @@ public sealed interface Scenario {
         }
 
         /**
+         * One domain-primitive per primitive payload kind ({@code Payload.Kind}), nested in a single class
+         * and compiled in one run.
+         * <p>
+         * Run this if your generator emits anything per primitive kind, e.g. a {@code switch} over
+         * {@code Payload.Primitive#kind()}: it proves every arm produces code that compiles, including the
+         * rarely used {@code byte}, {@code short}, {@code char} and {@code float}. {@code String} is
+         * deliberately absent; it is a reference payload, covered by {@link #isbn()} and {@link #ids()}.
+         * <pre>{@code
+         * import com.qualityminds.lazyval.LazyValue;
+         *
+         * public final class PrimitivePayloads {
+         *
+         *     @LazyValue
+         *     public record Flag(boolean value) {}
+         *
+         *     @LazyValue
+         *     public record Level(byte value) {}
+         *
+         *     @LazyValue
+         *     public record Rank(short value) {}
+         *
+         *     @LazyValue
+         *     public record Count(int value) {}
+         *
+         *     @LazyValue
+         *     public record Total(long value) {}
+         *
+         *     @LazyValue
+         *     public record Grade(char value) {}
+         *
+         *     @LazyValue
+         *     public record Ratio(float value) {}
+         *
+         *     @LazyValue
+         *     public record Price(double value) {}
+         *
+         *     private PrimitivePayloads() {}
+         * }
+         * }</pre>
+         * Not part of {@link #combined()} or {@link #all()}.
+         *
+         * @return new ScenarioFactory instance
+         */
+        public static ScenarioFactory<Java> primitivePayloads() {
+            return Scenario.Java.ofSingle("scenarios/java/PrimitivePayloads.java");
+        }
+
+        /**
          * Combines all sources into a single scenario.
          * @return new ScenarioFactory instance
          * @see #isbn()
@@ -427,6 +475,52 @@ public sealed interface Scenario {
          */
         public static ScenarioFactory<Kotlin> orderDate() {
             return Scenario.Kotlin.ofSingle("scenarios/kotlin/OrderDate.kt");
+        }
+
+        /**
+         * One domain-primitive per primitive payload kind ({@code Payload.Kind}), nested in a single
+         * {@code object} and compiled in one run.
+         * <p>
+         * Run this if your generator emits anything per primitive kind, e.g. a {@code when} over
+         * {@code Payload.Primitive.kind}: it proves every arm produces code that compiles, including the
+         * rarely used {@code Byte}, {@code Short}, {@code Char} and {@code Float}. {@code String} is
+         * deliberately absent; it is a reference payload, covered by {@link #isbn()} and {@link #ids()}.
+         * <pre>{@code
+         * import com.qualityminds.lazyval.LazyValue
+         *
+         * object PrimitivePayloads {
+         *
+         *     @LazyValue
+         *     data class Flag(val value: Boolean)
+         *
+         *     @LazyValue
+         *     data class Level(val value: Byte)
+         *
+         *     @LazyValue
+         *     data class Rank(val value: Short)
+         *
+         *     @LazyValue
+         *     data class Count(val value: Int)
+         *
+         *     @LazyValue
+         *     data class Total(val value: Long)
+         *
+         *     @LazyValue
+         *     data class Grade(val value: Char)
+         *
+         *     @LazyValue
+         *     data class Ratio(val value: Float)
+         *
+         *     @LazyValue
+         *     data class Price(val value: Double)
+         * }
+         * }</pre>
+         * Not part of {@link #combined()} or {@link #all()}.
+         *
+         * @return new ScenarioFactory instance
+         */
+        public static ScenarioFactory<Kotlin> primitivePayloads() {
+            return Scenario.Kotlin.ofSingle("scenarios/kotlin/PrimitivePayloads.kt");
         }
 
         /**
