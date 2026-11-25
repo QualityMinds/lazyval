@@ -8,6 +8,7 @@ import scenarios.java.OrderDate;
 import scenarios.java.Quantity;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
 import tools.jackson.core.Version;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.JacksonModule;
@@ -105,13 +106,25 @@ public class LazyvalJacksonModule extends SimpleModule {
   static class IdsProductIdDeserializer extends StdDeserializer<Ids.ProductId> {
     static final IdsProductIdDeserializer INSTANCE = new IdsProductIdDeserializer();
 
+    private ValueDeserializer<Object> innerDeserializer;
+
     protected IdsProductIdDeserializer() {
       super(Ids.ProductId.class);
     }
 
     @Override
     public Ids.ProductId deserialize(JsonParser p, DeserializationContext ctxt) {
-      var value = p.getValueAsString();
+      String value;
+      if (p.hasToken(JsonToken.VALUE_STRING)) {
+        value = p.getString();
+      } else {
+        ValueDeserializer<Object> deser = this.innerDeserializer;
+        if (deser == null) {
+          deser = ctxt.findContextualValueDeserializer(ctxt.constructType(String.class), null);
+          this.innerDeserializer = deser;
+        }
+        value = (String) deser.deserialize(p, ctxt);
+      }
       return Ids.ProductId.of(value);
     }
   }
@@ -119,13 +132,25 @@ public class LazyvalJacksonModule extends SimpleModule {
   static class IsbnDeserializer extends StdDeserializer<Isbn> {
     static final IsbnDeserializer INSTANCE = new IsbnDeserializer();
 
+    private ValueDeserializer<Object> innerDeserializer;
+
     protected IsbnDeserializer() {
       super(Isbn.class);
     }
 
     @Override
     public Isbn deserialize(JsonParser p, DeserializationContext ctxt) {
-      var value = p.getValueAsString();
+      String value;
+      if (p.hasToken(JsonToken.VALUE_STRING)) {
+        value = p.getString();
+      } else {
+        ValueDeserializer<Object> deser = this.innerDeserializer;
+        if (deser == null) {
+          deser = ctxt.findContextualValueDeserializer(ctxt.constructType(String.class), null);
+          this.innerDeserializer = deser;
+        }
+        value = (String) deser.deserialize(p, ctxt);
+      }
       return Isbn.parse(value);
     }
   }
@@ -154,13 +179,25 @@ public class LazyvalJacksonModule extends SimpleModule {
   static class QuantityDeserializer extends StdDeserializer<Quantity> {
     static final QuantityDeserializer INSTANCE = new QuantityDeserializer();
 
+    private ValueDeserializer<Object> innerDeserializer;
+
     protected QuantityDeserializer() {
       super(Quantity.class);
     }
 
     @Override
     public Quantity deserialize(JsonParser p, DeserializationContext ctxt) {
-      var value = p.getValueAsInt();
+      int value;
+      if (p.isExpectedNumberIntToken()) {
+        value = p.getIntValue();
+      } else {
+        ValueDeserializer<Object> deser = this.innerDeserializer;
+        if (deser == null) {
+          deser = ctxt.findContextualValueDeserializer(ctxt.constructType(int.class), null);
+          this.innerDeserializer = deser;
+        }
+        value = (Integer) deser.deserialize(p, ctxt);
+      }
       return Quantity.of(value);
     }
   }

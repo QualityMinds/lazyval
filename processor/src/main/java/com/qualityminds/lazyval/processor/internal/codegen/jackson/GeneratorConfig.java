@@ -22,6 +22,7 @@ record GeneratorConfig(
         String lazyvalJacksonModuleName,
         String valueSerializerClass,
         String valueDeserializerClass,
+        String parserStringMethod,
         boolean deserializerDeclaresExceptions,
         Class<? extends Generator> executingGenerator
 ) {
@@ -41,6 +42,7 @@ record GeneratorConfig(
             "LazyvalJackson2Module",
             "JsonSerializer",
             "JsonDeserializer",
+            "getText",
             true,
             Jackson2Generator.class
     );
@@ -61,6 +63,7 @@ record GeneratorConfig(
             "LazyvalJacksonModule",
             "ValueSerializer",
             "ValueDeserializer",
+            "getString",
             false,
             Jackson3Generator.class
     );
@@ -71,6 +74,10 @@ record GeneratorConfig(
 
     ClassName jsonParser() {
         return ClassName.get(corePackage, "JsonParser");
+    }
+
+    ClassName jsonToken() {
+        return ClassName.get(corePackage, "JsonToken");
     }
 
     ClassName stdSerializer() {

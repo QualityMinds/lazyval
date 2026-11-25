@@ -53,7 +53,7 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
                         Kind.INT, Kind.LONG, Kind.SHORT, Kind.FLOAT, Kind.DOUBLE ->
                             "gen.writeNumber(${element.kotlin.read("value")})"
                         Kind.BOOLEAN -> "gen.writeBoolean(${element.kotlin.read("value")})"
-                        Kind.CHAR, Kind.BYTE -> "gen.writeString(${element.kotlin.read("value")})"
+                        Kind.CHAR, Kind.BYTE -> "gen.writeString(${element.kotlin.read("value")}.toString())"
                     }
                     addStatement(writeStatement)
                 }
@@ -111,7 +111,6 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
         val elementClassName = element.element.toClassName()
         val deserializerName = "${element.name.flatName()}Deserializer"
         val returnType = elementClassName.copy(nullable = element.kotlin.createIsNullable)
-        val needsCachedDeserializer = !element.isPayloadPrimitive && !isStringType(element.payloadType)
 
         val deserializeMethod = FunSpec.builder("deserialize")
             .addModifiers(KModifier.OVERRIDE)
@@ -120,65 +119,102 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
             .addParameter("ctx", generatorConfig.deserializationContext())
             .apply(deserializeBody(element))
 
-        val builder = TypeSpec.classBuilder(deserializerName)
+        val cachedFieldType = generatorConfig.valueDeserializer().parameterizedBy(ANY).copy(nullable = true)
+        return TypeSpec.classBuilder(deserializerName)
             .superclass(generatorConfig.stdDeserializer().parameterizedBy(returnType))
             .addSuperclassConstructorParameter(CodeBlock.of("%T::class.java", elementClassName))
-
-        if (needsCachedDeserializer) {
-            val cachedFieldType = generatorConfig.valueDeserializer().parameterizedBy(ANY).copy(nullable = true)
-            builder.addProperty(
+            .addProperty(
                 PropertySpec.builder("innerDeserializer", cachedFieldType)
                     .addModifiers(KModifier.PRIVATE)
                     .mutable(true)
                     .initializer("null")
                     .build()
             )
-        }
-
-        return builder.addFunction(deserializeMethod.build()).build()
+            .addFunction(deserializeMethod.build())
+            .build()
     }
 
     private fun deserializeBody(
         element: ValidatedKspGeneratorElement
-    ): FunSpec.Builder.() -> Unit = when {
-        element.isPayloadPrimitive -> {
-            {
-                addStatement(primitiveReadStatement(element.primitiveKind()))
-                addStatement("return %L", element.kotlin.create("value").kotlinPoet())
+    ): FunSpec.Builder.() -> Unit {
+        val payloadType = element.payloadType.toTypeName()
+        val directRead = directRead(element)
+        return {
+            if (directRead != null) {
+                beginControlFlow("val value = if (%L)", directRead.condition)
+                addStatement("%L", directRead.read)
+                nextControlFlow("else")
+                addDelegateLookup(payloadType)
+                addStatement("deser.deserialize(p, ctx) as %T", payloadType)
+                endControlFlow()
+            } else {
+                addDelegateLookup(payloadType)
+                addStatement("val value = deser.deserialize(p, ctx) as %T", payloadType)
             }
-        }
-        isStringType(element.payloadType) -> {
-            {
-                // Direct read — avoids per-call deserializer lookup. Bypasses any user-customized
-                // String deserializer; acceptable for scalar wrapper payloads.
-                addStatement("val value = p.valueAsString")
-                addStatement("return %L", element.kotlin.create("value").kotlinPoet())
-            }
-        }
-        else -> {
-            {
-                // Resolve the delegate deserializer (e.g. JavaTimeModule for DateTime types) once
-                // and cache it. Benign data race on assignment: redundant resolution yields an
-                // equivalent deserializer, never an incorrect one.
-                addStatement(
-                    "val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(%T::class.java), null).also { innerDeserializer = it }",
-                    element.payloadType.toTypeName()
-                )
-                addStatement("val value = deser.deserialize(p, ctx) as %T", element.payloadType.toTypeName())
-                addStatement("return %L", element.kotlin.create("value").kotlinPoet())
-            }
+            addStatement("return %L", element.kotlin.create("value").kotlinPoet())
         }
     }
 
-    private fun primitiveReadStatement(kind: Kind): String = when (kind) {
-        Kind.INT -> "val value = p.valueAsInt"
-        Kind.LONG -> "val value = p.valueAsLong"
-        Kind.DOUBLE -> "val value = p.valueAsDouble"
-        Kind.BOOLEAN -> "val value = p.valueAsBoolean"
-        Kind.FLOAT -> "val value = p.valueAsDouble.toFloat()"
-        Kind.SHORT -> "val value = p.valueAsInt.toShort()"
-        Kind.BYTE -> "val value = p.valueAsInt.toByte()"
-        Kind.CHAR -> "val value = p.valueAsString[0]"
+    /**
+     * Resolves Jackson's own deserializer for the payload type (e.g. JavaTimeModule for DateTime types,
+     * or the primitive `int` deserializer) once and caches it. Benign data race on assignment: redundant
+     * resolution yields an equivalent deserializer, never an incorrect one.
+     */
+    private fun FunSpec.Builder.addDelegateLookup(payloadType: TypeName) {
+        addStatement(
+            "val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(%T::class.java), null).also { innerDeserializer = it }",
+            payloadType
+        )
+    }
+
+    /**
+     * A payload read straight off the parser, guarded by the token check Jackson's own deserializer for
+     * that payload type makes before its own direct read.
+     *
+     * @property condition true when the current token can be read as-is
+     * @property read the read, valid only where [condition] holds
+     */
+    private class DirectRead(val condition: CodeBlock, val read: String)
+
+    /**
+     * The direct read for a primitive or `String` payload, so valid input skips the delegate call.
+     * Any other token goes to Jackson's deserializer for the payload type, never to a lenient
+     * `valueAs*`: those turn an object, array or boolean into `0`, `null` or `1` and leave the parser
+     * inside the unconsumed value. Through the delegate, coercion config, `UNWRAP_SINGLE_VALUE_ARRAYS`
+     * and `MismatchedInputException`s with the property path are Jackson's.
+     *
+     * `null` for `Char`: a direct read would need the same one-character-string check Jackson's `char`
+     * deserializer starts with, so it would save nothing. `null` as well for every other payload, which
+     * is always delegated.
+     */
+    private fun directRead(element: ValidatedKspGeneratorElement): DirectRead? {
+        val jsonToken = generatorConfig.jsonToken()
+        val intToken = CodeBlock.of("p.isExpectedNumberIntToken")
+        val floatToken = CodeBlock.of("p.hasToken(%T.VALUE_NUMBER_FLOAT)", jsonToken)
+        return when {
+            // Exhaustive over Kind on purpose: no else arm, so adding a primitive kind is a compile
+            // error here rather than a silent fall-through to the delegate.
+            element.isPayloadPrimitive -> when (element.primitiveKind()) {
+                Kind.INT -> DirectRead(intToken, "p.intValue")
+                Kind.LONG -> DirectRead(intToken, "p.longValue")
+                Kind.SHORT -> DirectRead(intToken, "p.shortValue")
+                Kind.BYTE -> DirectRead(intToken, "p.byteValue")
+                Kind.DOUBLE -> DirectRead(floatToken, "p.doubleValue")
+                Kind.FLOAT -> DirectRead(floatToken, "p.floatValue")
+                Kind.BOOLEAN -> DirectRead(
+                    CodeBlock.of("p.hasToken(%T.VALUE_TRUE) || p.hasToken(%T.VALUE_FALSE)", jsonToken, jsonToken),
+                    "p.booleanValue"
+                )
+                Kind.CHAR -> null
+            }
+            // Bypasses any user-customized String deserializer for string tokens; acceptable for
+            // scalar wrapper payloads.
+            isStringType(element.payloadType) -> DirectRead(
+                CodeBlock.of("p.hasToken(%T.VALUE_STRING)", jsonToken),
+                "p.${generatorConfig.parserStringProperty}"
+            )
+            else -> null
+        }
     }
 
     /**
