@@ -14,18 +14,18 @@ val versionLazyval = System.getProperty("version.lazyval") ?: "0.4.0"
 // end::excluded[]
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.20")
-    compileOnly("com.qualityminds.lazyval:lazyval:$versionLazyval")
+    compileOnly("com.qualityminds.lazyval:lazyval:$versionLazyval") // <1>
     implementation("org.mapstruct:mapstruct:1.6.3")
     compileOnly("jakarta.platform:jakarta.jakartaee-api:11.0.0")
     implementation("tools.jackson.core:jackson-databind:3.1.0")
 
-    ksp("com.qualityminds.lazyval:lazyval-ksp:$versionLazyval")
+    ksp("com.qualityminds.lazyval:lazyval-ksp:$versionLazyval") // <2>
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
 }
 
 ksp {
-    arg("lazyval.generators.basePackage", "test")
-    arg("lazyval.mapstruct.package", "test.custom")
+    arg("lazyval.generators.basePackage", "test") // <3>
+    arg("lazyval.mapstruct.package", "test.custom") // <4>
 }
 // end::docu[]
 

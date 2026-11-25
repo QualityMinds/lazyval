@@ -30,7 +30,7 @@
             <groupId>com.qualityminds.lazyval</groupId>
             <artifactId>lazyval</artifactId>
             <version>${version.lazyval}</version>
-            <optional>true</optional>
+            <optional>true</optional> <!--1-->
         </dependency>
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
@@ -90,7 +90,7 @@
                     </execution>
                 </executions>
                 <dependencies>
-                    <dependency>
+                    <dependency> <!--2-->
                         <groupId>com.qualityminds.lazyval</groupId>
                         <artifactId>lazyval-ksp</artifactId>
                         <version>${version.lazyval}</version>
@@ -103,10 +103,10 @@
                         <sourceDir>${project.basedir}/src/main/java</sourceDir>
                     </sourceDirs>
                     <apOptions>
-                        <lazyval.generators.basePackage>
+                        <lazyval.generators.basePackage> <!--3-->
                             test
                         </lazyval.generators.basePackage>
-                        <lazyval.mapstruct.package>
+                        <lazyval.mapstruct.package> <!--4-->
                             test.custom
                         </lazyval.mapstruct.package>
                     </apOptions>

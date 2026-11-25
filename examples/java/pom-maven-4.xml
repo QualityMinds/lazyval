@@ -71,8 +71,8 @@
                     <proc>full</proc>
                     <compilerArgs>
                         <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
-                        <arg>-Alazyval.generators.basePackage=test</arg>
-                        <arg>-Alazyval.mapstruct.package=test.custom</arg>
+                        <arg>-Alazyval.generators.basePackage=test</arg> <!--3-->
+                        <arg>-Alazyval.mapstruct.package=test.custom</arg> <!--4-->
                     </compilerArgs>
                 </configuration>
             </plugin>

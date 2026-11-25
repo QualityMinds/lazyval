@@ -86,7 +86,6 @@ Mill::
 ----
 include::ROOT:example$kotlin/build.mill[tags=docu;!excluded]
 ----
-
 Maven::
 +
 There are currently two 3rd-party Maven plugins for KSP2: https://github.com/kpavlov/ksp-maven-plugin and https://github.com/mcarleio/ksp-maven-plugin
@@ -98,7 +97,9 @@ The following sample uses the kpavlovs.
 ----
 include::ROOT:example$kotlin/pom.xml[tags=docu;!excluded]
 ----
-<1> mark the dependency as optional to avoid runtime-dependency
-
 ====
+<1> mark the dependency as optional to avoid runtime-dependency
+<2> add processor to the KSP2 toolchain
+<3> the modules base-package used by generators as baseline
+<4> Mapstruct generator will use this package and ignore the base-package
 

@@ -20,7 +20,6 @@
         <version.mapstruct>1.6.3</version.mapstruct>
         <version.jakarta-ee>11.0.0</version.jakarta-ee>
         <version.jackson>3.1.0</version.jackson>
-        <version.cassandra-driver>4.19.2</version.cassandra-driver>
     </properties>
 
     <dependencies>
@@ -41,15 +40,10 @@
             <version>${version.jakarta-ee}</version>
             <scope>provided</scope>
         </dependency>
-<!--        <dependency>-->
-<!--            <groupId>tools.jackson.core</groupId>-->
-<!--            <artifactId>jackson-databind</artifactId>-->
-<!--            <version>${version.jackson}</version>-->
-<!--        </dependency>-->
         <dependency>
-            <groupId>org.apache.cassandra</groupId>
-            <artifactId>java-driver-query-builder</artifactId>
-            <version>${version.cassandra-driver}</version>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${version.jackson}</version>
         </dependency>
     </dependencies>
 
@@ -63,7 +57,7 @@
                     <release>17</release>
                     <proc>full</proc>
                     <annotationProcessorPaths>
-                        <path>
+                        <path> <!--2-->
                             <groupId>com.qualityminds.lazyval</groupId>
                             <artifactId>lazyval-processor</artifactId>
                             <version>${version.lazyval}</version>
@@ -76,8 +70,8 @@
                     </annotationProcessorPaths>
                     <compilerArgs>
                         <arg>-Amapstruct.unmappedTargetPolicy=ERROR</arg>
-                        <arg>-Alazyval.generators.basePackage=test</arg>
-                        <arg>-Alazyval.mapstruct.package=test.custom</arg>
+                        <arg>-Alazyval.generators.basePackage=test</arg> <!--3-->
+                        <arg>-Alazyval.mapstruct.package=test.custom</arg> <!--4-->
                     </compilerArgs>
                 </configuration>
             </plugin>

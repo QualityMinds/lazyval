@@ -103,10 +103,10 @@
                 </dependencies>
                 <configuration>
                     <apOptions>
-                        <lazyval.generators.basePackage>
+                        <lazyval.generators.basePackage> <!--2-->
                             test
                         </lazyval.generators.basePackage>
-                        <lazyval.mapstruct.package>
+                        <lazyval.mapstruct.package> <!--3-->
                             test.custom
                         </lazyval.mapstruct.package>
                     </apOptions>

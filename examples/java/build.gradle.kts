@@ -15,12 +15,12 @@ repositories {
 val versionLazyval = System.getProperty("version.lazyval") ?: "0.4.0"
 // end::excluded[]
 dependencies {
-    compileOnly("com.qualityminds.lazyval:lazyval:$versionLazyval")
+    compileOnly("com.qualityminds.lazyval:lazyval:$versionLazyval") // <1>
     implementation("org.mapstruct:mapstruct:1.6.3")
     compileOnly("jakarta.platform:jakarta.jakartaee-api:11.0.0")
     implementation("tools.jackson.core:jackson-databind:3.1.0")
 
-    annotationProcessor("com.qualityminds.lazyval:lazyval-processor:$versionLazyval")
+    annotationProcessor("com.qualityminds.lazyval:lazyval-processor:$versionLazyval") // <2>
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
 }
 
@@ -30,8 +30,8 @@ tasks.withType<JavaCompile>().configureEach {
     // end::excluded[]
     options.compilerArgs.apply{
         add("-Amapstruct.unmappedTargetPolicy=ERROR")
-        add("-Alazyval.generators.basePackage=test")
-        add("-Alazyval.mapstruct.package=test.custom")
+        add("-Alazyval.generators.basePackage=test") // <3>
+        add("-Alazyval.mapstruct.package=test.custom") // <4>
     }
 }
 // end::docu[]
