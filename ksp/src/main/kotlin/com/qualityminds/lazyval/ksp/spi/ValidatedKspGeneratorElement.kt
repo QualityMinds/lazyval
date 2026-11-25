@@ -106,8 +106,23 @@ data class ValidatedKspGeneratorElement internal constructor(
             javaAccessorName = javaAccessorName,
             javaFactoryPath = javaFactoryPath,
             unwrapping = unwrapping,
-            shim = javaAccessShim)
+            shim = javaAccessShim,
+            javaPrimitive = (payload as? Payload.Primitive)?.kind?.takeIf { javaCreateTakesPrimitive })
     }
+
+    /**
+     * Whether the parameter Java output rebuilds through is a primitive, and so whether a boxed payload
+     * has to be unboxed for it. Not always the case for a primitive payload: nullability is ignored when
+     * a factory is matched, so a factory over `Int?` rebuilds an `Int` payload, and in Java it takes the
+     * `Integer` a boxed payload already is. The shim takes [payloadType], the constructor the payload as
+     * declared, which the validator keeps non-null.
+     */
+    private val javaCreateTakesPrimitive: Boolean
+        get() = when {
+            javaAccessShim != null -> !payloadType.isMarkedNullable
+            factoryMethod != null -> !factoryMethod.parameters.single().type.resolve().isMarkedNullable
+            else -> true
+        }
 
     /** Expressions for generated Kotlin. See [KotlinPayload] for why they are worth asking for. */
     val kotlin: KotlinPayload by lazy { KotlinPayload(plan) }

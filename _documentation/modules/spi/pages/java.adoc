@@ -116,12 +116,29 @@ constructor, are resolved during validation — a generator never branches on it
 produces generator *output* sits behind `java()`; everything else on the element merely describes the
 domain-primitive, which is the whole reason for the split.
 
-The Kotlin SPI has the same two methods under `element.java`, plus `element.kotlin` for Kotlin output.
+The Kotlin SPI has the same methods under `element.java`, plus `element.kotlin` for Kotlin output.
 A generator shipped for both processors reads the same way on each.
+
+[#boxed-payload]
+=== A payload held boxed
+
+A generator whose framework interface is typed on a reference type holds a primitive payload boxed, as an
+`Integer` in an `AttributeConverter<Quantity, Integer>`. It rebuilds with `createFromBoxed` instead:
+
+[source,java]
+----
+element.java().createFromBoxed("dbValue")   // Quantity.of((int) dbValue)
+----
+
+The cast unboxes the value first, so it binds to the factory or constructor Lazyval matched. Passed to
+`create` as it is, an `Integer` binds to an overload for the boxed type, such as `of(Integer)`, wherever the
+domain-primitive declares one: javac prefers an overload that applies without unboxing. For a reference
+payload `createFromBoxed` is `create`, so there is nothing to branch on. A payload held as its own type stays
+with `create`, since casting an `int` that already is one is a redundant cast.
 
 === Working with an expression
 
-Both methods return a `PayloadExpr`, which keeps the type names an expression mentions apart from its
+Every method on `java()` returns a `PayloadExpr`, which keeps the type names an expression mentions apart from its
 text — a generator managing its own imports has to know which types it names and where, and handing
 them back as text would leave it to guess.
 

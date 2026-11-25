@@ -151,7 +151,7 @@ public class LazyvalJacksonModule : SimpleModule("LazyvalJacksonModule", Version
   private class QuantityDeserializer : StdDeserializer<Quantity>(Quantity::class.java) {
     override fun deserialize(p: JsonParser, ctx: DeserializationContext): Quantity {
       val value = p.valueAsInt
-      return Quantity(value)
+      return Quantity.of(value)
     }
   }
 }

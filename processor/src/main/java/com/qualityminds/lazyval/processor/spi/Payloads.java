@@ -2,6 +2,7 @@ package com.qualityminds.lazyval.processor.spi;
 
 import com.qualityminds.lazyval.naming.Payload;
 import org.jspecify.annotations.NullUnmarked;
+import org.jspecify.annotations.Nullable;
 
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.type.DeclaredType;
@@ -31,6 +32,19 @@ final class Payloads {
         @SuppressWarnings("RedundantCast") // needed due to NullMarked
         Payload name = type.accept(new PayloadVisitor(), (Void) null);
         return name;
+    }
+
+    /**
+     * Total, unlike {@link #from(TypeMirror)}: asks for the name only once the compiler has reported a
+     * primitive, so an array payload yields {@code null} rather than an exception.
+     *
+     * @param type the payload type
+     * @return its kind if it is a primitive, otherwise {@code null}
+     */
+    static Payload.@Nullable Kind primitiveKind(TypeMirror type) {
+        return type.getKind().isPrimitive() && from(type) instanceof Payload.Primitive primitive
+                ? primitive.kind()
+                : null;
     }
 }
 

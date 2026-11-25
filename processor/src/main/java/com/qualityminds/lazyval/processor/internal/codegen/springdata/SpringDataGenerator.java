@@ -204,7 +204,7 @@ public class SpringDataGenerator implements Generator {
                 .addModifiers(Modifier.PUBLIC)
                 .returns(elementTypeName)
                 .addParameter(payloadTypeName, "source")
-                .addStatement("return $L", code(element.java().create("source")))
+                .addStatement("return $L", code(element.java().createFromBoxed("source")))
                 .build();
 
         return TypeSpec.classBuilder(element.name().flatName() + "ReadConverter")

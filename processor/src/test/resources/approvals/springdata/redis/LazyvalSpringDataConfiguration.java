@@ -145,7 +145,7 @@ public class LazyvalSpringDataConfiguration {
 
       @Override
       public Quantity deserialize(byte[] bytes) {
-        return bytes == null ? null : new Quantity(REDIS_PAYLOAD.convert(bytes, Integer.class));
+        return bytes == null ? null : Quantity.of((int) REDIS_PAYLOAD.convert(bytes, Integer.class));
       }
 
       @Override

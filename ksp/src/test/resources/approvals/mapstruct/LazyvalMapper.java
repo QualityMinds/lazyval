@@ -71,6 +71,6 @@ public interface LazyvalMapper {
   }
 
   default Quantity mapIntToQuantity(int value) {
-    return new Quantity(value);
+    return Quantity.of(value);
   }
 }

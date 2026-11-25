@@ -2,6 +2,7 @@ package com.qualityminds.lazyval.ksp.internal
 
 import com.qualityminds.lazyval.ksp.spi.JavaAccessShim
 import com.qualityminds.lazyval.naming.DotName
+import com.qualityminds.lazyval.naming.Payload
 import spock.lang.Specification
 import spock.lang.Title
 import spock.lang.Unroll
@@ -135,6 +136,24 @@ class AccessPlanSpec extends Specification {
         "the shim"        | null            | shim()     || "com.acme.OrderJvmAccess.create(value)"
     }
 
+    void "Java rebuilds a boxed primitive payload unboxed through #route, so it binds to what Lazyval matched"() {
+        expect: 'passed boxed, the value would bind to an overload for the boxed type, such as of(Int?)'
+        plan(javaFactoryPath: factoryPath, shim: accessShim, javaPrimitive: Payload.Kind.INT)
+                .javaCreateFromBoxed("boxed").asSource() == expected
+
+        where:
+        route                 | factoryPath | accessShim || expected
+        "the constructor"     | null        | null       || "new com.acme.Order((int) boxed)"
+        "a JvmStatic factory" | "of"        | null       || "com.acme.Order.of((int) boxed)"
+        "the shim"            | null        | shim()     || "com.acme.OrderJvmAccess.create((int) boxed)"
+    }
+
+    void "Java rebuilds a boxed reference payload exactly as javaCreate does, so a caller need not branch"() {
+        expect:
+        plan(javaFactoryPath: "of").javaCreateFromBoxed("value").asSource() ==
+                plan(javaFactoryPath: "of").javaCreate("value").asSource()
+    }
+
     // ---- separating the type names from the text ----------------------------------------
 
     void "the types an expression names come back separately, in the order they appear"() {
@@ -194,7 +213,8 @@ class AccessPlanSpec extends Specification {
                 (opts.javaAccessorName ?: "getValue") as String,
                 opts.javaFactoryPath as String,
                 (opts.unwrapping ?: []) as List<UnwrapStep>,
-                opts.shim as JavaAccessShim)
+                opts.shim as JavaAccessShim,
+                opts.javaPrimitive as Payload.Kind)
     }
 
     private static UnwrapStep property(String name, String builder = "com.acme.Wrapper") {

@@ -46,6 +46,8 @@ The testkit ships a collection of valid scenarios for both Java and Kotlin so SP
 
 |`quantity()`
 |Record / data-class wrapping a primitive (`int`) — exercises boxing in generators that need a reference type.
+Its factory `of(int)` has a null-tolerant overload `of(Integer)` (`of(Int?)` in Kotlin) returning an `Optional`, so
+generated Java that passes the payload boxed binds to that overload and does not compile.
 
 |`orderDate()`
 |Record / data-class wrapping a non-primitive reference (`LocalDate`).

@@ -195,7 +195,7 @@ public class CassandraCodecGenerator implements Generator {
                 .beginControlFlow("if (value == null)")
                 .addStatement("return null")
                 .endControlFlow()
-                .addStatement("return $L", code(element.java().create("value")))
+                .addStatement("return $L", code(element.java().createFromBoxed("value")))
                 .build();
 
         MethodSpec outerToInner = MethodSpec.methodBuilder("outerToInner")

@@ -104,7 +104,7 @@ public class JsonbGenerator implements Generator {
                 .returns(elementType)
                 .addParameter(adaptedType, "value")
                 .addException(Exception.class)
-                .addStatement("return $L", code(element.java().create("value")))
+                .addStatement("return $L", code(element.java().createFromBoxed("value")))
                 .build();
 
         return TypeSpec.classBuilder(adapterName)

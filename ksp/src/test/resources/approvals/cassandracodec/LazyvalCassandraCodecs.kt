@@ -70,7 +70,7 @@ public object LazyvalCassandraCodecs {
   }
 
   internal class QuantityCodec : MappingCodec<Int, Quantity?>(TypeCodecs.INT, object : GenericType<Quantity?>() {}) {
-    override fun innerToOuter(`value`: Int?): Quantity? = value?.let { Quantity(it) }
+    override fun innerToOuter(`value`: Int?): Quantity? = value?.let { Quantity.of(it) }
 
     override fun outerToInner(`value`: Quantity?): Int? = value?.value
   }

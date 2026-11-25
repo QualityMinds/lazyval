@@ -89,7 +89,7 @@ private class OrderDateWriteConverter : Converter<OrderDate, LocalDate> {
 
 @ReadingConverter
 private class QuantityReadConverter : Converter<Int, Quantity> {
-  override fun convert(source: Int): Quantity = Quantity(source)
+  override fun convert(source: Int): Quantity = Quantity.of(source)
 }
 
 @WritingConverter

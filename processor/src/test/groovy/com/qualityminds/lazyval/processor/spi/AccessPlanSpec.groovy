@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.processor.spi
 
 import com.qualityminds.lazyval.naming.DotName
+import com.qualityminds.lazyval.naming.Payload
 import spock.lang.Specification
 
 /**
@@ -14,6 +15,7 @@ import spock.lang.Specification
 class AccessPlanSpec extends Specification {
 
     private static final DotName NESTED = DotName.of("com.acme.order", "Ids", "ProductId")
+    private static final DotName QUANTITY = DotName.of("com.acme", "Quantity")
 
     void "reads the payload through the accessor the validator resolved"() {
         expect:
@@ -28,6 +30,23 @@ class AccessPlanSpec extends Specification {
     void "rebuilds through the factory when there is one"() {
         expect:
         plan(factory: "of").create("v").asSource() == "com.acme.order.Ids.ProductId.of(v)"
+    }
+
+    void "rebuilds a boxed primitive payload unboxed, so the call binds to the factory Lazyval matched"() {
+        expect: 'passed boxed, the value would bind to an overload for the boxed type, such as of(Integer)'
+        plan(name: QUANTITY, factory: "of", primitive: Payload.Kind.INT).createFromBoxed("boxed").asSource() ==
+                "com.acme.Quantity.of((int) boxed)"
+    }
+
+    void "unboxes for the constructor as well, since constructors are chosen among overloads the same way"() {
+        expect:
+        plan(name: QUANTITY, primitive: Payload.Kind.CHAR).createFromBoxed("boxed").asSource() ==
+                "new com.acme.Quantity((char) boxed)"
+    }
+
+    void "rebuilds a boxed reference payload exactly as create does, so a caller need not branch"() {
+        expect:
+        plan(factory: "of").createFromBoxed("v").asSource() == plan(factory: "of").create("v").asSource()
     }
 
     void "spells a type canonically in source form, so the expression needs no import"() {
@@ -64,6 +83,7 @@ class AccessPlanSpec extends Specification {
         new AccessPlan(
                 (opts.name ?: NESTED) as DotName,
                 (opts.accessor ?: "value()") as String,
-                opts.factory as String)
+                opts.factory as String,
+                opts.primitive as Payload.Kind)
     }
 }

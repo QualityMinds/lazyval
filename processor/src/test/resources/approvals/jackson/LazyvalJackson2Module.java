@@ -171,7 +171,7 @@ public class LazyvalJackson2Module extends SimpleModule {
     public Quantity deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
         JacksonException {
       var value = p.getValueAsInt();
-      return new Quantity(value);
+      return Quantity.of(value);
     }
   }
 }

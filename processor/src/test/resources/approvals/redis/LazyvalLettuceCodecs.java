@@ -67,7 +67,7 @@ public final class LazyvalLettuceCodecs {
 
     @Override
     Quantity parse(String text) {
-      return new Quantity(Integer.parseInt(text));
+      return Quantity.of(Integer.parseInt(text));
     }
   };
 

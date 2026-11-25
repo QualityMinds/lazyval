@@ -21,6 +21,8 @@ import org.jetbrains.annotations.ApiStatus;
  *     public String getValue() { ... }
  *     public static Isbn parse(String value) { ... }
  * }
+ *
+ * public record Quantity(int value) { }
  * }</pre>
  *
  * <pre>{@code
@@ -31,6 +33,9 @@ import org.jetbrains.annotations.ApiStatus;
  * // given Isbn isbn, String raw
  * element.java().read("isbn")      // isbn.getValue()
  * element.java().create("raw")     // com.acme.Isbn.parse(raw)
+ *
+ * // given Integer boxed, e.g. in an AttributeConverter<Quantity, Integer>
+ * element.java().createFromBoxed("boxed")    // new com.acme.Quantity((int) boxed)
  * }</pre>
  *
  * <p>A factory is called wherever one exists, so generated code never constructs around the checks it
@@ -79,10 +84,38 @@ public final class JavaPayload {
      * <p>For a {@code String raw}, {@code create("raw")} is {@code new com.acme.ProductId(raw)}, or
      * {@code com.acme.Isbn.parse(raw)} where the type has a factory.
      *
+     * <p>{@code payload} has to be of the payload type itself. A primitive payload held boxed goes
+     * through {@link #createFromBoxed(String)} instead.
+     *
      * @param payload name of the variable holding a payload value
      * @return the expression
      */
     public PayloadExpr create(String payload) {
         return plan.create(payload);
+    }
+
+    /**
+     * Rebuilds the domain-primitive from {@code boxedPayload}, a payload held as a reference type — as
+     * by a generator whose framework interface is typed on one, e.g.
+     * {@code AttributeConverter<Quantity, Integer>}.
+     *
+     * <p>For an {@code int} payload and an {@code Integer dbValue}, {@code createFromBoxed("dbValue")}
+     * is {@code com.acme.Quantity.of((int) dbValue)}. Unboxed first, the value binds to the factory or
+     * constructor Lazyval matched. Passed to {@link #create(String)} as it is, it would bind to an
+     * overload for the boxed type, such as {@code of(Integer)}, wherever the type declares one: javac
+     * prefers an overload that applies without unboxing. For any other payload this is
+     * {@link #create(String)}, so a generator does not need to branch on
+     * {@link ValidatedGeneratorElement#isPayloadPrimitive()}.
+     *
+     * <p>A payload held as its own type stays with {@link #create(String)}: casting an {@code int}
+     * that already is one is a redundant cast, which {@code -Xlint:cast} reports.
+     *
+     * @param boxedPayload name of the variable holding the boxed payload value. A method call works as
+     *                     well; an expression with operators does not, as the cast would bind to its
+     *                     first operand only
+     * @return the expression
+     */
+    public PayloadExpr createFromBoxed(String boxedPayload) {
+        return plan.createFromBoxed(boxedPayload);
     }
 }

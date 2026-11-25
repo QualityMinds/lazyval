@@ -217,7 +217,7 @@ public class MongoCodecGenerator implements Generator {
                 .returns(elementTypeName)
                 .addParameter(BSON_READER, "reader")
                 .addParameter(DECODER_CONTEXT, "decoderContext")
-                .addStatement("return $L", code(element.java().create("innerCodec.decode(reader, decoderContext)")))
+                .addStatement("return $L", code(element.java().createFromBoxed("innerCodec.decode(reader, decoderContext)")))
                 .build();
 
         MethodSpec getEncoderClass = MethodSpec.methodBuilder("getEncoderClass")

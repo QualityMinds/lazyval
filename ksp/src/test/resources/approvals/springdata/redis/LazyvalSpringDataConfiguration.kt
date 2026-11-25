@@ -124,7 +124,7 @@ public class LazyvalSpringDataConfiguration {
     public val QUANTITY: RedisSerializer<Quantity> = object : RedisSerializer<Quantity> {
       override fun serialize(`value`: Quantity?): ByteArray = REDIS_PAYLOAD.convert(value?.value, ByteArray::class.java) ?: ByteArray(0)
 
-      override fun deserialize(bytes: ByteArray?): Quantity? = REDIS_PAYLOAD.convert(bytes, Int::class.javaObjectType)?.let { Quantity(it) }
+      override fun deserialize(bytes: ByteArray?): Quantity? = REDIS_PAYLOAD.convert(bytes, Int::class.javaObjectType)?.let { Quantity.of(it) }
 
       override fun getTargetType(): Class<*> = Quantity::class.java
     }

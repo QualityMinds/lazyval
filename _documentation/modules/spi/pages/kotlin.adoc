@@ -147,7 +147,10 @@ element rather than spelling it yourself:
 `java.read(instance)`:: Reads the payload — through the accessor, or through the generated shim when
 there is one. A generator using this never has to know which.
 `java.create(payload)`:: Rebuilds the domain-primitive — constructor, factory, or shim.
-`javaAccessShim`:: The generated object those two go through, or `null` when there is none. Consulting it
+`java.createFromBoxed(payload)`:: The same, from a payload the generated Java holds boxed, such as an `Integer`
+in an `AttributeConverter<Quantity, Integer>`. It is unboxed first, so it binds to what Lazyval matched rather
+than to an overload such as `of(Int?)` — see xref:java.adoc#boxed-payload[a payload held boxed].
+`javaAccessShim`:: The generated object these go through, or `null` when there is none. Consulting it
 is only needed to emit something other than a read or a rebuild.
 
 Java has no `?.`, and its null-guard is a statement rather than an expression, so there is no `OrNull`
