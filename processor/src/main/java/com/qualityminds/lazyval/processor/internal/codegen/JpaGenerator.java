@@ -90,7 +90,7 @@ public class JpaGenerator implements Generator {
                 .beginControlFlow("if(%s == null)".formatted(parameterName))
                 .addStatement("return null")
                 .endControlFlow()
-                .addStatement("return $L", code(validElement.java().create(parameterName)))
+                .addStatement("return $L", code(validElement.java().createFromBoxed(parameterName)))
                 .build();
     }
 

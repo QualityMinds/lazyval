@@ -175,8 +175,32 @@ class JavaPayload internal constructor(private val plan: AccessPlan) {
      * For a `raw: String`, `create("raw")` is `new com.acme.ProductId(raw)` — or
      * `com.acme.ProductId.Companion.of(raw)` where there is a factory without `@JvmStatic`, and
      * `com.acme.PriceJvmAccess.of(raw)` through the shim.
+     *
+     * [payload] has to be of the payload's own Java type. A primitive payload held boxed goes through
+     * [createFromBoxed] instead.
      */
     fun create(payload: String): PayloadExpr = plan.javaCreate(payload)
+
+    /**
+     * Rebuilds the domain-primitive from [boxedPayload], a payload held as a reference type — as by a
+     * generator whose framework interface is typed on one, e.g. `AttributeConverter<Quantity, Integer>`.
+     *
+     * For an `Int` payload and an `Integer dbValue`, `createFromBoxed("dbValue")` is
+     * `com.acme.Quantity.of((int) dbValue)`. Unboxed first, the value binds to the factory, constructor
+     * or shim Lazyval matched. Passed to [create] as it is, it would bind to an overload for the boxed
+     * type, such as `of(Int?)`, wherever the type declares one: javac prefers an overload that applies
+     * without unboxing. For any other payload this is [create], and so it is where the factory takes the
+     * payload nullable, as `of(Int?)`: Java declares that parameter `Integer`, which a boxed payload
+     * already is. A generator does not need to branch on [ValidatedKspGeneratorElement.isPayloadPrimitive].
+     *
+     * A payload held as its own type stays with [create]: casting an `int` that already is one is a
+     * redundant cast, which `-Xlint:cast` reports.
+     *
+     * @param boxedPayload name of the variable holding the boxed payload value. A method call works as
+     *                     well; an expression with operators does not, as the cast would bind to its
+     *                     first operand only
+     */
+    fun createFromBoxed(boxedPayload: String): PayloadExpr = plan.javaCreateFromBoxed(boxedPayload)
 }
 
 /**

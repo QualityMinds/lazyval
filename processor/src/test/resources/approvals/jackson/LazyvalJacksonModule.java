@@ -161,7 +161,7 @@ public class LazyvalJacksonModule extends SimpleModule {
     @Override
     public Quantity deserialize(JsonParser p, DeserializationContext ctxt) {
       var value = p.getValueAsInt();
-      return new Quantity(value);
+      return Quantity.of(value);
     }
   }
 }

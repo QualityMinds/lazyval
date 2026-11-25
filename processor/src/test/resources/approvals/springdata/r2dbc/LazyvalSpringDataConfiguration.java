@@ -95,7 +95,7 @@ public class LazyvalSpringDataConfiguration {
   private static final class QuantityReadConverter implements Converter<Integer, Quantity> {
     @Override
     public Quantity convert(Integer source) {
-      return new Quantity(source);
+      return Quantity.of((int) source);
     }
   }
 

@@ -61,6 +61,6 @@ public class LazyvalJsonbAdapters {
   public class QuantityAdapter : JsonbAdapter<Quantity, Int> {
     override fun adaptToJson(obj: Quantity): Int = obj.value
 
-    override fun adaptFromJson(`value`: Int): Quantity? = Quantity(value)
+    override fun adaptFromJson(`value`: Int): Quantity? = Quantity.of(value)
   }
 }

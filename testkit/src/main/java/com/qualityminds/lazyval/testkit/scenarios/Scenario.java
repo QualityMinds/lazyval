@@ -104,13 +104,25 @@ public sealed interface Scenario {
         }
         /**
          * Default record case wrapping a primitive int (which might need boxing in some generated code).
+         * The factory {@code of(int)} has a null-tolerant overload {@code of(Integer)} returning an
+         * {@code Optional}: generated code that passes the payload boxed binds to that overload instead
+         * of the {@code of(int)} Lazyval matched, and does not compile.
          * <pre>{@code
          * @LazyValue
          * public record Quantity(int value) {
+         *
          *     public Quantity {
          *         if (value < 0) {
          *             throw new IllegalArgumentException("Quantity must be greater than 0");
          *         }
+         *     }
+         *
+         *     public static Quantity of(int value) {
+         *         return new Quantity(value);
+         *     }
+         *
+         *     public static Optional<Quantity> of(Integer nullable) {
+         *         return Optional.ofNullable(nullable).map(v -> of(v.intValue()));
          *     }
          * }
          * }</pre>
@@ -278,12 +290,24 @@ public sealed interface Scenario {
             return Scenario.Kotlin.ofSingle("scenarios/kotlin/Isbn.kt");
         }
         /**
-         * Default data class case.
+         * Default data class case. The factory {@code of(Int)} has a null-tolerant overload
+         * {@code of(Int?)} returning an {@code Optional}, the twin of {@link Scenario.Java#quantity()}: generated
+         * Java that passes the payload boxed binds to that overload instead of the {@code of(Int)}
+         * Lazyval matched, and does not compile.
          * <pre>{@code
          * @LazyValue
          * data class Quantity(val value: Int) {
          *     init {
          *         require(value >= 0) { "Quantity must be greater than 0" }
+         *     }
+         *
+         *     companion object {
+         *
+         *         @JvmStatic
+         *         fun of(value: Int): Quantity = Quantity(value)
+         *
+         *         @JvmStatic
+         *         fun of(nullable: Int?): Optional<Quantity> = Optional.ofNullable(nullable).map { of(it) }
          *     }
          * }
          * }</pre>

@@ -148,7 +148,7 @@ final class RedisCodegen {
                     .returns(elementTypeName)
                     .addParameter(BYTES, "bytes")
                     .addStatement("return bytes == null ? null : $L",
-                            code(element.java().create(PAYLOAD_PLACEHOLDER), PAYLOAD_PLACEHOLDER, payload))
+                            code(element.java().createFromBoxed(PAYLOAD_PLACEHOLDER), PAYLOAD_PLACEHOLDER, payload))
                     .build();
             MethodSpec targetType = MethodSpec.methodBuilder("getTargetType")
                     .addAnnotation(OVERRIDE_ANNOTATION)

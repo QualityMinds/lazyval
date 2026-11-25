@@ -121,7 +121,7 @@ public final class LazyvalCassandraCodecs {
       if (value == null) {
         return null;
       }
-      return new Quantity(value);
+      return Quantity.of((int) value);
     }
 
     @Override

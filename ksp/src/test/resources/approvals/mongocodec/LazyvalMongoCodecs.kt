@@ -166,7 +166,7 @@ public class LazyvalMongoCodecs() : CodecProvider {
       innerCodec.encode(writer, value.value, encoderContext)
     }
 
-    override fun decode(reader: BsonReader, decoderContext: DecoderContext): Quantity = Quantity(innerCodec.decode(reader, decoderContext))
+    override fun decode(reader: BsonReader, decoderContext: DecoderContext): Quantity = Quantity.of(innerCodec.decode(reader, decoderContext))
 
     override fun getEncoderClass(): Class<Quantity> = Quantity::class.java
   }

@@ -41,7 +41,7 @@ public class QuantityAttributeConverter implements AttributeConverter<Quantity, 
     }
 
     public Quantity convertToEntityAttribute(Integer dbValue) { // <1>
-        return new Quantity(dbValue);
+        return new Quantity((int) dbValue);
     }
 }
 
@@ -58,7 +58,8 @@ public class IsbnAttributeConverter implements AttributeConverter<Isbn, String> 
     }
 }
 ----
-<1> where needed, wrapped primitives are boxed
+<1> where needed, wrapped primitives are boxed, and unboxed again before the constructor or factory is called, so an
+overload for the boxed type such as `of(Integer)` is never picked instead
 +
 These converters will be automatically picked up by your persistence provider.
 

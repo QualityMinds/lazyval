@@ -22,6 +22,6 @@ public class QuantityAttributeConverter implements AttributeConverter<Quantity, 
     if(dbValue == null) {
       return null;
     }
-    return new Quantity(dbValue);
+    return Quantity.of((int) dbValue);
   }
 }

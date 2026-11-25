@@ -28,7 +28,8 @@ public final class ValidatedGeneratorElement {
         this.factoryMethod = factoryMethod;
         name = DotNames.from(element);
         java = new JavaPayload(new AccessPlan(name, accessorFragment,
-                factoryMethod == null ? null : factoryMethod.getSimpleName().toString()));
+                factoryMethod == null ? null : factoryMethod.getSimpleName().toString(),
+                Payloads.primitiveKind(payloadType)));
     }
 
     /**
@@ -110,7 +111,8 @@ public final class ValidatedGeneratorElement {
      *
      * <p>Note that {@code TypeName.get(payloadType()).box()} is safe to call unconditionally: JavaPoet
      * returns a reference type unchanged, so a generator writing a nullable slot does not need to
-     * branch on {@link #isPayloadPrimitive()} first.
+     * branch on {@link #isPayloadPrimitive()} first. A value held in such a slot goes back through
+     * {@link JavaPayload#createFromBoxed(String)}, which needs no branch either.
      *
      * @return the payload type
      */

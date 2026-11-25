@@ -43,7 +43,7 @@ public object LazyvalLettuceCodecs {
 
   @JvmField
   public val QUANTITY: RedisCodec<Quantity, Quantity> =
-      TextCodec<Quantity>({ it.value.toString() }, { Quantity(it.toInt()) })
+      TextCodec<Quantity>({ it.value.toString() }, { Quantity.of(it.toInt()) })
 }
 
 private class TextCodec<T : Any>(

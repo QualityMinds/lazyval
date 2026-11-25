@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.processor.spi;
 
 import com.qualityminds.lazyval.naming.DotName;
+import com.qualityminds.lazyval.naming.Payload;
 import org.jspecify.annotations.Nullable;
 
 import java.util.List;
@@ -18,8 +19,11 @@ import java.util.List;
  * @param name the domain-primitive's own name
  * @param accessorFragment how the payload is read off an instance, {@code "value()"}
  * @param factoryName simple name of the factory, or {@code null} to call the constructor
+ * @param primitive the payload's kind if it is a primitive, or {@code null}; what a boxed payload is
+ *                  unboxed to
  */
-record AccessPlan(DotName name, String accessorFragment, @Nullable String factoryName) {
+record AccessPlan(DotName name, String accessorFragment, @Nullable String factoryName,
+                  Payload.@Nullable Kind primitive) {
 
     /** {@code instance.value()} — no type is named, so this needs no import either way. */
     PayloadExpr read(String instance) {
@@ -36,5 +40,13 @@ record AccessPlan(DotName name, String accessorFragment, @Nullable String factor
         return new PayloadExpr(List.of(
                 new PayloadExpr.Part.Text("new "), type,
                 new PayloadExpr.Part.Text("(" + payload + ")")));
+    }
+
+    /**
+     * {@code Quantity.of((int) v)} for a primitive payload, {@link #create(String)} for any other. Casts
+     * only here, because a cast of a value that already is an {@code int} is redundant.
+     */
+    PayloadExpr createFromBoxed(String boxedPayload) {
+        return create(primitive == null ? boxedPayload : "(" + primitive.keyword() + ") " + boxedPayload);
     }
 }

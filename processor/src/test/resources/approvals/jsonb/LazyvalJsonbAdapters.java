@@ -72,7 +72,7 @@ public class LazyvalJsonbAdapters {
 
     @Override
     public Quantity adaptFromJson(Integer value) throws Exception {
-      return new Quantity(value);
+      return Quantity.of((int) value);
     }
   }
 }

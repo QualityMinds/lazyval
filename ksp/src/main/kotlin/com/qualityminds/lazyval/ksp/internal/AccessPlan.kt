@@ -3,6 +3,7 @@ package com.qualityminds.lazyval.ksp.internal
 import com.qualityminds.lazyval.ksp.spi.JavaAccessShim
 import com.qualityminds.lazyval.ksp.spi.PayloadExpr
 import com.qualityminds.lazyval.naming.DotName
+import com.qualityminds.lazyval.naming.Payload
 
 /**
  * Everything needed to spell the expressions that read a domain-primitive's payload and rebuild it —
@@ -31,6 +32,8 @@ import com.qualityminds.lazyval.naming.DotName
  * @param unwrapping the value-class chain, outermost first; empty when the payload is carried as
  *                   declared. Non-empty exactly when [shim] is set — both mean "value class payload".
  * @param shim the generated Kotlin object generated Java goes through, or `null` when it can go direct
+ * @param javaPrimitive the primitive the parameter Java output rebuilds through takes, or `null` where it
+ *                      takes a reference type; what a boxed payload is unboxed to
  */
 internal data class AccessPlan(
     val kotlinAccessor: String,
@@ -39,7 +42,8 @@ internal data class AccessPlan(
     val javaAccessorName: String,
     val javaFactoryPath: String?,
     val unwrapping: List<UnwrapStep>,
-    val shim: JavaAccessShim?
+    val shim: JavaAccessShim?,
+    val javaPrimitive: Payload.Kind?
 ) {
     /** Whether the payload is a `value class`, and so reached through [unwrapping] rather than directly. */
     val isUnwrapped: Boolean get() = unwrapping.isNotEmpty()
@@ -148,6 +152,14 @@ internal data class AccessPlan(
                 text("($value)")
             }
         }
+
+    /**
+     * [javaCreate] from a payload held boxed: `Quantity.of((int) boxed)` for a primitive payload, so the
+     * value binds to the factory Lazyval matched rather than to an overload for the boxed type. Casts
+     * only here, because a cast of a value that already is an `int` is redundant.
+     */
+    fun javaCreateFromBoxed(boxedValue: String): PayloadExpr =
+        javaCreate(javaPrimitive?.let { "(${it.keyword()}) $boxedValue" } ?: boxedValue)
 }
 
 /** Assembles a [PayloadExpr] out of literal text and the types it names. */

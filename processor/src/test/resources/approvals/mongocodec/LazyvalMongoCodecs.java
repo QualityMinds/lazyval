@@ -151,7 +151,7 @@ public final class LazyvalMongoCodecs implements CodecProvider {
 
     @Override
     public Quantity decode(BsonReader reader, DecoderContext decoderContext) {
-      return new Quantity(innerCodec.decode(reader, decoderContext));
+      return Quantity.of((int) innerCodec.decode(reader, decoderContext));
     }
 
     @Override
