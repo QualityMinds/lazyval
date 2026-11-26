@@ -1,11 +1,14 @@
 package com.qualityminds.lazyval.testkit.internal.toolchain.kotlin;
 
+import com.qualityminds.lazyval.testkit.dependencies.Dependency;
+import com.qualityminds.lazyval.testkit.internal.toolchain.JavaLibrary;
 import com.qualityminds.lazyval.testkit.scenarios.Scenario;
 import org.eclipse.collections.api.list.ImmutableList;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.SortedSet;
@@ -118,9 +121,12 @@ public class KotlinToolchain implements AutoCloseable {
             Scenario.Descriptor scenarioDescriptor) {
         var layout = new ProjectLayout(projectDir);
         var logCollector = new LogCollector();
-        var kspStep = KspStep.create(classLoader, layout, scenarioDescriptor, logCollector);
-        var kotlinStep = KotlinCompileStep.create(classLoader, layout, scenarioDescriptor, logCollector);
-        var javaStep = JavaCompileStep.create(layout, scenarioDescriptor, logCollector);
+        var libraryClasspath = new ArrayList<>(CoreModuleDependency.RESOLVED_FILE.toSet());
+        scenarioDescriptor.dependencies().stream().map(Dependency::resolve).forEach(deps -> libraryClasspath.addAll(deps.toSet()));
+        var library = JavaLibrary.compile(scenarioDescriptor.librarySources().toList(), libraryClasspath, layout.libraryClasses());
+        var kspStep = KspStep.create(classLoader, layout, scenarioDescriptor, library, logCollector);
+        var kotlinStep = KotlinCompileStep.create(classLoader, layout, scenarioDescriptor, library, logCollector);
+        var javaStep = JavaCompileStep.create(layout, scenarioDescriptor, library, logCollector);
         return new KotlinToolchain(kspStep, kotlinStep, javaStep, logCollector, layout);
     }
 

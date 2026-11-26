@@ -21,6 +21,7 @@ public class ScenarioFactory<T extends Scenario> {
     private final String name;
     private final ImmutableCollection<File> sources;
     private final java.util.function.Function<Scenario.Descriptor, T> constructionFunction;
+    private ImmutableCollection<File> librarySources = Lists.immutable.empty();
     private ImmutableCollection<Dependency> dependencies = Lists.immutable.empty();
     private ImmutableCollection<String> disabledGenerators = Lists.immutable.empty();
     private boolean basePackageDisabled = false;
@@ -82,6 +83,24 @@ public class ScenarioFactory<T extends Scenario> {
     }
 
     /**
+     * Compiles the given Java sources before the scenario, into classes that join its classpath the way the jar
+     * of another module would. That is how a type listed in {@code @LazyvalConfiguration(externalTypes = ...)}
+     * reaches the processor: as class files rather than as sources, so the processor sees what a shared domain
+     * module would show it.
+     * <p>
+     * The library is compiled with javac and without annotation processing, against the scenario's
+     * dependencies. It fails the run if it does not compile.
+     * @param sourcePaths classpath-relative Java sources, e.g. {@code "scenarios/shared/Points.java"}
+     * @return this scenario factory
+     */
+    public ScenarioFactory<T> withJavaLibrary(String... sourcePaths) {
+        this.librarySources = Arrays.stream(sourcePaths)
+                .map(Scenario::loadSource)
+                .collect(toImmutableList());
+        return this;
+    }
+
+    /**
      * Disables the given generators for this scenario.
      * Convenience method in favor of {@link #withOption(String, String)}.
      * @param disabledGenerators the generators to disable
@@ -127,7 +146,7 @@ public class ScenarioFactory<T extends Scenario> {
         if(!basePackageDisabled){
             options.put("lazyval.generators.basePackage", "test");
         }
-        var descriptor = new Scenario.Descriptor(name, sources, dependencies, Maps.immutable.ofMap(options));
+        var descriptor = new Scenario.Descriptor(name, sources, librarySources, dependencies, Maps.immutable.ofMap(options));
         return constructionFunction.apply(descriptor);
     }
 }

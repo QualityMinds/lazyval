@@ -468,27 +468,36 @@ public sealed interface Scenario {
      * Describes required and optional information for a scenario.
      * @param name the name describing this scenario
      * @param sources all source files relevant for the compilation (imports). Must not contain null elements.
+     * @param librarySources Java sources compiled before the scenario, whose classes join its classpath like
+     *                       the jar of another module. Can be empty (optional) but must not contain null elements.
      * @param dependencies will be added to the classpath of the temporary project. Optional but must not contain null elements.
      * @param options will be added as a processor-option "lazyval.generators.disable" to the compilation. Optional but must not contain null elements.
      */
     record Descriptor(
             String name,
             ImmutableCollection<File> sources,
+            ImmutableCollection<File> librarySources,
             ImmutableCollection<Dependency> dependencies,
             ImmutableMap<String, String> options){
 
         /**
          * Creates a new Descriptor instance.
          * @param sources all source files relevant for the compilation (imports). Must not contain null elements.
+         * @param librarySources Java sources compiled before the scenario, whose classes join its classpath like
+         *                       the jar of another module. Can be empty (optional) but must not contain null elements.
          * @param dependencies will be added to the classpath of the temporary project. Can be empty (optional) but must not contain null elements.
          * @param options will be added as a processor-option. Can be empty (optional).
          */
         public Descriptor {
             Objects.requireNonNull(name);
             Objects.requireNonNull(sources);
+            Objects.requireNonNull(librarySources);
             Objects.requireNonNull(dependencies);
             for (File f : sources) {
                 Objects.requireNonNull(f, "sources must not contain null elements");
+            }
+            for (File f : librarySources) {
+                Objects.requireNonNull(f, "librarySources must not contain null elements");
             }
             for (Dependency d : dependencies) {
                 Objects.requireNonNull(d, "dependencies must not contain null elements");

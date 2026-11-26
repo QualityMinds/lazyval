@@ -1,6 +1,7 @@
 package com.qualityminds.lazyval.testkit.internal.toolchain.java;
 
 import com.qualityminds.lazyval.testkit.dependencies.Dependency;
+import com.qualityminds.lazyval.testkit.internal.toolchain.JavaLibrary;
 import com.qualityminds.lazyval.testkit.scenarios.Scenario;
 import org.eclipse.collections.api.list.ImmutableList;
 
@@ -49,6 +50,11 @@ public class JavaToolchain implements AutoCloseable {
      */
     public static Path classOutputDir(Path projectDir) {
         return projectDir.resolve("build/classes");
+    }
+
+    /** Output directory for the scenario's library, compiled before the scenario and put on its classpath. */
+    private static Path libraryClassOutputDir(Path projectDir) {
+        return projectDir.resolve("build/library/classes");
     }
 
     private final JavaCompiler.CompilationTask task;
@@ -131,6 +137,8 @@ public class JavaToolchain implements AutoCloseable {
 
         List<File> additionalClasspath = new ArrayList<>(CoreModuleDependency.RESOLVED_FILE.toSet());
         scenarioDescriptor.dependencies().stream().map(Dependency::resolve).forEach(x -> additionalClasspath.addAll(x.toSet()));
+        additionalClasspath.addAll(JavaLibrary.compile(scenarioDescriptor.librarySources().toList(),
+                List.copyOf(additionalClasspath), libraryClassOutputDir(projectDir)));
 
         var fileManager = compiler.getStandardFileManager(diagnostics, null, null);
         try {

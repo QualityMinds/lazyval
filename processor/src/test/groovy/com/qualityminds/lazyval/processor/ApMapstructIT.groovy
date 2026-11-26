@@ -42,6 +42,24 @@ class ApMapstructIT extends Specification {
         result == Testresult.Java.Approved.of(approvals)
     }
 
+    void "Mapstruct maps a boxed payload of a shared Java type as the reference it is"() {
+        given: 'a type from a shared Java module whose payload is an Integer'
+        def scenario = Scenario.Java.ofSingle("scenarios/edge/SharedPointsConfig.java")
+                .withJavaLibrary("scenarios/shared/Points.java")
+                .withDependencies(dependencyMapstruct)
+
+        and: 'the payload mapped as Integer, null-checked, which binds Points.of(Integer) rather than of(long)'
+        List<Approval.ForJava> approvals = [
+                Approval.JavaSource.at("test/$GENERATED_FILE_NAME", "approvals/mapstruct/LazyvalMapperSharedJavaPayload.java")
+        ]
+
+        when:
+        def result = testkitJava.run(projectDir, scenario, approvals)
+
+        then:
+        result == Testresult.Java.Approved.of(approvals)
+    }
+
     void "Warning is issued when package is not configured in any way"(){
         given:
         def scenario = Scenario.Java.quantity().withDependencies(dependencyMapstruct)

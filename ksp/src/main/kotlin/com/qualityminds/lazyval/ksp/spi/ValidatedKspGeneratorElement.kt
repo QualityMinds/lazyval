@@ -4,7 +4,6 @@ import com.google.devtools.ksp.symbol.*
 import com.qualityminds.lazyval.ksp.internal.AccessPlan
 import com.qualityminds.lazyval.ksp.internal.UnwrapStep
 import com.qualityminds.lazyval.ksp.internal.toDotName
-import com.qualityminds.lazyval.ksp.internal.toPayload
 import com.qualityminds.lazyval.naming.DotName
 import com.qualityminds.lazyval.naming.Payload
 import org.jetbrains.annotations.ApiStatus
@@ -63,6 +62,11 @@ data class ValidatedKspGeneratorElement internal constructor(
     private val javaAccessorName: String,
     private val javaFactoryPath: String?,
     /**
+     * The primitive generated Java unboxes a boxed payload to before rebuilding the domain-primitive, or `null`
+     * where the factory or constructor it calls takes a reference on the JVM.
+     */
+    private val javaCreatePrimitive: Payload.Kind?,
+    /**
      * The `value class` chain from the declared payload down to [payloadType], outermost first, and
      * empty when the payload is carried as declared.
      */
@@ -75,6 +79,22 @@ data class ValidatedKspGeneratorElement internal constructor(
      * value class is not a type any framework can persist, serialize or validate.
      */
     val payloadType: KSType,
+    /**
+     * [payloadType]'s name as the JVM sees it, for the two things a code writer cannot give you: an
+     * identifier to build a generated name from, and the reference name a primitive becomes where only
+     * an object will do.
+     *
+     * ```
+     * "map" + element.payload.identifier() + "To" + element.name.flatName()
+     * ```
+     *
+     * Reads the *unwrapped* type, so a `value class` over `Int` names `int` — which is what the JVM
+     * carries. A Java declaration's `Integer` names `java.lang.Integer`, although Kotlin sees it as `Int`
+     * just like an `int`: the JVM signature tells them apart. Kotlin output that needs a *type* rather than
+     * a name should map [payloadType] with KotlinPoet instead; this exists for the cases KotlinPoet and
+     * JavaPoet cannot answer.
+     */
+    val payload: Payload,
     /**
      * The generated Kotlin object generated Java must go through to reach the payload, or `null` when
      * the domain-primitive can be read and rebuilt directly.
@@ -107,22 +127,8 @@ data class ValidatedKspGeneratorElement internal constructor(
             javaFactoryPath = javaFactoryPath,
             unwrapping = unwrapping,
             shim = javaAccessShim,
-            javaPrimitive = (payload as? Payload.Primitive)?.kind?.takeIf { javaCreateTakesPrimitive })
+            javaPrimitive = javaCreatePrimitive)
     }
-
-    /**
-     * Whether the parameter Java output rebuilds through is a primitive, and so whether a boxed payload
-     * has to be unboxed for it. Not always the case for a primitive payload: nullability is ignored when
-     * a factory is matched, so a factory over `Int?` rebuilds an `Int` payload, and in Java it takes the
-     * `Integer` a boxed payload already is. The shim takes [payloadType], and the constructor takes the
-     * payload exactly as declared, which the validator keeps non-null.
-     */
-    private val javaCreateTakesPrimitive: Boolean
-        get() = when {
-            javaAccessShim != null -> !payloadType.isMarkedNullable
-            factoryMethod != null -> !factoryMethod.parameters.single().type.resolve().isMarkedNullable
-            else -> true
-        }
 
     /** Expressions for generated Kotlin. See [KotlinPayload] for why they are worth asking for. */
     val kotlin: KotlinPayload by lazy { KotlinPayload(plan) }
@@ -131,24 +137,10 @@ data class ValidatedKspGeneratorElement internal constructor(
     val java: JavaPayload by lazy { JavaPayload(plan) }
 
     /**
-     * [payloadType]'s name as the JVM sees it, for the two things a code writer cannot give you: an
-     * identifier to build a generated name from, and the reference name a primitive becomes where only
-     * an object will do.
-     *
-     * ```
-     * "map" + element.payload.identifier() + "To" + element.name.flatName()
-     * ```
-     *
-     * Reads the *unwrapped* type, so a `value class` over `Int` names `int` — which is what the JVM
-     * carries. Kotlin output that needs a *type* rather than a name should map [payloadType] with
-     * KotlinPoet instead; this exists for the cases KotlinPoet and JavaPoet cannot answer.
-     */
-    val payload: Payload by lazy { payloadType.toPayload() }
-
-    /**
      * Whether [payloadType] is a primitive on the JVM, and so whether generated code needs a null check
      * at all. Reads the *unwrapped* type, so a `value class` over `Int` counts as primitive — which is
-     * what it is at runtime, and where the payload *as declared* would say no.
+     * what it is at runtime, and where the payload *as declared* would say no. A Java declaration's
+     * `Integer` does not count, see [payload].
      */
     val isPayloadPrimitive: Boolean get() = payload is Payload.Primitive
 

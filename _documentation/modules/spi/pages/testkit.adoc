@@ -102,6 +102,23 @@ var scenario = Scenario.Java.of("custom-multi-source",
 
 The first argument is a display name used in test reports; subsequent arguments are classpath-relative source paths. `withOption(key, value)` feeds processor options the same way `-A<key>=<value>` would on the compiler command line.
 
+==== Types from another module
+
+A type listed in `@LazyvalConfiguration(externalTypes = ...)` comes from another module, so the processor sees it as class
+files rather than as sources, and may see it differently. `withJavaLibrary(...)` reproduces that: it compiles the given
+Java sources first, with javac and without annotation processing, and puts the classes on the scenario's classpath the
+way a jar of a shared module would be.
+
+[source, java]
+----
+var scenario = Scenario.Kotlin.ofSingle("scenarios/edge/SharedPointsConfig.kt") // lists Points as an external type
+    .withJavaLibrary("scenarios/shared/Points.java")
+    .withDependencies(myDependency);
+----
+
+It works for `Scenario.Java` and `Scenario.Kotlin` alike. A library that does not compile fails the run, since it is a
+broken fixture rather than a result.
+
 === Data-driven runs
 
 See the xref:spi:testkit-spock.adoc[Spock] or xref:spi:testkit-kotest.adoc[Kotest] example for a data-driven setup that fans out over the predefined scenarios.

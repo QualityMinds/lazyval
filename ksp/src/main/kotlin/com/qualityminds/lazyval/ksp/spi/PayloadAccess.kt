@@ -189,9 +189,10 @@ class JavaPayload internal constructor(private val plan: AccessPlan) {
      * `com.acme.Quantity.of((int) dbValue)`. Unboxed first, the value binds to the factory, constructor
      * or shim Lazyval matched. Passed to [create] as it is, it would bind to an overload for the boxed
      * type, such as `of(Int?)`, wherever the type declares one: javac prefers an overload that applies
-     * without unboxing. For any other payload this is [create], and so it is where the factory takes the
-     * payload nullable, as `of(Int?)`: Java declares that parameter `Integer`, which a boxed payload
-     * already is. A generator does not need to branch on [ValidatedKspGeneratorElement.isPayloadPrimitive].
+     * without unboxing. For any other payload this is [create], and so it is where the matched factory
+     * or constructor takes a reference on the JVM, as an `of(Int?)` or a Java `of(Integer)` does: the boxed
+     * payload already is that reference. Decided by the JVM signature, since Kotlin sees a Java `Integer`
+     * as `Int`. A generator does not need to branch on [ValidatedKspGeneratorElement.isPayloadPrimitive].
      *
      * A payload held as its own type stays with [create]: casting an `int` that already is one is a
      * redundant cast, which `-Xlint:cast` reports.

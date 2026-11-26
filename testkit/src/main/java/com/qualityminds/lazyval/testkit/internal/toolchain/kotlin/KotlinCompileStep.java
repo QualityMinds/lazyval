@@ -106,7 +106,9 @@ record KotlinCompileStep(ProjectLayout layout, CompilationService service,
     public static KotlinCompileStep create(
             ClassLoader classLoader,
             ProjectLayout layout,
-            Scenario.Descriptor scenarioDescriptor, LogCollector logCollector) {
+            Scenario.Descriptor scenarioDescriptor,
+            List<File> library,
+            LogCollector logCollector) {
         try {
             var extended = Lists.mutable.<Dependency>empty()
                     // additional dependencies are needed for the Kotlin compiler
@@ -116,7 +118,10 @@ record KotlinCompileStep(ProjectLayout layout, CompilationService service,
                     .toImmutable();
 
 
-            var compilerClasspath = Stream.concat(extended.stream().map(Dependency::resolve).flatMap(NonEmptySet::stream), CoreModuleDependency.RESOLVED_FILE.stream()).toList();
+            var compilerClasspath = Stream.of(
+                    extended.stream().map(Dependency::resolve).flatMap(NonEmptySet::stream),
+                    CoreModuleDependency.RESOLVED_FILE.stream(),
+                    library.stream()).flatMap(entries -> entries).toList();
 
             var service = CompilationService.loadImplementation(classLoader);
             var strategyConfig = service.makeCompilerExecutionStrategyConfiguration();

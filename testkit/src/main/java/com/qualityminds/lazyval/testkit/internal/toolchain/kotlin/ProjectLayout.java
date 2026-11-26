@@ -52,6 +52,14 @@ record ProjectLayout(Path projectDir) {
     }
 
     /**
+     * Output directory for the scenario's library, compiled before KSP runs and put on every classpath
+     * the steps build, like the jar of another module.
+     */
+    Path libraryClasses() {
+        return buildDir().resolve("library/classes");
+    }
+
+    /**
      * Cache directory for KSP's internal incremental state, passed to {@code KSPJvmConfig.setCachesDir}.
      * <p>
      * Despite living under {@code build/resources}, this is NOT a resource-output directory and is unrelated
