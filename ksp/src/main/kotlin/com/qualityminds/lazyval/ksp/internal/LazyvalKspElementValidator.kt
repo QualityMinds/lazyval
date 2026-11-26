@@ -217,7 +217,17 @@ internal class LazyvalKspElementValidator(
         }
         val constructor = findPayloadConstructor(classDeclaration, payloadType)
         if (constructor == null) {
-            environment.error(classDeclaration, missingConstructorMessage(classDeclaration, payloadType))
+            // The shape findPayloadConstructor leaves out on purpose: matched like a factory, it would be a
+            // constructor taking the payload as nullable, reported here rather than called.
+            val nullableConstructor = classDeclaration.getConstructors().firstOrNull { candidate ->
+                candidate.parameters.singleOrNull()?.type?.resolve()?.reconstructs(payloadType) == true
+            }
+            if (nullableConstructor != null) {
+                environment.error(nullableConstructor,
+                    nullableConstructorMessage(classDeclaration, nullableConstructor, payloadType))
+            } else {
+                environment.error(classDeclaration, missingConstructorMessage(classDeclaration, payloadType))
+            }
             return false
         }
         // `private` and `protected` are out of reach from another package whatever the module layout.
@@ -407,20 +417,24 @@ private fun findFactoryMethods(
         .toList()
 }
 
+/**
+ * The constructor taking exactly [payloadType], nullability included, unlike a factory: a constructor cannot
+ * yield `null`, so one taking the payload as nullable would have to invent a value for it, and is reported
+ * instead.
+ */
 private fun findPayloadConstructor(
     classDeclaration: KSClassDeclaration,
     payloadType: KSType
-): KSFunctionDeclaration? {
-    return classDeclaration.getConstructors().firstOrNull { constructor ->
-        constructor.parameters.size == 1 &&
-                constructor.parameters[0].type.resolve().reconstructs(payloadType)
+): KSFunctionDeclaration? =
+    classDeclaration.getConstructors().firstOrNull { constructor ->
+        constructor.parameters.size == 1 && constructor.parameters[0].type.resolve() == payloadType
     }
-}
 
 /**
- * Whether a parameter of this type can carry the [payload] back into the value type. Nullability is
- * ignored on purpose and in one place, so that a factory and a constructor cannot disagree about it:
- * a parameter of `String?` still reconstructs a `String` payload.
+ * Whether a factory parameter of this type can carry the [payload] back into the value type. Nullability is
+ * ignored on purpose: a factory over `String?` still reconstructs a `String` payload, as an `ofNullable`
+ * returning a nullable domain-primitive, or as one that yields a default value for `null`. Constructors are
+ * matched exactly instead, see [findPayloadConstructor].
  */
 private fun KSType.reconstructs(payload: KSType): Boolean =
     this == payload || (isMarkedNullable && makeNotNullable() == payload)
