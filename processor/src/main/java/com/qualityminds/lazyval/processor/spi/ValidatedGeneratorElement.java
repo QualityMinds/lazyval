@@ -22,42 +22,33 @@ public final class ValidatedGeneratorElement {
     private final DotName name;
     private final JavaPayload java;
 
-    private ValidatedGeneratorElement(TypeElement element, TypeMirror payloadType, @Nullable ExecutableElement factoryMethod, String accessorFragment){
+    private ValidatedGeneratorElement(TypeElement element, TypeMirror payloadType, @Nullable ExecutableElement factoryMethod,
+                                      ExecutableElement accessor){
         this.element = element;
         this.payloadType = payloadType;
         this.factoryMethod = factoryMethod;
         name = DotNames.from(element);
-        java = new JavaPayload(new AccessPlan(name, accessorFragment,
+        // A factory and a constructor are both matched on the payload type exactly, so whichever is called takes
+        // a primitive precisely when the payload is one: that is what a boxed payload is unboxed to.
+        java = new JavaPayload(new AccessPlan(name, accessor.getSimpleName() + "()",
                 factoryMethod == null ? null : factoryMethod.getSimpleName().toString(),
                 Payloads.primitiveKind(payloadType)));
     }
 
     /**
-     * Creates a new validated element from the processed information of a regular class.
-     * @param element the annotated element.
-     * @param factoryMethod the factory method used to create the instance, if any.
-     * @param field the field holding the payload.
-     * @param accessorMethod the resolved public accessor method for the payload field.
-     * @return a new GeneratorElement, which is passed to each generator.
+     * Describes a type every rule accepted, for the generators. Lazyval builds these; a generator receives them.
+     *
+     * @param element       the annotated element, or the one listed in {@code @LazyvalConfiguration#externalTypes()}
+     * @param payloadType   the type of the payload
+     * @param accessor      the public method reading the payload: a record component's accessor, or the method found
+     *                      to expose a class's payload field
+     * @param factoryMethod the factory method rebuilding an instance, or {@code null} to call the constructor
+     * @return the element passed to each generator
      */
     @ApiStatus.Internal
-    public static ValidatedGeneratorElement fromClass(TypeElement element, @Nullable ExecutableElement factoryMethod, VariableElement field, ExecutableElement accessorMethod){
-        var accessorFragment = String.format("%s()", accessorMethod.getSimpleName());
-        return new ValidatedGeneratorElement(element, field.asType(), factoryMethod, accessorFragment);
-    }
-
-    /**
-     * Creates a new validated element from the processed information of a record.
-     * @param element the annotated element.
-     * @param factoryMethod the factory method used to create the instance, if any.
-     * @param field the field holding the payload.
-     * @return a new GeneratorElement, which is passed to each generator.
-     */
-    @ApiStatus.Internal
-    public static ValidatedGeneratorElement fromRecord(TypeElement element, @Nullable ExecutableElement factoryMethod, RecordComponentElement field){
-        // Records always have an accessor named after the component
-        var accessorFragment = String.format("%s()", field.getSimpleName());
-        return new ValidatedGeneratorElement(element, field.asType(), factoryMethod, accessorFragment);
+    public static ValidatedGeneratorElement of(TypeElement element, TypeMirror payloadType, ExecutableElement accessor,
+                                               @Nullable ExecutableElement factoryMethod){
+        return new ValidatedGeneratorElement(element, payloadType, factoryMethod, accessor);
     }
 
     /**

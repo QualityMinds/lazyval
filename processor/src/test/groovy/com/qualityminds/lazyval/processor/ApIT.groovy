@@ -78,6 +78,7 @@ class ApIT extends Specification {
 
         where:
         scenario                                                                    | error
+        Scenario.Java.ofSingle("scenarios/failing/EnumDomainPrimitive.java")        | "Lazyval: Only records and classes are supported by Lazyval."
         Scenario.Java.ofSingle("scenarios/failing/AbstractClass.java")              | "Lazyval: Abstract class is not a valid ValueType."
         Scenario.Java.ofSingle("scenarios/failing/RecordMoreThanOneProperty.java")  | "Lazyval: Not a simple ValueType. Lazyval only supports Records with one non-transient field."
         Scenario.Java.ofSingle("scenarios/failing/ObjectMoreThanOneProperty.java")  | "Lazyval: Not a simple ValueType. Lazyval only supports Objects with one non-transient value."

@@ -118,6 +118,10 @@ these are thin wrappers. They exist for three cases where the spelling is not th
 `kotlin.readOrNull(instance)`:: The same for a nullable `instance`, yielding `null` when it is.
 `kotlin.create(payload)`:: Rebuilds the domain-primitive from a `payloadType` value.
 `kotlin.createOrNull(payload)`:: The same for a nullable `payload`, yielding `null` when it is.
+`kotlin.createIsNullable`:: Whether `kotlin.create` can yield `null` itself, which it does where the factory
+it calls returns the domain-primitive as nullable — an `ofNullable(value: String?): ProductId?`, say. Make the
+type of whatever holds the result nullable then, such as a deserializer's return type, rather than asking
+`factoryMethod` yourself.
 
 The last two are why a generator emitting a nullable conversion — a JPA converter, a Cassandra codec —
 never has to make that third choice, or know that there was one:

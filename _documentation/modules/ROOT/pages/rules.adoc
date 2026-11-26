@@ -15,14 +15,16 @@ exceptions are marked as warnings below: they are advice about immutability, not
 ====
 Java::
 +
-A `record` or a `class`. An `abstract` class is rejected — there is nothing to instantiate.
+A `record` or a `class`. An interface, an enum or an annotation type is rejected, and so is an `abstract`
+class — there is nothing to instantiate.
 +
 A non-`final` class is accepted with a warning: a domain-primitive that can be subclassed is no longer a
 value, but the decision is yours.
 
 Kotlin::
 +
-A `class` or a `data class`. An `abstract` class is rejected, and so is a `value class`.
+A `class` or a `data class`. An `object`, an interface, an enum or an annotation class is rejected, and so
+are an `abstract` class and a `value class`.
 +
 An `open` class is accepted with a warning, for the same reason as in Java.
 +

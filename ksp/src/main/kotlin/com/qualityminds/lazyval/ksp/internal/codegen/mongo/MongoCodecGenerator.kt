@@ -177,8 +177,7 @@ class MongoCodecGenerator : Generator {
     private fun buildCodec(element: ValidatedKspGeneratorElement): TypeSpec {
         val elementClassName = element.element.toClassName()
         val payloadTypeName = element.payloadType.toTypeName().copy(nullable = false)
-        val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
-        val outerType = elementClassName.copy(nullable = factoryReturnsNullable)
+        val outerType = elementClassName.copy(nullable = element.kotlin.createIsNullable)
 
         val codecClassName = "${element.name.flatName()}Codec"
         val innerCodecTypeName = CODEC.parameterizedBy(payloadTypeName)
@@ -197,7 +196,7 @@ class MongoCodecGenerator : Generator {
             .addParameter("value", outerType)
             .addParameter("encoderContext", ENCODER_CONTEXT)
             .apply {
-                if (factoryReturnsNullable) {
+                if (element.kotlin.createIsNullable) {
                     addCode(
                         """
                         |if (value == null) {
@@ -226,7 +225,7 @@ class MongoCodecGenerator : Generator {
             .addModifiers(KModifier.OVERRIDE)
             .returns(ClassName("java.lang", "Class").parameterizedBy(outerType))
             .apply {
-                if (factoryReturnsNullable) {
+                if (element.kotlin.createIsNullable) {
                     addAnnotation(
                         AnnotationSpec.builder(Suppress::class).addMember("%S", "UNCHECKED_CAST").build()
                     )

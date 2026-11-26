@@ -65,6 +65,9 @@ class KspIT extends Specification {
             "'IsbnMissingFactory(String)' is private and cannot be called from generated code, " +
             "which is emitted into another package. " +
             "Make the constructor public, or add a factory function in the companion object."
+    public static final String ERROR_MISSING_CONSTRUCTOR = "Lazyval: Class 'ConstructorTakesMoreThanPayload' " +
+            "cannot be reconstructed from its payload: no constructor takes a single String. " +
+            "Add one, or a factory function in the companion object."
     public static final String ERROR_NULLABLE_CONSTRUCTOR = "Lazyval: Constructor 'NullableConstructorPayload(Int?)' " +
             "takes the payload as nullable, but a constructor cannot yield null. Make the constructor private and add " +
             "a factory function in the companion object that returns NullableConstructorPayload? for a null payload, " +
@@ -117,8 +120,10 @@ class KspIT extends Specification {
 
         where:
         scenario                                                                     | error
+        Scenario.Kotlin.ofSingle("scenarios/failing/ObjectDeclaration.kt")           | "Lazyval: Only classes and data classes are supported by Lazyval."
         Scenario.Kotlin.ofSingle("scenarios/failing/AbstractClass.kt")               | "Lazyval: Abstract class is not a valid ValueType."
         Scenario.Kotlin.ofSingle("scenarios/failing/IsbnMissingFactory.kt")          | ERROR_NON_PUBLIC_CONSTRUCTOR
+        Scenario.Kotlin.ofSingle("scenarios/failing/ConstructorTakesMoreThanPayload.kt") | ERROR_MISSING_CONSTRUCTOR
         Scenario.Kotlin.ofSingle("scenarios/failing/NullableConstructorPayload.kt")  | ERROR_NULLABLE_CONSTRUCTOR
         Scenario.Kotlin.ofSingle("scenarios/failing/PrivateFactoryClass.kt")         | ERROR_NON_PUBLIC_FACTORY
         Scenario.Kotlin.ofSingle("scenarios/failing/InternalFactoryClass.kt")        | ERROR_INTERNAL_FACTORY

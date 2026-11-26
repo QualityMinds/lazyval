@@ -2,8 +2,6 @@ package com.qualityminds.lazyval.ksp.spi
 
 import com.google.devtools.ksp.symbol.*
 import com.qualityminds.lazyval.ksp.internal.AccessPlan
-import com.qualityminds.lazyval.ksp.internal.UnwrapStep
-import com.qualityminds.lazyval.ksp.internal.toDotName
 import com.qualityminds.lazyval.naming.DotName
 import com.qualityminds.lazyval.naming.Payload
 import org.jetbrains.annotations.ApiStatus
@@ -41,15 +39,9 @@ import org.jetbrains.annotations.ApiStatus
  *
  * Lazyval builds these; the constructor is `internal`. Nothing is lost by closing it — a generator
  * cannot conjure a [KSClassDeclaration] outside a running compilation — and it keeps this record free
- * to carry Lazyval's own types rather than widening the SPI to describe them.
- *
- * @param javaAccessorName bytecode name of the getter or accessor function Java output has to call
- * @param javaFactoryPath the dot-path from the Java type down to the factory method — `"of"` for a
- *                        `@JvmStatic` function, `"Companion.of"` (or the companion's own name) for one
- *                        without, since Kotlin then compiles it onto the companion class rather than
- *                        onto the type. `null` when there is no factory and Java output has to call
- *                        the constructor. Kotlin output has no use for it: in Kotlin a companion
- *                        function is reachable through the type either way.
+ * to carry Lazyval's own types rather than widening the SPI to describe them. Everything the expressions are
+ * spelled from is worked out once, while validating, by the code that knows what was matched; this class only
+ * hands it out.
  */
 @ApiStatus.Experimental()
 @ConsistentCopyVisibility
@@ -57,20 +49,12 @@ data class ValidatedKspGeneratorElement internal constructor(
     val element: KSClassDeclaration,
     /** The payload property as declared. See [DeclaredPayload] — most generators want [payload]. */
     val declaredPayload: DeclaredPayload,
+    /**
+     * The factory function generated code rebuilds the domain-primitive through, or `null` where it calls the
+     * constructor. An escape hatch to the declaration: what generated code needs from it, [kotlin] and [java]
+     * already answer — including whether the rebuild can yield `null`, see [KotlinPayload.createIsNullable].
+     */
     val factoryMethod: KSFunctionDeclaration?,
-    private val accessorMethod: KSFunctionDeclaration?,
-    private val javaAccessorName: String,
-    private val javaFactoryPath: String?,
-    /**
-     * The primitive generated Java unboxes a boxed payload to before rebuilding the domain-primitive, or `null`
-     * where the factory or constructor it calls takes a reference on the JVM.
-     */
-    private val javaCreatePrimitive: Payload.Kind?,
-    /**
-     * The `value class` chain from the declared payload down to [payloadType], outermost first, and
-     * empty when the payload is carried as declared.
-     */
-    private val unwrapping: List<UnwrapStep>,
     /**
      * The type generated code carries in place of the payload, in either language. Identical to
      * [DeclaredPayload.type] unless the payload is a `value class`, in which case it is the type at the
@@ -96,14 +80,10 @@ data class ValidatedKspGeneratorElement internal constructor(
      */
     val payload: Payload,
     /**
-     * The generated Kotlin object generated Java must go through to reach the payload, or `null` when
-     * the domain-primitive can be read and rebuilt directly.
-     *
-     * Present only for a `value class` payload, whose accessor carries a signature hash and whose
-     * enclosing constructor is private in the bytecode. [java] already routes through it, so consulting
-     * this is only needed to emit something other than a read or a rebuild.
+     * What every expression is spelled from, over plain strings and names. Keeping the assembly in one place
+     * that needs no compiler is what lets AccessPlanSpec assert the expressions directly.
      */
-    val javaAccessShim: JavaAccessShim?
+    private val plan: AccessPlan
 ){
     /**
      * This domain-primitive's own name, in the four spellings generated code needs — most often
@@ -113,28 +93,23 @@ data class ValidatedKspGeneratorElement internal constructor(
      * val codecName = element.name.flatName() + "Codec"   // "IdsProductIdCodec"
      * ```
      */
-    val name: DotName = element.toDotName()
+    val name: DotName get() = plan.name
 
-    // Every expression is spelled in AccessPlan, over plain strings and names. Keeping the assembly in
-    // one place that needs no compiler is what lets AccessPlanSpec assert the expressions directly;
-    // this class contributes the answers only KSP can give.
-    private val plan: AccessPlan by lazy {
-        AccessPlan(
-            kotlinAccessor = rawKotlinAccessor,
-            kotlinFactory = factoryMethod?.simpleName?.asString(),
-            name = name,
-            javaAccessorName = javaAccessorName,
-            javaFactoryPath = javaFactoryPath,
-            unwrapping = unwrapping,
-            shim = javaAccessShim,
-            javaPrimitive = javaCreatePrimitive)
-    }
+    /**
+     * The generated Kotlin object generated Java must go through to reach the payload, or `null` when
+     * the domain-primitive can be read and rebuilt directly.
+     *
+     * Present only for a `value class` payload, whose accessor carries a signature hash and whose
+     * enclosing constructor is private in the bytecode. [java] already routes through it, so consulting
+     * this is only needed to emit something other than a read or a rebuild.
+     */
+    val javaAccessShim: JavaAccessShim? get() = plan.shim
 
     /** Expressions for generated Kotlin. See [KotlinPayload] for why they are worth asking for. */
-    val kotlin: KotlinPayload by lazy { KotlinPayload(plan) }
+    val kotlin: KotlinPayload = KotlinPayload(plan)
 
     /** Expressions for generated Java. See [JavaPayload] for the three names Java cannot guess. */
-    val java: JavaPayload by lazy { JavaPayload(plan) }
+    val java: JavaPayload = JavaPayload(plan)
 
     /**
      * Whether [payloadType] is a primitive on the JVM, and so whether generated code needs a null check
@@ -143,16 +118,6 @@ data class ValidatedKspGeneratorElement internal constructor(
      * `Integer` does not count, see [payload].
      */
     val isPayloadPrimitive: Boolean get() = payload is Payload.Primitive
-
-    private val rawKotlinAccessor: String by lazy {
-        when {
-        // If there's an explicit accessor method, use it (make sure to call as a function with '()')
-        accessorMethod != null -> "${accessorMethod.simpleName.asString()}()"
-        // For data classes, properties are automatically accessible
-        element.modifiers.contains(Modifier.DATA) -> declaredPayload.name
-        // For regular classes, assume properties are accessible (make sure to call as a property without '()')
-        else -> declaredPayload.name}
-    }
 }
 
 /**

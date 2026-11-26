@@ -193,8 +193,7 @@ private fun buildConverters(
 private fun buildReadConverter(element: ValidatedKspGeneratorElement): TypeSpec {
     val elementClassName = element.element.toClassName()
     val payloadTypeName = element.payloadType.toTypeName()
-    val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
-    val returnType = elementClassName.copy(nullable = factoryReturnsNullable)
+    val returnType = elementClassName.copy(nullable = element.kotlin.createIsNullable)
 
     return TypeSpec.classBuilder("${element.name.flatName()}ReadConverter")
         .addModifiers(KModifier.PRIVATE)

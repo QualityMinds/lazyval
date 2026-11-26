@@ -101,6 +101,15 @@ class AccessPlanSpec extends Specification {
         chain.kotlinCreate("raw").asSource() == "com.acme.Order(com.acme.Outer(raw.toULong()))"
     }
 
+    void "a rebuild is nullable exactly where the factory it calls answers null"() {
+        expect: 'createOrNull aside, a generator typing the result of create has to know'
+        plan(kotlinFactory: "ofNullable", returnsNullable: true).kotlinCreateIsNullable
+        !plan(kotlinFactory: "of").kotlinCreateIsNullable
+
+        and: 'a constructor cannot yield null, which is why one taking the payload as nullable is refused'
+        !plan().kotlinCreateIsNullable
+    }
+
     void "a null-safe rebuild is a let in either case, unwrapped or not"() {
         expect: 'Kotlin has no safe-call form for handing a nullable to a constructor'
         plan(unwrapping: steps).kotlinCreateOrNull("dbValue").asSource() == expected
@@ -205,13 +214,21 @@ class AccessPlanSpec extends Specification {
 
     // ---- helpers ------------------------------------------------------------------------
 
+    /**
+     * A factory is named by whichever of its two spellings a test cares about; the other one defaults to the
+     * same name, as it is for a {@code @JvmStatic} factory.
+     */
     private static AccessPlan plan(Map opts = [:]) {
+        def factory = (opts.kotlinFactory ?: opts.javaFactoryPath) as String
+        def creator = factory == null
+                ? Creator.Constructor.INSTANCE
+                : new Creator.Factory((opts.kotlinFactory ?: factory) as String,
+                (opts.javaFactoryPath ?: factory) as String, (opts.returnsNullable ?: false) as boolean)
         new AccessPlan(
-                (opts.kotlinAccessor ?: "value") as String,
-                opts.kotlinFactory as String,
                 (opts.name ?: DotName.of("com.acme", "Order")) as DotName,
+                (opts.kotlinAccessor ?: "value") as String,
+                creator,
                 (opts.javaAccessorName ?: "getValue") as String,
-                opts.javaFactoryPath as String,
                 (opts.unwrapping ?: []) as List<UnwrapStep>,
                 opts.shim as JavaAccessShim,
                 opts.javaPrimitive as Payload.Kind)

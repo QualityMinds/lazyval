@@ -110,9 +110,7 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
     fun generateDeserializer(element: ValidatedKspGeneratorElement): TypeSpec {
         val elementClassName = element.element.toClassName()
         val deserializerName = "${element.name.flatName()}Deserializer"
-
-        val factoryReturnsNullable = element.factoryMethod?.returnType?.resolve()?.isMarkedNullable ?: false
-        val returnType = elementClassName.copy(nullable = factoryReturnsNullable)
+        val returnType = elementClassName.copy(nullable = element.kotlin.createIsNullable)
         val needsCachedDeserializer = !element.isPayloadPrimitive && !isStringType(element.payloadType)
 
         val deserializeMethod = FunSpec.builder("deserialize")

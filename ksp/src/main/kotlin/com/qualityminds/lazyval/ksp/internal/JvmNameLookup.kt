@@ -46,13 +46,8 @@ internal class JvmNameLookup(private val resolver: Resolver) {
      * whole path. Without it Kotlin compiles a companion function onto the companion class alone,
      * reachable from Java through the companion's field — which is what an author writing a plain
      * `companion object { fun of(..) }` gets, instead of a call to a method that is not there.
-     *
-     * `null` when there is no factory and Java output should call the constructor.
      */
-    fun javaFactoryPath(factory: KSFunctionDeclaration?): String? {
-        if (factory == null) {
-            return null
-        }
+    fun javaFactoryPath(factory: KSFunctionDeclaration): String {
         val jvmName = jvmName(factory) ?: factory.simpleName.asString()
         if (factory.annotations.hasMarker(JVM_STATIC_ANNOTATION) ||
             Modifier.JAVA_STATIC in factory.modifiers) {
