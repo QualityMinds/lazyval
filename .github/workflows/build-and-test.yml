@@ -4,8 +4,8 @@ on:
   workflow_call:
   push:
     branches: [ "main" ]
+  # Every pull request, whatever its base, so that a PR stacked on another one's branch is built as well.
   pull_request:
-    branches: [ "main" ]
 
 permissions:
   contents: read
