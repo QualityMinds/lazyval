@@ -142,6 +142,9 @@ public class LazyvalJacksonModule extends SimpleModule {
     @Override
     public Ids.ProductId deserialize(JsonParser p, DeserializationContext ctxt) {
       String value = (String) innerDeserializer.deserialize(p, ctxt);
+      if (value == null) {
+        return null;
+      }
       return Ids.ProductId.of(value);
     }
   }
@@ -165,6 +168,9 @@ public class LazyvalJacksonModule extends SimpleModule {
     @Override
     public Isbn deserialize(JsonParser p, DeserializationContext ctxt) {
       String value = (String) innerDeserializer.deserialize(p, ctxt);
+      if (value == null) {
+        return null;
+      }
       return Isbn.parse(value);
     }
   }
@@ -188,6 +194,9 @@ public class LazyvalJacksonModule extends SimpleModule {
     @Override
     public OrderDate deserialize(JsonParser p, DeserializationContext ctxt) {
       LocalDate value = (LocalDate) innerDeserializer.deserialize(p, ctxt);
+      if (value == null) {
+        return null;
+      }
       return new OrderDate(value);
     }
   }

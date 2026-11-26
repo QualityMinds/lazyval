@@ -21,8 +21,9 @@ import static com.qualityminds.lazyval.processor.internal.codegen.JavaPoetExprs.
  * method therefore always receives a non-null argument and does not need to guard against null.
  * <p>
  * <b>Deserializer:</b> Jackson never calls {@code deserialize} for a JSON {@code null} token;
- * null tokens are resolved upstream before the deserializer is invoked. The factory method is
- * therefore always called with a non-null raw value.
+ * null tokens are resolved upstream before the deserializer is invoked. The delegate for a reference
+ * payload can still return {@code null} for another token, which yields a {@code null} domain-primitive.
+ * The factory method is therefore always called with a non-null raw value.
  * Java's type system provides no compile-time guarantee: if the factory returns {@code null}
  * for a non-null input (e.g. a blank-string guard), Jackson sets {@code null} on the target
  * field silently without throwing. If the target field is a non-nullable type, a
@@ -126,6 +127,18 @@ final class JacksonCodegen {
         } else {
             deserializeMethod.addStatement("$T value = ($T) innerDeserializer.deserialize(p, ctxt)",
                     payloadType, payloadType.box());
+            // Jackson's deserializer for a reference payload can return null for a token that is not JSON
+            // null: a LocalDate for "" by default, a String for [] under ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT
+            // or [null] under UNWRAP_SINGLE_VALUE_ARRAYS, and any deserializer the application registers,
+            // e.g. one reading blank input as null. The domain-primitive is null then, without calling the
+            // factory or constructor, as Jackson makes it for JSON null. Jackson's deserializer for a
+            // primitive payload never returns null; it reads null as 0 or fails.
+            if (!element.isPayloadPrimitive()) {
+                deserializeMethod
+                        .beginControlFlow("if (value == null)")
+                        .addStatement("return null")
+                        .endControlFlow();
+            }
         }
         deserializeMethod.addStatement("return $L", code(element.java().create("value")));
 

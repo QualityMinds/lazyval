@@ -16,6 +16,7 @@ import com.qualityminds.lazyval.integration.LazyvalJackson2Module
 import com.qualityminds.lazyval.integration.boundary.rest.model.Order
 import com.qualityminds.lazyval.integration.domain.OrderDate
 import com.qualityminds.lazyval.integration.shared.CouponCode
+import com.qualityminds.lazyval.integration.shared.Isbn
 import com.qualityminds.lazyval.integration.shared.Quantity
 import io.quarkus.test.junit.QuarkusTest
 import jakarta.inject.Inject
@@ -176,6 +177,26 @@ class QuarkusJacksonIT {
     }
 
     @Test
+    void "a String deserializer reading blank input as null makes the domain-primitive null"() {
+        // a mapper whose String deserializer reads blank input as null, as an application-wide input policy
+        def blankAsNull = JsonMapper.builder()
+                .addModule(new LazyvalJackson2Module())
+                .addModule(new SimpleModule().addDeserializer(String, new BlankAsNullDeserializer()))
+                .build()
+
+        // null, as for JSON null, without calling the factory: CouponCode.ofNullable accepts null, Isbn.parse rejects it
+        assert read(blankAsNull, '"   "', CouponCode) == null
+        assert read(blankAsNull, '"   "', Isbn) == null
+    }
+
+    @Test
+    void "an empty string is a null OrderDate, as Jackson reads it as a null LocalDate"() {
+        // Jackson reads "" as null for LocalDate by default, so OrderDate is null rather than built around null
+        assert read(jsonMapper, '""', LocalDate) == null
+        assert read(jsonMapper, '""', OrderDate) == null
+    }
+
+    @Test
     void "a String serializer registered on the mapper also writes String payloads"() {
         // a mapper whose String serializer masks every value, as an application-wide output policy
         def masking = JsonMapper.builder()
@@ -212,6 +233,20 @@ class QuarkusJacksonIT {
         @Override
         String deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
             return p.getValueAsString()?.replaceAll('<[^>]*>', '')
+        }
+    }
+
+    /** Reads blank input as null, as an application might for optional text. */
+    static class BlankAsNullDeserializer extends StdDeserializer<String> {
+
+        BlankAsNullDeserializer() {
+            super(String)
+        }
+
+        @Override
+        String deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+            def text = p.getValueAsString()
+            return text?.isBlank() ? null : text
         }
     }
 
