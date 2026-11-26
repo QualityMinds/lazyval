@@ -213,6 +213,22 @@ internal fun nonPublicConstructorMessage(
             "Make the constructor public, or add a factory function in the companion object."
 }
 
+/**
+ * Points at the constructor, which would otherwise have been the way back in. The fix it names is the
+ * nullable wrapper on a factory, with the constructor kept private behind it.
+ */
+internal fun nullableConstructorMessage(
+    classDeclaration: KSClassDeclaration,
+    constructor: KSFunctionDeclaration,
+    payloadType: KSType
+): String {
+    val name = classDeclaration.simpleName.asString()
+    val parameterType = constructor.parameters[0].type.resolve().shortName()
+    return "Constructor '$name($parameterType?)' takes the payload as nullable, but a constructor cannot yield null. " +
+            "Make the constructor private and add a factory function in the companion object that returns $name? " +
+            "for a null payload, or take ${payloadType.shortName()} instead."
+}
+
 /** Nothing to point at, so this one names the type and the payload it cannot be rebuilt from. */
 internal fun missingConstructorMessage(classDeclaration: KSClassDeclaration, payloadType: KSType): String =
     "Class '${classDeclaration.simpleName.asString()}' cannot be reconstructed from its payload: " +

@@ -200,9 +200,13 @@ A factory that is `internal` in *another* module stays rejected; however, it is 
 would make it callable from the generated Java, because `internal` is public in the bytecode — but most
 of what Lazyval generates is Kotlin, and there `internal` means what it says.
 
-In Kotlin, nullability is ignored when matching: a `fun ofNullable(value: String?): Isbn?` counts as a
-factory for a `String` payload, and counts towards the at-most-one limit alongside a
-`fun of(value: String): Isbn`. A constructor parameter is matched the same way.
+In Kotlin, nullability is ignored when matching a factory: a `fun ofNullable(value: String?): Isbn?` counts
+as a factory for a `String` payload, and counts towards the at-most-one limit alongside a
+`fun of(value: String): Isbn`. So does a `fun of(value: String?): Isbn` that yields a default for `null`.
+
+A constructor is matched by the exact payload type. It cannot yield `null`, so one taking `String?` for a
+`String` payload would have to invent a value for it, and Lazyval reports it as an error. Keep that constructor
+private and add a factory returning `Isbn?` for a null payload, like the `ofNullable` above, or take `String`.
 
 [#payload-type]
 == Payload type

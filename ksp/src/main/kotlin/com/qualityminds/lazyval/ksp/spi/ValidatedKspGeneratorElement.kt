@@ -114,8 +114,8 @@ data class ValidatedKspGeneratorElement internal constructor(
      * Whether the parameter Java output rebuilds through is a primitive, and so whether a boxed payload
      * has to be unboxed for it. Not always the case for a primitive payload: nullability is ignored when
      * a factory is matched, so a factory over `Int?` rebuilds an `Int` payload, and in Java it takes the
-     * `Integer` a boxed payload already is. The shim takes [payloadType], the constructor the payload as
-     * declared, which the validator keeps non-null.
+     * `Integer` a boxed payload already is. The shim takes [payloadType], and the constructor takes the
+     * payload exactly as declared, which the validator keeps non-null.
      */
     private val javaCreateTakesPrimitive: Boolean
         get() = when {
