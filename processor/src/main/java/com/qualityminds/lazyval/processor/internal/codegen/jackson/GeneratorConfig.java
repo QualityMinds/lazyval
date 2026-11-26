@@ -5,6 +5,10 @@ import com.qualityminds.lazyval.processor.spi.Generator;
 
 /**
  * Captures the package/class differences between Jackson 2 and Jackson 3.
+ *
+ * <p>{@code contextualViaInterface}: Jackson 2 calls {@code createContextual} only on a (de)serializer
+ * that implements {@link #contextualSerializer()} or {@link #contextualDeserializer()}, and that method
+ * throws {@link #jsonMappingException()}.
  */
 record GeneratorConfig(
         String spiPackage,
@@ -22,8 +26,8 @@ record GeneratorConfig(
         String lazyvalJacksonModuleName,
         String valueSerializerClass,
         String valueDeserializerClass,
-        String parserStringMethod,
         boolean deserializerDeclaresExceptions,
+        boolean contextualViaInterface,
         Class<? extends Generator> executingGenerator
 ) {
     static final GeneratorConfig JACKSON_2 = new GeneratorConfig(
@@ -42,7 +46,7 @@ record GeneratorConfig(
             "LazyvalJackson2Module",
             "JsonSerializer",
             "JsonDeserializer",
-            "getText",
+            true,
             true,
             Jackson2Generator.class
     );
@@ -63,7 +67,7 @@ record GeneratorConfig(
             "LazyvalJacksonModule",
             "ValueSerializer",
             "ValueDeserializer",
-            "getString",
+            false,
             false,
             Jackson3Generator.class
     );
@@ -122,5 +126,30 @@ record GeneratorConfig(
 
     ClassName valueDeserializer() {
         return ClassName.get(databindPackage, valueDeserializerClass);
+    }
+
+    ClassName beanProperty() {
+        return ClassName.get(databindPackage, "BeanProperty");
+    }
+
+    /**
+     * Jackson 2 only, see {@link #contextualViaInterface()}: Jackson 3 declares {@code createContextual}
+     * on every {@code ValueSerializer}.
+     */
+    ClassName contextualSerializer() {
+        return ClassName.get(databindPackage + ".ser", "ContextualSerializer");
+    }
+
+    /**
+     * Jackson 2 only, see {@link #contextualViaInterface()}: Jackson 3 declares {@code createContextual}
+     * on every {@code ValueDeserializer}.
+     */
+    ClassName contextualDeserializer() {
+        return ClassName.get(databindPackage + ".deser", "ContextualDeserializer");
+    }
+
+    /** Jackson 2 only: what its {@code createContextual} declares, a checked exception there. */
+    ClassName jsonMappingException() {
+        return ClassName.get(databindPackage, "JsonMappingException");
     }
 }

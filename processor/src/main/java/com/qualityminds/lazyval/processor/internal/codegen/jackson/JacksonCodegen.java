@@ -55,7 +55,9 @@ final class JacksonCodegen {
             serializeMethod.addException(ClassName.get("java.io", "IOException"));
         }
 
-        boolean needsCachedSerializer = false;
+        var builder = TypeSpec.classBuilder(serializerName)
+                .superclass(ParameterizedTypeName.get(generatorConfig.stdSerializer(), elementType));
+
         if (element.payload() instanceof Payload.Primitive primitive) {
             // Exhaustive over Kind on purpose: no default arm, so adding a primitive kind is a
             // compile error here rather than a silent fall-through to writeString.
@@ -65,45 +67,31 @@ final class JacksonCodegen {
                 case CHAR, BYTE -> "gen.writeString(String.valueOf($L))";
             };
             serializeMethod.addStatement(writeStatement, code(element.java().read("value")));
-        } else if (isStringPayload(element)) {
-            // Direct write — avoids per-call serializer lookup. Bypasses any user-customized
-            // String serializer; acceptable for scalar wrapper payloads.
-            serializeMethod.addStatement("gen.writeString($L)", code(element.java().read("value")));
-        } else {
-            // Resolve the delegate serializer (e.g. JavaTimeModule for DateTime types) once
-            // and cache it. Benign data race on assignment: redundant resolution yields an
-            // equivalent serializer, never an incorrect one.
-            needsCachedSerializer = true;
-            var cachedFieldType = ParameterizedTypeName.get(generatorConfig.valueSerializer(), ClassName.OBJECT);
-            serializeMethod
-                    .addStatement("$T ser = this.innerSerializer", cachedFieldType)
-                    .beginControlFlow("if (ser == null)")
-                    .addStatement("ser = provider.findValueSerializer($T.class)", TypeName.get(element.payloadType()))
-                    .addStatement("this.innerSerializer = ser")
-                    .endControlFlow()
-                    .addStatement("ser.serialize($L, gen, provider)", code(element.java().read("value")));
+            return builder
+                    .addField(instanceField(serializerName, ""))
+                    .addMethod(MethodSpec.constructorBuilder()
+                            .addModifiers(Modifier.PROTECTED)
+                            .addStatement("super($T.class)", elementType).build())
+                    .addMethod(serializeMethod.build())
+                    .build();
         }
 
-        var builder = TypeSpec.classBuilder(serializerName)
-                .superclass(ParameterizedTypeName.get(generatorConfig.stdSerializer(), elementType))
-                .addField(FieldSpec.builder(
-                                ClassName.bestGuess(serializerName), "INSTANCE",
-                                Modifier.STATIC, Modifier.FINAL)
-                        .initializer("new $L()", serializerName).build())
-                .addMethod(MethodSpec.constructorBuilder()
-                        .addModifiers(Modifier.PROTECTED)
-                        .addStatement("super($T.class)", elementType).build())
-                .addMethod(serializeMethod.build());
-
-        if (needsCachedSerializer) {
-            builder.addField(FieldSpec.builder(
-                            ParameterizedTypeName.get(generatorConfig.valueSerializer(), ClassName.OBJECT),
-                            "innerSerializer",
-                            Modifier.PRIVATE)
-                    .build());
+        var delegateType = ParameterizedTypeName.get(generatorConfig.valueSerializer(), ClassName.OBJECT);
+        serializeMethod.addStatement("innerSerializer.serialize($L, gen, provider)", code(element.java().read("value")));
+        var createContextual = contextualFactory(generatorConfig.valueSerializer(), generatorConfig.serializerProvider(),
+                "provider")
+                .addStatement("return new $L(provider.findContentValueSerializer($T.class, property))",
+                        serializerName, TypeName.get(element.payloadType()));
+        if (generatorConfig.contextualViaInterface()) {
+            builder.addSuperinterface(generatorConfig.contextualSerializer());
         }
-
-        return builder.build();
+        return builder
+                .addField(instanceField(serializerName, "null"))
+                .addField(FieldSpec.builder(delegateType, "innerSerializer", Modifier.PRIVATE, Modifier.FINAL).build())
+                .addMethod(delegatingConstructor(elementType, delegateType, "innerSerializer"))
+                .addMethod(createContextual.build())
+                .addMethod(serializeMethod.build())
+                .build();
     }
 
     TypeSpec generateDeserializer(ValidatedGeneratorElement element) {
@@ -123,6 +111,8 @@ final class JacksonCodegen {
                     .addException(ClassName.get(generatorConfig.corePackage(), "JacksonException"));
         }
 
+        // Declared with the payload type rather than var: from the delegate, a char payload would
+        // otherwise be a Character, and bind to a factory overload taking Character or Object.
         var payloadType = TypeName.get(element.payloadType());
         var directRead = directRead(element);
         if (directRead.isPresent()) {
@@ -130,51 +120,69 @@ final class JacksonCodegen {
                     .addStatement("$T value", payloadType)
                     .beginControlFlow("if ($L)", directRead.get().condition())
                     .addStatement("value = $L", directRead.get().read())
-                    .nextControlFlow("else");
-            addDelegateLookup(deserializeMethod, payloadType);
-            deserializeMethod
-                    .addStatement("value = ($T) deser.deserialize(p, ctxt)", payloadType.box())
+                    .nextControlFlow("else")
+                    .addStatement("value = ($T) innerDeserializer.deserialize(p, ctxt)", payloadType.box())
                     .endControlFlow();
         } else {
-            addDelegateLookup(deserializeMethod, payloadType);
-            deserializeMethod.addStatement("var value = ($T) deser.deserialize(p, ctxt)", payloadType.box());
+            deserializeMethod.addStatement("$T value = ($T) innerDeserializer.deserialize(p, ctxt)",
+                    payloadType, payloadType.box());
         }
+        deserializeMethod.addStatement("return $L", code(element.java().create("value")));
 
-        deserializeMethod
-                .addStatement("return $L", code(element.java().create("value")));
-
-        return TypeSpec.classBuilder(deserializerName)
-                .superclass(ParameterizedTypeName.get(generatorConfig.stdDeserializer(), elementType))
-                .addField(FieldSpec.builder(
-                                ClassName.bestGuess(deserializerName), "INSTANCE",
-                                Modifier.STATIC, Modifier.FINAL)
-                        .initializer("new $L()", deserializerName).build())
-                .addField(FieldSpec.builder(
-                                ParameterizedTypeName.get(generatorConfig.valueDeserializer(), ClassName.OBJECT),
-                                "innerDeserializer",
-                                Modifier.PRIVATE)
-                        .build())
-                .addMethod(MethodSpec.constructorBuilder()
-                        .addModifiers(Modifier.PROTECTED)
-                        .addStatement("super($T.class)", elementType).build())
+        var delegateType = ParameterizedTypeName.get(generatorConfig.valueDeserializer(), ClassName.OBJECT);
+        var createContextual = contextualFactory(generatorConfig.valueDeserializer(),
+                generatorConfig.deserializationContext(), "ctxt")
+                .addStatement("return new $L(ctxt.findContextualValueDeserializer(ctxt.constructType($T.class), property))",
+                        deserializerName, payloadType);
+        var builder = TypeSpec.classBuilder(deserializerName)
+                .superclass(ParameterizedTypeName.get(generatorConfig.stdDeserializer(), elementType));
+        if (generatorConfig.contextualViaInterface()) {
+            builder.addSuperinterface(generatorConfig.contextualDeserializer());
+        }
+        return builder
+                .addField(instanceField(deserializerName, "null"))
+                .addField(FieldSpec.builder(delegateType, "innerDeserializer", Modifier.PRIVATE, Modifier.FINAL).build())
+                .addMethod(delegatingConstructor(elementType, delegateType, "innerDeserializer"))
+                .addMethod(createContextual.build())
                 .addMethod(deserializeMethod.build())
                 .build();
     }
 
+    /** The instance the module registers; for a delegating (de)serializer, one that has no delegate yet. */
+    private static FieldSpec instanceField(String typeName, String constructorArgument) {
+        return FieldSpec.builder(ClassName.bestGuess(typeName), "INSTANCE", Modifier.STATIC, Modifier.FINAL)
+                .initializer("new $L($L)", typeName, constructorArgument)
+                .build();
+    }
+
+    private static MethodSpec delegatingConstructor(TypeName elementType, TypeName delegateType, String delegate) {
+        return MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PROTECTED)
+                .addParameter(delegateType, delegate)
+                .addStatement("super($T.class)", elementType)
+                .addStatement("this.$N = $N", delegate, delegate)
+                .build();
+    }
+
     /**
-     * Resolves Jackson's own deserializer for the payload type (e.g. JavaTimeModule for DateTime types,
-     * or the primitive {@code int} deserializer) once and caches it. Benign data race on assignment:
-     * redundant resolution yields an equivalent deserializer, never an incorrect one.
+     * {@code createContextual}, which Jackson calls on the registered instance for every mapper and every
+     * property, before the first value is read or written. The (de)serializer it returns carries
+     * Jackson's own (de)serializer for the payload type, resolved by that mapper for that property —
+     * including whatever the application registered for the payload type, its config overrides, and a
+     * {@code @JsonFormat} on the property. Resolved per call rather than cached on the shared
+     * instance, so one mapper's resolution never reaches another.
      */
-    private void addDelegateLookup(MethodSpec.Builder deserializeMethod, TypeName payloadType) {
-        var cachedFieldType = ParameterizedTypeName.get(generatorConfig.valueDeserializer(), ClassName.OBJECT);
-        deserializeMethod
-                .addStatement("$T deser = this.innerDeserializer", cachedFieldType)
-                .beginControlFlow("if (deser == null)")
-                .addStatement("deser = ctxt.findContextualValueDeserializer(ctxt.constructType($T.class), null)",
-                        payloadType)
-                .addStatement("this.innerDeserializer = deser")
-                .endControlFlow();
+    private MethodSpec.Builder contextualFactory(ClassName valueType, ClassName contextType, String contextName) {
+        var builder = MethodSpec.methodBuilder("createContextual")
+                .addAnnotation(OVERRIDE_ANNOTATION)
+                .addModifiers(Modifier.PUBLIC)
+                .returns(ParameterizedTypeName.get(valueType, WildcardTypeName.subtypeOf(Object.class)))
+                .addParameter(contextType, contextName)
+                .addParameter(generatorConfig.beanProperty(), "property");
+        if (generatorConfig.contextualViaInterface()) {
+            builder.addException(generatorConfig.jsonMappingException());
+        }
+        return builder;
     }
 
     /**
@@ -187,49 +195,38 @@ final class JacksonCodegen {
     private record DirectRead(CodeBlock condition, String read) {}
 
     /**
-     * The direct read for a primitive or {@code String} payload, so valid input skips the delegate call.
-     * Any other token goes to Jackson's deserializer for the payload type, never to a lenient
-     * {@code getValueAs*()}: those turn an object, array or boolean into {@code 0}, {@code null} or
-     * {@code 1} and leave the parser inside the unconsumed value. Through the delegate, coercion config,
-     * {@code UNWRAP_SINGLE_VALUE_ARRAYS} and {@code MismatchedInputException}s with the property path are
-     * Jackson's.
+     * The direct read for a primitive payload, so valid input skips the delegate call. Any other token
+     * goes to Jackson's deserializer for the payload type, never to a lenient {@code getValueAs*()}: those
+     * turn an object, array or boolean into {@code 0} or {@code 1} and leave the parser inside the
+     * unconsumed value. Through the delegate, coercion config, {@code UNWRAP_SINGLE_VALUE_ARRAYS} and
+     * {@code MismatchedInputException}s with the property path are Jackson's.
      * <p>
      * Empty for {@code char}: a direct read would need the same one-character-string check Jackson's
-     * {@code char} deserializer starts with, so it would save nothing. Empty as well for every other
-     * payload, which is always delegated.
+     * {@code char} deserializer starts with, so it would save nothing. Empty for {@code String} as well, so
+     * that a String deserializer the application registers — trimming, sanitizing, rejecting control
+     * characters — applies to String payloads too. Every other payload is always delegated.
      */
     private Optional<DirectRead> directRead(ValidatedGeneratorElement element) {
+        if (!(element.payload() instanceof Payload.Primitive primitive)) {
+            return Optional.empty();
+        }
         var jsonToken = generatorConfig.jsonToken();
         var intToken = CodeBlock.of("p.isExpectedNumberIntToken()");
         var floatToken = CodeBlock.of("p.hasToken($T.VALUE_NUMBER_FLOAT)", jsonToken);
-        if (element.payload() instanceof Payload.Primitive primitive) {
-            // Exhaustive over Kind on purpose: no default arm, so adding a primitive kind is a
-            // compile error here rather than a silent fall-through to the delegate.
-            return switch (primitive.kind()) {
-                case INT -> Optional.of(new DirectRead(intToken, "p.getIntValue()"));
-                case LONG -> Optional.of(new DirectRead(intToken, "p.getLongValue()"));
-                case SHORT -> Optional.of(new DirectRead(intToken, "p.getShortValue()"));
-                case BYTE -> Optional.of(new DirectRead(intToken, "p.getByteValue()"));
-                case DOUBLE -> Optional.of(new DirectRead(floatToken, "p.getDoubleValue()"));
-                case FLOAT -> Optional.of(new DirectRead(floatToken, "p.getFloatValue()"));
-                case BOOLEAN -> Optional.of(new DirectRead(
-                        CodeBlock.of("p.hasToken($T.VALUE_TRUE) || p.hasToken($T.VALUE_FALSE)", jsonToken, jsonToken),
-                        "p.getBooleanValue()"));
-                case CHAR -> Optional.empty();
-            };
-        }
-        if (isStringPayload(element)) {
-            // Bypasses any user-customized String deserializer for string tokens; acceptable for
-            // scalar wrapper payloads.
-            return Optional.of(new DirectRead(
-                    CodeBlock.of("p.hasToken($T.VALUE_STRING)", jsonToken),
-                    "p." + generatorConfig.parserStringMethod() + "()"));
-        }
-        return Optional.empty();
-    }
-
-    private static boolean isStringPayload(ValidatedGeneratorElement element) {
-        return "java.lang.String".equals(element.payloadType().toString());
+        // Exhaustive over Kind on purpose: no default arm, so adding a primitive kind is a
+        // compile error here rather than a silent fall-through to the delegate.
+        return switch (primitive.kind()) {
+            case INT -> Optional.of(new DirectRead(intToken, "p.getIntValue()"));
+            case LONG -> Optional.of(new DirectRead(intToken, "p.getLongValue()"));
+            case SHORT -> Optional.of(new DirectRead(intToken, "p.getShortValue()"));
+            case BYTE -> Optional.of(new DirectRead(intToken, "p.getByteValue()"));
+            case DOUBLE -> Optional.of(new DirectRead(floatToken, "p.getDoubleValue()"));
+            case FLOAT -> Optional.of(new DirectRead(floatToken, "p.getFloatValue()"));
+            case BOOLEAN -> Optional.of(new DirectRead(
+                    CodeBlock.of("p.hasToken($T.VALUE_TRUE) || p.hasToken($T.VALUE_FALSE)", jsonToken, jsonToken),
+                    "p.getBooleanValue()"));
+            case CHAR -> Optional.empty();
+        };
     }
 
     TypeSpec generateModule(List<TypeSpec> serializers, List<TypeSpec> deserializers,

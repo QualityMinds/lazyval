@@ -146,6 +146,23 @@ class KspJacksonIT extends Specification {
         dependencyJackson_3_Databind | dependencyJackson_3_Core | GENERATED_FILE_NAME_3
     }
 
+    void "a char payload is passed to the matched char factory, not to its nullable overload (#generatedFile)"(){
+        given: 'a Char payload with of(Char) and an of(Char?) overload of another return type'
+        def scenario = Scenario.Kotlin.ofSingle("scenarios/edge/CharFactoryOverload.kt")
+                .withDependencies(databind, core)
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario)
+
+        then: 'a call bound to of(Char?) would not compile'
+        result == new Testresult.Kotlin.Success(generatedFile)
+
+        where:
+        databind                     | core                     | generatedFile
+        dependencyJackson_2_Databind | dependencyJackson_2_Core | GENERATED_FILE_NAME_2
+        dependencyJackson_3_Databind | dependencyJackson_3_Core | GENERATED_FILE_NAME_3
+    }
+
     void "When Jackson 2 and 3 are active are warning is issued"(){
         given:
         def scenario = Scenario.Kotlin.quantity()
