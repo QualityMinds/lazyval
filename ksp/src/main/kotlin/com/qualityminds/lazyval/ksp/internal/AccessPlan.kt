@@ -21,14 +21,13 @@ import com.qualityminds.lazyval.naming.Payload
  * imports. The two facades in
  * [PayloadAccess][com.qualityminds.lazyval.ksp.spi.KotlinPayload] are thin wrappers over these.
  *
+ * @param name the domain-primitive's own name
  * @param kotlinAccessor Kotlin spelling that reads the *declared* payload off an instance — `"money"`
  *                       for a property, `"money()"` for an accessor function. Which of the two applies
  *                       is a KSP question, so it arrives already answered.
- * @param kotlinFactory simple name of the domain-primitive's factory, or `null` to call its constructor
- * @param name the domain-primitive's own name
+ * @param creator how the domain-primitive is built from its declared payload, in either language
  * @param javaAccessorName bytecode name of the accessor Java output has to call, which `@JvmName` and
  *                         `internal` both move away from the Kotlin declaration
- * @param javaFactoryPath dot-path from the Java type down to the factory, or `null` for the constructor
  * @param unwrapping the value-class chain, outermost first; empty when the payload is carried as
  *                   declared. Non-empty exactly when [shim] is set — both mean "value class payload".
  * @param shim the generated Kotlin object generated Java goes through, or `null` when it can go direct
@@ -36,17 +35,23 @@ import com.qualityminds.lazyval.naming.Payload
  *                      takes a reference type; what a boxed payload is unboxed to
  */
 internal data class AccessPlan(
-    val kotlinAccessor: String,
-    val kotlinFactory: String?,
     val name: DotName,
+    val kotlinAccessor: String,
+    val creator: Creator,
     val javaAccessorName: String,
-    val javaFactoryPath: String?,
     val unwrapping: List<UnwrapStep>,
     val shim: JavaAccessShim?,
     val javaPrimitive: Payload.Kind?
 ) {
     /** Whether the payload is a `value class`, and so reached through [unwrapping] rather than directly. */
     val isUnwrapped: Boolean get() = unwrapping.isNotEmpty()
+
+    /** Whether [kotlinCreate] can evaluate to `null`, which it does where the factory it calls answers `null`. */
+    val kotlinCreateIsNullable: Boolean
+        get() = when (creator) {
+            is Creator.Factory -> creator.returnsNullable
+            Creator.Constructor -> false
+        }
 
     /**
      * Kotlin expression reading the payload out of [instance], unwrapped all the way down.
@@ -113,10 +118,10 @@ internal data class AccessPlan(
      */
     private fun kotlinConstruct(value: String): PayloadExpr = payloadExpr {
         type(name, name.canonicalName())
-        if (kotlinFactory != null) {
-            text(".$kotlinFactory")
+        when (creator) {
+            is Creator.Factory -> text(".${creator.kotlinName}($value)")
+            Creator.Constructor -> text("($value)")
         }
-        text("($value)")
     }
 
     /**
@@ -142,14 +147,17 @@ internal data class AccessPlan(
             }
         } else {
             payloadExpr {
-                if (javaFactoryPath == null) {
-                    text("new ")
+                when (creator) {
+                    is Creator.Factory -> {
+                        type(name, name.canonicalName())
+                        text(".${creator.javaPath}($value)")
+                    }
+                    Creator.Constructor -> {
+                        text("new ")
+                        type(name, name.canonicalName())
+                        text("($value)")
+                    }
                 }
-                type(name, name.canonicalName())
-                if (javaFactoryPath != null) {
-                    text(".$javaFactoryPath")
-                }
-                text("($value)")
             }
         }
 
@@ -160,6 +168,26 @@ internal data class AccessPlan(
      */
     fun javaCreateFromBoxed(boxedValue: String): PayloadExpr =
         javaCreate(javaPrimitive?.let { "(${it.keyword()}) $boxedValue" } ?: boxedValue)
+}
+
+/**
+ * How the domain-primitive is built from its declared payload: through its factory where it has one, because that
+ * is where it validates what it is built from, and through its constructor otherwise.
+ */
+internal sealed interface Creator {
+
+    /**
+     * @param kotlinName the factory's name, which is all Kotlin needs: a companion function is reachable through
+     *                   the type whether or not it is `@JvmStatic`
+     * @param javaPath the dot-path from the Java type down to the factory — `"of"` for a `@JvmStatic` function,
+     *                 `"Companion.of"` (or the companion's own name) for one without, since Kotlin then compiles
+     *                 it onto the companion class rather than onto the type
+     * @param returnsNullable whether the factory returns the domain-primitive as nullable, `Isbn?`
+     */
+    data class Factory(val kotlinName: String, val javaPath: String, val returnsNullable: Boolean) : Creator
+
+    /** The constructor taking the payload. */
+    data object Constructor : Creator
 }
 
 /** Assembles a [PayloadExpr] out of literal text and the types it names. */

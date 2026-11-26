@@ -106,6 +106,19 @@ class KotlinPayload internal constructor(private val plan: AccessPlan) {
      * `raw?.let { com.acme.Price(com.acme.Money(it)) }` for a `value class` payload.
      */
     fun createOrNull(payload: String): PayloadExpr = plan.kotlinCreateOrNull(payload)
+
+    /**
+     * Whether [create] can evaluate to `null`, which it does where the factory it calls returns the
+     * domain-primitive as nullable — an `ofNullable(value: String?): ProductId?`, say. A generator typing the
+     * result makes that type nullable then:
+     *
+     * ```
+     * val returnType = element.element.toClassName().copy(nullable = element.kotlin.createIsNullable)
+     * ```
+     *
+     * [createOrNull] is nullable either way.
+     */
+    val createIsNullable: Boolean get() = plan.kotlinCreateIsNullable
 }
 
 /**

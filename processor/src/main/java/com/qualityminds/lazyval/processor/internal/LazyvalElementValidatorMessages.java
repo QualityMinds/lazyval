@@ -6,14 +6,51 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Every diagnostic {@link LazyvalElementValidator} reports about an unreachable or unsupported declaration.
+ * The wording of every diagnostic {@link LazyvalElementValidator} reports, and of nothing else: which rule
+ * applies, and when, is the validator's business.
  * <p>
  * They live together because they are held to two consistency requirements that are easy to break
- * one message at a time: {@code ApIT} asserts each of them verbatim.
+ * one message at a time: {@code ApIT} asserts each of them verbatim, and where a rule is the same for
+ * both languages its message reads the same as the Kotlin processor's.
  */
 final class LazyvalElementValidatorMessages {
 
+    static final String UNSUPPORTED_KIND_MESSAGE = "Only records and classes are supported by Lazyval.";
+    static final String ABSTRACT_CLASS_MESSAGE = "Abstract class is not a valid ValueType.";
+    static final String NOT_FINAL_CLASS_WARNING =
+            "Value Types should not be extendable, hence the class should be final.";
+    static final String NOT_FINAL_PAYLOAD_WARNING =
+            "Value Types should be immutable, hence the payload field should be final.";
+
     private LazyvalElementValidatorMessages() {}
+
+    /**
+     * Nothing to point at but the type. A record that declares components, all of them transient, is told so,
+     * because it does not look empty to its author.
+     */
+    static String noPayloadMessage(TypeElement lazyvalElement, boolean transientOnly) {
+        if (lazyvalElement.getKind() != ElementKind.RECORD) {
+            return "No non-transient field found. Lazyval requires the ValueType to have exactly one non-transient"
+                    + " field exposed by a public accessor.";
+        }
+        return transientOnly
+                ? "No non-transient record component found. Lazyval requires the ValueType to have exactly one"
+                        + " non-transient record component."
+                : "No record component found. Lazyval requires the ValueType to have exactly one field.";
+    }
+
+    /** Worded for what the type is, because a record's payload is a component and a class's a field. */
+    static String severalPayloadsMessage(TypeElement lazyvalElement) {
+        return lazyvalElement.getKind() == ElementKind.RECORD
+                ? "Not a simple ValueType. Lazyval only supports Records with one non-transient field."
+                : "Not a simple ValueType. Lazyval only supports Objects with one non-transient value.";
+    }
+
+    /** Lists the candidates, since the author has to pick one of them to keep. */
+    static String severalFactoriesMessage(List<ExecutableElement> factories) {
+        return "Multiple matching factory methods with the same signature found. Please check methods:"
+                + factories.stream().map(m -> m.getSimpleName().toString()).collect(Collectors.joining(", "));
+    }
 
     /**
      * The type itself rather than a member of it, and the first thing generated code needs: it has to

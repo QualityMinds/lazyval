@@ -36,6 +36,24 @@ This guide will help you get started and ensure your contributions are productiv
     - WHY it was changed
     - HOW it can be tested (if relevant)
 
+## 📏 Adding or Changing a Rule
+
+The rules Lazyval holds a `@LazyValue` type to are listed in one method per processor, in the order they are
+judged: `validate` in
+[`LazyvalElementValidator`](processor/src/main/java/com/qualityminds/lazyval/processor/internal/LazyvalElementValidator.java)
+for Java and in
+[`LazyvalKspElementValidator`](ksp/src/main/kotlin/com/qualityminds/lazyval/ksp/internal/LazyvalKspElementValidator.kt)
+for Kotlin. Each block there starts with the section of the [rules page](_documentation/modules/ROOT/pages/rules.adoc)
+that explains it. A new rule needs:
+
+1. a step in that method, under the section it belongs to;
+2. its wording in `LazyvalElementValidatorMessages` (KSP: `LazyvalKspElementValidatorMessages.kt`);
+3. a failing scenario in `ApIT` (KSP: `KspIT`);
+4. an explanation on the rules page.
+
+What a rule judges is looked up beforehand and handed to it as data — `PayloadLookup` and `CreatorLookup` say how —
+so a rule that needs a new fact gets it added there rather than looked up inside `validate`.
+
 ## 🤝 Support & Contact
 
 If you need help or have questions, feel free to open an [issue](https://github.com/QualityMinds/lazyval/issues).

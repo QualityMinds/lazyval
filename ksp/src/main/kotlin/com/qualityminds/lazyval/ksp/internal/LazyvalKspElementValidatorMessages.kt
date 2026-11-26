@@ -4,6 +4,26 @@ package com.qualityminds.lazyval.ksp.internal
 import com.google.devtools.ksp.getVisibility
 import com.google.devtools.ksp.symbol.*
 
+// The wording of every diagnostic LazyvalKspElementValidator reports, and of nothing else: which rule applies,
+// and when, is the validator's business. They live together because KspIT asserts each of them verbatim, and
+// because where a rule is the same for both languages, its message reads the same as the APT processor's.
+
+internal const val UNSUPPORTED_KIND_MESSAGE = "Only classes and data classes are supported by Lazyval."
+internal const val ABSTRACT_CLASS_MESSAGE = "Abstract class is not a valid ValueType."
+internal const val VALUE_CLASS_MESSAGE = "value class is not supported by Lazyval."
+internal const val NO_PROPERTY_MESSAGE =
+    "No accessible properties found. Lazyval requires the ValueType to have exactly one accessible property."
+internal const val SEVERAL_PROPERTIES_MESSAGE =
+    "Not a simple ValueType. Lazyval only supports classes with one non-transient property."
+internal const val NULLABLE_PAYLOAD_MESSAGE = "Payload must not be nullable. Please use a non-nullable type."
+internal const val NOT_FINAL_CLASS_WARNING = "Value Types should not be extendable, hence the class should be final."
+internal const val NOT_FINAL_PAYLOAD_WARNING =
+    "Value Types should be immutable, hence the payload property should be final (val)."
+
+/** Lists the candidates, since the author has to pick one of them to keep. */
+internal fun severalFactoriesMessage(factories: List<KSFunctionDeclaration>): String =
+    "Multiple matching factory methods with the same signature found. Please check functions " +
+            factories.joinToString(", ") { it.simpleName.asString() }
 
 /**
  * The type itself rather than a member of it, and the first thing generated code needs: it has to be
