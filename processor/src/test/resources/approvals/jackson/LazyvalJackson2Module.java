@@ -152,6 +152,9 @@ public class LazyvalJackson2Module extends SimpleModule {
     public Ids.ProductId deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
         JacksonException {
       String value = (String) innerDeserializer.deserialize(p, ctxt);
+      if (value == null) {
+        return null;
+      }
       return Ids.ProductId.of(value);
     }
   }
@@ -176,6 +179,9 @@ public class LazyvalJackson2Module extends SimpleModule {
     public Isbn deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
         JacksonException {
       String value = (String) innerDeserializer.deserialize(p, ctxt);
+      if (value == null) {
+        return null;
+      }
       return Isbn.parse(value);
     }
   }
@@ -200,6 +206,9 @@ public class LazyvalJackson2Module extends SimpleModule {
     public OrderDate deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
         JacksonException {
       LocalDate value = (LocalDate) innerDeserializer.deserialize(p, ctxt);
+      if (value == null) {
+        return null;
+      }
       return new OrderDate(value);
     }
   }

@@ -22,18 +22,24 @@ import com.squareup.kotlinpoet.ksp.toTypeName
  * therefore always receives a non-null argument and does not need to guard against null.
  *
  * **Deserializer:** Jackson never calls `deserialize` for a JSON `null` token; null tokens
- * are resolved upstream before the deserializer is invoked. The factory method is therefore
- * always called with a non-null raw value.
+ * are resolved upstream before the deserializer is invoked. The delegate for a reference payload
+ * can still return `null` for another token, which yields a `null` domain-primitive, see
+ * [deserializeBody]. The factory method is therefore always called with a non-null raw value.
  *
- * The generated `StdDeserializer` type parameter and `deserialize` return type reflect the
- * factory method's declared nullability:
- * - **Non-nullable factory** → `StdDeserializer<DomainType>`, `deserialize(): DomainType`
- * - **Nullable factory** → `StdDeserializer<DomainType?>`, `deserialize(): DomainType?`
+ * The generated `StdDeserializer` type parameter and `deserialize` return type are nullable
+ * where `deserialize` can return `null`:
+ * - **Primitive payload, non-nullable factory** → `StdDeserializer<DomainType>`, `deserialize(): DomainType`
+ * - **Reference payload, or nullable factory** → `StdDeserializer<DomainType?>`, `deserialize(): DomainType?`
  *
- * Jackson does **not** throw when a deserializer returns `null` for a non-null JSON value.
- * The `null` is set on the target field silently. If the target field is a non-nullable Kotlin
- * property, a `NullPointerException` will be thrown at first access, not during deserialization.
- * Any property holding a type with a nullable factory **must** be declared as `DomainType?`.
+ * Jackson itself does **not** throw when a deserializer returns `null` for a non-null JSON value;
+ * the target treats that `null` the way it treats JSON `null`. A Kotlin class read through
+ * jackson-module-kotlin fails deserialization for a non-nullable creator parameter, with a
+ * `KotlinInvalidNullException`, which is a `MismatchedInputException`. A Java model gets the
+ * `null` set silently, whether through a setter or a `@JsonCreator` (`required = true` only asks
+ * for the property to be present), so a `NullPointerException` follows at first access unless
+ * validation rejects the `null` first. A property is therefore declared `DomainType?` wherever the
+ * domain-primitive can be `null`: for a nullable factory, or for input the payload's deserializer
+ * reads as `null`.
  */
 internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
 
@@ -81,7 +87,8 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
     fun generateDeserializer(element: ValidatedKspGeneratorElement): TypeSpec {
         val elementClassName = element.element.toClassName()
         val deserializerName = "${element.name.flatName()}Deserializer"
-        val returnType = elementClassName.copy(nullable = element.kotlin.createIsNullable)
+        // A reference payload's delegate can yield null, see deserializeBody
+        val returnType = elementClassName.copy(nullable = element.kotlin.createIsNullable || !element.isPayloadPrimitive)
 
         val deserializeMethod = FunSpec.builder("deserialize")
             .addModifiers(KModifier.OVERRIDE)
@@ -108,22 +115,41 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
             .build()
     }
 
+    /**
+     * Reads the payload and rebuilds the domain-primitive from it.
+     *
+     * Jackson's deserializer for a reference payload can return `null` for a token that is not JSON
+     * `null`: a `LocalDate` for `""` by default, a `String` for `[]` under
+     * `ACCEPT_EMPTY_ARRAY_AS_NULL_OBJECT` or `[null]` under `UNWRAP_SINGLE_VALUE_ARRAYS`, and any
+     * deserializer the application registers, e.g. one reading blank input as `null`. The domain-primitive
+     * is `null` then, without calling the factory or constructor, as Jackson makes it for JSON `null`.
+     * Jackson's deserializer for a primitive payload never returns `null`; it reads `null` as `0` or fails.
+     */
     private fun deserializeBody(
         element: ValidatedKspGeneratorElement
     ): FunSpec.Builder.() -> Unit {
         val payloadType = element.payloadType.toTypeName()
         val directRead = directRead(element)
+        val delegateRead = "checkNotNull(innerDeserializer).deserialize(p, ctx) as %T"
         return {
-            if (directRead != null) {
-                beginControlFlow("val value = if (%L)", directRead.condition)
-                addStatement("%L", directRead.read)
-                nextControlFlow("else")
-                addStatement("checkNotNull(innerDeserializer).deserialize(p, ctx) as %T", payloadType)
-                endControlFlow()
-            } else {
-                addStatement("val value = checkNotNull(innerDeserializer).deserialize(p, ctx) as %T", payloadType)
+            when {
+                directRead != null -> {
+                    beginControlFlow("val value = if (%L)", directRead.condition)
+                    addStatement("%L", directRead.read)
+                    nextControlFlow("else")
+                    addStatement(delegateRead, payloadType)
+                    endControlFlow()
+                    addStatement("return %L", element.kotlin.create("value").kotlinPoet())
+                }
+                element.isPayloadPrimitive -> {
+                    addStatement("val value = $delegateRead", payloadType)
+                    addStatement("return %L", element.kotlin.create("value").kotlinPoet())
+                }
+                else -> {
+                    addStatement("val value = $delegateRead", payloadType.copy(nullable = true))
+                    addStatement("return %L", element.kotlin.createOrNull("value").kotlinPoet())
+                }
             }
-            addStatement("return %L", element.kotlin.create("value").kotlinPoet())
         }
     }
 

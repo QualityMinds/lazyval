@@ -136,25 +136,25 @@ public class LazyvalJackson2Module : SimpleModule("LazyvalJackson2Module", Versi
 
   private class IdsProductIdDeserializer(
     private val innerDeserializer: JsonDeserializer<Any>? = null,
-  ) : StdDeserializer<Ids.ProductId>(Ids.ProductId::class.java),
+  ) : StdDeserializer<Ids.ProductId?>(Ids.ProductId::class.java),
       ContextualDeserializer {
     override fun createContextual(ctx: DeserializationContext, `property`: BeanProperty?): JsonDeserializer<*> = IdsProductIdDeserializer(ctx.findContextualValueDeserializer(ctx.constructType(String::class.java), property))
 
-    override fun deserialize(p: JsonParser, ctx: DeserializationContext): Ids.ProductId {
-      val value = checkNotNull(innerDeserializer).deserialize(p, ctx) as String
-      return Ids.ProductId.of(value)
+    override fun deserialize(p: JsonParser, ctx: DeserializationContext): Ids.ProductId? {
+      val value = checkNotNull(innerDeserializer).deserialize(p, ctx) as String?
+      return value?.let { Ids.ProductId.of(it) }
     }
   }
 
   private class IsbnDeserializer(
     private val innerDeserializer: JsonDeserializer<Any>? = null,
-  ) : StdDeserializer<Isbn>(Isbn::class.java),
+  ) : StdDeserializer<Isbn?>(Isbn::class.java),
       ContextualDeserializer {
     override fun createContextual(ctx: DeserializationContext, `property`: BeanProperty?): JsonDeserializer<*> = IsbnDeserializer(ctx.findContextualValueDeserializer(ctx.constructType(String::class.java), property))
 
-    override fun deserialize(p: JsonParser, ctx: DeserializationContext): Isbn {
-      val value = checkNotNull(innerDeserializer).deserialize(p, ctx) as String
-      return Isbn.parse(value)
+    override fun deserialize(p: JsonParser, ctx: DeserializationContext): Isbn? {
+      val value = checkNotNull(innerDeserializer).deserialize(p, ctx) as String?
+      return value?.let { Isbn.parse(it) }
     }
   }
 
@@ -176,13 +176,13 @@ public class LazyvalJackson2Module : SimpleModule("LazyvalJackson2Module", Versi
 
   private class OrderDateDeserializer(
     private val innerDeserializer: JsonDeserializer<Any>? = null,
-  ) : StdDeserializer<OrderDate>(OrderDate::class.java),
+  ) : StdDeserializer<OrderDate?>(OrderDate::class.java),
       ContextualDeserializer {
     override fun createContextual(ctx: DeserializationContext, `property`: BeanProperty?): JsonDeserializer<*> = OrderDateDeserializer(ctx.findContextualValueDeserializer(ctx.constructType(LocalDate::class.java), property))
 
-    override fun deserialize(p: JsonParser, ctx: DeserializationContext): OrderDate {
-      val value = checkNotNull(innerDeserializer).deserialize(p, ctx) as LocalDate
-      return OrderDate(value)
+    override fun deserialize(p: JsonParser, ctx: DeserializationContext): OrderDate? {
+      val value = checkNotNull(innerDeserializer).deserialize(p, ctx) as LocalDate?
+      return value?.let { OrderDate(it) }
     }
   }
 

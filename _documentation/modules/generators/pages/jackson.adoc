@@ -25,6 +25,12 @@ for an `int`), and anything else, such as an object, an array or `true` for an `
 `MismatchedInputException` carrying the property path. A (de)serializer the application registers for a primitive
 type is therefore not consulted for the values the shortcut handles.
 
+JSON `null` never reaches the generated deserializer: Jackson sets the property to `null` itself. Jackson's
+deserializer for a reference payload can still return `null` for another token, e.g. for `""` as a `LocalDate` by
+default, or for blank input read by a `String` deserializer the application registered to do so. The
+domain-primitive is `null` then, the same as for JSON `null`, and its factory or constructor is not called. Jackson's
+deserializer for a primitive payload never returns `null`.
+
 NOTE: Jackson and JSON-B address the same problem from two different ecosystems. If your application uses
 Jakarta JSON-B instead of (or in addition to) Jackson, see xref:jsonb.adoc[JSON-B].
 
@@ -178,6 +184,9 @@ public class LazyvalJacksonModule extends SimpleModule {
     public Isbn deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
         JacksonException {
       String value = (String) innerDeserializer.deserialize(p, ctxt);
+      if (value == null) {
+        return null;
+      }
       return Isbn.parse(value);
     }
   }
@@ -262,12 +271,12 @@ public class LazyvalJacksonModule : SimpleModule("LazyvalJacksonModule", Version
   // Any other wrapper: the mapper's own deserializer for the payload type, resolved per mapper and property.
   private class IsbnDeserializer(
     private val innerDeserializer: ValueDeserializer<Any>? = null,
-  ) : StdDeserializer<Isbn>(Isbn::class.java) {
+  ) : StdDeserializer<Isbn?>(Isbn::class.java) {
     override fun createContextual(ctx: DeserializationContext, `property`: BeanProperty?): ValueDeserializer<*> = IsbnDeserializer(ctx.findContextualValueDeserializer(ctx.constructType(String::class.java), property))
 
-    override fun deserialize(p: JsonParser, ctx: DeserializationContext): Isbn {
-      val value = checkNotNull(innerDeserializer).deserialize(p, ctx) as String
-      return Isbn.parse(value)
+    override fun deserialize(p: JsonParser, ctx: DeserializationContext): Isbn? {
+      val value = checkNotNull(innerDeserializer).deserialize(p, ctx) as String?
+      return value?.let { Isbn.parse(it) }
     }
   }
 
