@@ -75,8 +75,10 @@ class JavaCompileStep {
         }
     }
 
-    public static JavaCompileStep create(ProjectLayout layout, Scenario.Descriptor scenarioDescriptor, LogCollector logCollector) {
+    public static JavaCompileStep create(ProjectLayout layout, Scenario.Descriptor scenarioDescriptor, List<File> library,
+                                         LogCollector logCollector) {
         var classpath = new ArrayList<>(CoreModuleDependency.RESOLVED_FILE.toSet());
+        classpath.addAll(library);
         KotlinToolchainDependencies.KOTLIN_STDLIB.resolve().forEach(classpath::add);
         scenarioDescriptor.dependencies().stream().map(Dependency::resolve).forEach(deps -> classpath.addAll(deps.toSet()));
         return new JavaCompileStep(layout, List.copyOf(classpath), logCollector);

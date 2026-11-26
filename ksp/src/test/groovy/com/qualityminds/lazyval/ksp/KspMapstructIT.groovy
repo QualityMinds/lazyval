@@ -105,6 +105,24 @@ class KspMapstructIT extends Specification {
         result == Testresult.Kotlin.Approved.of(approvals)
     }
 
+    void "Mapstruct maps a boxed payload of a shared Java type as the reference it is"() {
+        given: 'a type from a shared Java module whose payload is an Integer, which Kotlin sees as Int'
+        def scenario = Scenario.Kotlin.ofSingle("scenarios/edge/SharedPointsConfig.kt")
+                .withJavaLibrary("scenarios/shared/Points.java")
+                .withDependencies(dependencyMapstruct, dependencyJakartaAnnotations)
+
+        and: 'the payload mapped as Integer, null-checked, which binds Points.of(Integer) rather than of(long)'
+        List<Approval.ForKotlin> approvals = [
+                Approval.JavaSource.at("test/$GENERATED_FILE_NAME", "approvals/mapstruct/LazyvalMapperSharedJavaPayload.java")
+        ]
+
+        when:
+        def result = testkitKotlin.run(projectDir, scenario, approvals)
+
+        then:
+        result == Testresult.Kotlin.Approved.of(approvals)
+    }
+
     void "Warning is issued when package is not configured in any way"(){
         given:
         def scenario = Scenario.Kotlin.quantity().withDependencies(dependencyMapstruct)

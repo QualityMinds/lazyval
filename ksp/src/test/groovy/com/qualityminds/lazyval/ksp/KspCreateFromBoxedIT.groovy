@@ -17,7 +17,8 @@ import java.nio.file.Path
  * Each one declares, next to the creator Lazyval matches, an overload javac would pick for the wrong argument
  * form, and that overload does not compile where the generated Java calls it. So the boxed payload has to be
  * unboxed where the matched creator takes {@code Int}, and passed as it is where it takes {@code Int?}, which
- * only a factory can: a constructor taking the payload as nullable is rejected.
+ * only a factory can: a constructor taking the payload as nullable is rejected. A Java creator taking an
+ * {@code Integer} counts as the latter, although Kotlin sees its parameter as {@code Int}.
  */
 @Title("KSP SPI - rebuilding from a boxed payload in Java")
 class KspCreateFromBoxedIT extends Specification {
@@ -31,6 +32,9 @@ class KspCreateFromBoxedIT extends Specification {
     void "a boxed payload is rebuilt through the matched #creator"() {
         given:
         def scenario = Scenario.Kotlin.of(creator, "scenarios/edge/CreateFromBoxedProbe.kt", source)
+        if (library) {
+            scenario.withJavaLibrary(library)
+        }
 
         when:
         def result = testkitKotlin.run(projectDir, scenario)
@@ -39,9 +43,10 @@ class KspCreateFromBoxedIT extends Specification {
         result == new Testresult.Kotlin.Success(generatedFile)
 
         where:
-        creator                    | source                                         || generatedFile
-        'constructor taking Int'   | 'scenarios/edge/BoxedConstructorOverload.kt'   || 'BoxedConstructorOverloadProbe.java'
-        'factory taking Int'       | 'scenarios/kotlin/Quantity.kt'                 || 'QuantityProbe.java'
-        'factory taking Int?'      | 'scenarios/edge/NullableFactoryPayload.kt'     || 'NullableFactoryPayloadProbe.java'
+        creator                         | source                                       | library                          || generatedFile
+        'constructor taking Int'        | 'scenarios/edge/BoxedConstructorOverload.kt' | null                             || 'BoxedConstructorOverloadProbe.java'
+        'factory taking Int'            | 'scenarios/kotlin/Quantity.kt'               | null                             || 'QuantityProbe.java'
+        'factory taking Int?'           | 'scenarios/edge/NullableFactoryPayload.kt'   | null                             || 'NullableFactoryPayloadProbe.java'
+        'Java factory taking Integer'   | 'scenarios/edge/SharedPointsConfig.kt'       | 'scenarios/shared/Points.java'   || 'PointsProbe.java'
     }
 }

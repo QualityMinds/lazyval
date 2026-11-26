@@ -7,6 +7,7 @@ import com.qualityminds.lazyval.testkit.dependencies.Dependency;
 import com.qualityminds.lazyval.testkit.scenarios.Scenario;
 import kotlin.KotlinVersion;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -62,9 +63,10 @@ class KspStep implements AutoCloseable {
             ClassLoader parentClassLoader,
             ProjectLayout layout,
             Scenario.Descriptor scenarioDescriptor,
+            List<File> library,
             LogCollector logCollector) {
         var processorClassloader = createProcessorClassloader(parentClassLoader, scenarioDescriptor);
-        var ksp = configureKsp(processorClassloader, layout, scenarioDescriptor, logCollector);
+        var ksp = configureKsp(processorClassloader, layout, scenarioDescriptor, library, logCollector);
         return new KspStep(ksp, processorClassloader);
     }
 
@@ -92,9 +94,11 @@ class KspStep implements AutoCloseable {
             URLClassLoader processorClassloader,
             ProjectLayout layout,
             Scenario.Descriptor scenarioDescriptor,
+            List<File> library,
             LogCollector logCollector) {
         try {
             var libraries = new ArrayList<>(CoreModuleDependency.RESOLVED_FILE.toSet());
+            libraries.addAll(library);
             // Real Kotlin projects always have kotlin-stdlib on KSP's classpath; without it,
             // stdlib types (incl. @kotlin.jvm.Transient) resolve as <error>.
             KotlinToolchainDependencies.KOTLIN_STDLIB.resolve().forEach(libraries::add);

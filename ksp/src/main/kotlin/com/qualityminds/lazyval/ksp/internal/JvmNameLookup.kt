@@ -3,13 +3,15 @@ package com.qualityminds.lazyval.ksp.internal
 import com.google.devtools.ksp.KspExperimental
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.symbol.*
+import com.qualityminds.lazyval.naming.Payload
 
 private const val JVM_STATIC_ANNOTATION = "kotlin.jvm.JvmStatic"
 
 /**
- * Answers what a member is *called* in the bytecode, which is the one thing about it that Java output
- * cannot read off the Kotlin declaration. The companion question to [AccessorLookup], which answers
- * *which* member exposes the payload; together they settle what a generated Java call looks like.
+ * Answers what a member is *called* in the bytecode, and what it takes and returns there: the things about
+ * it that Java output cannot read off the Kotlin declaration. The companion question to [AccessorLookup],
+ * which answers *which* member exposes the payload; together they settle what a generated Java call looks
+ * like.
  *
  * Deliberately not part of [AccessorLookup], whose contract is to be a pure, KSP-free heuristic that
  * unit tests can drive without constructing KSP symbols. Every answer here comes from [Resolver], so
@@ -65,6 +67,58 @@ internal class JvmNameLookup(private val resolver: Resolver) {
     }
 
     /**
+     * The payload as generated Java carries it. Kotlin's type names the payload, but cannot tell whether a
+     * Java declaration holds it as a primitive: Java's `int` and `Integer` both reach Kotlin as `Int`, an
+     * unannotated `Integer` as `Int!`, and one under JSpecify's `@NonNull` as plain `Int`. So a payload Kotlin
+     * sees as a primitive is checked against the JVM signature of what Java reads it through, and is the
+     * boxed type where that returns a reference.
+     *
+     * An [unwrapped] payload keeps Kotlin's answer: generated Java reaches a value class through the shim,
+     * which carries the unwrapped type as Kotlin declares it.
+     */
+    fun javaPayload(
+        payloadType: KSType,
+        property: KSPropertyDeclaration,
+        accessor: KSFunctionDeclaration?,
+        unwrapped: Boolean
+    ): Payload {
+        val payload = payloadType.toPayload()
+        if (payload !is Payload.Primitive || unwrapped) {
+            return payload
+        }
+        val readsReference = jvmSignature(accessor ?: property)?.substringAfter(')')?.isReferenceType() ?: false
+        return if (readsReference) Payload.Declared(payload.kind.boxed()) else payload
+    }
+
+    /**
+     * The primitive a boxed payload has to be unboxed to before generated Java passes it to [creator], or
+     * `null` where [creator] takes a reference on the JVM, as a Kotlin `Int?` or a Java `Integer` does. Passed
+     * unboxed to a creator that takes a reference, or boxed to one that takes a primitive, the value binds to
+     * whatever overload javac prefers for that form instead of to [creator].
+     *
+     * Read off the JVM signature for the reason given at [javaPayload], and falls back to Kotlin's nullability
+     * where the signature cannot be resolved. [creator] is `null` where Java goes through the shim, which takes
+     * the unwrapped payload as Kotlin declares it: non-null, by the value-class rules.
+     */
+    fun javaCreatePrimitive(payload: Payload, creator: KSFunctionDeclaration?): Payload.Kind? {
+        if (payload !is Payload.Primitive) {
+            return null
+        }
+        val takesReference = creator?.let { function ->
+            jvmSignature(function)?.substringAfter('(')?.isReferenceType()
+                ?: function.parameters.single().type.resolve().isMarkedNullable
+        } ?: false
+        return if (takesReference) null else payload.kind
+    }
+
+    /**
+     * The JVM signature of [declaration]: a method descriptor such as `(Ljava/lang/Integer;)V` for a function,
+     * a type descriptor such as `I` for a property. `null` signals a resolution failure.
+     */
+    @OptIn(KspExperimental::class)
+    private fun jvmSignature(declaration: KSDeclaration): String? = resolver.mapToJvmSignature(declaration)
+
+    /**
      * The name [function] carries in the bytecode. Differs from the Kotlin name whenever `@JvmName`
      * renames it, and carries a `$module` suffix when the function is `internal` — which is why an
      * internal factory is asked for `@JvmName` rather than having that suffix hard-coded into
@@ -83,3 +137,6 @@ internal class JvmNameLookup(private val resolver: Resolver) {
     @OptIn(KspExperimental::class)
     private fun jvmName(accessor: KSPropertyAccessor): String? = resolver.getJvmName(accessor)
 }
+
+/** Whether the JVM type descriptor this string starts with names a reference type or an array, not a primitive. */
+private fun String.isReferenceType(): Boolean = startsWith('L') || startsWith('[')

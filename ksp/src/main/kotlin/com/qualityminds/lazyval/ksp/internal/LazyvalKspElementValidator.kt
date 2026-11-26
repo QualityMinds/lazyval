@@ -99,6 +99,15 @@ internal class LazyvalKspElementValidator(
         }
         warnOnNonFinal(classDeclaration, valueProperty)
         val factoryMethod = factoryMethods.firstOrNull()
+        val javaPayloadType = javaPayloadType(payloadType, valueClass)
+        val javaAccessShim = javaAccessShim(classDeclaration, valueProperty, valueClass)
+        val payload = jvmNames.javaPayload(javaPayloadType, valueProperty, accessorMethod, javaAccessShim != null)
+        // The creator generated Java calls; none where it goes through the shim instead.
+        val javaCreator = when {
+            javaAccessShim != null -> null
+            factoryMethod != null -> factoryMethod
+            else -> findPayloadConstructor(classDeclaration, payloadType)
+        }
         return ValidatedKspGeneratorElement(
             classDeclaration,
             DeclaredPayload(valueProperty),
@@ -106,9 +115,11 @@ internal class LazyvalKspElementValidator(
             accessorMethod,
             jvmNames.javaAccessorName(valueProperty, accessorMethod),
             jvmNames.javaFactoryPath(factoryMethod),
+            jvmNames.javaCreatePrimitive(payload, javaCreator),
             (valueClass as? ValueClassInspection.Unwrappable)?.payload?.steps.orEmpty(),
-            javaPayloadType(payloadType, valueClass),
-            javaAccessShim(classDeclaration, valueProperty, valueClass))
+            javaPayloadType,
+            payload,
+            javaAccessShim)
     }
 
     /** Rules about the class itself, independent of what it wraps. */
