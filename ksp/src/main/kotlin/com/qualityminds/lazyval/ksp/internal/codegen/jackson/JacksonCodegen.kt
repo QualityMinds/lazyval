@@ -6,7 +6,6 @@ import com.qualityminds.lazyval.ksp.spi.Generator
 import com.qualityminds.lazyval.naming.Payload
 import com.qualityminds.lazyval.naming.Payload.Kind
 import com.qualityminds.lazyval.ksp.spi.ValidatedKspGeneratorElement
-import com.google.devtools.ksp.symbol.KSType
 import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import com.squareup.kotlinpoet.ksp.toClassName
@@ -42,68 +41,40 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
         val elementClassName = element.element.toClassName()
         val serializerName = "${element.name.flatName()}Serializer"
 
-        val needsCachedSerializer = !element.isPayloadPrimitive && !isStringType(element.payloadType)
-
-        val serializeBody: FunSpec.Builder.() -> Unit = when {
-            element.isPayloadPrimitive -> {
-                {
-                    // Exhaustive over Kind on purpose: no else arm, so adding a primitive kind is
-                    // a compile error here rather than a silent fall-through to writeString.
-                    val writeStatement = when (element.primitiveKind()) {
-                        Kind.INT, Kind.LONG, Kind.SHORT, Kind.FLOAT, Kind.DOUBLE ->
-                            "gen.writeNumber(${element.kotlin.read("value")})"
-                        Kind.BOOLEAN -> "gen.writeBoolean(${element.kotlin.read("value")})"
-                        Kind.CHAR, Kind.BYTE -> "gen.writeString(${element.kotlin.read("value")}.toString())"
-                    }
-                    addStatement(writeStatement)
-                }
-            }
-            isStringType(element.payloadType) -> {
-                {
-                    // Direct write — avoids per-call serializer lookup. Bypasses any user-customized
-                    // String serializer; acceptable for scalar wrapper payloads.
-                    addStatement("gen.writeString(${element.kotlin.read("value")})")
-                }
-            }
-            else -> {
-                {
-                    // Resolve the delegate serializer (e.g. JavaTimeModule for DateTime types) once
-                    // and cache it. Benign data race on assignment: redundant resolution yields an
-                    // equivalent serializer, never an incorrect one.
-                    addStatement(
-                        "val ser = innerSerializer ?: ctx.findValueSerializer(%T::class.java).also { innerSerializer = it }",
-                        element.payloadType.toTypeName()
-                    )
-                    addStatement("ser.serialize(${element.kotlin.read("value")}, gen, ctx)")
-                }
-            }
-        }
-
+        val serializeMethod = FunSpec.builder("serialize")
+            .addModifiers(KModifier.OVERRIDE)
+            .addParameter("value", elementClassName)
+            .addParameter("gen", generatorConfig.jsonGenerator())
+            .addParameter("ctx", generatorConfig.serializerProvider())
         val builder = TypeSpec.classBuilder(serializerName)
             .superclass(generatorConfig.stdSerializer().parameterizedBy(elementClassName))
             .addSuperclassConstructorParameter(CodeBlock.of("%T::class.java", elementClassName))
 
-        if (needsCachedSerializer) {
-            val cachedFieldType = generatorConfig.valueSerializer().parameterizedBy(ANY).copy(nullable = true)
-            builder.addProperty(
-                PropertySpec.builder("innerSerializer", cachedFieldType)
-                    .addModifiers(KModifier.PRIVATE)
-                    .mutable(true)
-                    .initializer("null")
-                    .build()
-            )
+        if (element.isPayloadPrimitive) {
+            // Exhaustive over Kind on purpose: no else arm, so adding a primitive kind is
+            // a compile error here rather than a silent fall-through to writeString.
+            val writeStatement = when (element.primitiveKind()) {
+                Kind.INT, Kind.LONG, Kind.SHORT, Kind.FLOAT, Kind.DOUBLE ->
+                    "gen.writeNumber(${element.kotlin.read("value")})"
+                Kind.BOOLEAN -> "gen.writeBoolean(${element.kotlin.read("value")})"
+                Kind.CHAR, Kind.BYTE -> "gen.writeString(${element.kotlin.read("value")}.toString())"
+            }
+            return builder.addFunction(serializeMethod.addStatement(writeStatement).build()).build()
         }
 
-        return builder
-            .addFunction(
-                FunSpec.builder("serialize")
-                    .addModifiers(KModifier.OVERRIDE)
-                    .addParameter("value", elementClassName)
-                    .addParameter("gen", generatorConfig.jsonGenerator())
-                    .addParameter("ctx", generatorConfig.serializerProvider())
-                    .apply(serializeBody)
-                    .build()
+        serializeMethod.addStatement("checkNotNull(innerSerializer).serialize(${element.kotlin.read("value")}, gen, ctx)")
+        val createContextual = contextualFactory(generatorConfig.valueSerializer(), generatorConfig.serializerProvider())
+            .addStatement(
+                "return %T(ctx.findContentValueSerializer(%T::class.java, property))",
+                ClassName("", serializerName), element.payloadType.toTypeName()
             )
+        if (generatorConfig.contextualViaInterface) {
+            builder.addSuperinterface(generatorConfig.contextualSerializer())
+        }
+        return builder
+            .withDelegate("innerSerializer", generatorConfig.valueSerializer())
+            .addFunction(createContextual.build())
+            .addFunction(serializeMethod.build())
             .build()
     }
 
@@ -118,18 +89,21 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
             .addParameter("p", generatorConfig.jsonParser())
             .addParameter("ctx", generatorConfig.deserializationContext())
             .apply(deserializeBody(element))
+        val createContextual = contextualFactory(generatorConfig.valueDeserializer(), generatorConfig.deserializationContext())
+            .addStatement(
+                "return %T(ctx.findContextualValueDeserializer(ctx.constructType(%T::class.java), property))",
+                ClassName("", deserializerName), element.payloadType.toTypeName()
+            )
 
-        val cachedFieldType = generatorConfig.valueDeserializer().parameterizedBy(ANY).copy(nullable = true)
-        return TypeSpec.classBuilder(deserializerName)
+        val builder = TypeSpec.classBuilder(deserializerName)
             .superclass(generatorConfig.stdDeserializer().parameterizedBy(returnType))
             .addSuperclassConstructorParameter(CodeBlock.of("%T::class.java", elementClassName))
-            .addProperty(
-                PropertySpec.builder("innerDeserializer", cachedFieldType)
-                    .addModifiers(KModifier.PRIVATE)
-                    .mutable(true)
-                    .initializer("null")
-                    .build()
-            )
+        if (generatorConfig.contextualViaInterface) {
+            builder.addSuperinterface(generatorConfig.contextualDeserializer())
+        }
+        return builder
+            .withDelegate("innerDeserializer", generatorConfig.valueDeserializer())
+            .addFunction(createContextual.build())
             .addFunction(deserializeMethod.build())
             .build()
     }
@@ -144,28 +118,47 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
                 beginControlFlow("val value = if (%L)", directRead.condition)
                 addStatement("%L", directRead.read)
                 nextControlFlow("else")
-                addDelegateLookup(payloadType)
-                addStatement("deser.deserialize(p, ctx) as %T", payloadType)
+                addStatement("checkNotNull(innerDeserializer).deserialize(p, ctx) as %T", payloadType)
                 endControlFlow()
             } else {
-                addDelegateLookup(payloadType)
-                addStatement("val value = deser.deserialize(p, ctx) as %T", payloadType)
+                addStatement("val value = checkNotNull(innerDeserializer).deserialize(p, ctx) as %T", payloadType)
             }
             addStatement("return %L", element.kotlin.create("value").kotlinPoet())
         }
     }
 
     /**
-     * Resolves Jackson's own deserializer for the payload type (e.g. JavaTimeModule for DateTime types,
-     * or the primitive `int` deserializer) once and caches it. Benign data race on assignment: redundant
-     * resolution yields an equivalent deserializer, never an incorrect one.
+     * The delegate as a constructor property, `null` on the instance the module registers and set on
+     * every instance [contextualFactory] returns.
      */
-    private fun FunSpec.Builder.addDelegateLookup(payloadType: TypeName) {
-        addStatement(
-            "val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(%T::class.java), null).also { innerDeserializer = it }",
-            payloadType
+    private fun TypeSpec.Builder.withDelegate(name: String, valueType: ClassName): TypeSpec.Builder {
+        val delegateType = valueType.parameterizedBy(ANY).copy(nullable = true)
+        return primaryConstructor(
+            FunSpec.constructorBuilder()
+                .addParameter(ParameterSpec.builder(name, delegateType).defaultValue("null").build())
+                .build()
+        ).addProperty(
+            PropertySpec.builder(name, delegateType)
+                .addModifiers(KModifier.PRIVATE)
+                .initializer(name)
+                .build()
         )
     }
+
+    /**
+     * `createContextual`, which Jackson calls on the registered instance for every mapper and every
+     * property, before the first value is read or written. The (de)serializer it returns carries
+     * Jackson's own (de)serializer for the payload type, resolved by that mapper for that property —
+     * including whatever the application registered for the payload type, its config overrides, and a
+     * `@JsonFormat` on the property. Resolved per call rather than cached on the shared instance, so
+     * one mapper's resolution never reaches another.
+     */
+    private fun contextualFactory(valueType: ClassName, contextType: ClassName): FunSpec.Builder =
+        FunSpec.builder("createContextual")
+            .addModifiers(KModifier.OVERRIDE)
+            .addParameter("ctx", contextType)
+            .addParameter("property", generatorConfig.beanProperty().copy(nullable = true))
+            .returns(valueType.parameterizedBy(STAR))
 
     /**
      * A payload read straight off the parser, guarded by the token check Jackson's own deserializer for
@@ -177,43 +170,36 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
     private class DirectRead(val condition: CodeBlock, val read: String)
 
     /**
-     * The direct read for a primitive or `String` payload, so valid input skips the delegate call.
-     * Any other token goes to Jackson's deserializer for the payload type, never to a lenient
-     * `valueAs*`: those turn an object, array or boolean into `0`, `null` or `1` and leave the parser
-     * inside the unconsumed value. Through the delegate, coercion config, `UNWRAP_SINGLE_VALUE_ARRAYS`
-     * and `MismatchedInputException`s with the property path are Jackson's.
+     * The direct read for a primitive payload, so valid input skips the delegate call. Any other token
+     * goes to Jackson's deserializer for the payload type, never to a lenient `valueAs*`: those turn an
+     * object, array or boolean into `0` or `1` and leave the parser inside the unconsumed value. Through
+     * the delegate, coercion config, `UNWRAP_SINGLE_VALUE_ARRAYS` and `MismatchedInputException`s with the
+     * property path are Jackson's.
      *
      * `null` for `Char`: a direct read would need the same one-character-string check Jackson's `char`
-     * deserializer starts with, so it would save nothing. `null` as well for every other payload, which
-     * is always delegated.
+     * deserializer starts with, so it would save nothing. `null` for `String` as well, so that a String
+     * deserializer the application registers — trimming, sanitizing, rejecting control characters —
+     * applies to String payloads too. Every other payload is always delegated.
      */
     private fun directRead(element: ValidatedKspGeneratorElement): DirectRead? {
+        if (!element.isPayloadPrimitive) return null
         val jsonToken = generatorConfig.jsonToken()
         val intToken = CodeBlock.of("p.isExpectedNumberIntToken")
         val floatToken = CodeBlock.of("p.hasToken(%T.VALUE_NUMBER_FLOAT)", jsonToken)
-        return when {
-            // Exhaustive over Kind on purpose: no else arm, so adding a primitive kind is a compile
-            // error here rather than a silent fall-through to the delegate.
-            element.isPayloadPrimitive -> when (element.primitiveKind()) {
-                Kind.INT -> DirectRead(intToken, "p.intValue")
-                Kind.LONG -> DirectRead(intToken, "p.longValue")
-                Kind.SHORT -> DirectRead(intToken, "p.shortValue")
-                Kind.BYTE -> DirectRead(intToken, "p.byteValue")
-                Kind.DOUBLE -> DirectRead(floatToken, "p.doubleValue")
-                Kind.FLOAT -> DirectRead(floatToken, "p.floatValue")
-                Kind.BOOLEAN -> DirectRead(
-                    CodeBlock.of("p.hasToken(%T.VALUE_TRUE) || p.hasToken(%T.VALUE_FALSE)", jsonToken, jsonToken),
-                    "p.booleanValue"
-                )
-                Kind.CHAR -> null
-            }
-            // Bypasses any user-customized String deserializer for string tokens; acceptable for
-            // scalar wrapper payloads.
-            isStringType(element.payloadType) -> DirectRead(
-                CodeBlock.of("p.hasToken(%T.VALUE_STRING)", jsonToken),
-                "p.${generatorConfig.parserStringProperty}"
+        // Exhaustive over Kind on purpose: no else arm, so adding a primitive kind is a compile
+        // error here rather than a silent fall-through to the delegate.
+        return when (element.primitiveKind()) {
+            Kind.INT -> DirectRead(intToken, "p.intValue")
+            Kind.LONG -> DirectRead(intToken, "p.longValue")
+            Kind.SHORT -> DirectRead(intToken, "p.shortValue")
+            Kind.BYTE -> DirectRead(intToken, "p.byteValue")
+            Kind.DOUBLE -> DirectRead(floatToken, "p.doubleValue")
+            Kind.FLOAT -> DirectRead(floatToken, "p.floatValue")
+            Kind.BOOLEAN -> DirectRead(
+                CodeBlock.of("p.hasToken(%T.VALUE_TRUE) || p.hasToken(%T.VALUE_FALSE)", jsonToken, jsonToken),
+                "p.booleanValue"
             )
-            else -> null
+            Kind.CHAR -> null
         }
     }
 
@@ -225,11 +211,6 @@ internal class JacksonCodegen(private val generatorConfig: GeneratorConfig) {
      */
     private fun ValidatedKspGeneratorElement.primitiveKind(): Kind =
         (payload as Payload.Primitive).kind
-
-    private fun isStringType(payloadType: KSType): Boolean {
-        val fqn = payloadType.declaration.qualifiedName?.asString()
-        return fqn == "kotlin.String" || fqn == "java.lang.String"
-    }
 
     fun generateModule(
         context: Generator.Context,

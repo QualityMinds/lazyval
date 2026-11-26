@@ -116,6 +116,23 @@ class ApJacksonIT extends Specification {
         dependencyJackson_3_Databind | dependencyJackson_3_Core | GENERATED_FILE_NAME_3
     }
 
+    void "a char payload is passed to the matched char factory, not to its boxed overload (#generatedFile)"(){
+        given: 'a char payload with of(char) and an of(Character) overload of another return type'
+        def scenario = Scenario.Java.ofSingle("scenarios/edge/RecordCharFactoryOverload.java")
+                .withDependencies(databind, core)
+
+        when:
+        def result = testkitJava.run(projectDir, scenario)
+
+        then: 'a call bound to of(Character) would not compile'
+        result == new Testresult.Java.Success(generatedFile)
+
+        where:
+        databind                     | core                     | generatedFile
+        dependencyJackson_2_Databind | dependencyJackson_2_Core | GENERATED_FILE_NAME_2
+        dependencyJackson_3_Databind | dependencyJackson_3_Core | GENERATED_FILE_NAME_3
+    }
+
     void "When Jackson 2 and 3 are active are warning is issued"(){
         given:
         def scenario = Scenario.Java.quantity()

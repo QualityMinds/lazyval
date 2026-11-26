@@ -9,17 +9,21 @@ simple value and deserializing uses the proper construction method.
 Since there are subtle differences from Jackson-2 to Jackson-3, Lazyval ships two dedicated generators for Java as well
 as Kotlin.
 
-When wrapping another type (like `LocalDate`), the implementation looks up the already-registered and
-configured (de)serializer for that type via the `SerializerProvider` / `DeserializationContext`,
-caches it on first use, and reuses the cached instance for every subsequent call.
+A domain-primitive is read and written the way the mapper reads and writes its payload type. Jackson calls
+`createContextual` on the registered (de)serializer once per mapper and property, before the first value; the
+generated one looks up Jackson's own (de)serializer for the payload type there, via the `SerializerProvider` /
+`DeserializationContext`, and returns a new instance holding it. So whatever the application configured for the
+payload type applies to the domain-primitive too: a (de)serializer it registered for `String`, e.g. one that trims
+or sanitizes input or masks output, a config override such as a `LocalDate` format, and a `@JsonFormat` on the
+property. Each mapper resolves its own, so nothing one mapper resolved reaches another.
 
-When wrapping a primitive or `String`, the generated serializer writes the JSON token directly through
-`JsonGenerator`, avoiding any per-call lookup. The generated deserializer reads directly through `JsonParser`
-only if the current token is the one Jackson itself reads directly for that type, e.g. `VALUE_NUMBER_INT` for
-an `int` or `VALUE_STRING` for a `String`. Any other token is handed to Jackson's own deserializer for the
-payload type, looked up and cached as above. Jackson's coercion rules then decide what is still accepted
-(by default `"7"` for an `int`), and anything else, such as an object, an array or `true` for an `int`, fails
-with a `MismatchedInputException` carrying the property path.
+A primitive payload is the one shortcut. The generated serializer writes it directly through `JsonGenerator`, and
+the deserializer reads it directly through `JsonParser` if the current token is the one Jackson itself reads
+directly for that type, e.g. `VALUE_NUMBER_INT` for an `int`. Any other token is handed to Jackson's own
+deserializer for the payload type. Jackson's coercion rules then decide what is still accepted (by default `"7"`
+for an `int`), and anything else, such as an object, an array or `true` for an `int`, fails with a
+`MismatchedInputException` carrying the property path. A (de)serializer the application registers for a primitive
+type is therefore not consulted for the values the shortcut handles.
 
 NOTE: Jackson and JSON-B address the same problem from two different ecosystems. If your application uses
 Jakarta JSON-B instead of (or in addition to) Jackson, see xref:jsonb.adoc[JSON-B].
@@ -82,28 +86,6 @@ public class LazyvalJacksonModule extends SimpleModule {
     context.addDeserializers(desers);
   }
 
-  // Non-primitive, non-String wrapper: delegate resolved once, cached for the lifetime of the instance.
-  static class OrderDateSerializer extends StdSerializer<OrderDate> {
-    static final OrderDateSerializer INSTANCE = new OrderDateSerializer();
-
-    private JsonSerializer<Object> innerSerializer;
-
-    protected OrderDateSerializer() {
-      super(OrderDate.class);
-    }
-
-    @Override
-    public void serialize(OrderDate value, JsonGenerator gen, SerializerProvider provider) throws
-        IOException {
-      JsonSerializer<Object> ser = this.innerSerializer;
-      if (ser == null) {
-        ser = provider.findValueSerializer(LocalDate.class);
-        this.innerSerializer = ser;
-      }
-      ser.serialize(value.date(), gen, provider);
-    }
-  }
-
   // Primitive wrapper: direct write through the generator.
   static class QuantitySerializer extends StdSerializer<Quantity> {
     static final QuantitySerializer INSTANCE = new QuantitySerializer();
@@ -119,51 +101,47 @@ public class LazyvalJacksonModule extends SimpleModule {
     }
   }
 
-  // String wrapper: direct write through the generator.
-  static class IsbnSerializer extends StdSerializer<Isbn> {
-    static final IsbnSerializer INSTANCE = new IsbnSerializer();
+  // Any other wrapper: the mapper's own serializer for the payload type, resolved per mapper and property.
+  static class OrderDateSerializer extends StdSerializer<OrderDate> implements ContextualSerializer {
+    static final OrderDateSerializer INSTANCE = new OrderDateSerializer(null);
 
-    protected IsbnSerializer() {
-      super(Isbn.class);
-    }
+    private final JsonSerializer<Object> innerSerializer;
 
-    @Override
-    public void serialize(Isbn value, JsonGenerator gen, SerializerProvider provider) throws
-        IOException {
-      gen.writeString(value.value());
-    }
-  }
-
-  static class OrderDateDeserializer extends StdDeserializer<OrderDate> {
-    static final OrderDateDeserializer INSTANCE = new OrderDateDeserializer();
-
-    private JsonDeserializer<Object> innerDeserializer;
-
-    protected OrderDateDeserializer() {
+    protected OrderDateSerializer(JsonSerializer<Object> innerSerializer) {
       super(OrderDate.class);
+      this.innerSerializer = innerSerializer;
     }
 
     @Override
-    public OrderDate deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
-        JacksonException {
-      JsonDeserializer<Object> deser = this.innerDeserializer;
-      if (deser == null) {
-        deser = ctxt.findContextualValueDeserializer(ctxt.constructType(LocalDate.class), null);
-        this.innerDeserializer = deser;
-      }
-      var value = (LocalDate) deser.deserialize(p, ctxt);
-      return new OrderDate(value);
+    public JsonSerializer<?> createContextual(SerializerProvider provider, BeanProperty property)
+        throws JsonMappingException {
+      return new OrderDateSerializer(provider.findContentValueSerializer(LocalDate.class, property));
+    }
+
+    @Override
+    public void serialize(OrderDate value, JsonGenerator gen, SerializerProvider provider) throws
+        IOException {
+      innerSerializer.serialize(value.date(), gen, provider);
     }
   }
 
-  // Primitive wrapper: direct read for the expected token, Jackson's int deserializer for any other.
-  static class QuantityDeserializer extends StdDeserializer<Quantity> {
-    static final QuantityDeserializer INSTANCE = new QuantityDeserializer();
+  // IsbnSerializer: the same, with the mapper's serializer for String.
 
-    private JsonDeserializer<Object> innerDeserializer;
+  // Primitive wrapper: direct read for the expected token, the mapper's int deserializer for any other.
+  static class QuantityDeserializer extends StdDeserializer<Quantity> implements ContextualDeserializer {
+    static final QuantityDeserializer INSTANCE = new QuantityDeserializer(null);
 
-    protected QuantityDeserializer() {
+    private final JsonDeserializer<Object> innerDeserializer;
+
+    protected QuantityDeserializer(JsonDeserializer<Object> innerDeserializer) {
       super(Quantity.class);
+      this.innerDeserializer = innerDeserializer;
+    }
+
+    @Override
+    public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property)
+        throws JsonMappingException {
+      return new QuantityDeserializer(ctxt.findContextualValueDeserializer(ctxt.constructType(int.class), property));
     }
 
     @Override
@@ -173,44 +151,38 @@ public class LazyvalJacksonModule extends SimpleModule {
       if (p.isExpectedNumberIntToken()) {
         value = p.getIntValue();
       } else {
-        JsonDeserializer<Object> deser = this.innerDeserializer;
-        if (deser == null) {
-          deser = ctxt.findContextualValueDeserializer(ctxt.constructType(int.class), null);
-          this.innerDeserializer = deser;
-        }
-        value = (Integer) deser.deserialize(p, ctxt);
+        value = (Integer) innerDeserializer.deserialize(p, ctxt);
       }
       return new Quantity(value);
     }
   }
 
-  // String wrapper: direct read for a string token, Jackson's String deserializer for any other.
-  static class IsbnDeserializer extends StdDeserializer<Isbn> {
-    static final IsbnDeserializer INSTANCE = new IsbnDeserializer();
+  // Any other wrapper: the mapper's own deserializer for the payload type, resolved per mapper and property.
+  static class IsbnDeserializer extends StdDeserializer<Isbn> implements ContextualDeserializer {
+    static final IsbnDeserializer INSTANCE = new IsbnDeserializer(null);
 
-    private JsonDeserializer<Object> innerDeserializer;
+    private final JsonDeserializer<Object> innerDeserializer;
 
-    protected IsbnDeserializer() {
+    protected IsbnDeserializer(JsonDeserializer<Object> innerDeserializer) {
       super(Isbn.class);
+      this.innerDeserializer = innerDeserializer;
+    }
+
+    @Override
+    public JsonDeserializer<?> createContextual(DeserializationContext ctxt, BeanProperty property)
+        throws JsonMappingException {
+      return new IsbnDeserializer(ctxt.findContextualValueDeserializer(ctxt.constructType(String.class), property));
     }
 
     @Override
     public Isbn deserialize(JsonParser p, DeserializationContext ctxt) throws IOException,
         JacksonException {
-      String value;
-      if (p.hasToken(JsonToken.VALUE_STRING)) {
-        value = p.getText();
-      } else {
-        JsonDeserializer<Object> deser = this.innerDeserializer;
-        if (deser == null) {
-          deser = ctxt.findContextualValueDeserializer(ctxt.constructType(String.class), null);
-          this.innerDeserializer = deser;
-        }
-        value = (String) deser.deserialize(p, ctxt);
-      }
+      String value = (String) innerDeserializer.deserialize(p, ctxt);
       return Isbn.parse(value);
     }
   }
+
+  // OrderDateDeserializer: the same, with the mapper's deserializer for LocalDate.
 }
 ----
 
@@ -243,20 +215,6 @@ public class LazyvalJacksonModule : SimpleModule("LazyvalJacksonModule", Version
     private val isbnDeserializer: IsbnDeserializer = IsbnDeserializer()
   }
 
-  // Non-primitive, non-String wrapper: delegate resolved once, cached for the lifetime of the instance.
-  private class OrderDateSerializer : StdSerializer<OrderDate>(OrderDate::class.java) {
-    private var innerSerializer: ValueSerializer<Any>? = null
-
-    override fun serialize(
-      `value`: OrderDate,
-      gen: JsonGenerator,
-      ctx: SerializationContext,
-    ) {
-      val ser = innerSerializer ?: ctx.findValueSerializer(LocalDate::class.java).also { innerSerializer = it }
-      ser.serialize(value.value, gen, ctx)
-    }
-  }
-
   // Primitive wrapper: direct write through the generator.
   private class QuantitySerializer : StdSerializer<Quantity>(Quantity::class.java) {
     override fun serialize(
@@ -268,56 +226,52 @@ public class LazyvalJacksonModule : SimpleModule("LazyvalJacksonModule", Version
     }
   }
 
-  // String wrapper: direct write through the generator.
-  private class IsbnSerializer : StdSerializer<Isbn>(Isbn::class.java) {
+  // Any other wrapper: the mapper's own serializer for the payload type, resolved per mapper and property.
+  private class OrderDateSerializer(
+    private val innerSerializer: ValueSerializer<Any>? = null,
+  ) : StdSerializer<OrderDate>(OrderDate::class.java) {
+    override fun createContextual(ctx: SerializationContext, `property`: BeanProperty?): ValueSerializer<*> = OrderDateSerializer(ctx.findContentValueSerializer(LocalDate::class.java, property))
+
     override fun serialize(
-      `value`: Isbn,
+      `value`: OrderDate,
       gen: JsonGenerator,
       ctx: SerializationContext,
     ) {
-      gen.writeString(value.value)
+      checkNotNull(innerSerializer).serialize(value.value, gen, ctx)
     }
   }
 
-  private class OrderDateDeserializer : StdDeserializer<OrderDate>(OrderDate::class.java) {
-    private var innerDeserializer: ValueDeserializer<Any>? = null
+  // IsbnSerializer: the same, with the mapper's serializer for String.
 
-    override fun deserialize(p: JsonParser, ctx: DeserializationContext): OrderDate {
-      val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(LocalDate::class.java), null).also { innerDeserializer = it }
-      val value = deser.deserialize(p, ctx) as LocalDate
-      return OrderDate(value)
-    }
-  }
-
-  // Primitive wrapper: direct read for the expected token, Jackson's int deserializer for any other.
-  private class QuantityDeserializer : StdDeserializer<Quantity>(Quantity::class.java) {
-    private var innerDeserializer: ValueDeserializer<Any>? = null
+  // Primitive wrapper: direct read for the expected token, the mapper's Int deserializer for any other.
+  private class QuantityDeserializer(
+    private val innerDeserializer: ValueDeserializer<Any>? = null,
+  ) : StdDeserializer<Quantity>(Quantity::class.java) {
+    override fun createContextual(ctx: DeserializationContext, `property`: BeanProperty?): ValueDeserializer<*> = QuantityDeserializer(ctx.findContextualValueDeserializer(ctx.constructType(Int::class.java), property))
 
     override fun deserialize(p: JsonParser, ctx: DeserializationContext): Quantity {
       val value = if (p.isExpectedNumberIntToken) {
         p.intValue
       } else {
-        val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(Int::class.java), null).also { innerDeserializer = it }
-        deser.deserialize(p, ctx) as Int
+        checkNotNull(innerDeserializer).deserialize(p, ctx) as Int
       }
       return Quantity(value)
     }
   }
 
-  // String wrapper: direct read for a string token, Jackson's String deserializer for any other.
-  private class IsbnDeserializer : StdDeserializer<Isbn>(Isbn::class.java) {
-    private var innerDeserializer: ValueDeserializer<Any>? = null
+  // Any other wrapper: the mapper's own deserializer for the payload type, resolved per mapper and property.
+  private class IsbnDeserializer(
+    private val innerDeserializer: ValueDeserializer<Any>? = null,
+  ) : StdDeserializer<Isbn>(Isbn::class.java) {
+    override fun createContextual(ctx: DeserializationContext, `property`: BeanProperty?): ValueDeserializer<*> = IsbnDeserializer(ctx.findContextualValueDeserializer(ctx.constructType(String::class.java), property))
 
     override fun deserialize(p: JsonParser, ctx: DeserializationContext): Isbn {
-      val value = if (p.hasToken(JsonToken.VALUE_STRING)) {
-        p.string
-      } else {
-        val deser = innerDeserializer ?: ctx.findContextualValueDeserializer(ctx.constructType(String::class.java), null).also { innerDeserializer = it }
-        deser.deserialize(p, ctx) as String
-      }
+      val value = checkNotNull(innerDeserializer).deserialize(p, ctx) as String
       return Isbn.parse(value)
     }
   }
+
+  // OrderDateDeserializer: the same, with the mapper's deserializer for LocalDate.
 }
 ----
 ====

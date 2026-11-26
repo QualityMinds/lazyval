@@ -8,8 +8,8 @@ import scenarios.java.OrderDate;
 import scenarios.java.Quantity;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.core.JsonParser;
-import tools.jackson.core.JsonToken;
 import tools.jackson.core.Version;
+import tools.jackson.databind.BeanProperty;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.JacksonModule;
 import tools.jackson.databind.SerializationContext;
@@ -45,48 +45,68 @@ public class LazyvalJacksonModule extends SimpleModule {
   }
 
   static class IdsProductIdSerializer extends StdSerializer<Ids.ProductId> {
-    static final IdsProductIdSerializer INSTANCE = new IdsProductIdSerializer();
+    static final IdsProductIdSerializer INSTANCE = new IdsProductIdSerializer(null);
 
-    protected IdsProductIdSerializer() {
+    private final ValueSerializer<Object> innerSerializer;
+
+    protected IdsProductIdSerializer(ValueSerializer<Object> innerSerializer) {
       super(Ids.ProductId.class);
+      this.innerSerializer = innerSerializer;
+    }
+
+    @Override
+    public ValueSerializer<?> createContextual(SerializationContext provider,
+        BeanProperty property) {
+      return new IdsProductIdSerializer(provider.findContentValueSerializer(String.class, property));
     }
 
     @Override
     public void serialize(Ids.ProductId value, JsonGenerator gen, SerializationContext provider) {
-      gen.writeString(value.value());
+      innerSerializer.serialize(value.value(), gen, provider);
     }
   }
 
   static class IsbnSerializer extends StdSerializer<Isbn> {
-    static final IsbnSerializer INSTANCE = new IsbnSerializer();
+    static final IsbnSerializer INSTANCE = new IsbnSerializer(null);
 
-    protected IsbnSerializer() {
+    private final ValueSerializer<Object> innerSerializer;
+
+    protected IsbnSerializer(ValueSerializer<Object> innerSerializer) {
       super(Isbn.class);
+      this.innerSerializer = innerSerializer;
+    }
+
+    @Override
+    public ValueSerializer<?> createContextual(SerializationContext provider,
+        BeanProperty property) {
+      return new IsbnSerializer(provider.findContentValueSerializer(String.class, property));
     }
 
     @Override
     public void serialize(Isbn value, JsonGenerator gen, SerializationContext provider) {
-      gen.writeString(value.getValue());
+      innerSerializer.serialize(value.getValue(), gen, provider);
     }
   }
 
   static class OrderDateSerializer extends StdSerializer<OrderDate> {
-    static final OrderDateSerializer INSTANCE = new OrderDateSerializer();
+    static final OrderDateSerializer INSTANCE = new OrderDateSerializer(null);
 
-    private ValueSerializer<Object> innerSerializer;
+    private final ValueSerializer<Object> innerSerializer;
 
-    protected OrderDateSerializer() {
+    protected OrderDateSerializer(ValueSerializer<Object> innerSerializer) {
       super(OrderDate.class);
+      this.innerSerializer = innerSerializer;
+    }
+
+    @Override
+    public ValueSerializer<?> createContextual(SerializationContext provider,
+        BeanProperty property) {
+      return new OrderDateSerializer(provider.findContentValueSerializer(LocalDate.class, property));
     }
 
     @Override
     public void serialize(OrderDate value, JsonGenerator gen, SerializationContext provider) {
-      ValueSerializer<Object> ser = this.innerSerializer;
-      if (ser == null) {
-        ser = provider.findValueSerializer(LocalDate.class);
-        this.innerSerializer = ser;
-      }
-      ser.serialize(value.value(), gen, provider);
+      innerSerializer.serialize(value.value(), gen, provider);
     }
   }
 
@@ -104,85 +124,88 @@ public class LazyvalJacksonModule extends SimpleModule {
   }
 
   static class IdsProductIdDeserializer extends StdDeserializer<Ids.ProductId> {
-    static final IdsProductIdDeserializer INSTANCE = new IdsProductIdDeserializer();
+    static final IdsProductIdDeserializer INSTANCE = new IdsProductIdDeserializer(null);
 
-    private ValueDeserializer<Object> innerDeserializer;
+    private final ValueDeserializer<Object> innerDeserializer;
 
-    protected IdsProductIdDeserializer() {
+    protected IdsProductIdDeserializer(ValueDeserializer<Object> innerDeserializer) {
       super(Ids.ProductId.class);
+      this.innerDeserializer = innerDeserializer;
+    }
+
+    @Override
+    public ValueDeserializer<?> createContextual(DeserializationContext ctxt,
+        BeanProperty property) {
+      return new IdsProductIdDeserializer(ctxt.findContextualValueDeserializer(ctxt.constructType(String.class), property));
     }
 
     @Override
     public Ids.ProductId deserialize(JsonParser p, DeserializationContext ctxt) {
-      String value;
-      if (p.hasToken(JsonToken.VALUE_STRING)) {
-        value = p.getString();
-      } else {
-        ValueDeserializer<Object> deser = this.innerDeserializer;
-        if (deser == null) {
-          deser = ctxt.findContextualValueDeserializer(ctxt.constructType(String.class), null);
-          this.innerDeserializer = deser;
-        }
-        value = (String) deser.deserialize(p, ctxt);
-      }
+      String value = (String) innerDeserializer.deserialize(p, ctxt);
       return Ids.ProductId.of(value);
     }
   }
 
   static class IsbnDeserializer extends StdDeserializer<Isbn> {
-    static final IsbnDeserializer INSTANCE = new IsbnDeserializer();
+    static final IsbnDeserializer INSTANCE = new IsbnDeserializer(null);
 
-    private ValueDeserializer<Object> innerDeserializer;
+    private final ValueDeserializer<Object> innerDeserializer;
 
-    protected IsbnDeserializer() {
+    protected IsbnDeserializer(ValueDeserializer<Object> innerDeserializer) {
       super(Isbn.class);
+      this.innerDeserializer = innerDeserializer;
+    }
+
+    @Override
+    public ValueDeserializer<?> createContextual(DeserializationContext ctxt,
+        BeanProperty property) {
+      return new IsbnDeserializer(ctxt.findContextualValueDeserializer(ctxt.constructType(String.class), property));
     }
 
     @Override
     public Isbn deserialize(JsonParser p, DeserializationContext ctxt) {
-      String value;
-      if (p.hasToken(JsonToken.VALUE_STRING)) {
-        value = p.getString();
-      } else {
-        ValueDeserializer<Object> deser = this.innerDeserializer;
-        if (deser == null) {
-          deser = ctxt.findContextualValueDeserializer(ctxt.constructType(String.class), null);
-          this.innerDeserializer = deser;
-        }
-        value = (String) deser.deserialize(p, ctxt);
-      }
+      String value = (String) innerDeserializer.deserialize(p, ctxt);
       return Isbn.parse(value);
     }
   }
 
   static class OrderDateDeserializer extends StdDeserializer<OrderDate> {
-    static final OrderDateDeserializer INSTANCE = new OrderDateDeserializer();
+    static final OrderDateDeserializer INSTANCE = new OrderDateDeserializer(null);
 
-    private ValueDeserializer<Object> innerDeserializer;
+    private final ValueDeserializer<Object> innerDeserializer;
 
-    protected OrderDateDeserializer() {
+    protected OrderDateDeserializer(ValueDeserializer<Object> innerDeserializer) {
       super(OrderDate.class);
+      this.innerDeserializer = innerDeserializer;
+    }
+
+    @Override
+    public ValueDeserializer<?> createContextual(DeserializationContext ctxt,
+        BeanProperty property) {
+      return new OrderDateDeserializer(ctxt.findContextualValueDeserializer(ctxt.constructType(LocalDate.class), property));
     }
 
     @Override
     public OrderDate deserialize(JsonParser p, DeserializationContext ctxt) {
-      ValueDeserializer<Object> deser = this.innerDeserializer;
-      if (deser == null) {
-        deser = ctxt.findContextualValueDeserializer(ctxt.constructType(LocalDate.class), null);
-        this.innerDeserializer = deser;
-      }
-      var value = (LocalDate) deser.deserialize(p, ctxt);
+      LocalDate value = (LocalDate) innerDeserializer.deserialize(p, ctxt);
       return new OrderDate(value);
     }
   }
 
   static class QuantityDeserializer extends StdDeserializer<Quantity> {
-    static final QuantityDeserializer INSTANCE = new QuantityDeserializer();
+    static final QuantityDeserializer INSTANCE = new QuantityDeserializer(null);
 
-    private ValueDeserializer<Object> innerDeserializer;
+    private final ValueDeserializer<Object> innerDeserializer;
 
-    protected QuantityDeserializer() {
+    protected QuantityDeserializer(ValueDeserializer<Object> innerDeserializer) {
       super(Quantity.class);
+      this.innerDeserializer = innerDeserializer;
+    }
+
+    @Override
+    public ValueDeserializer<?> createContextual(DeserializationContext ctxt,
+        BeanProperty property) {
+      return new QuantityDeserializer(ctxt.findContextualValueDeserializer(ctxt.constructType(int.class), property));
     }
 
     @Override
@@ -191,12 +214,7 @@ public class LazyvalJacksonModule extends SimpleModule {
       if (p.isExpectedNumberIntToken()) {
         value = p.getIntValue();
       } else {
-        ValueDeserializer<Object> deser = this.innerDeserializer;
-        if (deser == null) {
-          deser = ctxt.findContextualValueDeserializer(ctxt.constructType(int.class), null);
-          this.innerDeserializer = deser;
-        }
-        value = (Integer) deser.deserialize(p, ctxt);
+        value = (Integer) innerDeserializer.deserialize(p, ctxt);
       }
       return Quantity.of(value);
     }

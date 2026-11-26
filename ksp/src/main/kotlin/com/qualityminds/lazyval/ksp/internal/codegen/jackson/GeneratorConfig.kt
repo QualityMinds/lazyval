@@ -6,6 +6,9 @@ import kotlin.reflect.KClass
 
 /**
  * Captures the package/class differences between Jackson 2 and Jackson 3.
+ *
+ * [contextualViaInterface]: Jackson 2 calls `createContextual` only on a (de)serializer that implements
+ * [contextualSerializer] or [contextualDeserializer]; Jackson 3 declares it on every one.
  */
 @Suppress("TooManyFunctions") // Centralizes Jackson 2/3 type projections; splitting would scatter version-difference data.
 internal enum class GeneratorConfig(
@@ -23,7 +26,7 @@ internal enum class GeneratorConfig(
     val lazyvalJacksonModuleName: String,
     val valueSerializerClass: String,
     val valueDeserializerClass: String,
-    val parserStringProperty: String,
+    val contextualViaInterface: Boolean,
     val executingGenerator: KClass<out Generator>
 ) {
     JACKSON_2(
@@ -41,7 +44,7 @@ internal enum class GeneratorConfig(
         lazyvalJacksonModuleName = "LazyvalJackson2Module",
         valueSerializerClass = "JsonSerializer",
         valueDeserializerClass = "JsonDeserializer",
-        parserStringProperty = "text",
+        contextualViaInterface = true,
         executingGenerator = Jackson2Generator::class
     ),
     JACKSON_3(
@@ -59,7 +62,7 @@ internal enum class GeneratorConfig(
         lazyvalJacksonModuleName = "LazyvalJacksonModule",
         valueSerializerClass = "ValueSerializer",
         valueDeserializerClass = "ValueDeserializer",
-        parserStringProperty = "string",
+        contextualViaInterface = false,
         executingGenerator = Jackson3Generator::class
     );
 
@@ -77,4 +80,7 @@ internal enum class GeneratorConfig(
     fun objectMapper(): ClassName = ClassName(objectMapperPackage, "ObjectMapper")
     fun valueSerializer(): ClassName = ClassName(databindPackage, valueSerializerClass)
     fun valueDeserializer(): ClassName = ClassName(databindPackage, valueDeserializerClass)
+    fun beanProperty(): ClassName = ClassName(databindPackage, "BeanProperty")
+    fun contextualSerializer(): ClassName = ClassName("$databindPackage.ser", "ContextualSerializer")
+    fun contextualDeserializer(): ClassName = ClassName("$databindPackage.deser", "ContextualDeserializer")
 }
