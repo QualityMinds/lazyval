@@ -1,1 +1,2 @@
 com.qualityminds.lazyval.ksp.CreateFromBoxedProbeGenerator
+com.qualityminds.lazyval.ksp.evaluation.RoundTwoProbeGenerator
