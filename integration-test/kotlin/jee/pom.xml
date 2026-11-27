@@ -163,6 +163,16 @@
             <version>${version.it.jakarta-el}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <!--
+              JSON-B implementation for reading through the generated LazyvalJsonbAdapters in a plain test JVM
+              (evaluation finding K17). In production Liberty provides JSON-B.
+            -->
+            <groupId>org.eclipse</groupId>
+            <artifactId>yasson</artifactId>
+            <version>3.0.4</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
