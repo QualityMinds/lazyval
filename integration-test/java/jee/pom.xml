@@ -159,6 +159,13 @@
             <version>${version.it.jakarta-el}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <!-- JSON-B provider for JsonbExplicitNullEvaluationSpec; in production Liberty provides it -->
+            <groupId>org.eclipse.yasson</groupId>
+            <artifactId>yasson</artifactId>
+            <version>3.0.5</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
